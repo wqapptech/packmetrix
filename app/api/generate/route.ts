@@ -12,6 +12,14 @@ export async function POST(req: Request) {
       advantages,
       airports,
       userId,
+      nights,
+      includes,
+      excludes,
+      itinerary,
+      pricingTiers,
+      cancellation,
+      whatsapp,
+      messenger,
     } = body;
 
     // -----------------------------
@@ -41,6 +49,14 @@ export async function POST(req: Request) {
       description: description || "",
       advantages: Array.isArray(advantages) ? advantages : [],
       airports: Array.isArray(airports) ? airports : [],
+      nights: nights || null,
+      includes: Array.isArray(includes) ? includes : [],
+      excludes: Array.isArray(excludes) ? excludes : [],
+      itinerary: Array.isArray(itinerary) ? itinerary : [],
+      pricingTiers: Array.isArray(pricingTiers) ? pricingTiers : [],
+      cancellation: cancellation || "",
+      whatsapp: whatsapp || "",
+      messenger: messenger || "",
 
       views: 0,
       whatsappClicks: 0,
