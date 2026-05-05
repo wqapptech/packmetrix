@@ -11,7 +11,9 @@ if (!admin.apps.length) {
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   });
 }
 
 export const db = admin.firestore();
+export const bucket = admin.storage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);

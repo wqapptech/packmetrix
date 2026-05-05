@@ -23,7 +23,10 @@ type IconName =
   | "whatsapp"
   | "funnel"
   | "messenger"
-  | "video";
+  | "video"
+  | "trash"
+  | "globe"
+  | "credit_card";
 
 const PATHS: Record<IconName, string> = {
   home: "M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z M9 21V12h6v9",
@@ -61,6 +64,12 @@ const PATHS: Record<IconName, string> = {
     "M12 2C6.477 2 2 6.145 2 11.243c0 2.929 1.453 5.547 3.736 7.259V22l3.409-1.874c.91.252 1.875.387 2.855.387 5.522 0 10-4.144 10-9.242C22 6.144 17.523 2 12 2z",
   video:
     "M23 7l-7 5 7 5V7z M1 5h15a2 2 0 012 2v10a2 2 0 01-2 2H1V5z",
+  trash:
+    "M3 6h18 M8 6V4h8v2 M19 6l-1 14H6L5 6",
+  globe:
+    "M12 3a9 9 0 100 18A9 9 0 0012 3z M3 12h18 M12 3a14 14 0 010 18M12 3a14 14 0 000 18",
+  credit_card:
+    "M2 6h20a1 1 0 011 1v12a1 1 0 01-1 1H2a1 1 0 01-1-1V7a1 1 0 011-1z M1 10h22",
 };
 
 export default function Icon({

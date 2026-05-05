@@ -7,541 +7,396 @@ import { db } from "@/lib/firebase";
 import Icon from "@/components/Icon";
 
 type ItineraryDay = { day: number; title: string; desc: string };
-type PricingTier = { label: string; price: string };
-type Airport = { name: string; price: string };
+type PricingTier  = { label: string; price: string };
+type Airport      = { name: string; price: string };
 
 type PackageData = {
-  id: string;
-  destination: string;
-  price: string;
-  nights?: string | number;
-  description: string;
-  includes?: string[];
-  excludes?: string[];
-  advantages?: string[];
-  airports?: Airport[];
-  itinerary?: ItineraryDay[];
-  pricingTiers?: PricingTier[];
-  cancellation?: string;
-  whatsapp?: string;
-  messenger?: string;
+  id: string; userId: string;
+  destination: string; price: string; nights?: string | number; description: string;
+  includes?: string[]; excludes?: string[]; advantages?: string[];
+  airports?: Airport[]; itinerary?: ItineraryDay[]; pricingTiers?: PricingTier[];
+  cancellation?: string; whatsapp?: string; messenger?: string;
+  coverImage?: string; images?: string[]; videoUrl?: string;
 };
 
-// Default agency branding — in a real app this comes from the agency's profile
-const AGENCY = {
-  name: "Viagens Horizonte",
-  tagline: "Experts in curated travel experiences since 2008",
-  primaryColor: "#c9713a",
-  website: "www.viagenshorizonte.pt",
-  phone: "+351 21 345 6789",
-  instagram: "@viagenshorizonte",
-};
+type AgencyProfile = { name: string; tagline?: string; email: string; logoUrl?: string; brandColor?: string };
 
-function AgencyLogo({ color = "#c9713a", size = 32 }: { color?: string; size?: number }) {
+const DEFAULT_BRAND = "#1f5f8e";
+const BG  = "#fdfcf9";
+const INK = "#0d1b2e";
+const BORDER = "rgba(13,27,46,0.08)";
+const MUTED  = "rgba(13,27,46,0.55)";
+const SUPER_MUTED = "rgba(13,27,46,0.35)";
+
+function AgencyMark({ logoUrl, color = DEFAULT_BRAND, size = 32 }: { logoUrl?: string; color?: string; size?: number }) {
+  if (logoUrl) return <img src={logoUrl} alt="" style={{ width: size, height: size, objectFit: "contain", borderRadius: 6 }} />;
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-      <circle cx="20" cy="22" r="9" fill={color} opacity="0.9" />
-      <rect x="4" y="29" width="32" height="3" rx="1.5" fill={color} />
-      <line x1="20" y1="4" x2="20" y2="10" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="8" y1="8" x2="12" y2="12" stroke={color} strokeWidth="2" strokeLinecap="round" />
-      <line x1="32" y1="8" x2="28" y2="12" stroke={color} strokeWidth="2" strokeLinecap="round" />
-    </svg>
+    <div style={{ width: size, height: size, borderRadius: 8, background: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.4, fontWeight: 800, color: "#fff", flexShrink: 0 }}>
+      {String(size)}
+    </div>
   );
 }
 
-function ImgPlaceholder({ label, height = 220, color = "#c9713a", rounded = 14 }: { label: string; height?: number; color?: string; rounded?: number }) {
-  const id = label.replace(/\s/g, "-").toLowerCase();
+function WAButton({ onClick, label = "Book via WhatsApp", size = "lg" }: { onClick: () => void; label?: string; size?: "sm" | "lg" }) {
+  const pad = size === "lg" ? "14px 24px" : "9px 18px";
+  const fs = size === "lg" ? 15 : 13;
   return (
-    <div style={{ width: "100%", height, borderRadius: rounded, overflow: "hidden", position: "relative", background: `${color}18`, border: `1px solid ${color}20`, flexShrink: 0 }}>
-      <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
-        <defs>
-          <pattern id={`stripe-${id}`} width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="6" height="12" fill={`${color}14`} />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill={`url(#stripe-${id})`} />
+    <button onClick={onClick} style={{
+      background: "#25d366", color: "#fff", border: "none", borderRadius: 10,
+      padding: pad, fontSize: fs, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+      display: "flex", alignItems: "center", gap: 9,
+      boxShadow: size === "lg" ? "0 8px 24px rgba(37,211,102,0.3)" : "none",
+    }}>
+      <svg width={size === "lg" ? 16 : 14} height={size === "lg" ? 16 : 14} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.4.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3z"/>
+        <path d="M20.5 3.5C18.2 1.2 15.2 0 12 0 5.4 0 .1 5.3.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.4-1.7c1.7.9 3.7 1.4 5.6 1.4 6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.2-3.4-8.3zM12 21.8c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.7 1 1-3.6-.2-.4c-.9-1.5-1.4-3.3-1.4-5 0-5.5 4.5-9.9 9.9-9.9 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.4 2.9 7-.1 5.4-4.5 9.5-10.2 9.5z"/>
       </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
-        <Icon name="image" size={22} color={`${color}60`} />
-        <span style={{ fontSize: 10, color: `${color}80`, fontFamily: "monospace", textAlign: "center", padding: "0 12px", lineHeight: 1.4 }}>{label}</span>
-      </div>
-    </div>
-  );
-}
-
-function VideoPlaceholder({ height = 220, rounded = 14 }: { height?: number; rounded?: number }) {
-  return (
-    <div style={{ width: "100%", height, borderRadius: rounded, overflow: "hidden", position: "relative", background: "#0d1b2e", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
-      <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, opacity: 0.12 }}>
-        <defs>
-          <pattern id="vid-stripe" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="7" height="14" fill="rgba(255,255,255,0.3)" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#vid-stripe)" />
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
-        </div>
-        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "monospace", textAlign: "center", padding: "0 16px", lineHeight: 1.5 }}>promo reel · AI-generated video</span>
-      </div>
-    </div>
-  );
-}
-
-function LandingSection({ title, children, brandColor }: { title: string; children: React.ReactNode; brandColor: string }) {
-  return (
-    <div style={{ marginBottom: 56 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <div style={{ width: 3, height: 24, borderRadius: 99, background: brandColor, flexShrink: 0 }} />
-        <h2 style={{ fontFamily: "var(--font-dm-serif), 'DM Serif Display', serif", fontSize: 24, color: "#0d1b2e", lineHeight: 1 }}>{title}</h2>
-      </div>
-      {children}
-    </div>
+      {label}
+    </button>
   );
 }
 
 export default function PackagePage() {
   const params = useParams();
-  const id = params?.id as string;
+  const id     = params?.id as string;
   const router = useRouter();
 
-  const [data, setData] = useState<PackageData | null>(null);
+  const [data,    setData]    = useState<PackageData | null>(null);
+  const [agency,  setAgency]  = useState<AgencyProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeDay, setActiveDay] = useState(0);
 
   useEffect(() => {
     const load = async () => {
       if (!id || id === "undefined") { router.push("/builder"); return; }
       try {
-        const ref = doc(db, "packages", id);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) { router.push("/builder"); return; }
-        setData({ id: snap.id, ...snap.data() } as PackageData);
-      } catch (err) {
-        console.error("Firestore error:", err);
-      } finally {
-        setLoading(false);
-      }
+        const pkgSnap = await getDoc(doc(db, "packages", id));
+        if (!pkgSnap.exists()) { router.push("/builder"); return; }
+        const pkg = { id: pkgSnap.id, ...pkgSnap.data() } as PackageData;
+        setData(pkg);
+
+        if (pkg.userId) {
+          const userSnap = await getDoc(doc(db, "users", pkg.userId));
+          if (userSnap.exists()) {
+            const u = userSnap.data();
+            setAgency({ name: u.name || u.email || "Travel Agency", tagline: u.tagline || "", email: u.email || "", logoUrl: u.logoUrl || "", brandColor: u.brandColor || "" });
+          }
+        }
+
+        let sid = sessionStorage.getItem("pmx_sid");
+        if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem("pmx_sid", sid); }
+        fetch("/api/track-view", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, sessionId: sid }) });
+      } catch (err) { console.error(err); }
+      finally { setLoading(false); }
     };
     load();
   }, [id, router]);
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#fdfcf9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div className="spinner" style={{ borderTopColor: AGENCY.primaryColor }} />
-      </div>
-    );
-  }
+  const trackClick = (type: "whatsapp" | "messenger") =>
+    fetch("/api/track-click", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ packageId: id, type }) });
 
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "#fdfcf9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div className="spinner" style={{ borderTopColor: DEFAULT_BRAND }} />
+    </div>
+  );
   if (!data) return null;
 
-  const brandColor = AGENCY.primaryColor;
-  const includes = data.includes?.length ? data.includes : (data.advantages || []);
-  const excludes = data.excludes || [];
-  const airports = data.airports || [];
-  const itinerary = data.itinerary || [];
+  const bg         = BG;
+  const ink        = INK;
+  const border     = BORDER;
+  const muted      = MUTED;
+  const superMuted = SUPER_MUTED;
+
+  const brandColor  = agency?.brandColor || DEFAULT_BRAND;
+  const agencyName  = agency?.name || "Travel Agency";
+  const agencyLogo  = agency?.logoUrl || "";
+  const includes    = data.includes?.length ? data.includes : (data.advantages || []);
+  const excludes    = data.excludes || [];
+  const airports    = data.airports || [];
+  const itinerary   = (data.itinerary || []).filter(it => it.title?.trim());
   const pricingTiers = data.pricingTiers || [];
-  const nights = data.nights ? Number(data.nights) : null;
-  const whatsappHref = data.whatsapp ? `https://wa.me/${data.whatsapp.replace(/\D/g, "")}` : "#";
-  const messengerHref = data.messenger
-    ? `https://${data.messenger.startsWith("m.me") ? "" : "m.me/"}${data.messenger}`
-    : "#";
+  const nights      = data.nights ? Number(data.nights) : null;
+  const coverImage  = data.coverImage || "";
+  const images      = data.images?.filter(Boolean) || [];
+  const videoUrl    = data.videoUrl || "";
+  const allImages   = [coverImage, ...images].filter(Boolean);
+
+  const openWA = () => {
+    if (!data.whatsapp) return;
+    trackClick("whatsapp");
+    window.open(`https://wa.me/${data.whatsapp.replace(/\D/g, "")}`, "_blank", "noopener,noreferrer");
+  };
+  const openMessenger = () => {
+    if (!data.messenger) return;
+    trackClick("messenger");
+    const url = data.messenger.startsWith("m.me") ? `https://${data.messenger}` : `https://m.me/${data.messenger}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fdfcf9", color: "#0d1b2e", fontFamily: "var(--font-dm-sans), 'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: bg, color: ink, fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* ── AGENCY HEADER BAR ────────────────────────────────────────────────── */}
-      <div style={{
-        background: brandColor,
-        padding: "10px 48px",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-      }}>
+      {/* ── AGENCY HEADER ───────────────────────────────────────────────────── */}
+      <div style={{ padding: "14px 56px", borderBottom: `1px solid ${border}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: bg, position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(12px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <AgencyLogo color="white" size={28} />
+          <AgencyMark logoUrl={agencyLogo} color={brandColor} size={32} />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "white", letterSpacing: "-0.2px" }}>{AGENCY.name}</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)" }}>{AGENCY.tagline}</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: ink, letterSpacing: "-0.2px" }}>{agencyName}</div>
+            {agency?.tagline && <div style={{ fontSize: 10.5, color: superMuted }}>{agency.tagline}</div>}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", display: "flex", alignItems: "center", gap: 5 }}>
-            <Icon name="link" size={11} color="rgba(255,255,255,0.6)" /> {AGENCY.website}
-          </span>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", display: "flex", alignItems: "center", gap: 5 }}>
-            <Icon name="star" size={11} color="rgba(255,255,255,0.6)" /> {AGENCY.instagram}
-          </span>
-          {data.whatsapp && (
-            <a href={whatsappHref} target="_blank" rel="noopener noreferrer" style={{
-              background: "rgba(255,255,255,0.2)", backdropFilter: "blur(4px)",
-              borderRadius: 8, padding: "6px 14px",
-              fontSize: 12, fontWeight: 700, color: "white", textDecoration: "none",
-              border: "1px solid rgba(255,255,255,0.3)",
-            }}>Contact us</a>
-          )}
+        <div style={{ display: "flex", alignItems: "center", gap: 24, fontSize: 13, color: muted, fontWeight: 500 }}>
+          {itinerary.length > 0 && <a href="#itinerary" style={{ textDecoration: "none", color: "inherit" }}>Itinerary</a>}
+          {(includes.length > 0 || excludes.length > 0) && <a href="#included" style={{ textDecoration: "none", color: "inherit" }}>Included</a>}
+          {pricingTiers.filter(t => t.price).length > 0 && <a href="#pricing" style={{ textDecoration: "none", color: "inherit" }}>Pricing</a>}
+          {data.whatsapp && <WAButton onClick={openWA} label={`Book · ${data.price}`} size="sm" />}
         </div>
       </div>
 
-      {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-      <div style={{
-        height: 480, position: "relative", overflow: "hidden",
-        display: "flex", flexDirection: "column", justifyContent: "flex-end",
-        padding: "0 56px 48px",
-      }}>
-        {/* Cover image placeholder background */}
-        <div style={{ position: "absolute", inset: 0 }}>
-          <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
-            <defs>
-              <pattern id="hero-stripe" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                <rect width="8" height="16" fill={`${brandColor}22`} />
-              </pattern>
-              <linearGradient id="hero-fade" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f5e4c8" stopOpacity="1" />
-                <stop offset="100%" stopColor={brandColor} stopOpacity="0.85" />
-              </linearGradient>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#hero-fade)" />
-            <rect width="100%" height="100%" fill="url(#hero-stripe)" />
-          </svg>
-          <div style={{ position: "absolute", top: 16, right: 16, background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: 8, padding: "5px 10px", fontSize: 10, color: "rgba(255,255,255,0.7)", fontFamily: "monospace", display: "flex", alignItems: "center", gap: 5 }}>
-            <Icon name="image" size={10} color="rgba(255,255,255,0.6)" /> cover photo · {data.destination}
-          </div>
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(13,10,6,0.72) 0%, transparent 55%)" }} />
-        </div>
+      {/* ── HERO — 2-column split ────────────────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", minHeight: 560 }}>
 
-        {/* Hero content */}
-        <div style={{ position: "relative" }}>
-          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-            {nights && (
-              <span style={{ background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", borderRadius: 99, padding: "5px 12px", fontSize: 12, color: "white" }}>
-                {nights} Days
-              </span>
+        {/* Left: editorial copy */}
+        <div style={{ padding: "64px 56px 56px", display: "flex", flexDirection: "column", justifyContent: "space-between", background: bg }}>
+          <div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 700, color: brandColor, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 24 }}>
+              <span style={{ width: 24, height: 1, background: brandColor, display: "inline-block" }} />
+              {data.destination}
+            </div>
+
+            <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 62, lineHeight: 1.03, letterSpacing: "-1.5px", marginBottom: 22, color: ink, fontWeight: 400 }}>
+              {data.description
+                ? data.description.split(/[.!?]/)[0].trim()
+                : data.destination}
+            </h1>
+
+            {data.description && data.description.split(/[.!?]/).length > 1 && (
+              <p style={{ fontSize: 16, color: muted, lineHeight: 1.7, maxWidth: 480, marginBottom: 36 }}>
+                {data.description.split(/[.!?]/).slice(1).join(". ").replace(/^\.\s*/, "").trim()}
+              </p>
             )}
-            <span style={{ background: brandColor, backdropFilter: "blur(8px)", borderRadius: 99, padding: "5px 12px", fontSize: 12, color: "white", fontWeight: 700 }}>
-              From {data.price}
-            </span>
-          </div>
-          <h1 style={{
-            fontFamily: "var(--font-dm-serif), 'DM Serif Display', serif",
-            fontSize: 56, color: "white", lineHeight: 1.05,
-            marginBottom: 14, textShadow: "0 2px 24px rgba(0,0,0,0.5)",
-          }}>
-            {data.destination}
-          </h1>
-          {data.description && (
-            <p style={{ fontSize: 16, color: "rgba(255,255,255,0.75)", maxWidth: 500, lineHeight: 1.65 }}>
-              {data.description}
-            </p>
-          )}
-        </div>
-      </div>
 
-      {/* ── STICKY NAV BAR (branded) ──────────────────────────────────────────── */}
-      <div style={{
-        position: "sticky", top: 0, zIndex: 50,
-        background: "rgba(253,252,249,0.97)", backdropFilter: "blur(14px)",
-        borderBottom: `2px solid ${brandColor}30`,
-        padding: "12px 48px",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-          <AgencyLogo color={brandColor} size={22} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: brandColor, marginLeft: 8 }}>{AGENCY.name}</span>
-          <span style={{ width: 1, height: 16, background: "rgba(13,27,46,0.12)", margin: "0 16px" }} />
-          {nights && (
-            <div style={{ marginRight: 20 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(13,27,46,0.35)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Duration</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#0d1b2e" }}>{nights} days / {nights - 1} nights</div>
+            <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 32 }}>
+              <div>
+                <div style={{ fontSize: 10.5, color: superMuted, textTransform: "uppercase", letterSpacing: ".7px", marginBottom: 3 }}>From</div>
+                <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 40, color: ink, fontWeight: 400, letterSpacing: "-1px", lineHeight: 1 }}>{data.price}</div>
+                {nights && <div style={{ fontSize: 11, color: superMuted }}>per person · {nights} nights</div>}
+              </div>
+              {airports.length > 0 && (
+                <>
+                  <div style={{ width: 1, height: 48, background: border }} />
+                  <div>
+                    <div style={{ fontSize: 10.5, color: superMuted, textTransform: "uppercase", letterSpacing: ".7px", marginBottom: 3 }}>Departures</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: ink }}>{airports.map(a => a.name.split(" ")[0]).join(" · ")}</div>
+                  </div>
+                </>
+              )}
             </div>
-          )}
-          {airports.length > 0 && (
-            <div style={{ marginRight: 20 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(13,27,46,0.35)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Departure</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#0d1b2e" }}>{airports.map(a => a.name.split(" ")[0]).join(", ")}</div>
+
+            <div style={{ display: "flex", gap: 10, marginBottom: 28 }}>
+              {data.whatsapp && <WAButton onClick={openWA} />}
+              {data.messenger && (
+                <button onClick={openMessenger} style={{ padding: "14px 22px", borderRadius: 10, background: "transparent", color: ink, border: `1.5px solid ${border}`, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                  Message us ▷
+                </button>
+              )}
             </div>
-          )}
-          <div style={{ marginRight: 20 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(13,27,46,0.35)", textTransform: "uppercase", letterSpacing: "0.5px" }}>From</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#0d1b2e" }}>{data.price}</div>
+          </div>
+
+          {/* Trust signals */}
+          <div style={{ display: "flex", gap: 24, alignItems: "center", paddingTop: 24, borderTop: `1px solid ${border}` }}>
+            {data.cancellation && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: ink }}>Free cancellation</div>
+                <div style={{ fontSize: 11, color: superMuted }}>{data.cancellation.split("–")[0].trim()}</div>
+              </div>
+            )}
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: ink }}>~5 min to book</div>
+              <div style={{ fontSize: 11, color: superMuted }}>via WhatsApp</div>
+            </div>
+            {nights && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: ink }}>{nights} nights</div>
+                <div style={{ fontSize: 11, color: superMuted }}>{nights + 1} day itinerary</div>
+              </div>
+            )}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {data.whatsapp && (
-            <a href={whatsappHref} target="_blank" rel="noopener noreferrer" style={{
-              background: "#25d366", color: "white", borderRadius: 9, padding: "9px 18px",
-              fontSize: 13, fontWeight: 700, textDecoration: "none",
-              display: "flex", alignItems: "center", gap: 7,
-            }}>
-              <Icon name="whatsapp" size={14} color="white" /> Book via WhatsApp
-            </a>
-          )}
-          {data.messenger && (
-            <a href={messengerHref} target="_blank" rel="noopener noreferrer" style={{
-              background: "#0084ff", color: "white", borderRadius: 9, padding: "9px 18px",
-              fontSize: 13, fontWeight: 700, textDecoration: "none",
-            }}>Messenger</a>
+
+        {/* Right: image collage */}
+        <div style={{ position: "relative", overflow: "hidden", background: allImages[0] ? `url(${allImages[0]}) center/cover` : `linear-gradient(135deg, ${brandColor}40, ${brandColor}80)` }}>
+          <div style={{ position: "absolute", top: 20, right: 20, padding: "6px 14px", borderRadius: 99, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", fontSize: 11, fontWeight: 700, color: ink }}>
+            ✦ Editor&apos;s pick
+          </div>
+          {allImages.length >= 2 && (
+            <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, display: "flex", gap: 8 }}>
+              {allImages.slice(1, 5).map((src, i) => (
+                <div key={i} style={{ flex: 1, aspectRatio: "1", borderRadius: 10, background: `url(${src}) center/cover`, border: "2px solid rgba(255,255,255,0.5)", boxShadow: "0 4px 14px rgba(0,0,0,0.25)" }} />
+              ))}
+              {allImages.length > 5 && (
+                <div style={{ flex: 1, aspectRatio: "1", borderRadius: 10, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700 }}>
+                  +{allImages.length - 5}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
 
       {/* ── MAIN CONTENT ─────────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 1020, margin: "0 auto", padding: "56px 40px 80px" }}>
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "72px 40px 96px" }}>
 
-        {/* ── MEDIA GALLERY ──────────────────────────────────────────────────── */}
-        <LandingSection title="Photos & Video" brandColor={brandColor}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gridTemplateRows: "220px 160px", gap: 10, marginBottom: 10 }}>
-            <div style={{ gridRow: "1 / 3", gridColumn: "1 / 2" }}>
-              <ImgPlaceholder label={"cover photo\n" + data.destination} height={390} color={brandColor} />
+        {/* ── ITINERARY ──────────────────────────────────────────────────────── */}
+        {itinerary.length > 0 && (
+          <section id="itinerary" style={{ marginBottom: 72 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: brandColor, letterSpacing: "1.5px", textTransform: "uppercase" }}>Day by day</span>
             </div>
-            <div style={{ gridColumn: "2 / 4" }}>
-              <VideoPlaceholder height={220} />
-            </div>
-            <ImgPlaceholder label="gallery · destination view" height={160} color={brandColor} />
-            <ImgPlaceholder label="gallery · local culture" height={160} color={brandColor} />
-          </div>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-            {["Landmark view", "Local cuisine", "Hotel room", "Day excursion", "Sunset scene"].map((label, i) => (
-              <div key={i} style={{ width: 110, height: 72, borderRadius: 8, overflow: "hidden", flexShrink: 0, position: "relative", background: `${brandColor}18`, border: `1px solid ${brandColor}20` }}>
-                <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
-                  <defs>
-                    <pattern id={`thumb-${i}`} width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                      <rect width="5" height="10" fill={`${brandColor}14`} />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill={`url(#thumb-${i})`} />
-                </svg>
-                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 9, color: `${brandColor}80`, textAlign: "center", lineHeight: 1.3, padding: "0 6px", fontFamily: "monospace" }}>{label}</span>
-                </div>
-              </div>
-            ))}
-            <div style={{ width: 110, height: 72, borderRadius: 8, flexShrink: 0, background: `${brandColor}12`, border: `1px dashed ${brandColor}30`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-              <span style={{ fontSize: 11, color: `${brandColor}80`, textAlign: "center", lineHeight: 1.4 }}>+3 more</span>
-            </div>
-          </div>
-        </LandingSection>
-
-        {/* ── PRICING TIERS ──────────────────────────────────────────────────── */}
-        {pricingTiers.length > 0 && (
-          <LandingSection title="Choose Your Package" brandColor={brandColor}>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(pricingTiers.length, 3)}, 1fr)`, gap: 16 }}>
-              {pricingTiers.map((tier, i) => (
-                <div key={i} style={{
-                  background: i === 0 ? `linear-gradient(135deg, ${brandColor}, #8b4513)` : "rgba(13,27,46,0.03)",
-                  border: `1px solid ${i === 0 ? "transparent" : "rgba(13,27,46,0.1)"}`,
-                  borderRadius: 16, padding: "24px 22px", position: "relative", overflow: "hidden",
-                }}>
-                  {i === 0 && <div style={{ position: "absolute", top: 12, right: 12, background: "rgba(255,255,255,0.22)", borderRadius: 99, padding: "3px 10px", fontSize: 10, fontWeight: 700, color: "white" }}>MOST POPULAR</div>}
-                  <div style={{ fontSize: 13, fontWeight: 600, color: i === 0 ? "rgba(255,255,255,0.7)" : "rgba(13,27,46,0.5)", marginBottom: 14 }}>{tier.label}</div>
-                  <div style={{ fontSize: 38, fontWeight: 800, color: i === 0 ? "white" : "#0d1b2e", letterSpacing: "-1px", lineHeight: 1 }}>{tier.price}</div>
-                  <div style={{ fontSize: 11, color: i === 0 ? "rgba(255,255,255,0.5)" : "rgba(13,27,46,0.4)", marginBottom: 18 }}>per person</div>
-                  {data.whatsapp && (
-                    <a href={whatsappHref} target="_blank" rel="noopener noreferrer" style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                      background: i === 0 ? "rgba(255,255,255,0.2)" : brandColor,
-                      color: "white", textDecoration: "none", borderRadius: 9, padding: "9px",
-                      fontSize: 12, fontWeight: 700,
-                    }}>
-                      <Icon name="whatsapp" size={13} color="white" /> Book this option
-                    </a>
-                  )}
+            <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, lineHeight: 1.1, fontWeight: 400, color: ink, marginBottom: 32 }}>Your journey</h2>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(itinerary.length, 5)}, 1fr)`, gap: 14 }}>
+              {itinerary.map((it, i) => (
+                <div key={i} style={{ background: bg, borderRadius: 14, padding: "20px 18px", border: `1px solid ${border}`, boxShadow: `0 2px 8px ${border}` }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: brandColor, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 10 }}>Day {it.day}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: ink, lineHeight: 1.3, marginBottom: 8 }}>{it.title || "—"}</div>
+                  {it.desc && <div style={{ fontSize: 12, color: muted, lineHeight: 1.55 }}>{it.desc}</div>}
                 </div>
               ))}
             </div>
-          </LandingSection>
+          </section>
         )}
 
         {/* ── WHAT'S INCLUDED ────────────────────────────────────────────────── */}
         {(includes.length > 0 || excludes.length > 0) && (
-          <LandingSection title="What's Included" brandColor={brandColor}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+          <section id="included" style={{ marginBottom: 72 }}>
+            <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, lineHeight: 1.1, fontWeight: 400, color: ink, marginBottom: 32 }}>What&apos;s included</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
               {includes.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#2dd4a0", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.6px" }}>Included</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#2dd4a0", marginBottom: 18, textTransform: "uppercase", letterSpacing: "0.6px" }}>Included</div>
                   {includes.map((item, i) => (
-                    <div key={i} style={{ display: "flex", gap: 10, marginBottom: 11, alignItems: "flex-start" }}>
-                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(45,212,160,0.12)", border: "1px solid rgba(45,212,160,0.28)", flexShrink: 0, marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div key={i} style={{ display: "flex", gap: 12, marginBottom: 13, alignItems: "flex-start" }}>
+                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(45,212,160,0.1)", border: "1px solid rgba(45,212,160,0.25)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Icon name="check" size={10} color="#2dd4a0" strokeWidth={2.5} />
                       </div>
-                      <span style={{ fontSize: 13, color: "rgba(13,27,46,0.72)", lineHeight: 1.5 }}>{item}</span>
+                      <span style={{ fontSize: 14, color: muted, lineHeight: 1.5 }}>{item}</span>
                     </div>
                   ))}
                 </div>
               )}
               {excludes.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#ef4444", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.6px" }}>Not Included</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#ef4444", marginBottom: 18, textTransform: "uppercase", letterSpacing: "0.6px" }}>Not included</div>
                   {excludes.map((item, i) => (
-                    <div key={i} style={{ display: "flex", gap: 10, marginBottom: 11, alignItems: "flex-start" }}>
-                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", flexShrink: 0, marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div key={i} style={{ display: "flex", gap: 12, marginBottom: 13, alignItems: "flex-start" }}>
+                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Icon name="x" size={10} color="#ef4444" strokeWidth={2.5} />
                       </div>
-                      <span style={{ fontSize: 13, color: "rgba(13,27,46,0.5)", lineHeight: 1.5 }}>{item}</span>
+                      <span style={{ fontSize: 14, color: muted, lineHeight: 1.5 }}>{item}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-          </LandingSection>
+          </section>
         )}
 
-        {/* ── DAY-BY-DAY ITINERARY (vertical timeline) ──────────────────────── */}
-        {itinerary.length > 0 && (
-          <LandingSection title="Day-by-Day Itinerary" brandColor={brandColor}>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {itinerary.map((day, i) => (
-                <div
-                  key={i}
-                  onClick={() => setActiveDay(activeDay === i ? -1 : i)}
-                  style={{
-                    display: "flex", gap: 18,
-                    borderLeft: `2px solid ${i <= activeDay ? brandColor : "rgba(13,27,46,0.1)"}`,
-                    paddingLeft: 24, paddingTop: 4, paddingBottom: 20,
-                    transition: "border-color 0.2s",
-                    position: "relative", cursor: "pointer",
-                  }}
-                >
-                  <div style={{
-                    position: "absolute", left: -10, top: 4,
-                    width: 18, height: 18, borderRadius: "50%",
-                    background: i <= activeDay ? brandColor : "rgba(13,27,46,0.08)",
-                    border: `2px solid ${i <= activeDay ? brandColor : "rgba(13,27,46,0.15)"}`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.2s",
-                  }}>
-                    {i < activeDay && <Icon name="check" size={8} color="white" strokeWidth={3} />}
-                    {i === activeDay && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "white" }} />}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: brandColor }}>DAY {day.day}</span>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: "#0d1b2e" }}>{day.title}</span>
-                      </div>
-                      <span style={{
-                        fontSize: 12, color: "rgba(13,27,46,0.3)",
-                        display: "inline-block", transition: "transform 0.2s",
-                        transform: activeDay === i ? "rotate(180deg)" : "rotate(0)",
-                      }}>▾</span>
-                    </div>
-                    {activeDay === i && (
-                      <p style={{ fontSize: 13, color: "rgba(13,27,46,0.6)", lineHeight: 1.7, marginTop: 8, paddingRight: 32 }}>
-                        {day.desc}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </LandingSection>
-        )}
-
-        {/* ── DEPARTURE OPTIONS ──────────────────────────────────────────────── */}
-        {airports.length > 0 && (
-          <LandingSection title="Departure Options" brandColor={brandColor}>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(airports.length, 3)}, 1fr)`, gap: 12 }}>
-              {airports.map((a, i) => (
+        {/* ── PRICING TIERS ──────────────────────────────────────────────────── */}
+        {pricingTiers.filter(t => t.price).length > 0 && (
+          <section id="pricing" style={{ marginBottom: 72 }}>
+            <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, lineHeight: 1.1, fontWeight: 400, color: ink, marginBottom: 32 }}>Choose your option</h2>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(pricingTiers.filter(t => t.price).length, 3)}, 1fr)`, gap: 16 }}>
+              {pricingTiers.filter(t => t.price).map((tier, i) => (
                 <div key={i} style={{
-                  background: i === 0 ? `${brandColor}08` : "rgba(13,27,46,0.03)",
-                  border: `1px solid ${i === 0 ? brandColor + "25" : "rgba(13,27,46,0.08)"}`,
-                  borderRadius: 13, padding: "18px 20px",
+                  background: i === 0 ? `linear-gradient(135deg, ${brandColor}, ${brandColor}cc)` : bg,
+                  border: `1px solid ${i === 0 ? "transparent" : "rgba(13,27,46,0.1)"}`,
+                  borderRadius: 18, padding: "28px 24px", position: "relative", overflow: "hidden",
+                  boxShadow: i === 0 ? `0 12px 32px ${brandColor}30` : "0 2px 8px rgba(13,27,46,0.04)",
                 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "#0d1b2e", marginBottom: 2 }}>{a.name}</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: brandColor, letterSpacing: "-0.5px", marginBottom: 10 }}>{a.price}</div>
+                  {i === 0 && <div style={{ position: "absolute", top: 14, right: 14, background: "rgba(255,255,255,0.22)", borderRadius: 99, padding: "3px 10px", fontSize: 10, fontWeight: 700, color: "#fff", letterSpacing: ".3px" }}>MOST POPULAR</div>}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: i === 0 ? "rgba(255,255,255,0.7)" : muted, marginBottom: 14 }}>{tier.label}</div>
+                  <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, fontWeight: 400, color: i === 0 ? "#fff" : ink, letterSpacing: "-1px", lineHeight: 1 }}>{tier.price}</div>
+                  <div style={{ fontSize: 11, color: i === 0 ? "rgba(255,255,255,0.5)" : superMuted, marginBottom: 20 }}>per person</div>
                   {data.whatsapp && (
-                    <a href={whatsappHref} target="_blank" rel="noopener noreferrer" style={{
-                      display: "flex", alignItems: "center", gap: 5,
-                      fontSize: 12, color: brandColor, fontWeight: 600, textDecoration: "none",
-                    }}>
-                      <Icon name="whatsapp" size={12} color={brandColor} /> Book this flight →
-                    </a>
+                    <button onClick={openWA} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: i === 0 ? "rgba(255,255,255,0.2)" : brandColor, color: "#fff", border: "none", borderRadius: 9, padding: "10px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      Book this option →
+                    </button>
                   )}
                 </div>
               ))}
             </div>
-          </LandingSection>
+          </section>
         )}
 
-        {/* ── CANCELLATION POLICY ────────────────────────────────────────────── */}
-        {data.cancellation && (
-          <div style={{ background: "rgba(45,212,160,0.06)", border: "1px solid rgba(45,212,160,0.2)", borderRadius: 12, padding: "16px 20px", marginBottom: 56, display: "flex", gap: 12, alignItems: "center" }}>
-            <Icon name="check" size={18} color="#2dd4a0" strokeWidth={2} />
-            <span style={{ fontSize: 14, color: "rgba(13,27,46,0.7)" }}>{data.cancellation}</span>
-          </div>
+        {/* ── MEDIA GALLERY ──────────────────────────────────────────────────── */}
+        {(allImages.length > 1 || videoUrl) && (
+          <section style={{ marginBottom: 72 }}>
+            <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, lineHeight: 1.1, fontWeight: 400, color: ink, marginBottom: 32 }}>Gallery</h2>
+            {videoUrl && (
+              <video src={videoUrl} controls style={{ width: "100%", borderRadius: 14, background: ink, maxHeight: 400, marginBottom: 14 }} />
+            )}
+            {allImages.length > 1 && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                {allImages.slice(1).map((url, i) => (
+                  <img key={i} src={url} alt="" style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 12 }} />
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
-        {/* ── AGENCY FOOTER CTA ──────────────────────────────────────────────── */}
-        <div style={{
-          background: `linear-gradient(135deg, ${brandColor} 0%, #6b3518 100%)`,
-          borderRadius: 22, overflow: "hidden", position: "relative",
-          padding: "44px 52px",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          gap: 32,
-        }}>
-          <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.07 }} viewBox="0 0 80 80" preserveAspectRatio="xMidYMid slice">
+        {/* ── DEPARTURE OPTIONS ──────────────────────────────────────────────── */}
+        {airports.length > 0 && (
+          <section style={{ marginBottom: 72 }}>
+            <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 38, lineHeight: 1.1, fontWeight: 400, color: ink, marginBottom: 32 }}>Departure options</h2>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(airports.length, 3)}, 1fr)`, gap: 14 }}>
+              {airports.map((a, i) => (
+                <div key={i} style={{ background: i === 0 ? `${brandColor}08` : "rgba(13,27,46,0.02)", border: `1px solid ${i === 0 ? brandColor + "30" : "rgba(13,27,46,0.08)"}`, borderRadius: 14, padding: "22px 22px" }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: ink, marginBottom: 4 }}>{a.name}</div>
+                  <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 32, fontWeight: 400, color: brandColor, letterSpacing: "-0.5px", lineHeight: 1, marginBottom: 14 }}>{a.price}</div>
+                  {data.whatsapp && (
+                    <button onClick={openWA} style={{ fontSize: 13, color: brandColor, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
+                      Book this flight →
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── FOOTER CTA ─────────────────────────────────────────────────────── */}
+        <div style={{ background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}bb 100%)`, borderRadius: 24, overflow: "hidden", position: "relative", padding: "52px 56px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 40 }}>
+          <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.06, pointerEvents: "none" }} viewBox="0 0 80 80" preserveAspectRatio="xMidYMid slice">
             <defs><pattern id="geo-cta" width="40" height="40" patternUnits="userSpaceOnUse"><polygon points="20,0 40,10 40,30 20,40 0,30 0,10" fill="none" stroke="white" strokeWidth="0.5" /></pattern></defs>
             <rect width="100%" height="100%" fill="url(#geo-cta)" />
           </svg>
           <div style={{ position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <AgencyLogo color="rgba(255,255,255,0.85)" size={24} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.8)" }}>{AGENCY.name}</span>
-            </div>
-            <div style={{ fontFamily: "var(--font-dm-serif), 'DM Serif Display', serif", fontSize: 30, color: "white", marginBottom: 8, lineHeight: 1.2 }}>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 36, color: "#fff", marginBottom: 10, lineHeight: 1.15 }}>
               Ready to explore {data.destination}?
             </div>
-            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 6 }}>
-              Contact us to reserve your spot today
-            </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
-              {AGENCY.phone} · {AGENCY.website}
-            </div>
+            <div style={{ fontSize: 15, color: "rgba(255,255,255,0.65)" }}>Reserve your spot — it only takes 5 minutes.</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, position: "relative", flexShrink: 0 }}>
-            {data.whatsapp && (
-              <a href={whatsappHref} target="_blank" rel="noopener noreferrer" style={{
-                background: "#25d366", color: "white", borderRadius: 12, padding: "14px 28px",
-                fontSize: 15, fontWeight: 700, textDecoration: "none",
-                display: "flex", alignItems: "center", gap: 10,
-                boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-              }}>
-                <Icon name="whatsapp" size={18} color="white" /> Book via WhatsApp
-              </a>
-            )}
+            {data.whatsapp && <WAButton onClick={openWA} />}
             {data.messenger && (
-              <a href={messengerHref} target="_blank" rel="noopener noreferrer" style={{
-                background: "rgba(255,255,255,0.18)", color: "white", borderRadius: 12, padding: "12px 28px",
-                fontSize: 14, fontWeight: 600, textDecoration: "none",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.25)",
-              }}>
+              <button onClick={openMessenger} style={{ background: "rgba(255,255,255,0.18)", color: "#fff", border: "1px solid rgba(255,255,255,0.28)", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", backdropFilter: "blur(8px)" }}>
                 Message on Messenger
-              </a>
+              </button>
             )}
             {!data.whatsapp && !data.messenger && (
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Contact info not set — edit in the Builder.</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Contact info not set — edit in Builder.</div>
             )}
           </div>
         </div>
 
-        {/* ── AGENCY FOOTER ──────────────────────────────────────────────────── */}
-        <div style={{
-          marginTop: 40, paddingTop: 28, borderTop: "1px solid rgba(13,27,46,0.08)",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
+        {/* ── PAGE FOOTER ────────────────────────────────────────────────────── */}
+        <div style={{ marginTop: 48, paddingTop: 28, borderTop: "1px solid rgba(13,27,46,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <AgencyLogo color={brandColor} size={26} />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0d1b2e" }}>{AGENCY.name}</div>
-              <div style={{ fontSize: 11, color: "rgba(13,27,46,0.4)" }}>{AGENCY.tagline}</div>
-            </div>
+            <AgencyMark logoUrl={agencyLogo} color={brandColor} size={26} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: ink }}>{agencyName}</div>
           </div>
-          <div style={{ fontSize: 11, color: "rgba(13,27,46,0.3)", textAlign: "right" }}>
-            <div>{AGENCY.phone} · {AGENCY.website}</div>
-            <div style={{ marginTop: 3 }}>Page powered by PackMetrics</div>
-          </div>
+          <div style={{ fontSize: 11, color: superMuted }}>Powered by Packmetrix</div>
         </div>
       </div>
     </div>

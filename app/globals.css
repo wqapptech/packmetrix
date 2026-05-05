@@ -11,6 +11,9 @@
   --white-dim: #f0ede6;
   --muted: #8899aa;
   --teal: #4ecdc4;
+  --aegean: #1f5f8e;
+  --aegean-deep: #0e3a5c;
+  --aegean-soft: #dbe9f4;
   --success: #2dd4a0;
   --warn: #f5a623;
   --danger: #ef4444;
@@ -39,6 +42,12 @@ body {
   color: var(--white);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+body[data-lang="ar"] {
+  font-family: "Cairo", system-ui, sans-serif;
+  direction: rtl;
 }
 
 ::-webkit-scrollbar {

@@ -20,6 +20,9 @@ export async function POST(req: Request) {
       cancellation,
       whatsapp,
       messenger,
+      coverImage,
+      images,
+      videoUrl,
     } = body;
 
     // -----------------------------
@@ -57,6 +60,9 @@ export async function POST(req: Request) {
       cancellation: cancellation || "",
       whatsapp: whatsapp || "",
       messenger: messenger || "",
+      coverImage: coverImage || "",
+      images: Array.isArray(images) ? images : [],
+      videoUrl: videoUrl || "",
 
       views: 0,
       whatsappClicks: 0,

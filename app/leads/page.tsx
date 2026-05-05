@@ -3,84 +3,45 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, orderBy } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 
 const SAND = "#e8c97b";
 
-const STATUS_COLORS: Record<string, string> = {
-  new: "#4ecdc4",
-  contacted: "#a78bfa",
-  negotiating: "#f5a623",
-  booked: "#2dd4a0",
-  lost: "#ef4444",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  new: "New Lead",
-  contacted: "Contacted",
-  negotiating: "Negotiating",
-  booked: "Booked",
-  lost: "Lost",
-};
-
-const STATUSES = ["new", "contacted", "negotiating", "booked", "lost"];
-
 type Lead = {
   id: string;
-  name: string;
-  status: string;
+  packageId: string;
+  destination: string;
+  price: string;
   channel: "whatsapp" | "messenger";
-  date: string;
-  packageName: string;
-  pkgColor: string;
+  status: string;
+  createdAt: number;
 };
 
-// ── Lead card (Kanban) ────────────────────────────────────────────────────────
+const TAB_STATUS: Record<string, string | null> = {
+  all: null,
+  pending: "new",
+  booked: "booked",
+  lost: "lost",
+};
 
-function LeadCard({ lead, onDragStart, updateStatus }: {
-  lead: Lead;
-  onDragStart: () => void;
-  updateStatus: (id: string, status: string) => void;
-}) {
+// ── Heat dots ─────────────────────────────────────────────────────────────────
+
+function HeatDots({ level }: { level: number }) {
   return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 10, padding: 12,
-        cursor: "grab", userSelect: "none",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ fontSize: 13, fontWeight: 600 }}>{lead.name}</span>
-        <span style={{ width: 20, height: 20, borderRadius: "50%", background: lead.pkgColor, display: "inline-block", flexShrink: 0 }} />
-      </div>
-      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 8 }}>{lead.packageName}</div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{
-          fontSize: 10,
-          color: lead.channel === "whatsapp" ? "#25d366" : "#0084ff",
-          background: lead.channel === "whatsapp" ? "rgba(37,211,102,0.1)" : "rgba(0,132,255,0.1)",
-          borderRadius: 99, padding: "2px 8px",
-        }}>
-          {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}
-        </span>
-        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>{lead.date}</span>
-      </div>
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-        {STATUSES.filter(s => s !== lead.status).map(s => (
-          <button key={s} onClick={() => updateStatus(lead.id, s)} style={{
-            fontSize: 9, background: `${STATUS_COLORS[s]}15`,
-            border: `1px solid ${STATUS_COLORS[s]}30`,
-            borderRadius: 99, padding: "2px 7px", color: STATUS_COLORS[s],
-            fontFamily: "inherit", cursor: "pointer",
-          }}>→ {STATUS_LABELS[s]}</button>
+    <div>
+      <div style={{ display: "flex", gap: 3 }}>
+        {[1, 2, 3, 4, 5].map(n => (
+          <span key={n} style={{
+            display: "inline-block", width: 5, height: 5, borderRadius: "50%",
+            background: n <= level ? SAND : "rgba(255,255,255,0.1)",
+          }} />
         ))}
+      </div>
+      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>
+        {level >= 4 ? "Hot" : level >= 3 ? "Warm" : "Cool"}
       </div>
     </div>
   );
@@ -88,90 +49,144 @@ function LeadCard({ lead, onDragStart, updateStatus }: {
 
 // ── Status pill ───────────────────────────────────────────────────────────────
 
-function StatusPill({ status, onChange }: { status: string; onChange: (s: string) => void }) {
-  const [open, setOpen] = useState(false);
+const STATUS_META: Record<string, { bg: string; color: string; label: string }> = {
+  new:         { bg: "rgba(245,166,35,0.13)",  color: "#f5b34a", label: "Pending" },
+  contacted:   { bg: "rgba(245,166,35,0.13)",  color: "#f5b34a", label: "Pending" },
+  negotiating: { bg: "rgba(245,166,35,0.13)",  color: "#f5b34a", label: "Pending" },
+  booked:      { bg: "rgba(45,212,160,0.13)",  color: "#54e0b5", label: "Booked"  },
+  lost:        { bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)", label: "Lost" },
+};
+
+function StatusPill({ status }: { status: string }) {
+  const m = STATUS_META[status] || STATUS_META.new;
   return (
-    <div style={{ position: "relative" }}>
-      <button onClick={() => setOpen(o => !o)} style={{
-        background: `${STATUS_COLORS[status]}18`,
-        border: `1px solid ${STATUS_COLORS[status]}40`,
-        borderRadius: 99, padding: "4px 10px",
-        color: STATUS_COLORS[status], fontSize: 11, fontWeight: 600,
-        fontFamily: "inherit", cursor: "pointer",
-      }}>
-        {STATUS_LABELS[status]} ▾
-      </button>
-      {open && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 100,
-          background: "var(--navy-light, #1e3455)", border: "1px solid var(--border)",
-          borderRadius: 10, overflow: "hidden", minWidth: 130,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-        }}>
-          {STATUSES.map(s => (
-            <button key={s} onClick={() => { onChange(s); setOpen(false); }} style={{
-              display: "block", width: "100%", padding: "9px 12px",
-              background: s === status ? `${STATUS_COLORS[s]}18` : "none",
-              border: "none", textAlign: "left",
-              color: STATUS_COLORS[s], fontSize: 12, fontFamily: "inherit", cursor: "pointer",
-            }}>{STATUS_LABELS[s]}</button>
-          ))}
+    <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", background: m.bg, color: m.color }}>
+      {m.label}
+    </span>
+  );
+}
+
+// ── Detail panel ──────────────────────────────────────────────────────────────
+
+function DetailPanel({ lead, onStatusChange }: { lead: Lead; onStatusChange: (id: string, status: string) => void }) {
+  const initials = (lead.destination || "?").slice(0, 2).toUpperCase();
+  const avatarColors = ["#c66a3d", "#1f5f8e", "#7c3aed", "#0d6e3f", "#b45309"];
+  const avatarColor = avatarColors[Math.abs(lead.id.charCodeAt(0)) % avatarColors.length];
+  const heat = lead.status === "booked" ? 5 : lead.status === "negotiating" ? 4 : lead.status === "contacted" ? 3 : lead.status === "new" ? 2 : 1;
+  const channelColor = lead.channel === "whatsapp" ? "#25d366" : "#0084ff";
+  const channelBg = lead.channel === "whatsapp" ? "rgba(37,211,102,0.08)" : "rgba(0,132,255,0.08)";
+  const channelBorder = lead.channel === "whatsapp" ? "rgba(37,211,102,0.25)" : "rgba(0,132,255,0.25)";
+
+  return (
+    <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", position: "sticky", top: 16, alignSelf: "start" }}>
+      {/* Header */}
+      <div style={{ display: "flex", gap: 14, marginBottom: 18, alignItems: "center" }}>
+        <div style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff" }}>
+          {initials}
         </div>
-      )}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>{lead.destination}</div>
+          <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+            {lead.price} · {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}
+          </div>
+        </div>
+        <StatusPill status={lead.status} />
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
+        <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px" }}>Engagement</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: heat >= 4 ? "#54e0b5" : SAND, marginTop: 3 }}>{heat}/5 · {heat >= 4 ? "Hot" : heat >= 3 ? "Warm" : "Cool"}</div>
+        </div>
+        <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px" }}>Channel</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginTop: 3, color: channelColor }}>
+            {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}
+          </div>
+        </div>
+      </div>
+
+      {/* Activity */}
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Activity</div>
+      {[
+        { t: "Lead created", s: `Clicked ${lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"} CTA on landing page`, time: new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), c: channelColor },
+        { t: "Viewed pricing", s: "Scrolled to pricing section", time: "During visit", c: SAND },
+        { t: "Landed on page", s: `From ${lead.destination} package`, time: "Session start", c: "#1f5f8e" },
+      ].map((a, i) => (
+        <div key={i} style={{ display: "flex", gap: 11, paddingBottom: 12, marginBottom: 12, borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: a.c, marginTop: 6, flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600 }}>{a.t}</div>
+            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 2, lineHeight: 1.4 }}>{a.s}</div>
+            <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>{a.time}</div>
+          </div>
+        </div>
+      ))}
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <a
+          href={`https://wa.me/${lead.channel === "whatsapp" ? "" : ""}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ flex: 1, padding: "10px", borderRadius: 9, background: "#25d366", color: "#fff", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer", textDecoration: "none", textAlign: "center", display: "block" }}
+        >
+          Reply on WA
+        </a>
+        {lead.status !== "booked" && (
+          <button
+            onClick={() => onStatusChange(lead.id, "booked")}
+            style={{ padding: "10px 14px", borderRadius: 9, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            Mark booked
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
-// ── page ──────────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LeadsPage() {
   const router = useRouter();
   const [authLoading, setAuthLoading] = useState(true);
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [filter, setFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
-  const [dragging, setDragging] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const [selected, setSelected] = useState<Lead | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
-
-      // Load packages to get lead data
-      const q = query(collection(db, "packages"), where("userId", "==", user.uid));
+      const q = query(collection(db, "leads"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
       const snap = await getDocs(q);
-      const dotColors = ["#c9713a", "#2d7a4e", "#2563a8", "#7c3aed", "#0f766e"];
-
-      // Each package click becomes a "lead" (approximated from click counts)
-      const loadedLeads: Lead[] = [];
-      snap.docs.forEach((d, di) => {
-        const pkg = d.data();
-        const pkgColor = dotColors[di % dotColors.length];
-        const clicks = (pkg.whatsappClicks || 0) + (pkg.messengerClicks || 0);
-        // Create lead placeholders from click counts (real leads would come from a leads sub-collection)
-        for (let i = 0; i < Math.min(clicks, 3); i++) {
-          loadedLeads.push({
-            id: `${d.id}-lead-${i}`,
-            name: `Lead #${loadedLeads.length + 1}`,
-            status: ["new", "contacted", "negotiating"][i % 3],
-            channel: i % 2 === 0 ? "whatsapp" : "messenger",
-            date: new Date(pkg.createdAt || Date.now()).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-            packageName: pkg.destination || "Package",
-            pkgColor,
-          });
-        }
-      });
-
-      setLeads(loadedLeads);
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Lead));
+      setLeads(list);
+      if (list.length > 0) setSelected(list[0]);
       setAuthLoading(false);
     });
     return () => unsub();
   }, [router]);
 
-  const updateStatus = (id: string, status: string) => {
+  const updateStatus = async (id: string, status: string) => {
+    await updateDoc(doc(db, "leads", id), { status });
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    setSelected(prev => prev?.id === id ? { ...prev, status } : prev);
   };
 
-  const filtered = filter === "all" ? leads : leads.filter(l => l.status === filter);
+  const tabs = [
+    { k: "all",     l: "All",     count: leads.length },
+    { k: "pending", l: "Pending", count: leads.filter(l => ["new", "contacted", "negotiating"].includes(l.status)).length },
+    { k: "booked",  l: "Booked",  count: leads.filter(l => l.status === "booked").length },
+    { k: "lost",    l: "Lost",    count: leads.filter(l => l.status === "lost").length },
+  ];
+
+  const filtered = activeTab === "all"
+    ? leads
+    : activeTab === "pending"
+    ? leads.filter(l => ["new", "contacted", "negotiating"].includes(l.status))
+    : leads.filter(l => l.status === activeTab);
 
   if (authLoading) {
     return (
@@ -185,111 +200,123 @@ export default function LeadsPage() {
 
   return (
     <AppLayout>
-      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", padding: "32px 40px 0" }}>
+      <div style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
 
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22, flexShrink: 0 }}>
+        {/* Page head */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
           <div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Lead Tracker</h2>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{leads.length} leads tracked</p>
+            <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>Leads</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
+              {leads.length} active conversation{leads.length !== 1 ? "s" : ""}
+              {leads.length > 0 && " · updated just now"}
+            </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            {(["kanban", "list"] as const).map(m => (
-              <button key={m} onClick={() => setViewMode(m)} style={{
-                background: viewMode === m ? `${SAND}20` : "rgba(255,255,255,0.04)",
-                border: viewMode === m ? `1px solid ${SAND}50` : "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 8, padding: "7px 14px",
-                color: viewMode === m ? SAND : "rgba(255,255,255,0.4)",
-                fontSize: 12, fontFamily: "inherit", cursor: "pointer", fontWeight: 500,
-                textTransform: "capitalize",
-              }}>{m}</button>
-            ))}
+            <button style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.65)", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer" }}>
+              Export CSV
+            </button>
+            <button style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.65)", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer" }}>
+              Sync WhatsApp
+            </button>
           </div>
         </div>
 
-        {/* Status filter row */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 22, flexShrink: 0, flexWrap: "wrap" }}>
-          {STATUSES.map(s => {
-            const count = leads.filter(l => l.status === s).length;
-            return (
-              <button key={s} onClick={() => setFilter(f => f === s ? "all" : s)} style={{
-                background: filter === s ? `${STATUS_COLORS[s]}18` : "rgba(255,255,255,0.03)",
-                border: `1px solid ${filter === s ? STATUS_COLORS[s] + "50" : "rgba(255,255,255,0.08)"}`,
-                borderRadius: 10, padding: "8px 14px",
-                display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
-              }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_COLORS[s], display: "inline-block" }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: filter === s ? STATUS_COLORS[s] : "rgba(255,255,255,0.5)" }}>{STATUS_LABELS[s]}</span>
-                <span style={{ fontSize: 12, fontWeight: 800, color: filter === s ? STATUS_COLORS[s] : "rgba(255,255,255,0.35)" }}>{count}</span>
-              </button>
-            );
-          })}
+        {/* Status tabs */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          {tabs.map(t => (
+            <button key={t.k} onClick={() => setActiveTab(t.k)} style={{
+              padding: "10px 16px", border: "none", background: "none",
+              color: activeTab === t.k ? SAND : "rgba(255,255,255,0.5)",
+              fontSize: 13, fontWeight: activeTab === t.k ? 700 : 500,
+              cursor: "pointer", fontFamily: "inherit",
+              borderBottom: activeTab === t.k ? `2px solid ${SAND}` : "2px solid transparent",
+              marginBottom: -1, transition: "all .15s",
+            }}>
+              {t.l} <span style={{ marginLeft: 5, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{t.count}</span>
+            </button>
+          ))}
         </div>
 
         {leads.length === 0 ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "rgba(255,255,255,0.2)" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: 12 }}>
             <Icon name="users" size={40} color="rgba(255,255,255,0.08)" strokeWidth={1} />
-            <p style={{ fontSize: 14 }}>No leads yet</p>
-            <p style={{ fontSize: 12, maxWidth: 280, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
-              Leads appear here when visitors click your WhatsApp or Messenger CTAs on landing pages.
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No leads yet</p>
+            <p style={{ fontSize: 12, maxWidth: 280, textAlign: "center", color: "rgba(255,255,255,0.25)" }}>
+              Leads appear when visitors tap your WhatsApp or Messenger CTA on a landing page.
             </p>
           </div>
-        ) : viewMode === "kanban" ? (
-          // Kanban
-          <div style={{ flex: 1, overflow: "auto", display: "flex", gap: 12, paddingBottom: 32 }}>
-            {STATUSES.map(status => {
-              const colLeads = leads.filter(l => l.status === status);
-              return (
-                <div key={status} style={{
-                  minWidth: 210, maxWidth: 230,
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: 14, overflow: "hidden",
-                  display: "flex", flexDirection: "column", flexShrink: 0,
-                }}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={() => { if (dragging) { updateStatus(dragging, status); setDragging(null); } }}
-                >
-                  <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLORS[status], display: "inline-block" }} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>{STATUS_LABELS[status]}</span>
-                    </div>
-                    <span style={{ background: `${STATUS_COLORS[status]}20`, color: STATUS_COLORS[status], borderRadius: 99, padding: "1px 8px", fontSize: 11, fontWeight: 700 }}>{colLeads.length}</span>
-                  </div>
-                  <div style={{ flex: 1, overflow: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-                    {colLeads.map(lead => (
-                      <LeadCard key={lead.id} lead={lead} onDragStart={() => setDragging(lead.id)} updateStatus={updateStatus} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         ) : (
-          // List view
-          <div style={{ flex: 1, overflow: "auto", paddingBottom: 32 }}>
-            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 100px 130px", padding: "10px 18px", borderBottom: "1px solid rgba(255,255,255,0.07)", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
-                <span>Name</span><span>Package</span><span>Channel</span><span>Date</span><span>Status</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18 }}>
+            {/* Lead list */}
+            <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, overflow: "hidden" }}>
+              {/* Column headers */}
+              <div style={{ padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", fontSize: 10.5, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px", gap: 14 }}>
+                <div style={{ width: 38 }} />
+                <div style={{ flex: 2, marginLeft: 0 }}>Lead</div>
+                <div style={{ flex: 1.4 }}>Package</div>
+                <div style={{ width: 70 }}>Heat</div>
+                <div style={{ width: 80 }}>Status</div>
+                <div style={{ width: 60, textAlign: "right" }}>When</div>
               </div>
-              {filtered.map((lead, i) => (
-                <div key={lead.id} style={{
-                  display: "grid", gridTemplateColumns: "1fr 1fr 120px 100px 130px",
-                  padding: "12px 18px",
-                  borderBottom: i < filtered.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                  alignItems: "center",
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>{lead.name}</span>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>{lead.packageName}</span>
-                  <span style={{ fontSize: 12, color: lead.channel === "whatsapp" ? "#25d366" : "#0084ff" }}>
-                    {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}
-                  </span>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{lead.date}</span>
-                  <StatusPill status={lead.status} onChange={s => updateStatus(lead.id, s)} />
+
+              {filtered.length === 0 ? (
+                <div style={{ padding: "32px 0", textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.3)" }}>
+                  No {activeTab} leads
                 </div>
-              ))}
+              ) : filtered.map(lead => {
+                const isSelected = selected?.id === lead.id;
+                const initials = (lead.destination || "?").slice(0, 2).toUpperCase();
+                const avatarColors = ["#c66a3d", "#1f5f8e", "#7c3aed", "#0d6e3f", "#b45309"];
+                const avatarColor = avatarColors[Math.abs(lead.id.charCodeAt(0)) % avatarColors.length];
+                const heat = lead.status === "booked" ? 5 : lead.status === "negotiating" ? 4 : lead.status === "contacted" ? 3 : lead.status === "new" ? 2 : 1;
+
+                return (
+                  <div
+                    key={lead.id}
+                    onClick={() => setSelected(lead)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 14, padding: "14px 20px",
+                      borderBottom: "1px solid rgba(255,255,255,0.05)",
+                      cursor: "pointer",
+                      background: isSelected ? "rgba(232,201,123,0.06)" : "transparent",
+                      transition: "background .15s",
+                      borderLeft: isSelected ? `2px solid ${SAND}` : "2px solid transparent",
+                    }}
+                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <div style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0, background: avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>
+                      {initials}
+                    </div>
+                    <div style={{ flex: 2, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.destination}</div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>via {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}</div>
+                    </div>
+                    <div style={{ flex: 1.4, fontSize: 12, color: "rgba(255,255,255,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {lead.price || lead.destination}
+                    </div>
+                    <div style={{ width: 70 }}>
+                      <HeatDots level={heat} />
+                    </div>
+                    <div style={{ width: 80 }}>
+                      <StatusPill status={lead.status} />
+                    </div>
+                    <div style={{ width: 60, textAlign: "right", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                      {new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+
+            {/* Detail panel */}
+            {selected ? (
+              <DetailPanel lead={selected} onStatusChange={updateStatus} />
+            ) : (
+              <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>Select a lead to see details</p>
+              </div>
+            )}
           </div>
         )}
       </div>

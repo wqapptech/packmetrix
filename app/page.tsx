@@ -7,32 +7,6 @@ import Icon from "@/components/Icon";
 
 const SAND = "#e8c97b";
 
-const SAMPLE_POST = `✈️ MARRAKECH 5 DIAS | SAÍDA DE LISBOA
-📅 15 de Junho 2026
-💰 A partir de €899/pessoa
-
-🏨 Hotel Riad 4* no coração da Medina
-🍽️ Pequeno-almoço incluído
-🚌 Transfers aeroporto incluídos
-🎟️ City tour guiado
-
-Partidas disponíveis:
-- Lisboa (LIS): €899
-- Porto (OPO): €949
-- Faro (FAO): €929
-
-✅ Cancelamento gratuito até 30 dias
-✅ Seguro de viagem incluído
-
-DIA A DIA:
-Dia 1: Chegada e visita à Medina
-Dia 2: Excursão ao deserto de Agafay
-Dia 3: Souks e workshop culinário
-Dia 4: Dia livre / opções premium
-Dia 5: Regresso
-
-Interessado? Contacte-nos via WhatsApp!`;
-
 type Step = "paste" | "extracting" | "preview";
 
 type PreviewData = {
@@ -123,21 +97,10 @@ export default function Home() {
               background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)",
               borderRadius: 20, padding: 24,
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
                   Travel Post
                 </span>
-                <button
-                  onClick={() => { setText(SAMPLE_POST); }}
-                  style={{
-                    fontSize: 12, color: SAND, background: "none", border: "none",
-                    cursor: "pointer", fontFamily: "inherit", fontWeight: 500,
-                    display: "flex", alignItems: "center", gap: 4,
-                  }}
-                >
-                  <Icon name="sparkle" size={12} color={SAND} />
-                  Use sample post
-                </button>
               </div>
 
               <textarea
