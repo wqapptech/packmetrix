@@ -6,6 +6,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
+import { T } from "@/lib/translations";
+import { useLang } from "@/hooks/useLang";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -34,6 +36,10 @@ function UnlockRow({ icon, title, sub }: { icon: string; title: string; sub?: st
 
 export default function PaywallPage() {
   const router = useRouter();
+  const lang = useLang();
+  const t = T[lang];
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [packageCount, setPackageCount] = useState(0);
@@ -75,13 +81,13 @@ export default function PaywallPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
+      <div dir={dir} style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
 
         {/* Page head */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>Billing</div>
+          <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>{t.billingTitle}</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
-            Free plan · {packageCount} of 3 packages used
+            {t.freePlanLabel} · {packageCount} {t.billingDescPackage !== t.billingDescPackages ? (packageCount === 1 ? t.billingDescPackage : t.billingDescPackages) : t.billingDescPackages} / 3
           </div>
         </div>
 
@@ -92,7 +98,6 @@ export default function PaywallPage() {
           borderRadius: 24, padding: "40px 44px", position: "relative", overflow: "hidden",
           marginBottom: 20,
         }}>
-          {/* Dot pattern */}
           <svg style={{ position: "absolute", inset: 0, opacity: 0.07, pointerEvents: "none" }} width="100%" height="100%">
             <pattern id="pwgrid" width="40" height="40" patternUnits="userSpaceOnUse">
               <circle cx="20" cy="20" r="1" fill={SAND} />
@@ -105,27 +110,32 @@ export default function PaywallPage() {
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 12px", borderRadius: 99, background: "rgba(45,212,160,0.13)", border: "1px solid rgba(45,212,160,0.3)", color: SUCCESS, fontSize: 11.5, fontWeight: 700, marginBottom: 24 }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: SUCCESS, display: "inline-block" }} />
-                You&apos;re getting results
+                {t.billingGettingResults}
               </div>
 
               <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 48, lineHeight: 1.05, letterSpacing: "-1px", marginBottom: 16 }}>
-                You&apos;re already getting <em style={{ color: SAND, fontStyle: "italic" }}>leads.</em><br />
-                Now scale this.
+                {t.billingH1a} <em style={{ color: SAND, fontStyle: "italic" }}>{t.billingH1em}</em><br />
+                {t.billingH1b}
               </h1>
 
               <p style={{ fontSize: 15, color: "rgba(255,255,255,0.6)", lineHeight: 1.65, maxWidth: 480, marginBottom: 32 }}>
-                {packageCount > 0
-                  ? <>You&apos;ve shipped {packageCount} package{packageCount !== 1 ? "s" : ""}, racked up {totalViews.toLocaleString()} views, and driven {totalClicks} WhatsApp conversations. That&apos;s <b style={{ color: "#fff" }}>€{estRevenue.toLocaleString()} in potential revenue</b> — and you&apos;re on the free plan.</>
-                  : "Start your first package and watch your leads roll in. Upgrade to Pro for unlimited packages, AI image generation, and advanced analytics."
-                }
+                {packageCount > 0 ? (
+                  <>
+                    {t.billingDescA} {packageCount} {packageCount !== 1 ? t.billingDescPackages : t.billingDescPackage},{" "}
+                    {t.billingDescViews.replace("{n}", totalViews.toLocaleString())}{" "}
+                    {t.billingDescDriven} {totalClicks} {t.billingDescWA}{" "}
+                    <b style={{ color: "#fff" }}>€{estRevenue.toLocaleString()} {t.billingDescRevenue}</b>{" "}
+                    {t.billingDescFree}
+                  </>
+                ) : t.billingDescNew}
               </p>
 
               {/* Stats */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 32 }}>
-                <Stat v={String(packageCount)} l="Packages live" sub="Free limit: 3" />
-                <Stat v={totalClicks.toLocaleString()} l="Leads generated" />
-                <Stat v={totalViews > 0 ? `${((totalClicks / totalViews) * 100).toFixed(1)}%` : "—"} l="Conversion" sub="Industry avg: 0.9%" />
-                <Stat v={`€${estRevenue.toLocaleString()}`} l="Revenue (est.)" />
+                <Stat v={String(packageCount)} l={t.statPackagesLive} sub={t.statFreeLimit} />
+                <Stat v={totalClicks.toLocaleString()} l={t.statLeadsGenerated} />
+                <Stat v={totalViews > 0 ? `${((totalClicks / totalViews) * 100).toFixed(1)}%` : "—"} l={t.statConversionBilling} sub={t.statIndustryAvg} />
+                <Stat v={`€${estRevenue.toLocaleString()}`} l={t.statRevenue} />
               </div>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
@@ -141,30 +151,30 @@ export default function PaywallPage() {
                   }}
                 >
                   {loading
-                    ? <><span className="spinner" style={{ width: 15, height: 15, borderTopColor: "#0a1426" }} /> Redirecting…</>
-                    : "✦ Upgrade to Pro · €29/mo"
+                    ? <><span className="spinner" style={{ width: 15, height: 15, borderTopColor: "#0a1426" }} /> {t.redirectingBtn}</>
+                    : t.upgradeBtn
                   }
                 </button>
                 <button onClick={() => router.back()} style={{ padding: "14px 22px", borderRadius: 10, background: "none", border: "1px solid rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.6)", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
-                  Maybe later
+                  {t.maybeLater}
                 </button>
               </div>
               <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.4)" }}>
-                Cancel anytime · 7-day refund · billed monthly
+                {t.billingCancelNote}
               </div>
             </div>
 
             {/* Right — unlock list */}
             <div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: ".7px", fontWeight: 700, marginBottom: 16 }}>What unlocks with Pro</div>
-              <UnlockRow icon="∞" title="Unlimited packages" sub={`You're at ${packageCount}/3 today`} />
-              <UnlockRow icon="✦" title="Unlimited AI optimization" sub="Currently 5 uses left" />
-              <UnlockRow icon="🎯" title="Goal-driven A/B tests" sub="Run 3 variants automatically" />
-              <UnlockRow icon="📊" title="Advanced analytics" sub="UTM, cohort, attribution · 90 days" />
-              <UnlockRow icon="🌍" title="Multi-language landing pages" sub="EN + AR + 6 more" />
-              <UnlockRow icon="↗" title="Custom domain" sub="book.youragency.com" />
-              <UnlockRow icon="💬" title="WhatsApp Business API" sub="Auto-reply, templates" />
-              <UnlockRow icon="👤" title="Up to 5 team seats" />
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: ".7px", fontWeight: 700, marginBottom: 16 }}>{t.whatUnlocksPro}</div>
+              <UnlockRow icon="∞" title={t.unlockPackages} sub={`${t.billingDescA} ${packageCount}/3`} />
+              <UnlockRow icon="✦" title={t.unlockAiOpts} sub={t.unlockAiOptsLeft} />
+              <UnlockRow icon="🎯" title={t.unlockAB} sub={t.unlockABSub} />
+              <UnlockRow icon="📊" title={t.unlockAnalytics} sub={t.unlockAnalyticsSub} />
+              <UnlockRow icon="🌍" title={t.unlockMultilang} sub={t.unlockMultilangSub} />
+              <UnlockRow icon="↗" title={t.unlockDomain} sub={t.unlockDomainSub} />
+              <UnlockRow icon="💬" title={t.unlockWhatsAppBiz} sub={t.unlockWhatsAppBizSub} />
+              <UnlockRow icon="👤" title={t.unlockSeats} />
             </div>
           </div>
         </div>
@@ -173,13 +183,13 @@ export default function PaywallPage() {
         <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>Free plan usage</div>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{t.freeUsageTitle}</div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                {packageCount} of 3 packages · 5 of 10 AI optimizations
+                {packageCount} / 3 {t.billingDescPackages} · 5 / 10 {t.unlockAiOpts.toLowerCase()}
               </div>
             </div>
             <button onClick={handleUpgrade} style={{ padding: "7px 14px", borderRadius: 8, background: "none", border: `1px solid ${SAND}50`, color: SAND, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
-              Upgrade to Pro →
+              {t.upgradeProArrow}
             </button>
           </div>
           <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>

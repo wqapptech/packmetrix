@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, query, where, orderBy } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
+import { useLang } from "@/hooks/useLang";
+import { T } from "@/lib/translations";
 
 const SAND = "#e8c97b";
 const TEAL = "#4ecdc4";
@@ -22,7 +24,12 @@ type Package = {
   createdAt?: number;
   coverImage?: string;
   images?: string[];
+  agencySlug?: string;
 };
+
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+}
 
 type Lead = {
   id: string;
@@ -81,14 +88,13 @@ function KpiCard({ label, value, delta, trend, sparkColor }: {
 
 // ── Weekly bar chart ──────────────────────────────────────────────────────────
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function WeeklyBars({ packages }: { packages: Package[] }) {
+function WeeklyBars({ packages, lang }: { packages: Package[]; lang: "en" | "ar" }) {
+  const t = T[lang];
+  const days = [t.mon, t.tue, t.wed, t.thu, t.fri, t.sat, t.sun];
   const total = packages.reduce((a, b) => a + (b.views || 0), 0);
   const totalClicks = packages.reduce((a, b) => a + (b.whatsappClicks || 0) + (b.messengerClicks || 0), 0);
-  // Distribute across days with a natural curve (peaks mid-week + weekend)
   const weights = [0.11, 0.14, 0.13, 0.17, 0.2, 0.15, 0.1];
-  const series = weights.map((w, i) => ({
+  const series = weights.map((w) => ({
     sessions: Math.round(total * w),
     leads: Math.round(totalClicks * w),
   }));
@@ -102,7 +108,7 @@ function WeeklyBars({ packages }: { packages: Package[] }) {
             <div style={{ width: 8, borderRadius: 3, background: `linear-gradient(180deg, ${SAND}, ${SAND}60)`, height: `${(s.sessions / peak) * 100}%` }} />
             <div style={{ width: 8, borderRadius: 3, background: `linear-gradient(180deg, ${TEAL}, ${TEAL}60)`, height: `${Math.min((s.leads / peak) * 4 * 100, 100)}%` }} />
           </div>
-          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{DAYS[i]}</span>
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{days[i]}</span>
         </div>
       ))}
     </div>
@@ -131,9 +137,10 @@ function FunnelRow({ label, value, pct, color, tail }: {
 
 // ── Package row ───────────────────────────────────────────────────────────────
 
-function PackageRow({ pkg, onView, onEdit, onDelete, isLast }: {
-  pkg: Package; onView: () => void; onEdit: () => void; onDelete: () => Promise<void>; isLast: boolean;
+function PackageRow({ pkg, agencySlug, lang, onView, onEdit, onDelete, isLast }: {
+  pkg: Package; agencySlug: string; lang: "en" | "ar"; onView: () => void; onEdit: () => void; onDelete: () => Promise<void>; isLast: boolean;
 }) {
+  const t = T[lang];
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -165,21 +172,21 @@ function PackageRow({ pkg, onView, onEdit, onDelete, isLast }: {
       <div style={{ flex: 2, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pkg.destination}</div>
         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-          {pkg.price}{pkg.createdAt ? ` · Live · /p/${pkg.id}` : ""}
+          {pkg.price}{pkg.createdAt ? ` · Live · /${agencySlug}/${pkg.id}` : ""}
         </div>
       </div>
       {/* Stats */}
       <div style={{ flex: 1, textAlign: "center" }}>
         <div style={{ fontSize: 13.5, fontWeight: 700 }}>{(pkg.views || 0).toLocaleString()}</div>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px" }}>Views</div>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px" }}>{t.statViews}</div>
       </div>
       <div style={{ flex: 1, textAlign: "center" }}>
         <div style={{ fontSize: 13.5, fontWeight: 700 }}>{clicks}</div>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px" }}>Leads</div>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px" }}>{t.statLeads}</div>
       </div>
       <div style={{ flex: 1, textAlign: "center" }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, color: convColor }}>{convStr}</div>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px" }}>Conversion</div>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px" }}>{t.statConversion}</div>
       </div>
       {/* Action buttons */}
       <div style={{ display: "flex", gap: 5 }}>
@@ -208,7 +215,20 @@ function PackageRow({ pkg, onView, onEdit, onDelete, isLast }: {
 
 // ── AI insight row ────────────────────────────────────────────────────────────
 
-function Insight({ icon, title, desc, cta }: { icon: string; title: string; desc: string; cta: string }) {
+function Insight({ icon, title, desc, cta, userId }: { icon: string; title: string; desc: string; cta: string; userId: string | null }) {
+  const [requested, setRequested] = useState(false);
+
+  const handleClick = async () => {
+    setRequested(true);
+    try {
+      await addDoc(collection(db, "featureRequests"), {
+        feature: "ai-optimizer",
+        userId: userId || "anonymous",
+        createdAt: Date.now(),
+      });
+    } catch {}
+  };
+
   return (
     <div style={{ display: "flex", gap: 12, padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
       <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(232,201,123,0.13)", color: SAND, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
@@ -216,7 +236,11 @@ function Insight({ icon, title, desc, cta }: { icon: string; title: string; desc
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{title}</div>
         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{desc}</div>
       </div>
-      <button style={{ alignSelf: "center", fontSize: 11, color: SAND, background: "rgba(232,201,123,0.08)", border: "1px solid rgba(232,201,123,0.25)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, flexShrink: 0 }}>{cta}</button>
+      {requested ? (
+        <div style={{ alignSelf: "center", fontSize: 11, color: SUCCESS, flexShrink: 0, fontWeight: 600 }}>✓ Soon!</div>
+      ) : (
+        <button onClick={handleClick} style={{ alignSelf: "center", fontSize: 11, color: SAND, background: "rgba(232,201,123,0.08)", border: "1px solid rgba(232,201,123,0.25)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, flexShrink: 0 }}>{cta}</button>
+      )}
     </div>
   );
 }
@@ -235,26 +259,12 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
 
 type DateRange = "7" | "30" | "90" | "all";
 
-const DATE_RANGE_OPTIONS: { k: DateRange; l: string }[] = [
-  { k: "7",   l: "Last 7 days"  },
-  { k: "30",  l: "Last 30 days" },
-  { k: "90",  l: "Last 90 days" },
-  { k: "all", l: "All time"     },
-];
-
 function getStartMs(range: DateRange): number {
   if (range === "all") return 0;
   return Date.now() - Number(range) * 24 * 60 * 60 * 1000;
 }
 
 type SortKey = "conv" | "views" | "leads" | "newest";
-
-const SORT_OPTIONS: { k: SortKey; l: string }[] = [
-  { k: "conv",   l: "Conv %"  },
-  { k: "views",  l: "Views"   },
-  { k: "leads",  l: "Leads"   },
-  { k: "newest", l: "Newest"  },
-];
 
 function sortPackages(pkgs: Package[], by: SortKey): Package[] {
   return [...pkgs].sort((a, b) => {
@@ -269,6 +279,9 @@ function sortPackages(pkgs: Package[], by: SortKey): Package[] {
 
 export default function Dashboard() {
   const router = useRouter();
+  const lang = useLang();
+  const t = T[lang];
+
   const [packages, setPackages] = useState<Package[]>([]);
   const [recentLeads, setRecentLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -309,7 +322,7 @@ export default function Dashboard() {
     const load = async () => {
       const [pkgSnap, leadSnap] = await Promise.all([
         getDocs(query(collection(db, "packages"), where("userId", "==", userId))),
-        getDocs(query(collection(db, "leads"), where("userId", "==", userId), orderBy("createdAt", "desc"), limit(4))),
+        getDocs(query(collection(db, "leads"), where("userId", "==", userId), orderBy("createdAt", "desc"))),
       ]);
       setPackages(pkgSnap.docs.map(d => ({ id: d.id, ...d.data() } as Package)));
       setRecentLeads(leadSnap.docs.map(d => ({ id: d.id, ...d.data() } as Lead)));
@@ -328,28 +341,45 @@ export default function Dashboard() {
     );
   }
 
+  const userAgencySlug = slugify(agencyName) || "agency";
   const startMs = getStartMs(dateRange);
   const filteredPackages = startMs === 0 ? packages : packages.filter(p => (p.createdAt || 0) >= startMs);
   const filteredLeads = startMs === 0 ? recentLeads : recentLeads.filter(l => (l.createdAt || 0) >= startMs);
 
-  const totalViews = filteredPackages.reduce((a, b) => a + (b.views || 0), 0);
+  const totalViews  = filteredPackages.reduce((a, b) => a + (b.views || 0), 0);
   const totalClicks = filteredPackages.reduce((a, b) => a + (b.whatsappClicks || 0) + (b.messengerClicks || 0), 0);
-  const convRate = totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) : "0.0";
-  const activeLabel = DATE_RANGE_OPTIONS.find(o => o.k === dateRange)?.l ?? "Last 30 days";
+  const totalLeads  = filteredLeads.length;
+  const totalBooked = filteredLeads.filter(l => l.status === "booked").length;
+  const convRate    = totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) : "0.0";
+  const bookRate    = totalLeads > 0 ? ((totalBooked / totalLeads) * 100).toFixed(0) : "0";
+
+  const dateRangeOptions: { k: DateRange; l: string }[] = [
+    { k: "7",   l: t.rangeLast7 },
+    { k: "30",  l: t.rangeLast30 },
+    { k: "90",  l: t.rangeLast90 },
+    { k: "all", l: t.rangeAllTime },
+  ];
+  const sortOptions: { k: SortKey; l: string }[] = [
+    { k: "conv",   l: t.sortConv },
+    { k: "views",  l: t.sortViews },
+    { k: "leads",  l: t.sortLeads },
+    { k: "newest", l: t.sortNewest },
+  ];
+  const activeLabel = dateRangeOptions.find(o => o.k === dateRange)?.l ?? t.rangeLast30;
 
   return (
     <AppLayout>
       <div style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
 
         {/* Page head */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
+        <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
           <div>
             <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>
-              Good morning, {agencyName}
+              {t.goodMorning}, {agencyName}
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
-              {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-              {packages.length > 0 && ` · ${packages.length} package${packages.length !== 1 ? "s" : ""} live`}
+              {new Date().toLocaleDateString(t.dateLocale, { weekday: "long", day: "numeric", month: "long" })}
+              {packages.length > 0 && ` · ${packages.length} ${packages.length !== 1 ? t.packagesLive : t.packageLive}`}
             </div>
           </div>
           <div ref={dropdownRef} style={{ position: "relative" }}>
@@ -362,11 +392,11 @@ export default function Dashboard() {
             </button>
             {filterOpen && (
               <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 160, background: "#0f1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,0.5)", zIndex: 100 }}>
-                {DATE_RANGE_OPTIONS.map(({ k, l }) => (
+                {dateRangeOptions.map(({ k, l }) => (
                   <button
                     key={k}
                     onClick={() => { setDateRange(k); setFilterOpen(false); }}
-                    style={{ width: "100%", padding: "10px 14px", background: dateRange === k ? "rgba(232,201,123,0.08)" : "none", border: "none", color: dateRange === k ? SAND : "rgba(255,255,255,0.65)", fontSize: 13, fontFamily: "inherit", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                    style={{ width: "100%", padding: "10px 14px", background: dateRange === k ? "rgba(232,201,123,0.08)" : "none", border: "none", color: dateRange === k ? SAND : "rgba(255,255,255,0.65)", fontSize: 13, fontFamily: "inherit", cursor: "pointer", textAlign: lang === "ar" ? "right" : "left", display: "flex", justifyContent: "space-between", alignItems: "center" }}
                   >
                     {l}
                     {dateRange === k && <span style={{ fontSize: 11, color: SAND }}>✓</span>}
@@ -378,26 +408,26 @@ export default function Dashboard() {
         </div>
 
         {/* KPI strip */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 18 }}>
-          <KpiCard label="Page views"   value={totalViews.toLocaleString()}  delta={totalViews > 0 ? "Live" : undefined}    trend="up"   sparkColor={SAND} />
-          <KpiCard label="Leads"        value={totalClicks.toLocaleString()} delta={totalClicks > 0 ? "Active" : undefined}  trend="up"   sparkColor={TEAL} />
-          <KpiCard label="WA Messages"  value={filteredPackages.reduce((a, b) => a + (b.whatsappClicks || 0), 0).toLocaleString()}   sparkColor="#25d366" />
-          <KpiCard label="Conversion"   value={`${convRate}%`}               sparkColor={SUCCESS} />
-          <KpiCard label="Packages"     value={String(filteredPackages.length)}      sparkColor="#a78bfa" />
+        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 18 }}>
+          <KpiCard label={t.pageViews}  value={totalViews.toLocaleString()}   delta={totalViews > 0 ? t.live : undefined}   trend="up"  sparkColor={SAND} />
+          <KpiCard label={t.leads}      value={totalLeads.toLocaleString()}   delta={totalLeads > 0 ? t.active : undefined}  trend="up"  sparkColor={TEAL} />
+          <KpiCard label={t.booked}     value={totalBooked.toLocaleString()}  delta={totalBooked > 0 ? `${bookRate}% ${t.closeRate}` : undefined} trend={totalBooked > 0 ? "up" : "flat"} sparkColor={SUCCESS} />
+          <KpiCard label={t.viewToLead} value={`${convRate}%`}                sparkColor="#25d366" />
+          <KpiCard label={t.packages}   value={String(filteredPackages.length)} sparkColor="#a78bfa" />
         </div>
 
         {/* Charts row */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16, marginBottom: 18 }}>
+        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16, marginBottom: 18 }}>
           {/* Weekly bar chart */}
           <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>Traffic & leads · this week</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>Sessions vs leads, daily</div>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{t.trafficTitle}</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{t.trafficSub}</div>
               </div>
               <div style={{ display: "flex", gap: 14, fontSize: 11, color: "rgba(255,255,255,0.5)" }}>
-                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: SAND, marginRight: 5 }}></span>Sessions</span>
-                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: TEAL, marginRight: 5 }}></span>Leads</span>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: SAND, marginRight: 5 }}></span>{t.sessions}</span>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: TEAL, marginRight: 5 }}></span>{t.leads}</span>
               </div>
             </div>
             {loading ? (
@@ -405,17 +435,17 @@ export default function Dashboard() {
                 <span className="spinner" />
               </div>
             ) : packages.length === 0 ? (
-              <div style={{ height: 140, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>No packages yet</div>
+              <div style={{ height: 140, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>{t.noPackages}</div>
             ) : (
               <>
-                <WeeklyBars packages={filteredPackages} />
+                <WeeklyBars packages={filteredPackages} lang={lang} />
                 {totalViews > 0 && (
                   <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "rgba(232,201,123,0.07)", border: "1px solid rgba(232,201,123,0.18)", display: "flex", gap: 10, alignItems: "flex-start" }}>
                     <span style={{ flexShrink: 0, marginTop: 1, color: SAND, fontSize: 14 }}>✦</span>
                     <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
-                      <b style={{ color: "#fff" }}>Your top package</b> is driving most traffic.{" "}
-                      <span style={{ color: SAND }}>Share it again this weekend</span> to hit your monthly target.
-                      <button onClick={() => { const top = [...filteredPackages].sort((a,b)=>(b.views||0)-(a.views||0))[0]; if (top) window.open(`/p/${top.id}`,"_blank","noopener,noreferrer"); }} style={{ marginLeft: 10, fontSize: 11, color: SAND, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>View →</button>
+                      {t.topPackageText}{" "}
+                      <span style={{ color: SAND }}>{t.shareWeekend}</span> {t.hitTarget}
+                      <button onClick={() => { const top = [...filteredPackages].sort((a,b)=>(b.views||0)-(a.views||0))[0]; if (top) window.open(`/${top.agencySlug || userAgencySlug}/${top.id}`,"_blank","noopener,noreferrer"); }} style={{ marginLeft: 10, fontSize: 11, color: SAND, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>{t.viewArrow}</button>
                     </div>
                   </div>
                 )}
@@ -425,26 +455,25 @@ export default function Dashboard() {
 
           {/* Funnel */}
           <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>Conversion funnel</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>Across all packages, last 30 days</div>
-            <FunnelRow label="Sessions"     value={totalViews.toLocaleString()}  pct={100} color={SAND} />
-            <FunnelRow label="Engaged"      value={Math.round(totalViews * 0.44).toLocaleString()} pct={44} color="#dba978" tail="Scrolled or watched" />
-            <FunnelRow label="CTA Click"    value={totalClicks.toLocaleString()} pct={totalViews > 0 ? parseFloat(convRate) : 0} color={TEAL} />
-            <FunnelRow label="Lead/Message" value={totalClicks.toLocaleString()} pct={totalViews > 0 ? parseFloat(convRate) : 0} color="#54e0b5" />
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{t.convFunnel}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{activeLabel} · {filteredPackages.length} {t.packages.toLowerCase()}</div>
+            <FunnelRow label={t.views}  value={totalViews.toLocaleString()}  pct={100} color={SAND} />
+            <FunnelRow label={t.leads}  value={totalLeads.toLocaleString()}  pct={totalViews > 0 ? Math.min(100, (totalLeads / totalViews) * 100) : 0}  color={TEAL} tail={t.ctaClicked} />
+            <FunnelRow label={t.booked} value={totalBooked.toLocaleString()} pct={totalLeads > 0 ? Math.min(100, (totalBooked / totalLeads) * 100) : 0} color={SUCCESS} tail={t.leadBooking} />
           </div>
         </div>
 
         {/* Packages + Insights/Leads */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, marginBottom: 18 }}>
+        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, marginBottom: 18 }}>
           {/* Package list */}
           <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, overflow: "hidden" }}>
             <div style={{ padding: "16px 22px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>Your packages</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>Sorted by conversion score</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{t.yourPackages}</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{t.sortedBy} {sortOptions.find(o => o.k === sortBy)?.l.toLowerCase()}</div>
               </div>
               <div style={{ display: "flex", gap: 4 }}>
-                {SORT_OPTIONS.map(({ k, l }) => (
+                {sortOptions.map(({ k, l }) => (
                   <button
                     key={k}
                     onClick={() => setSortBy(k)}
@@ -464,9 +493,9 @@ export default function Dashboard() {
             ) : packages.length === 0 ? (
               <div style={{ padding: "40px 24px", textAlign: "center" }}>
                 <Icon name="package" size={32} color="rgba(255,255,255,0.1)" strokeWidth={1} />
-                <p style={{ marginTop: 12, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No packages yet</p>
+                <p style={{ marginTop: 12, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>{t.noPackages}</p>
                 <button onClick={() => router.push("/builder")} style={{ marginTop: 16, background: `${SAND}18`, border: `1px solid ${SAND}40`, borderRadius: 10, padding: "8px 20px", color: SAND, fontSize: 13, fontFamily: "inherit", cursor: "pointer", fontWeight: 600 }}>
-                  Create your first package
+                  {t.createFirst}
                 </button>
               </div>
             ) : (
@@ -475,7 +504,9 @@ export default function Dashboard() {
                   <PackageRow
                     key={pkg.id}
                     pkg={pkg}
-                    onView={() => window.open(`/p/${pkg.id}`, "_blank", "noopener,noreferrer")}
+                    agencySlug={pkg.agencySlug || userAgencySlug}
+                    lang={lang}
+                    onView={() => window.open(`/${pkg.agencySlug || userAgencySlug}/${pkg.id}`, "_blank", "noopener,noreferrer")}
                     onEdit={() => router.push(`/builder?id=${pkg.id}`)}
                     onDelete={async () => {
                       const res = await fetch("/api/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pkg.id, userId }) });
@@ -493,26 +524,26 @@ export default function Dashboard() {
             <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>AI insights</div>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>Personalised for your packages</div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{t.aiInsights}</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{t.personalisedPackages}</div>
                 </div>
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 12px", borderRadius: 99, background: "rgba(232,201,123,0.13)", border: "1px solid rgba(232,201,123,0.3)", color: SAND, fontSize: 11.5, fontWeight: 600 }}>
                   <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: SAND, animation: "pulse 1.4s ease-in-out infinite" }} />
-                  3 new
+                  {t.threeNew}
                 </div>
               </div>
-              <Insight icon="✦" title="Sharpen your headline" desc="Pages with action verbs convert 31% better. Try sensory, destination-specific language." cta="Generate" />
-              <Insight icon="◐" title="Pin your price" desc="Visitors scroll past price tags. Make it sticky on mobile to lift CTR." cta="Apply" />
-              <Insight icon="↑" title="Add urgency copy" desc="Seasonal scarcity (e.g. Only 4 spots in November) recovers lost leads effectively." cta="Preview" />
+              <Insight icon="✦" title={t.insightTitle1} desc={t.insightDesc1} cta={t.generate} userId={userId} />
+              <Insight icon="◐" title={t.insightTitle2} desc={t.insightDesc2} cta={t.apply} userId={userId} />
+              <Insight icon="↑" title={t.insightTitle3} desc={t.insightDesc3} cta={t.preview} userId={userId} />
             </div>
 
             {/* Recent leads */}
             <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>Recent leads</div>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>{t.recentLeads}</div>
               {loading ? (
                 <div style={{ textAlign: "center", padding: 16 }}><span className="spinner" /></div>
               ) : filteredLeads.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "16px 0", fontSize: 13, color: "rgba(255,255,255,0.3)" }}>No leads in this period</div>
+                <div style={{ textAlign: "center", padding: "16px 0", fontSize: 13, color: "rgba(255,255,255,0.3)" }}>{t.noLeadsInPeriod}</div>
               ) : (
                 filteredLeads.map((lead, i) => {
                   const initials = (lead.destination || "?").slice(0, 2).toUpperCase();
@@ -527,7 +558,7 @@ export default function Dashboard() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600 }}>{lead.destination}</div>
                         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
-                          via {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}
+                          {lead.channel === "whatsapp" ? t.viaWhatsApp : t.viaMessenger}
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
@@ -535,7 +566,7 @@ export default function Dashboard() {
                           {lead.status}
                         </span>
                         <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>
-                          {new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                          {new Date(lead.createdAt).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short" })}
                         </div>
                       </div>
                     </div>
@@ -543,7 +574,7 @@ export default function Dashboard() {
                 })
               )}
               <button onClick={() => router.push("/leads")} style={{ marginTop: 14, width: "100%", padding: "9px", borderRadius: 9, background: "none", border: `1px solid ${SAND}40`, color: SAND, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
-                View all leads →
+                {t.viewAllLeads}
               </button>
             </div>
           </div>

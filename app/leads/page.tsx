@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs, doc, updateDoc, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
+import { useLang } from "@/hooks/useLang";
+import { T } from "@/lib/translations";
 
 const SAND = "#e8c97b";
 
@@ -18,18 +20,13 @@ type Lead = {
   channel: "whatsapp" | "messenger";
   status: string;
   createdAt: number;
-};
-
-const TAB_STATUS: Record<string, string | null> = {
-  all: null,
-  pending: "new",
-  booked: "booked",
-  lost: "lost",
+  sessionId?: string;
 };
 
 // ── Heat dots ─────────────────────────────────────────────────────────────────
 
-function HeatDots({ level }: { level: number }) {
+function HeatDots({ level, hot, warm, cool }: { level: number; hot: string; warm: string; cool: string }) {
+  const label = level >= 4 ? hot : level >= 3 ? warm : cool;
   return (
     <div>
       <div style={{ display: "flex", gap: 3 }}>
@@ -40,42 +37,37 @@ function HeatDots({ level }: { level: number }) {
           }} />
         ))}
       </div>
-      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>
-        {level >= 4 ? "Hot" : level >= 3 ? "Warm" : "Cool"}
-      </div>
+      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{label}</div>
     </div>
   );
 }
 
 // ── Status pill ───────────────────────────────────────────────────────────────
 
-const STATUS_META: Record<string, { bg: string; color: string; label: string }> = {
-  new:         { bg: "rgba(245,166,35,0.13)",  color: "#f5b34a", label: "Pending" },
-  contacted:   { bg: "rgba(245,166,35,0.13)",  color: "#f5b34a", label: "Pending" },
-  negotiating: { bg: "rgba(245,166,35,0.13)",  color: "#f5b34a", label: "Pending" },
-  booked:      { bg: "rgba(45,212,160,0.13)",  color: "#54e0b5", label: "Booked"  },
-  lost:        { bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)", label: "Lost" },
-};
-
-function StatusPill({ status }: { status: string }) {
-  const m = STATUS_META[status] || STATUS_META.new;
+function StatusPill({ status, label }: { status: string; label: string }) {
+  const styles: Record<string, { bg: string; color: string }> = {
+    new:       { bg: "rgba(100,149,237,0.13)", color: "#7eb3f5" },
+    contacted: { bg: "rgba(245,166,35,0.13)",  color: "#f5b34a" },
+    booked:    { bg: "rgba(45,212,160,0.13)",  color: "#54e0b5" },
+    lost:      { bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" },
+  };
+  const m = styles[status] || styles.new;
   return (
     <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", background: m.bg, color: m.color }}>
-      {m.label}
+      {label}
     </span>
   );
 }
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
-function DetailPanel({ lead, onStatusChange }: { lead: Lead; onStatusChange: (id: string, status: string) => void }) {
+function DetailPanel({ lead, onStatusChange, t }: { lead: Lead; onStatusChange: (id: string, status: string) => void; t: typeof T["en"] }) {
   const initials = (lead.destination || "?").slice(0, 2).toUpperCase();
   const avatarColors = ["#c66a3d", "#1f5f8e", "#7c3aed", "#0d6e3f", "#b45309"];
   const avatarColor = avatarColors[Math.abs(lead.id.charCodeAt(0)) % avatarColors.length];
-  const heat = lead.status === "booked" ? 5 : lead.status === "negotiating" ? 4 : lead.status === "contacted" ? 3 : lead.status === "new" ? 2 : 1;
+  const heat = lead.status === "booked" ? 5 : lead.status === "contacted" ? 3 : lead.status === "new" ? 2 : 1;
   const channelColor = lead.channel === "whatsapp" ? "#25d366" : "#0084ff";
-  const channelBg = lead.channel === "whatsapp" ? "rgba(37,211,102,0.08)" : "rgba(0,132,255,0.08)";
-  const channelBorder = lead.channel === "whatsapp" ? "rgba(37,211,102,0.25)" : "rgba(0,132,255,0.25)";
+  const statusLabel = t[`status${lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}` as keyof typeof t] as string || lead.status;
 
   return (
     <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", position: "sticky", top: 16, alignSelf: "start" }}>
@@ -90,17 +82,17 @@ function DetailPanel({ lead, onStatusChange }: { lead: Lead; onStatusChange: (id
             {lead.price} · {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}
           </div>
         </div>
-        <StatusPill status={lead.status} />
+        <StatusPill status={lead.status} label={statusLabel} />
       </div>
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
         <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px" }}>Engagement</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: heat >= 4 ? "#54e0b5" : SAND, marginTop: 3 }}>{heat}/5 · {heat >= 4 ? "Hot" : heat >= 3 ? "Warm" : "Cool"}</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px" }}>{t.engagementCol}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: heat >= 4 ? "#54e0b5" : SAND, marginTop: 3 }}>{heat}/5 · {heat >= 4 ? t.heatHot : heat >= 3 ? t.heatWarm : t.heatCool}</div>
         </div>
         <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px" }}>Channel</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px" }}>{t.channelCol}</div>
           <div style={{ fontSize: 14, fontWeight: 700, marginTop: 3, color: channelColor }}>
             {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}
           </div>
@@ -108,38 +100,73 @@ function DetailPanel({ lead, onStatusChange }: { lead: Lead; onStatusChange: (id
       </div>
 
       {/* Activity */}
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Activity</div>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>{t.activityTitle}</div>
       {[
-        { t: "Lead created", s: `Clicked ${lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"} CTA on landing page`, time: new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), c: channelColor },
-        { t: "Viewed pricing", s: "Scrolled to pricing section", time: "During visit", c: SAND },
-        { t: "Landed on page", s: `From ${lead.destination} package`, time: "Session start", c: "#1f5f8e" },
+        { title: t.actLeadCreated, sub: `${lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"} CTA`, time: new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), c: channelColor },
+        { title: t.actViewedPricing, sub: t.actScrolledPricing, time: t.actDuringVisit, c: SAND },
+        { title: t.actLandedOnPage, sub: `${lead.destination}`, time: t.actSessionStart, c: "#1f5f8e" },
       ].map((a, i) => (
         <div key={i} style={{ display: "flex", gap: 11, paddingBottom: 12, marginBottom: 12, borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: a.c, marginTop: 6, flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600 }}>{a.t}</div>
-            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 2, lineHeight: 1.4 }}>{a.s}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600 }}>{a.title}</div>
+            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 2, lineHeight: 1.4 }}>{a.sub}</div>
             <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>{a.time}</div>
           </div>
         </div>
       ))}
 
+      {/* Session ref */}
+      {lead.sessionId && (
+        <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".5px" }}>{t.waRefLabel}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(255,255,255,0.65)", fontFamily: "monospace" }}>{lead.sessionId.slice(0, 8)}</span>
+          <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.3)", marginLeft: "auto" }}>{t.searchInWhatsApp}</span>
+        </div>
+      )}
+
       {/* Actions */}
-      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
         <a
-          href={`https://wa.me/${lead.channel === "whatsapp" ? "" : ""}`}
+          href="https://web.whatsapp.com/"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ flex: 1, padding: "10px", borderRadius: 9, background: "#25d366", color: "#fff", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer", textDecoration: "none", textAlign: "center", display: "block" }}
+          style={{ flex: 1, minWidth: 110, padding: "10px", borderRadius: 9, background: "#25d366", color: "#fff", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer", textDecoration: "none", textAlign: "center", display: "block" }}
         >
-          Reply on WA
+          {t.openWhatsAppBtn}
         </a>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+        {lead.status !== "contacted" && lead.status !== "booked" && (
+          <button
+            onClick={() => onStatusChange(lead.id, "contacted")}
+            style={{ flex: 1, padding: "9px 12px", borderRadius: 9, background: "rgba(245,179,74,0.1)", border: "1px solid rgba(245,179,74,0.25)", color: "#f5b34a", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            {t.markContactedBtn}
+          </button>
+        )}
         {lead.status !== "booked" && (
           <button
             onClick={() => onStatusChange(lead.id, "booked")}
-            style={{ padding: "10px 14px", borderRadius: 9, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ flex: 1, padding: "9px 12px", borderRadius: 9, background: "rgba(84,224,181,0.1)", border: "1px solid rgba(84,224,181,0.25)", color: "#54e0b5", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
           >
-            Mark booked
+            {t.markBookedBtn}
+          </button>
+        )}
+        {lead.status !== "lost" && lead.status !== "booked" && (
+          <button
+            onClick={() => onStatusChange(lead.id, "lost")}
+            style={{ flex: 1, padding: "9px 12px", borderRadius: 9, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            {t.markLostBtn}
+          </button>
+        )}
+        {(lead.status === "booked" || lead.status === "lost") && (
+          <button
+            onClick={() => onStatusChange(lead.id, "new")}
+            style={{ flex: 1, padding: "9px 12px", borderRadius: 9, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            {t.reopenBtn}
           </button>
         )}
       </div>
@@ -151,6 +178,9 @@ function DetailPanel({ lead, onStatusChange }: { lead: Lead; onStatusChange: (id
 
 export default function LeadsPage() {
   const router = useRouter();
+  const lang = useLang();
+  const t = T[lang];
+
   const [authLoading, setAuthLoading] = useState(true);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [activeTab, setActiveTab] = useState("all");
@@ -170,23 +200,31 @@ export default function LeadsPage() {
   }, [router]);
 
   const updateStatus = async (id: string, status: string) => {
-    await updateDoc(doc(db, "leads", id), { status });
+    await fetch("/api/update-lead-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leadId: id, status }),
+    });
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     setSelected(prev => prev?.id === id ? { ...prev, status } : prev);
   };
 
+  const statusLabel = (s: string) => {
+    const map: Record<string, string> = {
+      all: t.tabAll, new: t.tabNew, contacted: t.tabContacted, booked: t.tabBooked, lost: t.tabLost,
+    };
+    return map[s] || s;
+  };
+
   const tabs = [
-    { k: "all",     l: "All",     count: leads.length },
-    { k: "pending", l: "Pending", count: leads.filter(l => ["new", "contacted", "negotiating"].includes(l.status)).length },
-    { k: "booked",  l: "Booked",  count: leads.filter(l => l.status === "booked").length },
-    { k: "lost",    l: "Lost",    count: leads.filter(l => l.status === "lost").length },
+    { k: "all",       count: leads.length },
+    { k: "new",       count: leads.filter(l => l.status === "new").length },
+    { k: "contacted", count: leads.filter(l => l.status === "contacted").length },
+    { k: "booked",    count: leads.filter(l => l.status === "booked").length },
+    { k: "lost",      count: leads.filter(l => l.status === "lost").length },
   ];
 
-  const filtered = activeTab === "all"
-    ? leads
-    : activeTab === "pending"
-    ? leads.filter(l => ["new", "contacted", "negotiating"].includes(l.status))
-    : leads.filter(l => l.status === activeTab);
+  const filtered = activeTab === "all" ? leads : leads.filter(l => l.status === activeTab);
 
   if (authLoading) {
     return (
@@ -200,39 +238,39 @@ export default function LeadsPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
+      <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
 
         {/* Page head */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>Leads</div>
+            <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>{t.leadsPageTitle}</div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
-              {leads.length} active conversation{leads.length !== 1 ? "s" : ""}
-              {leads.length > 0 && " · updated just now"}
+              {leads.length} {leads.length !== 1 ? t.activeConversations : t.activeConversation}
+              {leads.length > 0 && ` · ${t.updatedJustNow}`}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.65)", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer" }}>
-              Export CSV
+              {t.exportCsv}
             </button>
             <button style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.65)", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer" }}>
-              Sync WhatsApp
+              {t.syncWhatsAppBtn}
             </button>
           </div>
         </div>
 
         {/* Status tabs */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          {tabs.map(t => (
-            <button key={t.k} onClick={() => setActiveTab(t.k)} style={{
+          {tabs.map(tab => (
+            <button key={tab.k} onClick={() => setActiveTab(tab.k)} style={{
               padding: "10px 16px", border: "none", background: "none",
-              color: activeTab === t.k ? SAND : "rgba(255,255,255,0.5)",
-              fontSize: 13, fontWeight: activeTab === t.k ? 700 : 500,
+              color: activeTab === tab.k ? SAND : "rgba(255,255,255,0.5)",
+              fontSize: 13, fontWeight: activeTab === tab.k ? 700 : 500,
               cursor: "pointer", fontFamily: "inherit",
-              borderBottom: activeTab === t.k ? `2px solid ${SAND}` : "2px solid transparent",
+              borderBottom: activeTab === tab.k ? `2px solid ${SAND}` : "2px solid transparent",
               marginBottom: -1, transition: "all .15s",
             }}>
-              {t.l} <span style={{ marginLeft: 5, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{t.count}</span>
+              {statusLabel(tab.k)} <span style={{ marginLeft: 5, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{tab.count}</span>
             </button>
           ))}
         </div>
@@ -240,9 +278,9 @@ export default function LeadsPage() {
         {leads.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: 12 }}>
             <Icon name="users" size={40} color="rgba(255,255,255,0.08)" strokeWidth={1} />
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.3)" }}>No leads yet</p>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.3)" }}>{t.noLeadsYet}</p>
             <p style={{ fontSize: 12, maxWidth: 280, textAlign: "center", color: "rgba(255,255,255,0.25)" }}>
-              Leads appear when visitors tap your WhatsApp or Messenger CTA on a landing page.
+              {t.leadsAppearNote}
             </p>
           </div>
         ) : (
@@ -252,23 +290,24 @@ export default function LeadsPage() {
               {/* Column headers */}
               <div style={{ padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", fontSize: 10.5, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px", gap: 14 }}>
                 <div style={{ width: 38 }} />
-                <div style={{ flex: 2, marginLeft: 0 }}>Lead</div>
-                <div style={{ flex: 1.4 }}>Package</div>
-                <div style={{ width: 70 }}>Heat</div>
-                <div style={{ width: 80 }}>Status</div>
-                <div style={{ width: 60, textAlign: "right" }}>When</div>
+                <div style={{ flex: 2 }}>{t.colLead}</div>
+                <div style={{ flex: 1.4 }}>{t.colPackage}</div>
+                <div style={{ width: 70 }}>{t.colHeat}</div>
+                <div style={{ width: 80 }}>{t.colStatus}</div>
+                <div style={{ width: 60, textAlign: lang === "ar" ? "left" : "right" }}>{t.colWhen}</div>
               </div>
 
               {filtered.length === 0 ? (
                 <div style={{ padding: "32px 0", textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.3)" }}>
-                  No {activeTab} leads
+                  {statusLabel(activeTab)} — {t.noLeadsYet.toLowerCase()}
                 </div>
               ) : filtered.map(lead => {
                 const isSelected = selected?.id === lead.id;
                 const initials = (lead.destination || "?").slice(0, 2).toUpperCase();
                 const avatarColors = ["#c66a3d", "#1f5f8e", "#7c3aed", "#0d6e3f", "#b45309"];
                 const avatarColor = avatarColors[Math.abs(lead.id.charCodeAt(0)) % avatarColors.length];
-                const heat = lead.status === "booked" ? 5 : lead.status === "negotiating" ? 4 : lead.status === "contacted" ? 3 : lead.status === "new" ? 2 : 1;
+                const heat = lead.status === "booked" ? 5 : lead.status === "contacted" ? 3 : lead.status === "new" ? 2 : 1;
+                const sLabel = t[`status${lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}` as keyof typeof t] as string || lead.status;
 
                 return (
                   <div
@@ -280,7 +319,8 @@ export default function LeadsPage() {
                       cursor: "pointer",
                       background: isSelected ? "rgba(232,201,123,0.06)" : "transparent",
                       transition: "background .15s",
-                      borderLeft: isSelected ? `2px solid ${SAND}` : "2px solid transparent",
+                      borderLeft: lang === "ar" ? undefined : isSelected ? `2px solid ${SAND}` : "2px solid transparent",
+                      borderRight: lang === "ar" ? isSelected ? `2px solid ${SAND}` : "2px solid transparent" : undefined,
                     }}
                     onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
                     onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
@@ -290,19 +330,19 @@ export default function LeadsPage() {
                     </div>
                     <div style={{ flex: 2, minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.destination}</div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>via {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}</div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{t.viaChannel} {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}</div>
                     </div>
                     <div style={{ flex: 1.4, fontSize: 12, color: "rgba(255,255,255,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {lead.price || lead.destination}
                     </div>
                     <div style={{ width: 70 }}>
-                      <HeatDots level={heat} />
+                      <HeatDots level={heat} hot={t.heatHot} warm={t.heatWarm} cool={t.heatCool} />
                     </div>
                     <div style={{ width: 80 }}>
-                      <StatusPill status={lead.status} />
+                      <StatusPill status={lead.status} label={sLabel} />
                     </div>
-                    <div style={{ width: 60, textAlign: "right", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
-                      {new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    <div style={{ width: 60, textAlign: lang === "ar" ? "left" : "right", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                      {new Date(lead.createdAt).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short" })}
                     </div>
                   </div>
                 );
@@ -311,10 +351,10 @@ export default function LeadsPage() {
 
             {/* Detail panel */}
             {selected ? (
-              <DetailPanel lead={selected} onStatusChange={updateStatus} />
+              <DetailPanel lead={selected} onStatusChange={updateStatus} t={t} />
             ) : (
               <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>Select a lead to see details</p>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>{t.selectLeadNote}</p>
               </div>
             )}
           </div>

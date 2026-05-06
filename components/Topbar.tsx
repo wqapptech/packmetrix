@@ -3,15 +3,10 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Icon from "./Icon";
+import { T } from "@/lib/translations";
 
 const SAND = "#e8c97b";
-
-const PAGE_NAMES: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/builder": "Builder",
-  "/leads": "Leads",
-  "/profile": "Branding",
-};
+const LANG_KEY = "packmetrix_lang";
 
 export default function Topbar() {
   const pathname = usePathname();
@@ -19,16 +14,31 @@ export default function Topbar() {
   const [lang, setLang] = useState<"en" | "ar">("en");
 
   useEffect(() => {
-    const stored = (typeof document !== "undefined" && document.body.getAttribute("data-lang")) as "en" | "ar" | null;
-    if (stored) setLang(stored);
+    const stored = localStorage.getItem(LANG_KEY) as "en" | "ar" | null;
+    if (stored) {
+      setLang(stored);
+      document.body.setAttribute("data-lang", stored);
+    }
   }, []);
 
   const toggleLang = (l: "en" | "ar") => {
     setLang(l);
     document.body.setAttribute("data-lang", l);
+    localStorage.setItem(LANG_KEY, l);
   };
 
-  const pageName = pathname.startsWith("/builder") ? "Builder" : PAGE_NAMES[pathname] || "Workspace";
+  const t = T[lang];
+
+  const pageNames: Record<string, string> = {
+    "/dashboard": t.navDashboard,
+    "/builder": t.navBuilder,
+    "/packages": t.navPackages,
+    "/leads": t.navLeads,
+    "/profile": t.navBranding,
+    "/paywall": t.navBilling,
+  };
+
+  const pageName = pathname.startsWith("/builder") ? t.navBuilder : pageNames[pathname] || t.crumbWorkspace;
 
   return (
     <div style={{
@@ -39,7 +49,7 @@ export default function Topbar() {
       flexShrink: 0,
     }}>
       <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.4)" }}>
-        Workspace{" "}·{" "}
+        {t.crumbWorkspace}{" "}·{" "}
         <strong style={{ color: "rgba(255,255,255,0.85)", fontWeight: 600 }}>{pageName}</strong>
       </div>
       <div style={{ flex: 1 }} />
@@ -68,22 +78,6 @@ export default function Topbar() {
         ))}
       </div>
 
-      {/* View Landing */}
-      <button
-        onClick={() => router.push("/dashboard")}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 7,
-          padding: "7px 12px", borderRadius: 8, cursor: "pointer",
-          fontSize: 12.5, color: "rgba(255,255,255,0.65)",
-          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-          fontFamily: "inherit", transition: "all .15s",
-        }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.07)"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)"; (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.65)"; }}
-      >
-        <Icon name="eye" size={13} /> View Landing
-      </button>
-
       {/* New Package CTA */}
       <button
         onClick={() => router.push("/builder")}
@@ -95,7 +89,7 @@ export default function Topbar() {
           border: "none", cursor: "pointer", fontFamily: "inherit",
         }}
       >
-        <Icon name="plus" size={14} color="#0a1426" strokeWidth={2.5} /> New Package
+        <Icon name="plus" size={14} color="#0a1426" strokeWidth={2.5} /> {t.newPackageBtn}
       </button>
     </div>
   );

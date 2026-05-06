@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       coverImage:   fields.coverImage   || "",
       images:       Array.isArray(fields.images) ? fields.images : [],
       videoUrl:     fields.videoUrl     || "",
+      language:     fields.language === "ar" ? "ar" : "en",
       updatedAt:    Date.now(),
     });
 

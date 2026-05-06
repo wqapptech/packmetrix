@@ -3,13 +3,23 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, increment, addDoc, collection } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
+import { T, type Lang } from "@/lib/translations";
+import { useLang } from "@/hooks/useLang";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
+
+const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+function toLocalDigits(n: number | string, lang: Lang): string {
+  if (lang !== "ar") return String(n);
+  return String(n).replace(/\d/g, d => AR_DIGITS[+d]);
+}
+
+type TDict = typeof T["en"];
 
 type Airport = { name: string; price: string };
 type ItineraryDay = { day: number; title: string; desc: string };
@@ -31,6 +41,7 @@ type Form = {
   coverImage: string;
   images: string[];
   videoUrl: string;
+  language: "en" | "ar";
 };
 
 const DEFAULT_FORM: Form = {
@@ -58,16 +69,8 @@ const DEFAULT_FORM: Form = {
   coverImage: "",
   images: [],
   videoUrl: "",
+  language: "en",
 };
-
-const STEPS = ["Paste", "Basics", "Details", "Itinerary", "Pricing", "Contact", "Cover", "Media", "Video"];
-
-const IMG_STYLES = [
-  { id: "vibrant",   label: "Vibrant",   color: "#ff6b6b", bg: "linear-gradient(135deg, #ff6b6b, #feca57)",  desc: "Bold, colourful scenes" },
-  { id: "minimal",   label: "Minimal",   color: "#a8a8a8", bg: "linear-gradient(135deg, #2d3436, #636e72)",  desc: "Clean, editorial look" },
-  { id: "luxury",    label: "Luxury",    color: SAND,      bg: "linear-gradient(135deg, #8b6914, #e8c97b)",  desc: "Rich warm tones" },
-  { id: "adventure", label: "Adventure", color: "#4ecdc4", bg: "linear-gradient(135deg, #134e5e, #71b280)",  desc: "Raw & dramatic" },
-];
 
 // ── shared field components ───────────────────────────────────────────────────
 
@@ -106,28 +109,108 @@ function TextInput({
 
 // ── step components ───────────────────────────────────────────────────────────
 
-function Step0({ form, update }: { form: Form; update: (k: keyof Form, v: any) => void }) {
+function ComingSoonPanel({ feature, featureKey, user, onBack, t }: { feature: string; featureKey: string; user: any; onBack?: () => void; t: TDict }) {
+  const [requested, setRequested] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleRequest = async () => {
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "featureRequests"), {
+        feature: featureKey,
+        userId: user?.uid || "anonymous",
+        email: user?.email || "",
+        createdAt: Date.now(),
+      });
+      setRequested(true);
+    } catch {}
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ textAlign: "center", padding: "36px 24px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16 }}>
+      <div style={{ width: 52, height: 52, borderRadius: 14, background: `${SAND}18`, border: `1px solid ${SAND}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, margin: "0 auto 16px" }}>✦</div>
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{t.comingSoonTitle}</div>
+      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6, marginBottom: 24 }}>
+        <b style={{ color: "#fff" }}>{feature}</b> {t.comingSoonInDev}<br />{t.comingSoonTellUs}
+      </div>
+      {requested ? (
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 10, background: "rgba(45,212,160,0.1)", border: "1px solid rgba(45,212,160,0.3)", color: SUCCESS, fontSize: 13, fontWeight: 600 }}>
+          {t.onTheList}
+        </div>
+      ) : (
+        <button
+          onClick={handleRequest}
+          disabled={loading}
+          style={{ padding: "11px 24px", borderRadius: 10, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, border: "none", color: "#0a1426", fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8 }}
+        >
+          {loading ? <span className="spinner" style={{ width: 13, height: 13, borderTopColor: "#0a1426" }} /> : "⚡"} {t.iWantFaster}
+        </button>
+      )}
+      {onBack && (
+        <div>
+          <button onClick={onBack} style={{ marginTop: 16, fontSize: 12, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>{t.goBack}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Step0({ form, update, t }: { form: Form; update: (k: keyof Form, v: any) => void; t: TDict }) {
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Basic Information</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>Core details about the package</p>
-      <FieldLabel>Destination</FieldLabel>
-      <TextInput value={form.destination} onChange={v => update("destination", v)} placeholder="e.g. Marrakech, Morocco" />
+      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepBasicsTitle}</h3>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepBasicsSub}</p>
+
+      {/* Language picker */}
+      <FieldLabel>{t.landingLanguage}</FieldLabel>
+      <div style={{ display: "flex", gap: 10, marginBottom: 4 }}>
+        {(["en", "ar"] as const).map(l => (
+          <button
+            key={l}
+            onClick={() => update("language", l)}
+            style={{
+              flex: 1, padding: "10px 16px", borderRadius: 10,
+              border: form.language === l ? `1.5px solid ${SAND}` : "1px solid rgba(255,255,255,0.1)",
+              background: form.language === l ? `${SAND}18` : "rgba(255,255,255,0.03)",
+              color: form.language === l ? SAND : "rgba(255,255,255,0.5)",
+              fontSize: 13, fontWeight: form.language === l ? 700 : 400,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              transition: "all 0.15s",
+            }}
+          >
+            {l === "en" ? (
+              <><span style={{ fontSize: 15 }}>🇬🇧</span> {t.langEn}</>
+            ) : (
+              <><span style={{ fontSize: 15 }}>🇸🇦</span> {t.langAr}</>
+            )}
+          </button>
+        ))}
+      </div>
+      {form.language === "ar" && (
+        <div style={{ marginBottom: 16, padding: "8px 12px", borderRadius: 8, background: "rgba(232,201,123,0.06)", border: "1px solid rgba(232,201,123,0.18)", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
+          {t.rtlHint}
+        </div>
+      )}
+
+      <FieldLabel>{t.fieldDestination}</FieldLabel>
+      <TextInput value={form.destination} onChange={v => update("destination", v)} placeholder={t.placeholderDestination} />
       <div style={{ display: "flex", gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <FieldLabel>Base Price</FieldLabel>
-          <TextInput value={form.price} onChange={v => update("price", v)} placeholder="e.g. €899" />
+          <FieldLabel>{t.fieldBasePrice}</FieldLabel>
+          <TextInput value={form.price} onChange={v => update("price", v)} placeholder={t.placeholderBasePrice} />
         </div>
         <div style={{ flex: 1 }}>
-          <FieldLabel>Nights</FieldLabel>
-          <TextInput value={form.nights} onChange={v => update("nights", v)} placeholder="5" />
+          <FieldLabel>{t.fieldNights}</FieldLabel>
+          <TextInput value={form.nights} onChange={v => update("nights", v)} placeholder={t.placeholderNights} />
         </div>
       </div>
-      <FieldLabel>Description</FieldLabel>
+      <FieldLabel>{t.fieldDescription}</FieldLabel>
       <textarea
         value={form.description}
         onChange={e => update("description", e.target.value)}
-        placeholder="Brief package description..."
+        placeholder={t.descPlaceholder}
         style={{
           width: "100%", height: 100,
           background: "rgba(255,255,255,0.04)",
@@ -142,15 +225,14 @@ function Step0({ form, update }: { form: Form; update: (k: keyof Form, v: any) =
       <div style={{ marginTop: 16, padding: "14px 16px", borderRadius: 12, background: "rgba(232,201,123,0.06)", border: "1px solid rgba(232,201,123,0.2)", display: "flex", gap: 12, alignItems: "flex-start" }}>
         <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(232,201,123,0.18)", color: SAND, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>✦</div>
         <div style={{ flex: 1, fontSize: 12.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55 }}>
-          <b style={{ color: "#fff" }}>One coaching tip:</b> Pages with action verbs in the headline convert 31% better. Try{" "}
-          <em style={{ color: SAND }}>"Watch the Aegean turn gold for five days."</em>
+          <b style={{ color: "#fff" }}>{t.coachingTipLabel}</b> {t.coachingTipBody}
         </div>
       </div>
     </div>
   );
 }
 
-function TagInput({ value, onAdd }: { value: string[]; onAdd: (v: string[]) => void }) {
+function TagInput({ value, onAdd, t }: { value: string[]; onAdd: (v: string[]) => void; t: TDict }) {
   const [draft, setDraft] = useState("");
   const commit = () => {
     const trimmed = draft.trim();
@@ -163,23 +245,23 @@ function TagInput({ value, onAdd }: { value: string[]; onAdd: (v: string[]) => v
         value={draft}
         onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); commit(); } }}
-        placeholder="Type and press Enter…"
+        placeholder={t.tagInputPlaceholder}
         style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "8px 12px", color: "var(--white)", fontSize: 12, fontFamily: "inherit", outline: "none" }}
         onFocus={e => (e.target.style.borderColor = `${SAND}60`)}
         onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.1)"; }}
       />
-      <button onClick={commit} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "8px 14px", color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "inherit", cursor: "pointer" }}>Add</button>
+      <button onClick={commit} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "8px 14px", color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "inherit", cursor: "pointer" }}>{t.addBtn}</button>
     </div>
   );
 }
 
-function Step1({ form, update }: { form: Form; update: (k: keyof Form, v: any) => void }) {
+function Step1({ form, update, t }: { form: Form; update: (k: keyof Form, v: any) => void; t: TDict }) {
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Inclusions & Airports</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>What's included and departure options</p>
+      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepDetailsTitle}</h3>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepDetailsSub}</p>
 
-      <FieldLabel>Included</FieldLabel>
+      <FieldLabel>{t.fieldIncluded}</FieldLabel>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
         {form.includes.map((item, i) => (
           <span key={i} style={{
@@ -193,9 +275,9 @@ function Step1({ form, update }: { form: Form; update: (k: keyof Form, v: any) =
           </span>
         ))}
       </div>
-      <TagInput value={form.includes} onAdd={v => update("includes", v)} />
+      <TagInput value={form.includes} onAdd={v => update("includes", v)} t={t} />
 
-      <FieldLabel>Not Included</FieldLabel>
+      <FieldLabel>{t.fieldNotIncluded}</FieldLabel>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
         {form.excludes.map((item, i) => (
           <span key={i} style={{
@@ -209,37 +291,37 @@ function Step1({ form, update }: { form: Form; update: (k: keyof Form, v: any) =
           </span>
         ))}
       </div>
-      <TagInput value={form.excludes} onAdd={v => update("excludes", v)} />
+      <TagInput value={form.excludes} onAdd={v => update("excludes", v)} t={t} />
 
-      <FieldLabel>Departure Airports</FieldLabel>
+      <FieldLabel>{t.fieldDepartureAirports}</FieldLabel>
       {form.airports.map((a, i) => (
         <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
           <TextInput value={a.name} onChange={v => {
             const arr = [...form.airports]; arr[i] = { ...arr[i], name: v }; update("airports", arr);
-          }} placeholder="Airport name" />
+          }} placeholder={t.airportNamePlaceholder} />
           <input
             value={a.price}
             onChange={e => {
               const arr = [...form.airports]; arr[i] = { ...arr[i], price: e.target.value }; update("airports", arr);
             }}
-            placeholder="Price"
+            placeholder={t.placeholderAirportPrice}
             style={{ width: 90, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "var(--white)", fontSize: 13, fontFamily: "inherit", outline: "none" }}
           />
         </div>
       ))}
       <button onClick={() => update("airports", [...form.airports, { name: "", price: "" }])}
         style={{ fontSize: 12, color: SAND, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", marginTop: 4 }}>
-        + Add airport
+        {t.addAirport}
       </button>
     </div>
   );
 }
 
-function Step2({ form, update }: { form: Form; update: (k: keyof Form, v: any) => void }) {
+function Step2({ form, update, t, lang }: { form: Form; update: (k: keyof Form, v: any) => void; t: TDict; lang: Lang }) {
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Day-by-Day Itinerary</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>Give travellers a clear journey timeline</p>
+      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepItineraryTitle}</h3>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepItinerarySub}</p>
       {form.itinerary.map((day, i) => (
         <div key={i} style={{
           display: "flex", gap: 14, marginBottom: 14,
@@ -251,18 +333,18 @@ function Step2({ form, update }: { form: Form; update: (k: keyof Form, v: any) =
             background: `${SAND}22`, border: `1px solid ${SAND}40`,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 12, fontWeight: 700, color: SAND,
-          }}>{day.day}</div>
+          }}>{toLocalDigits(day.day, lang)}</div>
           <div style={{ flex: 1 }}>
             <input
               value={day.title}
               onChange={e => { const arr = [...form.itinerary]; arr[i] = { ...arr[i], title: e.target.value }; update("itinerary", arr); }}
-              placeholder={`Day ${day.day} title`}
+              placeholder={`${t.dayLabel} ${toLocalDigits(day.day, lang)}`}
               style={{ width: "100%", background: "none", border: "none", color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600, fontFamily: "inherit", outline: "none", marginBottom: 4 }}
             />
             <input
               value={day.desc}
               onChange={e => { const arr = [...form.itinerary]; arr[i] = { ...arr[i], desc: e.target.value }; update("itinerary", arr); }}
-              placeholder="Description…"
+              placeholder={t.dayDescPlaceholder}
               style={{ width: "100%", background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 12, fontFamily: "inherit", outline: "none" }}
             />
           </div>
@@ -270,17 +352,17 @@ function Step2({ form, update }: { form: Form; update: (k: keyof Form, v: any) =
       ))}
       <button onClick={() => update("itinerary", [...form.itinerary, { day: form.itinerary.length + 1, title: "", desc: "" }])}
         style={{ fontSize: 12, color: SAND, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-        + Add day
+        {t.addDay}
       </button>
     </div>
   );
 }
 
-function Step3({ form, update }: { form: Form; update: (k: keyof Form, v: any) => void }) {
+function Step3({ form, update, t }: { form: Form; update: (k: keyof Form, v: any) => void; t: TDict }) {
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Pricing Tiers</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>Offer clear options to maximise conversions</p>
+      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepPricingTitle}</h3>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepPricingSub}</p>
       {form.pricingTiers.map((tier, i) => (
         <div key={i} style={{
           background: i === 0 ? `${SAND}12` : "rgba(255,255,255,0.03)",
@@ -290,7 +372,7 @@ function Step3({ form, update }: { form: Form; update: (k: keyof Form, v: any) =
           marginBottom: 10,
         }}>
           <div>
-            {i === 0 && <span style={{ fontSize: 10, fontWeight: 700, color: SAND, letterSpacing: "0.6px", textTransform: "uppercase" as const, display: "block", marginBottom: 3 }}>Most Popular</span>}
+            {i === 0 && <span style={{ fontSize: 10, fontWeight: 700, color: SAND, letterSpacing: "0.6px", textTransform: "uppercase" as const, display: "block", marginBottom: 3 }}>{t.mostPopularLabel}</span>}
             <input
               value={tier.label}
               onChange={e => { const arr = [...form.pricingTiers]; arr[i] = { ...arr[i], label: e.target.value }; update("pricingTiers", arr); }}
@@ -300,34 +382,34 @@ function Step3({ form, update }: { form: Form; update: (k: keyof Form, v: any) =
           <input
             value={tier.price}
             onChange={e => { const arr = [...form.pricingTiers]; arr[i] = { ...arr[i], price: e.target.value }; update("pricingTiers", arr); }}
-            placeholder="€899"
+            placeholder={t.priceTierPlaceholder}
             style={{ width: 80, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 10px", color: SAND, fontSize: 15, fontWeight: 700, fontFamily: "inherit", outline: "none", textAlign: "right" as const }}
           />
         </div>
       ))}
-      <FieldLabel>Cancellation Policy</FieldLabel>
-      <TextInput value={form.cancellation} onChange={v => update("cancellation", v)} placeholder="Cancellation terms…" />
+      <FieldLabel>{t.fieldCancellation}</FieldLabel>
+      <TextInput value={form.cancellation} onChange={v => update("cancellation", v)} placeholder={t.cancellationPlaceholder} />
     </div>
   );
 }
 
-function Step4({ form, update }: { form: Form; update: (k: keyof Form, v: any) => void }) {
+function Step4({ form, update, t }: { form: Form; update: (k: keyof Form, v: any) => void; t: TDict }) {
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Contact & CTAs</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>Where should leads reach you?</p>
+      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepContactTitle}</h3>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepContactSub}</p>
       <div style={{ background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.2)", borderRadius: 12, padding: "16px 18px", marginBottom: 14, display: "flex", gap: 14, alignItems: "center" }}>
         <Icon name="whatsapp" size={24} color="#25d366" />
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#25d366", marginBottom: 6 }}>WhatsApp</div>
-          <TextInput value={form.whatsapp} onChange={v => update("whatsapp", v)} placeholder="+351 912 345 678" />
+          <TextInput value={form.whatsapp} onChange={v => update("whatsapp", v)} placeholder={t.whatsappPlaceholder} />
         </div>
       </div>
       <div style={{ background: "rgba(0,132,255,0.08)", border: "1px solid rgba(0,132,255,0.2)", borderRadius: 12, padding: "16px 18px", marginBottom: 14, display: "flex", gap: 14, alignItems: "center" }}>
         <Icon name="messenger" size={24} color="#0084ff" />
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#0084ff", marginBottom: 6 }}>Messenger</div>
-          <TextInput value={form.messenger} onChange={v => update("messenger", v)} placeholder="m.me/youragency" />
+          <TextInput value={form.messenger} onChange={v => update("messenger", v)} placeholder={t.placeholderMessenger} />
         </div>
       </div>
     </div>
@@ -336,9 +418,9 @@ function Step4({ form, update }: { form: Form; update: (k: keyof Form, v: any) =
 
 const COVER_W = 1920;
 const COVER_H = 1080;
-const COVER_RATIO = COVER_W / COVER_H; // 16:9
+const COVER_RATIO = COVER_W / COVER_H;
 
-function StepCover({ form, update, user }: { form: Form; update: (k: keyof Form, v: any) => void; user: any }) {
+function StepCover({ form, update, user, t }: { form: Form; update: (k: keyof Form, v: any) => void; user: any; t: TDict }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -347,7 +429,6 @@ function StepCover({ form, update, user }: { form: Form; update: (k: keyof Form,
     if (!file || !user) return;
     setError(null);
 
-    // Validate dimensions
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.src = objectUrl;
@@ -376,7 +457,7 @@ function StepCover({ form, update, user }: { form: Form; update: (k: keyof Form,
       if (!res.ok) throw new Error(json.error || "Upload failed");
       update("coverImage", json.urls[0]);
     } catch {
-      setError("Upload failed. Please try again.");
+      setError(t.uploadFailed);
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -385,12 +466,10 @@ function StepCover({ form, update, user }: { form: Form; update: (k: keyof Form,
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Cover Image</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>
-        This is the full-width hero image at the top of your landing page.
-      </p>
+      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepCoverTitle}</h3>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>{t.stepCoverSub}</p>
       <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${SAND}15`, border: `1px solid ${SAND}30`, borderRadius: 8, padding: "5px 12px", fontSize: 11, color: SAND, fontWeight: 600, marginBottom: 20 }}>
-        <Icon name="image" size={11} color={SAND} /> 16:9 ratio · minimum 1200×675px · JPG or PNG
+        <Icon name="image" size={11} color={SAND} /> {t.coverRatioHint}
       </div>
 
       {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
@@ -402,13 +481,13 @@ function StepCover({ form, update, user }: { form: Form; update: (k: keyof Form,
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <Icon name="check" size={14} color={SUCCESS} strokeWidth={2.5} />
-            <span style={{ fontSize: 13, color: SUCCESS, fontWeight: 600 }}>Cover image set</span>
+            <span style={{ fontSize: 13, color: SUCCESS, fontWeight: 600 }}>{t.coverImageSet}</span>
             <label style={{ marginLeft: "auto", fontSize: 12, color: SAND, cursor: "pointer", fontFamily: "inherit" }}>
-              Replace
+              {t.coverReplace}
               <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleFileChange} />
             </label>
             <button onClick={() => update("coverImage", "")} style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-              Remove
+              {t.coverRemove}
             </button>
           </div>
         </div>
@@ -422,16 +501,15 @@ function StepCover({ form, update, user }: { form: Form; update: (k: keyof Form,
           onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
         >
           <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleFileChange} disabled={uploading} />
-          {/* 16:9 aspect ratio container */}
           <div style={{ position: "relative", width: "100%", paddingTop: `${(1 / COVER_RATIO) * 100}%`, background: "rgba(255,255,255,0.02)" }}>
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
               {uploading ? (
-                <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Uploading…</span></>
+                <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{t.uploadingLabel}</span></>
               ) : (
                 <>
                   <Icon name="image" size={32} color="rgba(255,255,255,0.15)" />
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>Click to upload cover image</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)" }}>16:9 · min 1200×675px · JPG or PNG</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>{t.coverClickUpload}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)" }}>{t.coverDimHint}</div>
                 </>
               )}
             </div>
@@ -442,13 +520,9 @@ function StepCover({ form, update, user }: { form: Form; update: (k: keyof Form,
   );
 }
 
-function Step5({ form, update, user }: { form: Form; update: (k: keyof Form, v: any) => void; user: any }) {
+function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof Form, v: any) => void; user: any; t: TDict; lang: Lang }) {
   const [mode, setMode] = useState<"upload" | "generate">("upload");
-  const [imgStyle, setImgStyle] = useState("vibrant");
   const [uploading, setUploading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [genProgress, setGenProgress] = useState(0);
-  const [genLabel, setGenLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -465,45 +539,10 @@ function Step5({ form, update, user }: { form: Form; update: (k: keyof Form, v: 
       if (!res.ok) throw new Error(json.error || "Upload failed");
       update("images", [...form.images, ...(json.urls as string[])]);
     } catch {
-      setError("Upload failed. Please try again.");
+      setError(t.uploadFailed);
     } finally {
       setUploading(false);
       e.target.value = "";
-    }
-  };
-
-  const handleGenerate = async () => {
-    if (!form.destination) { setError("Enter a destination first."); return; }
-    setError(null);
-    setGenerating(true);
-    setGenProgress(0);
-
-    const steps = ["Analysing destination…", "Composing scenes…", "Adding lighting…", "Finalising images…"];
-    let p = 0;
-    const iv = setInterval(() => {
-      p = Math.min(p + 4, 88);
-      setGenProgress(p);
-      setGenLabel(steps[Math.min(3, Math.floor(p / 25))]);
-    }, 400);
-
-    try {
-      const res = await fetch("/api/generate-images", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ destination: form.destination, style: imgStyle }),
-      });
-      const json = await res.json();
-      clearInterval(iv);
-      if (!res.ok) throw new Error(json.error || "Generation failed");
-      setGenProgress(100);
-      setTimeout(() => {
-        update("images", json.urls || []);
-        setGenerating(false);
-      }, 400);
-    } catch (err: any) {
-      clearInterval(iv);
-      setGenerating(false);
-      setError(err.message || "Generation failed. Please try again.");
     }
   };
 
@@ -511,8 +550,8 @@ function Step5({ form, update, user }: { form: Form; update: (k: keyof Form, v: 
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Media</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>Upload photos or generate them with AI</p>
+      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepMediaTitle}</h3>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepMediaSub}</p>
 
       <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "4px 5px", marginBottom: 24, gap: 4 }}>
         {(["upload", "generate"] as const).map(m => (
@@ -524,8 +563,8 @@ function Step5({ form, update, user }: { form: Form; update: (k: keyof Form, v: 
             fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
           }}>
             {m === "upload"
-              ? <><Icon name="image" size={12} color={mode === "upload" ? "white" : "rgba(255,255,255,0.4)"} /> Upload</>
-              : <><Icon name="sparkle" size={12} color={mode === "generate" ? SAND : "rgba(255,255,255,0.4)"} /> Generate with AI</>
+              ? <><Icon name="image" size={12} color={mode === "upload" ? "white" : "rgba(255,255,255,0.4)"} /> {t.mediaUploadTab}</>
+              : <><Icon name="sparkle" size={12} color={mode === "generate" ? SAND : "rgba(255,255,255,0.4)"} /> {t.mediaGenerateTab}</>
             }
           </button>
         ))}
@@ -535,7 +574,7 @@ function Step5({ form, update, user }: { form: Form; update: (k: keyof Form, v: 
 
       {form.images.length > 0 && mode === "upload" && (
         <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(45,212,160,0.06)", border: "1px solid rgba(45,212,160,0.2)", fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 14 }}>
-          💡 Packages with 5+ photos book <b style={{ color: SUCCESS }}>2.1× more often</b>. You have {form.images.length}.
+          💡 {t.mediaBoostTip} <b style={{ color: SUCCESS }}>{toLocalDigits(form.images.length, lang)}</b>.
         </div>
       )}
 
@@ -547,12 +586,12 @@ function Step5({ form, update, user }: { form: Form; update: (k: keyof Form, v: 
           >
             <input type="file" accept="image/*" multiple hidden onChange={handleFileChange} />
             {uploading ? (
-              <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 10 }}>Uploading…</span></>
+              <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 10 }}>{t.uploadingLabel}</span></>
             ) : (
               <>
                 <Icon name="image" size={28} color="rgba(255,255,255,0.2)" />
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginTop: 10 }}>Click to upload images</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>JPG, PNG · multiple files supported</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginTop: 10 }}>{t.mediaClickUpload}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>{t.mediaFormatHint}</div>
               </>
             )}
           </label>
@@ -570,59 +609,16 @@ function Step5({ form, update, user }: { form: Form; update: (k: keyof Form, v: 
             </div>
           )}
         </div>
-      ) : generating ? (
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 24 }}>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 14, textAlign: "center" as const }}>{genLabel}</div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden", marginBottom: 8 }}>
-            <div style={{ height: "100%", width: `${genProgress}%`, background: `linear-gradient(90deg, ${SAND}, #c4a84f)`, borderRadius: 99, transition: "width 0.4s" }} />
-          </div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", textAlign: "center" as const }}>{genProgress}%</div>
-        </div>
-      ) : form.images.length > 0 ? (
-        <div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
-            {form.images.map((url, i) => (
-              <div key={i} style={{ position: "relative", aspectRatio: "4/3", borderRadius: 10, overflow: "hidden", boxShadow: i === 0 ? `0 0 0 2px ${SAND}80` : "none" }}>
-                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                {i === 0 && (
-                  <div style={{ position: "absolute", top: 7, left: 7, background: `${SAND}ee`, color: "#0a1426", borderRadius: 5, padding: "2px 7px", fontSize: 9, fontWeight: 800, letterSpacing: ".4px" }}>HERO</div>
-                )}
-                <button onClick={() => removeImage(i)} style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", color: "white", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>×</button>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Icon name="check" size={14} color={SUCCESS} strokeWidth={2.5} />
-            <span style={{ fontSize: 13, color: SUCCESS, fontWeight: 600 }}>{form.images.length} image{form.images.length !== 1 ? "s" : ""} ready</span>
-            <button onClick={() => update("images", [])} style={{ marginLeft: "auto", fontSize: 12, color: "rgba(255,255,255,0.35)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>Clear & regenerate</button>
-          </div>
-        </div>
       ) : (
-        <div>
-          <FieldLabel>Image Style</FieldLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 20 }}>
-            {IMG_STYLES.map(s => (
-              <button key={s.id} onClick={() => setImgStyle(s.id)} style={{
-                background: imgStyle === s.id ? s.bg : "rgba(255,255,255,0.04)",
-                border: `1.5px solid ${imgStyle === s.id ? s.color : "rgba(255,255,255,0.1)"}`,
-                borderRadius: 12, padding: "16px 14px", cursor: "pointer", textAlign: "left" as const, transition: "all 0.15s",
-              }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: imgStyle === s.id ? "#fff" : "rgba(255,255,255,0.6)", marginBottom: 2 }}>{s.label}</div>
-                <div style={{ fontSize: 11, color: imgStyle === s.id ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)" }}>{s.desc}</div>
-              </button>
-            ))}
-          </div>
-          <button onClick={handleGenerate} style={{ width: "100%", padding: "12px", background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, color: "#0d1b2e", fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Icon name="sparkle" size={14} color="#0d1b2e" strokeWidth={2.5} /> Generate Images
-          </button>
-        </div>
+        <ComingSoonPanel feature={t.mediaGenerateTab} featureKey="ai-images" user={user} onBack={() => setMode("upload")} t={t} />
       )}
     </div>
   );
 }
 
-function Step6({ form, update, user }: { form: Form; update: (k: keyof Form, v: any) => void; user: any }) {
+function Step6({ form, update, user, t }: { form: Form; update: (k: keyof Form, v: any) => void; user: any; t: TDict }) {
   const [uploading, setUploading] = useState(false);
+  const [showAiVideo, setShowAiVideo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -639,7 +635,7 @@ function Step6({ form, update, user }: { form: Form; update: (k: keyof Form, v: 
       if (!res.ok) throw new Error(json.error || "Upload failed");
       update("videoUrl", json.urls[0]);
     } catch {
-      setError("Upload failed. Please try again.");
+      setError(t.uploadFailed);
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -648,42 +644,54 @@ function Step6({ form, update, user }: { form: Form; update: (k: keyof Form, v: 
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Video</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>Upload a promo video for your package (optional)</p>
+      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepVideoTitle}</h3>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepVideoSub}</p>
 
       {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
 
-      {form.videoUrl ? (
+      {showAiVideo ? (
+        <ComingSoonPanel feature={t.generateAiVideo} featureKey="ai-video" user={user} onBack={() => setShowAiVideo(false)} t={t} />
+      ) : form.videoUrl ? (
         <div>
           <video src={form.videoUrl} controls style={{ width: "100%", borderRadius: 12, background: "#0d1b2e", maxHeight: 280 }} />
           <button onClick={() => update("videoUrl", "")} style={{ marginTop: 10, fontSize: 12, color: "rgba(255,255,255,0.35)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-            Remove video
+            {t.videoRemove}
           </button>
         </div>
       ) : (
-        <label style={{ display: "block", border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 14, padding: "40px 24px", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = `${SAND}50`)}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
-        >
-          <input type="file" accept="video/*" hidden onChange={handleFileChange} />
-          {uploading ? (
-            <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 10 }}>Uploading…</span></>
-          ) : (
-            <>
-              <Icon name="video" size={28} color="rgba(255,255,255,0.2)" />
-              <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginTop: 10 }}>Click to upload a video</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>MP4, MOV · max 100MB</div>
-            </>
-          )}
-        </label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <label style={{ display: "block", border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 14, padding: "32px 24px", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = `${SAND}50`)}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
+          >
+            <input type="file" accept="video/*" hidden onChange={handleFileChange} />
+            {uploading ? (
+              <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 10 }}>{t.uploadingLabel}</span></>
+            ) : (
+              <>
+                <Icon name="video" size={28} color="rgba(255,255,255,0.2)" />
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginTop: 10 }}>{t.videoClickUpload}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>{t.videoFormatHint}</div>
+              </>
+            )}
+          </label>
+          <button
+            onClick={() => setShowAiVideo(true)}
+            style={{ width: "100%", padding: "12px", borderRadius: 12, background: "rgba(232,201,123,0.07)", border: `1px solid ${SAND}30`, color: SAND, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          >
+            <Icon name="sparkle" size={14} color={SAND} strokeWidth={2} /> {t.generateAiVideo}
+          </button>
+        </div>
       )}
     </div>
   );
 }
 
-function StepPaste({ onExtracted, onNext }: {
+function StepPaste({ onExtracted, onNext, t, lang }: {
   onExtracted: (d: Partial<Form>) => void;
   onNext: () => void;
+  t: TDict;
+  lang: Lang;
 }) {
   const [text, setText] = useState("");
   const [extracting, setExtracting] = useState(false);
@@ -719,15 +727,13 @@ function StepPaste({ onExtracted, onNext }: {
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Paste your travel post</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>
-        Drop in your Instagram caption, brochure copy, or a few notes. Our AI will pull out destination, price, advantages and itinerary.
-      </p>
-      <FieldLabel>Source post</FieldLabel>
+      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepPasteTitle}</h3>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepPasteSub}</p>
+      <FieldLabel>{t.stepPasteLabel}</FieldLabel>
       <textarea
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder={"🇬🇷 SANTORINI — 5 NIGHTS · €1,499 pp\n\nBoutique cave suite in Oia · Private caldera cruise · Sunset dinner…\n\n✈️ Departures: Athens, Thessaloniki\n💬 Book on WhatsApp"}
+        placeholder={t.pastePlaceholderText}
         style={{
           width: "100%", minHeight: 200,
           background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
@@ -742,8 +748,8 @@ function StepPaste({ onExtracted, onNext }: {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
         <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.4)" }}>
           {text.length > 0
-            ? `${text.length} chars · ~${Math.ceil(text.length / 240)}s to extract`
-            : "Paste any format — Instagram, brochure, WhatsApp"}
+            ? `${toLocalDigits(text.length, lang)} ${t.pasteCharsLabel} · ~${toLocalDigits(Math.ceil(text.length / 240), lang)}${t.pasteSecsToExtract}`
+            : t.pasteFormatHint}
         </div>
         <button
           onClick={handleExtract}
@@ -757,8 +763,8 @@ function StepPaste({ onExtracted, onNext }: {
           }}
         >
           {extracting
-            ? <><span className="spinner" style={{ borderTopColor: SAND }} /> Extracting…</>
-            : <><Icon name="sparkle" size={14} color="#0d1b2e" /> Extract with AI</>
+            ? <><span className="spinner" style={{ borderTopColor: SAND }} /> {t.extractingLabel}</>
+            : <><Icon name="sparkle" size={14} color="#0d1b2e" /> {t.extractWithAi}</>
           }
         </button>
       </div>
@@ -766,7 +772,7 @@ function StepPaste({ onExtracted, onNext }: {
   );
 }
 
-function MiniPreview({ form }: { form: Form }) {
+function MiniPreview({ form, t, lang }: { form: Form; t: TDict; lang: Lang }) {
   const heroUrl = form.coverImage || form.images[0];
   const score = Math.min(100,
     (form.destination ? 15 : 0) +
@@ -784,22 +790,19 @@ function MiniPreview({ form }: { form: Form }) {
       background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.08)",
       borderRadius: 18, padding: 14, position: "sticky" as const, top: 16,
     }}>
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: ".7px", textTransform: "uppercase" as const }}>Live preview</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: ".7px", textTransform: "uppercase" as const }}>{t.livePreviewLabel2}</span>
         <div style={{ display: "inline-flex", gap: 2, background: "rgba(255,255,255,0.04)", borderRadius: 99, padding: 2 }}>
           <button style={{ padding: "3px 9px", border: "none", background: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 10, cursor: "pointer", borderRadius: 99, fontFamily: "inherit" }}>📱</button>
           <button style={{ padding: "3px 9px", border: "none", background: "transparent", color: "rgba(255,255,255,0.4)", fontSize: 10, cursor: "pointer", borderRadius: 99, fontFamily: "inherit" }}>💻</button>
         </div>
       </div>
 
-      {/* Phone frame */}
       <div style={{
         width: "100%", aspectRatio: "9/19", background: "#0a1426",
         borderRadius: 24, border: "6px solid #1a2438", overflow: "hidden",
         position: "relative" as const,
       }}>
-        {/* Hero */}
         <div style={{
           height: "42%", position: "relative" as const,
           background: heroUrl
@@ -809,15 +812,14 @@ function MiniPreview({ form }: { form: Form }) {
           <div style={{ position: "absolute" as const, inset: 0, background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7))" }} />
           <div style={{ position: "absolute" as const, left: 12, right: 12, bottom: 10, color: "#fff" }}>
             <div style={{ fontSize: 8, opacity: 0.7, marginBottom: 3, letterSpacing: ".5px", textTransform: "uppercase" as const }}>
-              {form.nights} nights · {form.price || "From —"}
+              {toLocalDigits(form.nights, lang)} {t.nightsLabel} · {form.price || "—"}
             </div>
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16, lineHeight: 1.1 }}>
-              {form.destination || "Your Destination"}
+              {form.destination || t.yourDestination}
             </div>
           </div>
         </div>
 
-        {/* Body */}
         <div style={{ padding: "10px 12px", background: "#fdfcf9", height: "58%" }}>
           {form.description && (
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 10, lineHeight: 1.3, marginBottom: 7, color: "#0d1b2e" }}>
@@ -830,22 +832,21 @@ function MiniPreview({ form }: { form: Form }) {
             ))}
           </div>
           <div style={{ background: "#25d366", color: "#fff", borderRadius: 6, padding: "6px", textAlign: "center" as const, fontSize: 9, fontWeight: 700 }}>
-            {form.whatsapp ? "Book on WhatsApp" : "Contact us"}
+            {form.whatsapp ? t.bookOnWhatsApp : t.contactUsLabel}
           </div>
-          {form.pricingTiers.some(t => t.price) && (
+          {form.pricingTiers.some(tier => tier.price) && (
             <div style={{ textAlign: "center" as const, fontSize: 6.5, color: "rgba(13,27,46,0.5)", marginTop: 5 }}>
-              From {form.pricingTiers.find(t => t.price)?.price}
+              {t.from} {form.pricingTiers.find(tier => tier.price)?.price}
             </div>
           )}
         </div>
       </div>
 
-      {/* Conversion score */}
       <div style={{ marginTop: 10, padding: "8px 10px", background: "rgba(232,201,123,0.07)", border: "1px solid rgba(232,201,123,0.2)", borderRadius: 9, fontSize: 10.5, color: "rgba(255,255,255,0.65)", display: "flex", gap: 8, alignItems: "center" }}>
         <span style={{ color: SAND }}>✦</span>
         <span>
-          <b style={{ color: scoreColor }}>Score: {score}/100</b>
-          {" · "}{score >= 80 ? "Looking strong" : score >= 50 ? "Keep filling in" : "Add more details"}
+          <b style={{ color: scoreColor }}>Score: {toLocalDigits(score, lang)}/100</b>
+          {" · "}{score >= 80 ? t.scoreLookingStrong : score >= 50 ? t.scoreKeepFilling : t.scoreAddDetails}
         </span>
       </div>
     </div>
@@ -860,6 +861,11 @@ export default function BuilderPage() {
   const editId = searchParams.get("id");
   const isEditMode = Boolean(editId);
 
+  const lang = useLang();
+  const t = T[lang];
+
+  const STEPS = [t.stepPaste, t.stepBasics, t.stepDetails, t.stepItinerary, t.stepPricing, t.stepContact, t.stepCover, t.stepMedia, t.stepVideo];
+
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [step, setStep] = useState(isEditMode ? 1 : 0);
@@ -867,30 +873,48 @@ export default function BuilderPage() {
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
   const [packageId, setPackageId] = useState<string | null>(null);
+  const [agencySlug, setAgencySlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const [form, setForm] = useState<Form>(() => {
-    if (typeof window !== "undefined" && !editId) {
-      const saved = localStorage.getItem("packageData");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          return {
-            ...DEFAULT_FORM,
-            destination: parsed.destination || "",
-            price: parsed.price || "",
-            description: parsed.description || "",
-            includes: parsed.advantages?.length ? parsed.advantages : [],
-            airports: parsed.airports?.length ? parsed.airports : DEFAULT_FORM.airports,
-          };
-        } catch {}
+    if (typeof window !== "undefined") {
+      const storedLang = localStorage.getItem("packmetrix_lang") as "en" | "ar" | null;
+      const initLang: "en" | "ar" = storedLang === "ar" ? "ar" : "en";
+      const initT = T[initLang];
+      const langDefaults: Partial<Form> = {
+        language: initLang,
+        pricingTiers: [
+          { label: initT.priceTierLabel0, price: "" },
+          { label: initT.priceTierLabel1, price: "" },
+          { label: initT.priceTierLabel2, price: "" },
+          { label: initT.priceTierLabel3, price: "" },
+        ],
+        cancellation: initT.defaultCancellation,
+      };
+
+      if (!editId) {
+        const saved = localStorage.getItem("packageData");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            return {
+              ...DEFAULT_FORM,
+              ...langDefaults,
+              destination: parsed.destination || "",
+              price: parsed.price || "",
+              description: parsed.description || "",
+              includes: parsed.advantages?.length ? parsed.advantages : [],
+              airports: parsed.airports?.length ? parsed.airports : DEFAULT_FORM.airports,
+            };
+          } catch {}
+        }
+        return { ...DEFAULT_FORM, ...langDefaults };
       }
     }
     return DEFAULT_FORM;
   });
 
-  // If user arrived from the home-page paste flow, skip the Paste step
   useEffect(() => {
     if (!isEditMode && typeof window !== "undefined" && localStorage.getItem("packageData")) {
       setStep(1);
@@ -929,8 +953,10 @@ export default function BuilderPage() {
             coverImage:   d.coverImage   || "",
             images:       Array.isArray(d.images) ? d.images : [],
             videoUrl:     d.videoUrl     || "",
+            language:     d.language === "ar" ? "ar" : "en",
           });
           setPackageId(editId);
+          if (d.agencySlug) setAgencySlug(d.agencySlug);
         } else {
           router.push("/dashboard");
           return;
@@ -944,9 +970,32 @@ export default function BuilderPage() {
 
   const update = (key: keyof Form, val: any) => setForm(f => ({ ...f, [key]: val }));
 
+  // Swap default tier labels and cancellation text when the landing-page language changes
+  useEffect(() => {
+    const enT = T["en"];
+    const arT = T["ar"];
+    const EN_LABELS = [enT.priceTierLabel0, enT.priceTierLabel1, enT.priceTierLabel2, enT.priceTierLabel3];
+    const AR_LABELS = [arT.priceTierLabel0, arT.priceTierLabel1, arT.priceTierLabel2, arT.priceTierLabel3];
+    const fromLabels = form.language === "ar" ? EN_LABELS : AR_LABELS;
+    const toLabels   = form.language === "ar" ? AR_LABELS : EN_LABELS;
+    const fromCancel = form.language === "ar" ? enT.defaultCancellation : arT.defaultCancellation;
+    const toCancel   = form.language === "ar" ? arT.defaultCancellation : enT.defaultCancellation;
+
+    setForm(f => {
+      const tiersAreDefault = f.pricingTiers.every((tier, i) => tier.label === fromLabels[i]);
+      return {
+        ...f,
+        pricingTiers: tiersAreDefault
+          ? f.pricingTiers.map((tier, i) => ({ ...tier, label: toLabels[i] }))
+          : f.pricingTiers,
+        cancellation: f.cancellation === fromCancel ? toCancel : f.cancellation,
+      };
+    });
+  }, [form.language]);
+
   const handleSubmit = async () => {
     if (!form.destination || !form.price) {
-      setError("Destination and price are required.");
+      setError(t.destPriceRequired);
       return;
     }
     setError(null);
@@ -970,6 +1019,7 @@ export default function BuilderPage() {
         if (!res.ok || !json.id) { setError(json.error || "Something went wrong."); return; }
         await updateDoc(doc(db, "users", user.uid), { packagesUsed: increment(1) });
         setPackageId(json.id);
+        if (json.agencySlug) setAgencySlug(json.agencySlug);
         localStorage.removeItem("packageData");
       }
       setDone(true);
@@ -981,7 +1031,9 @@ export default function BuilderPage() {
   };
 
   const finalPackageId = packageId || editId;
-  const shareUrl = finalPackageId ? `${typeof window !== "undefined" ? window.location.origin : ""}/p/${finalPackageId}` : "";
+  const shareUrl = finalPackageId && agencySlug
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/${agencySlug}/${finalPackageId}`
+    : "";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareUrl);
@@ -1013,12 +1065,10 @@ export default function BuilderPage() {
               <Icon name="check" size={32} color={SUCCESS} strokeWidth={2.5} />
             </div>
             <h2 style={{ fontFamily: "var(--font-dm-serif), serif", fontSize: 32, marginBottom: 10 }}>
-              {isEditMode ? "Changes saved!" : "Landing page created!"}
+              {isEditMode ? t.changesSaved : t.landingPageCreated}
             </h2>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, maxWidth: 400 }}>
-              {isEditMode
-                ? "Your landing page has been updated and is live."
-                : "Your package page is live. Share the link and start tracking leads."}
+              {isEditMode ? t.changesSavedSub : t.landingPageCreatedSub}
             </p>
           </div>
 
@@ -1036,18 +1086,18 @@ export default function BuilderPage() {
               borderRadius: 8, padding: "5px 12px", fontSize: 12, color: copied ? SUCCESS : SAND,
               cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
             }}>
-              {copied ? "Copied!" : "Copy"}
+              {copied ? t.copiedBtn : t.copyBtn}
             </button>
           </div>
 
           <div style={{ display: "flex", gap: 12 }}>
-            <button onClick={() => router.push(`/p/${finalPackageId}`)} style={{
+            <button onClick={() => router.push(`/${agencySlug}/${finalPackageId}`)} style={{
               background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
               color: "#0d1b2e", border: "none", borderRadius: 10,
               padding: "11px 24px", fontSize: 14, fontWeight: 700,
               fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
             }}>
-              <Icon name="eye" size={16} color="#0d1b2e" /> Preview Landing Page
+              <Icon name="eye" size={16} color="#0d1b2e" /> {t.previewLandingPage}
             </button>
             <button onClick={() => router.push("/dashboard")} style={{
               background: "rgba(255,255,255,0.06)", border: "1px solid var(--border)",
@@ -1055,7 +1105,7 @@ export default function BuilderPage() {
               padding: "11px 24px", fontSize: 14, fontWeight: 600,
               fontFamily: "inherit", cursor: "pointer",
             }}>
-              Go to Dashboard
+              {t.goToDashboard}
             </button>
           </div>
         </div>
@@ -1070,10 +1120,10 @@ export default function BuilderPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
           <div>
             <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
-              {isEditMode ? "Edit Package" : "Package Builder"}
+              {isEditMode ? t.editPackageTitle : t.packageBuilderTitle}
             </h2>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>
-              {isEditMode ? "Update your package details and save changes" : "Complete all steps to generate your landing page"}
+              {isEditMode ? t.editPackageSub : t.packageBuilderSub}
             </p>
           </div>
           {!isEditMode && extracted && (
@@ -1083,7 +1133,7 @@ export default function BuilderPage() {
               display: "flex", alignItems: "center", gap: 6, fontWeight: 500,
             }}>
               <Icon name="sparkle" size={12} color={SAND} />
-              AI extracted fields · review below
+              {t.aiExtractedBadge}
             </div>
           )}
         </div>
@@ -1114,6 +1164,8 @@ export default function BuilderPage() {
           <div className="fade-in" key={step} style={{ flex: 1, maxWidth: 560 }}>
             {step === 0 && (
               <StepPaste
+                t={t}
+                lang={lang}
                 onExtracted={data => {
                   setForm(f => ({
                     ...f,
@@ -1128,17 +1180,17 @@ export default function BuilderPage() {
                 onNext={() => setStep(1)}
               />
             )}
-            {step === 1 && <Step0 form={form} update={update} />}
-            {step === 2 && <Step1 form={form} update={update} />}
-            {step === 3 && <Step2 form={form} update={update} />}
-            {step === 4 && <Step3 form={form} update={update} />}
-            {step === 5 && <Step4 form={form} update={update} />}
-            {step === 6 && <StepCover form={form} update={update} user={user} />}
-            {step === 7 && <Step5 form={form} update={update} user={user} />}
-            {step === 8 && <Step6 form={form} update={update} user={user} />}
+            {step === 1 && <Step0 form={form} update={update} t={t} />}
+            {step === 2 && <Step1 form={form} update={update} t={t} />}
+            {step === 3 && <Step2 form={form} update={update} t={t} lang={lang} />}
+            {step === 4 && <Step3 form={form} update={update} t={t} />}
+            {step === 5 && <Step4 form={form} update={update} t={t} />}
+            {step === 6 && <StepCover form={form} update={update} user={user} t={t} />}
+            {step === 7 && <Step5 form={form} update={update} user={user} t={t} lang={lang} />}
+            {step === 8 && <Step6 form={form} update={update} user={user} t={t} />}
           </div>
           <div style={{ width: 260, flexShrink: 0 }}>
-            <MiniPreview form={form} />
+            <MiniPreview form={form} t={t} lang={lang} />
           </div>
         </div>
 
@@ -1163,7 +1215,7 @@ export default function BuilderPage() {
               display: "flex", alignItems: "center", gap: 6,
               opacity: step === (isEditMode ? 1 : 0) ? 0.3 : 1,
             }}>
-            <Icon name="arrow_left" size={14} /> Back
+            <Icon name="arrow_left" size={14} /> {t.backBtn}
           </button>
 
           {step < STEPS.length - 1 ? (
@@ -1178,7 +1230,7 @@ export default function BuilderPage() {
               fontFamily: "inherit", cursor: "pointer",
               display: "flex", alignItems: "center", gap: 8,
             }}>
-              {step === 0 ? "Skip" : "Continue"} <Icon name="arrow_right" size={14} color={step === 0 ? "rgba(255,255,255,0.5)" : "#0d1b2e"} strokeWidth={2.5} />
+              {step === 0 ? t.skipBtn : t.continueBtn} <Icon name="arrow_right" size={14} color={step === 0 ? "rgba(255,255,255,0.5)" : "#0d1b2e"} strokeWidth={2.5} />
             </button>
           ) : (
             <button onClick={handleSubmit} disabled={generating} style={{
@@ -1190,10 +1242,10 @@ export default function BuilderPage() {
               display: "flex", alignItems: "center", gap: 8,
             }}>
               {generating
-                ? <><span className="spinner" style={{ borderTopColor: SAND }} /> {isEditMode ? "Saving…" : "Generating…"}</>
+                ? <><span className="spinner" style={{ borderTopColor: SAND }} /> {isEditMode ? t.savingBtn : t.generatingBtn}</>
                 : isEditMode
-                  ? <><Icon name="check" size={14} color="#0d1b2e" strokeWidth={2.5} /> Save Changes</>
-                  : <><Icon name="sparkle" size={14} color="#0d1b2e" strokeWidth={2.5} /> Generate Landing Page</>
+                  ? <><Icon name="check" size={14} color="#0d1b2e" strokeWidth={2.5} /> {t.saveChangesBtn}</>
+                  : <><Icon name="sparkle" size={14} color="#0d1b2e" strokeWidth={2.5} /> {t.generateLandingPage}</>
               }
             </button>
           )}

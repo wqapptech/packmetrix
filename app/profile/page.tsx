@@ -7,6 +7,8 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
+import { useLang } from "@/hooks/useLang";
+import { T, type Lang } from "@/lib/translations";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -38,11 +40,13 @@ function Input({ value, onChange, placeholder, style }: { value: string; onChang
   );
 }
 
-function LandingPreview({ logoUrl, name, tagline, color }: { logoUrl: string; name: string; tagline: string; color: string }) {
+function LandingPreview({ logoUrl, name, tagline, color, lang }: { logoUrl: string; name: string; tagline: string; color: string; lang: Lang }) {
+  const t = T[lang];
+  const isRtl = lang === "ar";
   const initials = (name || "AG").slice(0, 2).toUpperCase();
 
   return (
-    <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 16px 48px rgba(0,0,0,0.3)", background: "#fdfcf9" }}>
+    <div dir={isRtl ? "rtl" : "ltr"} style={{ borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 16px 48px rgba(0,0,0,0.3)", background: "#fdfcf9" }}>
       {/* Browser chrome */}
       <div style={{ background: "#1c2333", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ display: "flex", gap: 5 }}>
@@ -51,7 +55,7 @@ function LandingPreview({ logoUrl, name, tagline, color }: { logoUrl: string; na
           ))}
         </div>
         <div style={{ flex: 1, background: "rgba(255,255,255,0.07)", borderRadius: 6, padding: "4px 10px", fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "monospace" }}>
-          packmetrix.com/p/your-package
+          packmetrix.com/your-agency/package-id
         </div>
       </div>
 
@@ -76,46 +80,43 @@ function LandingPreview({ logoUrl, name, tagline, color }: { logoUrl: string; na
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 11, color: "rgba(13,27,46,0.5)", fontWeight: 500 }}>
-          <span>Itinerary</span>
-          <span>Pricing</span>
+          <span>{t.navItinerary}</span>
+          <span>{t.navPricing}</span>
           <div style={{ padding: "6px 12px", borderRadius: 7, background: color, color: "#fff", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
-            <span>Book</span>
+            <span>{t.bookWhatsApp}</span>
           </div>
         </div>
       </div>
 
       {/* Hero teaser */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr" }}>
-        {/* Left copy */}
-        <div style={{ padding: "28px 24px", background: "#fdfcf9" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 9.5, fontWeight: 700, color, letterSpacing: "1.2px", textTransform: "uppercase", marginBottom: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isRtl ? "1fr 1.1fr" : "1.1fr 1fr" }}>
+        {/* Copy */}
+        <div style={{ padding: "28px 24px", background: "#fdfcf9", order: isRtl ? 2 : 1 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 9.5, fontWeight: 700, color, letterSpacing: isRtl ? "0.5px" : "1.2px", textTransform: "uppercase", marginBottom: 14 }}>
             <span style={{ width: 18, height: 1, background: color, display: "inline-block" }} />
-            Santorini, Greece
+            {t.yourDestination}
           </div>
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 26, lineHeight: 1.1, letterSpacing: "-0.5px", marginBottom: 10, color: "#0d1b2e" }}>
-            Watch the Aegean<br />turn gold at dusk
-          </div>
-          <div style={{ fontSize: 11, color: "rgba(13,27,46,0.55)", lineHeight: 1.55, marginBottom: 16 }}>
-            Five days of sun, stone, and sea — curated for those who travel with intention.
+          <div style={{ fontFamily: isRtl ? "'Cairo', sans-serif" : "'DM Serif Display', serif", fontSize: 26, lineHeight: isRtl ? 1.4 : 1.1, letterSpacing: isRtl ? "-0.3px" : "-0.5px", marginBottom: 10, color: "#0d1b2e" }}>
+            {isRtl ? "شاهد البحر الأبيض يتلألأ عند الغروب" : "Watch the Aegean\nturn gold at dusk"}
           </div>
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 9.5, color: "rgba(13,27,46,0.45)", textTransform: "uppercase", letterSpacing: ".6px", marginBottom: 2 }}>From</div>
-            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: "#0d1b2e", letterSpacing: "-0.5px", lineHeight: 1 }}>€1,499</div>
-            <div style={{ fontSize: 10, color: "rgba(13,27,46,0.4)", marginTop: 2 }}>per person · 5 nights</div>
+            <div style={{ fontSize: 9.5, color: "rgba(13,27,46,0.45)", textTransform: "uppercase", letterSpacing: ".6px", marginBottom: 2 }}>{t.from}</div>
+            <div style={{ fontFamily: isRtl ? "'Cairo', sans-serif" : "'DM Serif Display', serif", fontSize: 28, color: "#0d1b2e", letterSpacing: "-0.5px", lineHeight: 1 }}>€1,499</div>
+            <div style={{ fontSize: 10, color: "rgba(13,27,46,0.4)", marginTop: 2 }}>{t.perPerson} · 5 {t.nightsLabel}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ padding: "8px 14px", borderRadius: 7, background: "#25d366", color: "#fff", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
-              <span>📱</span> WhatsApp
+              <span>📱</span> {t.viaWhatsAppShort}
             </div>
             <div style={{ padding: "8px 14px", borderRadius: 7, background: "transparent", border: "1.5px solid rgba(13,27,46,0.12)", color: "#0d1b2e", fontSize: 11, fontWeight: 600 }}>
-              Messenger
+              {t.messageMessenger}
             </div>
           </div>
         </div>
-        {/* Right image placeholder */}
-        <div style={{ background: `linear-gradient(155deg, ${color}40 0%, ${color}90 100%)`, minHeight: 240, display: "flex", alignItems: "flex-end", padding: 12 }}>
+        {/* Image placeholder */}
+        <div style={{ background: `linear-gradient(155deg, ${color}40 0%, ${color}90 100%)`, minHeight: 240, display: "flex", alignItems: "flex-end", padding: 12, order: isRtl ? 1 : 2 }}>
           <div style={{ padding: "4px 10px", borderRadius: 99, background: "rgba(255,255,255,0.85)", backdropFilter: "blur(6px)", fontSize: 9.5, fontWeight: 700, color: "#0d1b2e" }}>
-            ✦ Editor&apos;s pick
+            {t.editorsPick}
           </div>
         </div>
       </div>
@@ -129,6 +130,8 @@ function LandingPreview({ logoUrl, name, tagline, color }: { logoUrl: string; na
 export default function BrandingPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lang = useLang();
+  const t = T[lang];
 
   const [uid, setUid] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -218,14 +221,14 @@ export default function BrandingPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
+      <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
 
         {/* Page head */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>Branding</div>
+            <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>{t.brandingTitle}</div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
-              Once set, this applies to every landing page automatically.
+              {t.brandingSubtitle}
             </div>
           </div>
           <button
@@ -241,10 +244,10 @@ export default function BrandingPage() {
             }}
           >
             {saving
-              ? <><span className="spinner" style={{ width: 13, height: 13, borderTopColor: "#0d1b2e" }} /> Saving…</>
+              ? <><span className="spinner" style={{ width: 13, height: 13, borderTopColor: "#0d1b2e" }} /> {t.savingBtn}</>
               : saved
-              ? <><Icon name="check" size={13} color={SUCCESS} strokeWidth={2.5} /> Saved</>
-              : "Save changes"
+              ? <><Icon name="check" size={13} color={SUCCESS} strokeWidth={2.5} /> {t.savedBtn}</>
+              : t.saveChangesBtn
             }
           </button>
         </div>
@@ -253,7 +256,7 @@ export default function BrandingPage() {
 
           {/* Left: Agency profile */}
           <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", alignSelf: "start" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 18 }}>Agency profile</div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 18 }}>{t.agencyProfileLabel}</div>
 
             {/* Logo upload */}
             <div style={{ display: "flex", gap: 14, marginBottom: 18, alignItems: "center" }}>
@@ -276,29 +279,29 @@ export default function BrandingPage() {
                   disabled={uploading}
                   style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", fontSize: 11.5, fontWeight: 600, cursor: uploading ? "not-allowed" : "pointer", fontFamily: "inherit" }}
                 >
-                  {uploading ? "Uploading…" : "Upload logo (SVG/PNG)"}
+                  {uploading ? t.uploadingBtn : t.uploadLogoBtn}
                 </button>
                 {uploadError && <div style={{ fontSize: 11, color: "#ef9090", marginTop: 5 }}>{uploadError}</div>}
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 6 }}>Recommended: 512×512, transparent bg</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 6 }}>{t.logoRecommendedNote}</div>
                 {logoUrl && (
-                  <button onClick={() => setLogoUrl("")} style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, marginTop: 4 }}>Remove logo</button>
+                  <button onClick={() => setLogoUrl("")} style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, marginTop: 4 }}>{t.removeLogoBtn}</button>
                 )}
               </div>
             </div>
 
-            <FieldLabel>Agency name</FieldLabel>
+            <FieldLabel>{t.agencyNameLabel}</FieldLabel>
             <Input value={name} onChange={setName} placeholder="e.g. Aegean Travel" />
 
-            <FieldLabel>Tagline (optional)</FieldLabel>
+            <FieldLabel>{t.taglineLabel}</FieldLabel>
             <Input value={tagline} onChange={setTagline} placeholder="Curated Mediterranean journeys · est. 2014" />
 
-            <FieldLabel>Contact</FieldLabel>
+            <FieldLabel>{t.contactLabel}</FieldLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <Input value={email} onChange={setEmail} placeholder="hello@agency.com" />
               <Input value={phone} onChange={setPhone} placeholder="+1 555 000 1234" />
             </div>
 
-            <FieldLabel>Header &amp; accent color</FieldLabel>
+            <FieldLabel>{t.headerColorLabel}</FieldLabel>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
               {COLOR_SWATCHES.map(c => (
                 <button
@@ -331,23 +334,24 @@ export default function BrandingPage() {
               <div style={{ width: 28, height: 28, borderRadius: 7, background: activeColor, flexShrink: 0 }} />
             </div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 8 }}>
-              Used in the landing page header, buttons, and accent elements.
+              {t.colorUsedNote}
             </div>
           </div>
 
           {/* Right: live preview */}
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".6px", marginBottom: 12 }}>
-              Live preview · visitor view
+              {t.livePreviewLabel}
             </div>
             <LandingPreview
               logoUrl={logoUrl}
               name={name}
               tagline={tagline}
               color={activeColor}
+              lang={lang}
             />
             <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 9, background: "rgba(45,212,160,0.06)", border: "1px solid rgba(45,212,160,0.15)", fontSize: 11.5, color: "rgba(255,255,255,0.55)" }}>
-              ✓ Changes apply to all your packages instantly after saving.
+              {t.changesApplyNote}
             </div>
           </div>
         </div>

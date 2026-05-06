@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
+import { addDoc, collection } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import Icon from "./Icon";
+import { useLang } from "@/hooks/useLang";
+import { T } from "@/lib/translations";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
 
@@ -21,6 +23,7 @@ type NavItem = {
 const NAV_MAIN: NavItem[] = [
   { href: "/dashboard", icon: "chart",   label: "Dashboard" },
   { href: "/builder",   icon: "package", label: "Builder" },
+  { href: "/packages",  icon: "archive", label: "Packages" },
   { href: "/leads",     icon: "users",   label: "Leads" },
   { icon: "sparkle",                     label: "AI Optimizer", pro: true },
 ];
@@ -89,22 +92,32 @@ function NavLink({ item, active, locked }: { item: NavItem; active: boolean; loc
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<{ email: string; initials: string } | null>(null);
-  const [firstPackageId, setFirstPackageId] = useState<string | null>(null);
+  const lang = useLang();
+  const t = T[lang];
+
+  const [user, setUser] = useState<{ email: string; initials: string; uid: string } | null>(null);
+  const [aiModal, setAiModal] = useState(false);
+  const [aiRequested, setAiRequested] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const labelMap: Record<string, string> = {
+    "Dashboard":    t.navDashboard,
+    "Builder":      t.navBuilder,
+    "Packages":     t.navPackages,
+    "Leads":        t.navLeads,
+    "AI Optimizer": t.navAiOptimizer,
+    "Branding":     t.navBranding,
+    "Billing":      t.navBilling,
+  };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         const parts = (u.displayName || u.email || "").split(/[\s@]/);
         const initials = parts.slice(0, 2).map(p => p[0]?.toUpperCase() || "").join("") || "AG";
-        setUser({ email: u.email || "", initials });
-        try {
-          const snap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid), limit(1)));
-          if (!snap.empty) setFirstPackageId(snap.docs[0].id);
-        } catch {}
+        setUser({ email: u.email || "", initials, uid: u.uid });
       } else {
         setUser(null);
-        setFirstPackageId(null);
       }
     });
     return () => unsub();
@@ -123,7 +136,52 @@ export default function Sidebar() {
 
   const isLocked = (href?: string) => href ? GATED.includes(href) && !user : false;
 
+  const handleAiRequest = async () => {
+    setAiLoading(true);
+    try {
+      await addDoc(collection(db, "featureRequests"), {
+        feature: "ai-optimizer",
+        userId: user?.uid || "anonymous",
+        email: user?.email || "",
+        createdAt: Date.now(),
+      });
+      setAiRequested(true);
+    } catch {}
+    setAiLoading(false);
+  };
+
   return (
+    <>
+    {aiModal && (
+      <div
+        onClick={() => setAiModal(false)}
+        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+      >
+        <div onClick={e => e.stopPropagation()} style={{ background: "#0d1b2e", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "36px 32px", maxWidth: 360, width: "100%", textAlign: "center" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: `${SAND}18`, border: `1px solid ${SAND}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, margin: "0 auto 16px" }}>✦</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: "#fdfcf9", marginBottom: 8 }}>{t.comingSoonTitle}</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6, marginBottom: 28 }}>
+            <b style={{ color: "#fff" }}>{t.navAiOptimizer}</b> {t.aiOptimizerModal}
+          </div>
+          {aiRequested ? (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 10, background: "rgba(45,212,160,0.1)", border: "1px solid rgba(45,212,160,0.3)", color: "#2dd4a0", fontSize: 13, fontWeight: 600 }}>
+              {t.onTheList}
+            </div>
+          ) : (
+            <button
+              onClick={handleAiRequest}
+              disabled={aiLoading}
+              style={{ padding: "11px 24px", borderRadius: 10, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, border: "none", color: "#0a1426", fontSize: 13, fontWeight: 700, cursor: aiLoading ? "not-allowed" : "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8 }}
+            >
+              {aiLoading ? "…" : t.iWantFaster}
+            </button>
+          )}
+          <div>
+            <button onClick={() => setAiModal(false)} style={{ marginTop: 16, fontSize: 12, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>{t.closeBtn}</button>
+          </div>
+        </div>
+      </div>
+    )}
     <aside style={{
       width: 230, minWidth: 230, height: "100vh",
       background: "rgba(7,14,26,0.97)",
@@ -149,43 +207,39 @@ export default function Sidebar() {
       {/* Main nav */}
       <nav style={{ flex: 1, padding: "0 12px", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
         {NAV_MAIN.map((item) => (
-          <NavLink
-            key={item.label}
-            item={item}
-            active={isActive(item.href)}
-            locked={isLocked(item.href)}
-          />
+          item.label === "AI Optimizer" ? (
+            <div key={item.label} onClick={() => setAiModal(true)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 12px", borderRadius: 9, color: "rgba(255,255,255,0.3)", fontSize: 13.5, fontWeight: 500, cursor: "pointer", transition: "all .15s" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
+              <Icon name="sparkle" size={15} color="rgba(255,255,255,0.2)" strokeWidth={1.8} />
+              <span style={{ flex: 1 }}>{t.navAiOptimizer}</span>
+              <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.5px", background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.3)", borderRadius: 4, padding: "2px 5px" }}>{t.aiOptimizerSoon}</span>
+            </div>
+          ) : (
+            <NavLink
+              key={item.label}
+              item={{ ...item, label: labelMap[item.label] ?? item.label }}
+              active={isActive(item.href)}
+              locked={isLocked(item.href)}
+            />
+          )
         ))}
 
         {/* Settings section */}
         <div style={{
           fontSize: 10, textTransform: "uppercase", letterSpacing: ".7px",
           color: "rgba(255,255,255,0.25)", padding: "14px 14px 6px", fontWeight: 700,
-        }}>Settings</div>
+        }}>{t.sectionSettings}</div>
         {NAV_SETTINGS.map((item) => (
           <NavLink
             key={item.label}
-            item={item}
+            item={{ ...item, label: labelMap[item.label] ?? item.label }}
             active={isActive(item.href)}
             locked={isLocked(item.href)}
           />
         ))}
 
-        {/* Visitor View section */}
-        <div style={{
-          fontSize: 10, textTransform: "uppercase", letterSpacing: ".7px",
-          color: "rgba(255,255,255,0.25)", padding: "14px 14px 6px", fontWeight: 700,
-        }}>Visitor View</div>
-        <NavLink
-          item={{
-            href: firstPackageId ? `/p/${firstPackageId}` : "/builder",
-            icon: "globe",
-            label: "Landing page ↗",
-            external: Boolean(firstPackageId),
-          }}
-          active={false}
-          locked={!user}
-        />
       </nav>
 
       {/* Footer */}
@@ -210,7 +264,7 @@ export default function Sidebar() {
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {user.email}
                 </div>
-                <div style={{ fontSize: 10.5, color: SAND }}>Free Plan</div>
+                <div style={{ fontSize: 10.5, color: SAND }}>{t.freePlanLabel}</div>
               </div>
             </div>
             <button onClick={handleLogout} style={{
@@ -219,7 +273,7 @@ export default function Sidebar() {
               color: "rgba(255,255,255,0.3)", fontSize: 12, fontFamily: "inherit",
               cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
             }}>
-              <Icon name="logout" size={12} color="rgba(255,255,255,0.25)" /> Sign out
+              <Icon name="logout" size={12} color="rgba(255,255,255,0.25)" /> {t.signOut}
             </button>
           </div>
         ) : (
@@ -229,16 +283,17 @@ export default function Sidebar() {
               background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
               borderRadius: 9, color: "#0d1b2e", fontSize: 12, fontWeight: 700,
               textDecoration: "none",
-            }}>Sign up free</Link>
+            }}>{t.signUpFree}</Link>
             <Link href="/login" style={{
               display: "block", width: "100%", padding: "8px", textAlign: "center",
               background: "none", border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 9, color: "rgba(255,255,255,0.4)",
               fontSize: 12, textDecoration: "none",
-            }}>Log in</Link>
+            }}>{t.logIn}</Link>
           </div>
         )}
       </div>
     </aside>
+    </>
   );
 }

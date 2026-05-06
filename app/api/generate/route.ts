@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -23,6 +33,7 @@ export async function POST(req: Request) {
       coverImage,
       images,
       videoUrl,
+      language,
     } = body;
 
     // -----------------------------
@@ -41,6 +52,13 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // -----------------------------
+    // AGENCY SLUG
+    // -----------------------------
+    const userSnap = await db.collection("users").doc(userId).get();
+    const agencyName = userSnap.exists ? (userSnap.data()?.name || "") : "";
+    const agencySlug = slugify(agencyName) || "agency";
 
     // -----------------------------
     // CREATE PACKAGE
@@ -63,6 +81,9 @@ export async function POST(req: Request) {
       coverImage: coverImage || "",
       images: Array.isArray(images) ? images : [],
       videoUrl: videoUrl || "",
+      language: language === "ar" ? "ar" : "en",
+
+      agencySlug,
 
       views: 0,
       whatsappClicks: 0,
@@ -76,6 +97,7 @@ export async function POST(req: Request) {
     // -----------------------------
     return NextResponse.json({
       id: docRef.id,
+      agencySlug,
     });
   } catch (err: any) {
     console.error("generate-package error:", err);
