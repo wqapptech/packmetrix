@@ -12,6 +12,11 @@ import { useLang } from "@/hooks/useLang";
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
 
+function parsePackagePrice(s: string): number {
+  const n = parseFloat(s.replace(/[^\d.]/g, ""));
+  return n > 10 ? n : 0;
+}
+
 function Stat({ v, l, sub }: { v: string; l: string; sub?: string }) {
   return (
     <div>
@@ -45,6 +50,7 @@ export default function PaywallPage() {
   const [packageCount, setPackageCount] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
   const [totalClicks, setTotalClicks] = useState(0);
+  const [avgPrice, setAvgPrice] = useState(800);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -55,6 +61,8 @@ export default function PaywallPage() {
       setPackageCount(pkgs.length);
       setTotalViews(pkgs.reduce((a, p) => a + (p.views || 0), 0));
       setTotalClicks(pkgs.reduce((a, p) => a + (p.whatsappClicks || 0) + (p.messengerClicks || 0), 0));
+      const prices = pkgs.map(p => parsePackagePrice(p.price || "")).filter(n => n > 0);
+      setAvgPrice(prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 800);
     });
     return () => unsub();
   }, [router]);
@@ -77,7 +85,7 @@ export default function PaywallPage() {
     }
   };
 
-  const estRevenue = totalClicks * 150;
+  const estRevenue = Math.round(totalClicks * avgPrice * 0.15);
 
   return (
     <AppLayout>
@@ -122,7 +130,7 @@ export default function PaywallPage() {
                 {packageCount > 0 ? (
                   <>
                     {t.billingDescA} {packageCount} {packageCount !== 1 ? t.billingDescPackages : t.billingDescPackage},{" "}
-                    {t.billingDescViews.replace("{n}", totalViews.toLocaleString())}{" "}
+                    {totalViews.toLocaleString()} {t.billingDescViews},{" "}
                     {t.billingDescDriven} {totalClicks} {t.billingDescWA}{" "}
                     <b style={{ color: "#fff" }}>€{estRevenue.toLocaleString()} {t.billingDescRevenue}</b>{" "}
                     {t.billingDescFree}
@@ -131,12 +139,13 @@ export default function PaywallPage() {
               </p>
 
               {/* Stats */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 32 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 8 }}>
                 <Stat v={String(packageCount)} l={t.statPackagesLive} sub={t.statFreeLimit} />
                 <Stat v={totalClicks.toLocaleString()} l={t.statLeadsGenerated} />
                 <Stat v={totalViews > 0 ? `${((totalClicks / totalViews) * 100).toFixed(1)}%` : "—"} l={t.statConversionBilling} sub={t.statIndustryAvg} />
-                <Stat v={`€${estRevenue.toLocaleString()}`} l={t.statRevenue} />
+                <Stat v={`€${estRevenue.toLocaleString()}`} l={t.statRevenue} sub={`avg €${avgPrice.toLocaleString()}/pkg`} />
               </div>
+              <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.28)", marginBottom: 24 }}>{t.billingRevenueNote}</div>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
                 <button
@@ -169,12 +178,12 @@ export default function PaywallPage() {
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: ".7px", fontWeight: 700, marginBottom: 16 }}>{t.whatUnlocksPro}</div>
               <UnlockRow icon="∞" title={t.unlockPackages} sub={`${t.billingDescA} ${packageCount}/3`} />
               <UnlockRow icon="✦" title={t.unlockAiOpts} sub={t.unlockAiOptsLeft} />
-              <UnlockRow icon="🎯" title={t.unlockAB} sub={t.unlockABSub} />
-              <UnlockRow icon="📊" title={t.unlockAnalytics} sub={t.unlockAnalyticsSub} />
-              <UnlockRow icon="🌍" title={t.unlockMultilang} sub={t.unlockMultilangSub} />
-              <UnlockRow icon="↗" title={t.unlockDomain} sub={t.unlockDomainSub} />
-              <UnlockRow icon="💬" title={t.unlockWhatsAppBiz} sub={t.unlockWhatsAppBizSub} />
-              <UnlockRow icon="👤" title={t.unlockSeats} />
+              <UnlockRow icon="🖼" title={t.unlockAB} sub={t.unlockABSub} />
+              <UnlockRow icon="🎬" title={t.unlockAnalytics} sub={t.unlockAnalyticsSub} />
+              <UnlockRow icon="📊" title={t.unlockMultilang} sub={t.unlockMultilangSub} />
+              <UnlockRow icon="📥" title={t.unlockDomain} sub={t.unlockDomainSub} />
+              <UnlockRow icon="🌍" title={t.unlockWhatsAppBiz} sub={t.unlockWhatsAppBizSub} />
+              <UnlockRow icon="🔍" title={t.unlockSeats} sub={t.unlockSeatsSub} />
             </div>
           </div>
         </div>
@@ -185,7 +194,7 @@ export default function PaywallPage() {
             <div>
               <div style={{ fontSize: 13, fontWeight: 700 }}>{t.freeUsageTitle}</div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                {packageCount} / 3 {t.billingDescPackages} · 5 / 10 {t.unlockAiOpts.toLowerCase()}
+                {packageCount} / 3 {t.billingDescPackages}
               </div>
             </div>
             <button onClick={handleUpgrade} style={{ padding: "7px 14px", borderRadius: 8, background: "none", border: `1px solid ${SAND}50`, color: SAND, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
