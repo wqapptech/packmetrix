@@ -25,6 +25,7 @@ type Package = {
   coverImage?: string;
   images?: string[];
   agencySlug?: string;
+  isActive?: boolean;
 };
 
 function slugify(text: string): string {
@@ -137,8 +138,8 @@ function FunnelRow({ label, value, pct, color, tail }: {
 
 // ── Package row ───────────────────────────────────────────────────────────────
 
-function PackageRow({ pkg, agencySlug, lang, onView, onEdit, onDelete, isLast }: {
-  pkg: Package; agencySlug: string; lang: "en" | "ar"; onView: () => void; onEdit: () => void; onDelete: () => Promise<void>; isLast: boolean;
+function PackageRow({ pkg, lang, onView, onEdit, onDelete, isLast }: {
+  pkg: Package; lang: "en" | "ar"; onView: () => void; onEdit: () => void; onDelete: () => Promise<void>; isLast: boolean;
 }) {
   const t = T[lang];
   const [confirming, setConfirming] = useState(false);
@@ -171,8 +172,18 @@ function PackageRow({ pkg, agencySlug, lang, onView, onEdit, onDelete, isLast }:
       {/* Name */}
       <div style={{ flex: 2, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pkg.destination}</div>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-          {pkg.price}{pkg.createdAt ? ` · Live · /${agencySlug}/${pkg.id}` : ""}
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+          {pkg.price}
+          {pkg.agencySlug && (
+            <span style={{
+              padding: "1px 7px", borderRadius: 99, fontSize: 9.5, fontWeight: 700,
+              textTransform: "uppercase", letterSpacing: ".4px",
+              background: pkg.isActive !== false ? "rgba(45,212,160,0.12)" : "rgba(200,100,40,0.15)",
+              color: pkg.isActive !== false ? "#2dd4a0" : "#e0843a",
+            }}>
+              {pkg.isActive !== false ? "● Live" : "○ Inactive"}
+            </span>
+          )}
         </div>
       </div>
       {/* Stats */}
@@ -504,7 +515,6 @@ export default function Dashboard() {
                   <PackageRow
                     key={pkg.id}
                     pkg={pkg}
-                    agencySlug={pkg.agencySlug || userAgencySlug}
                     lang={lang}
                     onView={() => window.open(`/${pkg.agencySlug || userAgencySlug}/${pkg.id}`, "_blank", "noopener,noreferrer")}
                     onEdit={() => router.push(`/builder?id=${pkg.id}`)}

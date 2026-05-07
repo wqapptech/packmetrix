@@ -21,7 +21,7 @@ function toLocalDigits(n: number | string, lang: Lang): string {
 
 type TDict = typeof T["en"];
 
-type Airport = { name: string; price: string };
+type Airport = { name: string; price: string; date?: string };
 type ItineraryDay = { day: number; title: string; desc: string };
 type PricingTier = { label: string; price: string };
 
@@ -51,7 +51,7 @@ const DEFAULT_FORM: Form = {
   description: "",
   includes: [],
   excludes: [],
-  airports: [{ name: "", price: "" }],
+  airports: [{ name: "", price: "", date: "" }],
   itinerary: [
     { day: 1, title: "", desc: "" },
     { day: 2, title: "", desc: "" },
@@ -295,21 +295,34 @@ function Step1({ form, update, t }: { form: Form; update: (k: keyof Form, v: any
 
       <FieldLabel>{t.fieldDepartureAirports}</FieldLabel>
       {form.airports.map((a, i) => (
-        <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <TextInput value={a.name} onChange={v => {
-            const arr = [...form.airports]; arr[i] = { ...arr[i], name: v }; update("airports", arr);
-          }} placeholder={t.airportNamePlaceholder} />
-          <input
-            value={a.price}
-            onChange={e => {
-              const arr = [...form.airports]; arr[i] = { ...arr[i], price: e.target.value }; update("airports", arr);
-            }}
-            placeholder={t.placeholderAirportPrice}
-            style={{ width: 90, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "var(--white)", fontSize: 13, fontFamily: "inherit", outline: "none" }}
-          />
+        <div key={i} style={{ marginBottom: 12, padding: "12px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <TextInput value={a.name} onChange={v => {
+              const arr = [...form.airports]; arr[i] = { ...arr[i], name: v }; update("airports", arr);
+            }} placeholder={t.airportNamePlaceholder} />
+            <input
+              value={a.price}
+              onChange={e => {
+                const arr = [...form.airports]; arr[i] = { ...arr[i], price: e.target.value }; update("airports", arr);
+              }}
+              placeholder={t.placeholderAirportPrice}
+              style={{ width: 90, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "var(--white)", fontSize: 13, fontFamily: "inherit", outline: "none" }}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon name="calendar" size={13} color="rgba(255,255,255,0.3)" />
+            <input
+              value={a.date || ""}
+              onChange={e => {
+                const arr = [...form.airports]; arr[i] = { ...arr[i], date: e.target.value }; update("airports", arr);
+              }}
+              placeholder={t.airportDatePlaceholder}
+              style={{ flex: 1, background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.1)", padding: "4px 0", color: "rgba(255,255,255,0.7)", fontSize: 12.5, fontFamily: "inherit", outline: "none" }}
+            />
+          </div>
         </div>
       ))}
-      <button onClick={() => update("airports", [...form.airports, { name: "", price: "" }])}
+      <button onClick={() => update("airports", [...form.airports, { name: "", price: "", date: "" }])}
         style={{ fontSize: 12, color: SAND, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", marginTop: 4 }}>
         {t.addAirport}
       </button>
@@ -420,7 +433,205 @@ const COVER_W = 1920;
 const COVER_H = 1080;
 const COVER_RATIO = COVER_W / COVER_H;
 
+// ── Pexels search panels ──────────────────────────────────────────────────────
+
+const TAB_BTN = (active: boolean) => ({
+  padding: "6px 16px", borderRadius: 99 as const, border: "none",
+  background: active ? "rgba(255,255,255,0.12)" : "transparent",
+  color: active ? "#fff" : "rgba(255,255,255,0.4)",
+  fontSize: 12, fontWeight: active ? 600 : 400,
+  fontFamily: "inherit", cursor: "pointer" as const,
+  display: "flex" as const, alignItems: "center" as const, gap: 6,
+});
+
+function PexelsPhotoSearch({ onSelect, placeholder, attribution, t }: {
+  onSelect: (url: string) => void;
+  placeholder: string;
+  attribution: string;
+  t: TDict;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  const search = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setSearched(true);
+    try {
+      const res = await fetch(`/api/pexels/photos?query=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setResults(data.photos || []);
+    } catch {}
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && search()}
+          placeholder={placeholder}
+          style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "var(--white)", fontSize: 13, fontFamily: "inherit", outline: "none" }}
+          onFocus={e => (e.target.style.borderColor = `${SAND}60`)}
+          onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+        />
+        <button
+          onClick={search}
+          disabled={loading}
+          style={{ padding: "10px 18px", borderRadius: 10, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: "#0a1426", fontWeight: 700, fontSize: 13, border: "none", cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 7, opacity: loading ? 0.7 : 1 }}
+        >
+          {loading
+            ? <span className="spinner" style={{ width: 13, height: 13, borderTopColor: "#0a1426" }} />
+            : <><Icon name="image" size={13} color="#0a1426" /> {t.pexelsSearchBtn}</>
+          }
+        </button>
+      </div>
+
+      {loading && (
+        <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
+          <span className="spinner" style={{ borderTopColor: SAND }} />
+        </div>
+      )}
+
+      {!loading && searched && results.length === 0 && (
+        <div style={{ textAlign: "center", padding: "24px 0", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>{t.pexelsNoResults}</div>
+      )}
+
+      {results.length > 0 && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            {results.map(photo => (
+              <div
+                key={photo.id}
+                onClick={() => onSelect(photo.src.large2x || photo.src.large)}
+                title={photo.photographer}
+                style={{ position: "relative", aspectRatio: "4/3", borderRadius: 9, overflow: "hidden", cursor: "pointer" }}
+                onMouseEnter={e => { const o = e.currentTarget.querySelector(".px-overlay") as HTMLElement; if (o) o.style.opacity = "1"; }}
+                onMouseLeave={e => { const o = e.currentTarget.querySelector(".px-overlay") as HTMLElement; if (o) o.style.opacity = "0"; }}
+              >
+                <img src={photo.src.medium} alt={photo.alt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                <div className="px-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.48)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, opacity: 0, transition: "opacity .15s" }}>
+                  <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
+                  <span style={{ color: "#fff", fontSize: 11, fontWeight: 600 }}>Use photo</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 10.5, color: "rgba(255,255,255,0.2)", textAlign: "right" }}>
+            {attribution} ·{" "}
+            <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>pexels.com</a>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PexelsVideoSearch({ onSelect, t }: { onSelect: (url: string) => void; t: TDict }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  const search = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setSearched(true);
+    try {
+      const res = await fetch(`/api/pexels/videos?query=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setResults(data.videos || []);
+    } catch {}
+    setLoading(false);
+  };
+
+  const getBestMp4 = (video: any): string => {
+    const files: any[] = video.video_files || [];
+    const hd = files.find(f => f.quality === "hd" && f.file_type === "video/mp4");
+    const sd = files.find(f => f.file_type === "video/mp4");
+    return (hd || sd)?.link || "";
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && search()}
+          placeholder={t.pexelsSearchVideos}
+          style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "var(--white)", fontSize: 13, fontFamily: "inherit", outline: "none" }}
+          onFocus={e => (e.target.style.borderColor = `${SAND}60`)}
+          onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+        />
+        <button
+          onClick={search}
+          disabled={loading}
+          style={{ padding: "10px 18px", borderRadius: 10, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: "#0a1426", fontWeight: 700, fontSize: 13, border: "none", cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 7, opacity: loading ? 0.7 : 1 }}
+        >
+          {loading
+            ? <span className="spinner" style={{ width: 13, height: 13, borderTopColor: "#0a1426" }} />
+            : <><Icon name="video" size={13} color="#0a1426" /> {t.pexelsSearchBtn}</>
+          }
+        </button>
+      </div>
+
+      {loading && (
+        <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
+          <span className="spinner" style={{ borderTopColor: SAND }} />
+        </div>
+      )}
+
+      {!loading && searched && results.length === 0 && (
+        <div style={{ textAlign: "center", padding: "24px 0", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>{t.pexelsNoResults}</div>
+      )}
+
+      {results.length > 0 && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+            {results.map(video => {
+              const mp4 = getBestMp4(video);
+              return (
+                <div
+                  key={video.id}
+                  onClick={() => mp4 && onSelect(mp4)}
+                  style={{ position: "relative", aspectRatio: "16/9", borderRadius: 9, overflow: "hidden", cursor: mp4 ? "pointer" : "default", background: "#0d1b2e" }}
+                  onMouseEnter={e => { const o = e.currentTarget.querySelector(".px-overlay") as HTMLElement; if (o) o.style.opacity = "1"; }}
+                  onMouseLeave={e => { const o = e.currentTarget.querySelector(".px-overlay") as HTMLElement; if (o) o.style.opacity = "0"; }}
+                >
+                  <img src={video.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.88)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#0d1b2e"><polygon points="5,3 19,12 5,21" /></svg>
+                    </div>
+                  </div>
+                  <div className="px-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: 0, transition: "opacity .15s", flexDirection: "column" }}>
+                    <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
+                    <span style={{ color: "#fff", fontSize: 11, fontWeight: 600 }}>Use video</span>
+                  </div>
+                  <div style={{ position: "absolute", bottom: 6, right: 8, fontSize: 10, color: "rgba(255,255,255,0.85)", fontWeight: 600, background: "rgba(0,0,0,0.45)", borderRadius: 4, padding: "1px 5px" }}>{Math.floor(video.duration)}s</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 10.5, color: "rgba(255,255,255,0.2)", textAlign: "right" }}>
+            {t.pexelsVideosAttribution} ·{" "}
+            <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>pexels.com</a>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Step components ───────────────────────────────────────────────────────────
+
 function StepCover({ form, update, user, t }: { form: Form; update: (k: keyof Form, v: any) => void; user: any; t: TDict }) {
+  const [mode, setMode] = useState<"upload" | "pexels">("upload");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -467,61 +678,82 @@ function StepCover({ form, update, user, t }: { form: Form; update: (k: keyof Fo
   return (
     <div>
       <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepCoverTitle}</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>{t.stepCoverSub}</p>
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${SAND}15`, border: `1px solid ${SAND}30`, borderRadius: 8, padding: "5px 12px", fontSize: 11, color: SAND, fontWeight: 600, marginBottom: 20 }}>
-        <Icon name="image" size={11} color={SAND} /> {t.coverRatioHint}
-      </div>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>{t.stepCoverSub}</p>
 
-      {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
-
-      {form.coverImage ? (
-        <div>
-          <div style={{ position: "relative", width: "100%", aspectRatio: `${COVER_RATIO}`, borderRadius: 12, overflow: "hidden", marginBottom: 12 }}>
+      {/* Current cover preview */}
+      {form.coverImage && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ position: "relative", width: "100%", aspectRatio: `${COVER_RATIO}`, borderRadius: 12, overflow: "hidden", marginBottom: 10 }}>
             <img src={form.coverImage} alt="Cover" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <Icon name="check" size={14} color={SUCCESS} strokeWidth={2.5} />
             <span style={{ fontSize: 13, color: SUCCESS, fontWeight: 600 }}>{t.coverImageSet}</span>
-            <label style={{ marginLeft: "auto", fontSize: 12, color: SAND, cursor: "pointer", fontFamily: "inherit" }}>
-              {t.coverReplace}
-              <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleFileChange} />
-            </label>
-            <button onClick={() => update("coverImage", "")} style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+            <button onClick={() => update("coverImage", "")} style={{ marginLeft: "auto", fontSize: 12, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
               {t.coverRemove}
             </button>
           </div>
         </div>
-      ) : (
-        <label style={{
-          display: "block", cursor: uploading ? "not-allowed" : "pointer",
-          border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 14,
-          overflow: "hidden", transition: "border-color 0.2s",
-        }}
-          onMouseEnter={e => !uploading && (e.currentTarget.style.borderColor = `${SAND}50`)}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
-        >
-          <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleFileChange} disabled={uploading} />
-          <div style={{ position: "relative", width: "100%", paddingTop: `${(1 / COVER_RATIO) * 100}%`, background: "rgba(255,255,255,0.02)" }}>
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-              {uploading ? (
-                <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{t.uploadingLabel}</span></>
-              ) : (
-                <>
-                  <Icon name="image" size={32} color="rgba(255,255,255,0.15)" />
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>{t.coverClickUpload}</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)" }}>{t.coverDimHint}</div>
-                </>
-              )}
+      )}
+
+      {/* Tab switcher */}
+      <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "4px 5px", marginBottom: 16, gap: 4 }}>
+        <button onClick={() => setMode("upload")} style={TAB_BTN(mode === "upload")}>
+          <Icon name="image" size={12} color={mode === "upload" ? "white" : "rgba(255,255,255,0.4)"} /> {t.mediaUploadTab}
+        </button>
+        <button onClick={() => setMode("pexels")} style={TAB_BTN(mode === "pexels")}>
+          <Icon name="image" size={12} color={mode === "pexels" ? SAND : "rgba(255,255,255,0.4)"} />
+          <span style={{ color: mode === "pexels" ? SAND : undefined }}>{t.mediaPexelsPhotoTab}</span>
+        </button>
+      </div>
+
+      {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
+
+      {mode === "upload" ? (
+        <>
+          {!form.coverImage && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${SAND}15`, border: `1px solid ${SAND}30`, borderRadius: 8, padding: "5px 12px", fontSize: 11, color: SAND, fontWeight: 600, marginBottom: 14 }}>
+              <Icon name="image" size={11} color={SAND} /> {t.coverRatioHint}
             </div>
-          </div>
-        </label>
+          )}
+          <label style={{
+            display: "block", cursor: uploading ? "not-allowed" : "pointer",
+            border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 14,
+            overflow: "hidden", transition: "border-color 0.2s",
+          }}
+            onMouseEnter={e => !uploading && (e.currentTarget.style.borderColor = `${SAND}50`)}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
+          >
+            <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleFileChange} disabled={uploading} />
+            <div style={{ position: "relative", width: "100%", paddingTop: `${(1 / COVER_RATIO) * 100}%`, background: "rgba(255,255,255,0.02)" }}>
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                {uploading ? (
+                  <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{t.uploadingLabel}</span></>
+                ) : (
+                  <>
+                    <Icon name="image" size={32} color="rgba(255,255,255,0.15)" />
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>{t.coverClickUpload}</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)" }}>{t.coverDimHint}</div>
+                  </>
+                )}
+              </div>
+            </div>
+          </label>
+        </>
+      ) : (
+        <PexelsPhotoSearch
+          onSelect={url => { update("coverImage", url); setMode("upload"); }}
+          placeholder={t.pexelsSearchPhotos}
+          attribution={t.pexelsAttribution}
+          t={t}
+        />
       )}
     </div>
   );
 }
 
 function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof Form, v: any) => void; user: any; t: TDict; lang: Lang }) {
-  const [mode, setMode] = useState<"upload" | "generate">("upload");
+  const [mode, setMode] = useState<"upload" | "pexels" | "generate">("upload");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -553,63 +785,71 @@ function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof 
       <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepMediaTitle}</h3>
       <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepMediaSub}</p>
 
-      <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "4px 5px", marginBottom: 24, gap: 4 }}>
-        {(["upload", "generate"] as const).map(m => (
-          <button key={m} onClick={() => setMode(m)} style={{
-            padding: "6px 16px", borderRadius: 99, border: "none",
-            background: mode === m ? "rgba(255,255,255,0.12)" : "transparent",
-            color: mode === m ? "#fff" : "rgba(255,255,255,0.4)",
-            fontSize: 12, fontWeight: mode === m ? 600 : 400,
-            fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-          }}>
-            {m === "upload"
-              ? <><Icon name="image" size={12} color={mode === "upload" ? "white" : "rgba(255,255,255,0.4)"} /> {t.mediaUploadTab}</>
-              : <><Icon name="sparkle" size={12} color={mode === "generate" ? SAND : "rgba(255,255,255,0.4)"} /> {t.mediaGenerateTab}</>
-            }
-          </button>
-        ))}
+      <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "4px 5px", marginBottom: 20, gap: 4 }}>
+        <button onClick={() => setMode("upload")} style={TAB_BTN(mode === "upload")}>
+          <Icon name="image" size={12} color={mode === "upload" ? "white" : "rgba(255,255,255,0.4)"} /> {t.mediaUploadTab}
+        </button>
+        <button onClick={() => setMode("pexels")} style={TAB_BTN(mode === "pexels")}>
+          <Icon name="image" size={12} color={mode === "pexels" ? SAND : "rgba(255,255,255,0.4)"} />
+          <span style={{ color: mode === "pexels" ? SAND : undefined }}>{t.mediaPexelsPhotoTab}</span>
+        </button>
+        <button onClick={() => setMode("generate")} style={TAB_BTN(mode === "generate")}>
+          <Icon name="sparkle" size={12} color={mode === "generate" ? SAND : "rgba(255,255,255,0.4)"} /> {t.mediaGenerateTab}
+        </button>
       </div>
 
       {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
 
-      {form.images.length > 0 && mode === "upload" && (
-        <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(45,212,160,0.06)", border: "1px solid rgba(45,212,160,0.2)", fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 14 }}>
-          💡 {t.mediaBoostTip} <b style={{ color: SUCCESS }}>{toLocalDigits(form.images.length, lang)}</b>.
-        </div>
-      )}
-
-      {mode === "upload" ? (
-        <div>
-          <label style={{ display: "block", border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 14, padding: "32px 24px", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = `${SAND}50`)}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
-          >
-            <input type="file" accept="image/*" multiple hidden onChange={handleFileChange} />
-            {uploading ? (
-              <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 10 }}>{t.uploadingLabel}</span></>
-            ) : (
-              <>
-                <Icon name="image" size={28} color="rgba(255,255,255,0.2)" />
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginTop: 10 }}>{t.mediaClickUpload}</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>{t.mediaFormatHint}</div>
-              </>
-            )}
-          </label>
-          {form.images.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 14 }}>
-              {form.images.map((url, i) => (
-                <div key={i} style={{ position: "relative", aspectRatio: "4/3", borderRadius: 10, overflow: "hidden", boxShadow: i === 0 ? `0 0 0 2px ${SAND}80` : "none" }}>
-                  <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  {i === 0 && (
-                    <div style={{ position: "absolute", top: 7, left: 7, background: `${SAND}ee`, color: "#0a1426", borderRadius: 5, padding: "2px 7px", fontSize: 9, fontWeight: 800, letterSpacing: ".4px" }}>HERO</div>
-                  )}
-                  <button onClick={() => removeImage(i)} style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", color: "white", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>×</button>
-                </div>
-              ))}
+      {/* Always show current gallery */}
+      {form.images.length > 0 && mode !== "generate" && (
+        <>
+          {mode === "upload" && (
+            <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(45,212,160,0.06)", border: "1px solid rgba(45,212,160,0.2)", fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 14 }}>
+              💡 {t.mediaBoostTip} <b style={{ color: SUCCESS }}>{toLocalDigits(form.images.length, lang)}</b>.
             </div>
           )}
-        </div>
-      ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
+            {form.images.map((url, i) => (
+              <div key={i} style={{ position: "relative", aspectRatio: "4/3", borderRadius: 10, overflow: "hidden", boxShadow: i === 0 ? `0 0 0 2px ${SAND}80` : "none" }}>
+                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                {i === 0 && (
+                  <div style={{ position: "absolute", top: 7, left: 7, background: `${SAND}ee`, color: "#0a1426", borderRadius: 5, padding: "2px 7px", fontSize: 9, fontWeight: 800, letterSpacing: ".4px" }}>HERO</div>
+                )}
+                <button onClick={() => removeImage(i)} style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", color: "white", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>×</button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {mode === "upload" && (
+        <label style={{ display: "block", border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 14, padding: "32px 24px", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = `${SAND}50`)}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
+        >
+          <input type="file" accept="image/*" multiple hidden onChange={handleFileChange} />
+          {uploading ? (
+            <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 10 }}>{t.uploadingLabel}</span></>
+          ) : (
+            <>
+              <Icon name="image" size={28} color="rgba(255,255,255,0.2)" />
+              <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginTop: 10 }}>{t.mediaClickUpload}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>{t.mediaFormatHint}</div>
+            </>
+          )}
+        </label>
+      )}
+
+      {mode === "pexels" && (
+        <PexelsPhotoSearch
+          onSelect={url => update("images", [...form.images, url])}
+          placeholder={t.pexelsSearchPhotos}
+          attribution={t.pexelsAttribution}
+          t={t}
+        />
+      )}
+
+      {mode === "generate" && (
         <ComingSoonPanel feature={t.mediaGenerateTab} featureKey="ai-images" user={user} onBack={() => setMode("upload")} t={t} />
       )}
     </div>
@@ -617,8 +857,8 @@ function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof 
 }
 
 function Step6({ form, update, user, t }: { form: Form; update: (k: keyof Form, v: any) => void; user: any; t: TDict }) {
+  const [mode, setMode] = useState<"upload" | "pexels" | "generate">("upload");
   const [uploading, setUploading] = useState(false);
-  const [showAiVideo, setShowAiVideo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -645,43 +885,61 @@ function Step6({ form, update, user, t }: { form: Form; update: (k: keyof Form, 
   return (
     <div>
       <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{t.stepVideoTitle}</h3>
-      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{t.stepVideoSub}</p>
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>{t.stepVideoSub}</p>
 
-      {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
-
-      {showAiVideo ? (
-        <ComingSoonPanel feature={t.generateAiVideo} featureKey="ai-video" user={user} onBack={() => setShowAiVideo(false)} t={t} />
-      ) : form.videoUrl ? (
-        <div>
-          <video src={form.videoUrl} controls style={{ width: "100%", borderRadius: 12, background: "#0d1b2e", maxHeight: 280 }} />
-          <button onClick={() => update("videoUrl", "")} style={{ marginTop: 10, fontSize: 12, color: "rgba(255,255,255,0.35)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+      {/* Current video preview */}
+      {form.videoUrl && (
+        <div style={{ marginBottom: 16 }}>
+          <video src={form.videoUrl} controls style={{ width: "100%", borderRadius: 12, background: "#0d1b2e", maxHeight: 260 }} />
+          <button onClick={() => update("videoUrl", "")} style={{ marginTop: 8, fontSize: 12, color: "rgba(255,255,255,0.35)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
             {t.videoRemove}
           </button>
         </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <label style={{ display: "block", border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 14, padding: "32px 24px", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = `${SAND}50`)}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
-          >
-            <input type="file" accept="video/*" hidden onChange={handleFileChange} />
-            {uploading ? (
-              <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 10 }}>{t.uploadingLabel}</span></>
-            ) : (
-              <>
-                <Icon name="video" size={28} color="rgba(255,255,255,0.2)" />
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginTop: 10 }}>{t.videoClickUpload}</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>{t.videoFormatHint}</div>
-              </>
-            )}
-          </label>
-          <button
-            onClick={() => setShowAiVideo(true)}
-            style={{ width: "100%", padding: "12px", borderRadius: 12, background: "rgba(232,201,123,0.07)", border: `1px solid ${SAND}30`, color: SAND, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-          >
-            <Icon name="sparkle" size={14} color={SAND} strokeWidth={2} /> {t.generateAiVideo}
-          </button>
-        </div>
+      )}
+
+      {/* Tab switcher */}
+      <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "4px 5px", marginBottom: 16, gap: 4 }}>
+        <button onClick={() => setMode("upload")} style={TAB_BTN(mode === "upload")}>
+          <Icon name="video" size={12} color={mode === "upload" ? "white" : "rgba(255,255,255,0.4)"} /> {t.mediaUploadTab}
+        </button>
+        <button onClick={() => setMode("pexels")} style={TAB_BTN(mode === "pexels")}>
+          <Icon name="video" size={12} color={mode === "pexels" ? SAND : "rgba(255,255,255,0.4)"} />
+          <span style={{ color: mode === "pexels" ? SAND : undefined }}>{t.mediaPexelsVideoTab}</span>
+        </button>
+        <button onClick={() => setMode("generate")} style={TAB_BTN(mode === "generate")}>
+          <Icon name="sparkle" size={12} color={mode === "generate" ? SAND : "rgba(255,255,255,0.4)"} /> {t.generateAiVideo}
+        </button>
+      </div>
+
+      {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
+
+      {mode === "upload" && (
+        <label style={{ display: "block", border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 14, padding: "32px 24px", textAlign: "center", cursor: "pointer", transition: "border-color 0.2s" }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = `${SAND}50`)}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
+        >
+          <input type="file" accept="video/*" hidden onChange={handleFileChange} />
+          {uploading ? (
+            <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 10 }}>{t.uploadingLabel}</span></>
+          ) : (
+            <>
+              <Icon name="video" size={28} color="rgba(255,255,255,0.2)" />
+              <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginTop: 10 }}>{t.videoClickUpload}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>{t.videoFormatHint}</div>
+            </>
+          )}
+        </label>
+      )}
+
+      {mode === "pexels" && (
+        <PexelsVideoSearch
+          onSelect={url => { update("videoUrl", url); setMode("upload"); }}
+          t={t}
+        />
+      )}
+
+      {mode === "generate" && (
+        <ComingSoonPanel feature={t.generateAiVideo} featureKey="ai-video" user={user} onBack={() => setMode("upload")} t={t} />
       )}
     </div>
   );

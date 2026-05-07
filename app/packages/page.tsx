@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
@@ -24,6 +24,7 @@ type Package = {
   coverImage?: string;
   images?: string[];
   agencySlug?: string;
+  isActive?: boolean;
 };
 
 function slugify(text: string): string {
@@ -77,7 +78,7 @@ export default function PackagesPage() {
     );
   }
 
-  const liveCount = packages.filter(p => Boolean(p.agencySlug)).length;
+  const liveCount = packages.filter(p => p.agencySlug && p.isActive !== false).length;
 
   return (
     <AppLayout>
@@ -141,11 +142,20 @@ export default function PackagesPage() {
               <PackageCard
                 key={pkg.id}
                 pkg={pkg}
-                agencySlug={pkg.agencySlug || agencySlug}
                 dotColor={DOT_COLORS[idx % DOT_COLORS.length]}
                 lang={lang}
                 onView={() => window.open(`/${pkg.agencySlug || agencySlug}/${pkg.id}`, "_blank", "noopener,noreferrer")}
                 onEdit={() => router.push(`/builder?id=${pkg.id}`)}
+                onDelete={async () => {
+                  if (!confirm(t.confirmDeletePackage)) return;
+                  await deleteDoc(doc(db, "packages", pkg.id));
+                  setPackages(prev => prev.filter(p => p.id !== pkg.id));
+                }}
+                onToggleActive={async () => {
+                  const next = pkg.isActive === false ? true : false;
+                  await updateDoc(doc(db, "packages", pkg.id), { isActive: next });
+                  setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, isActive: next } : p));
+                }}
               />
             ))}
           </div>
@@ -156,14 +166,15 @@ export default function PackagesPage() {
 }
 
 function PackageCard({
-  pkg, agencySlug, dotColor, lang, onView, onEdit,
+  pkg, dotColor, lang, onView, onEdit, onDelete, onToggleActive,
 }: {
   pkg: Package;
-  agencySlug: string;
   dotColor: string;
   lang: "en" | "ar";
   onView: () => void;
   onEdit: () => void;
+  onDelete: () => void;
+  onToggleActive: () => void;
 }) {
   const t = T[lang];
   const thumbUrl = pkg.coverImage || pkg.images?.[0];
@@ -171,7 +182,11 @@ function PackageCard({
   const conv = (pkg.views || 0) > 0 ? (clicks / pkg.views) * 100 : 0;
   const score = scoreFromConv(conv);
   const scoreColor = score >= 80 ? SUCCESS : score >= 65 ? SAND : "#f5a623";
-  const isLive = Boolean(pkg.agencySlug);
+  const isPublished = Boolean(pkg.agencySlug);
+  const isActive = pkg.isActive !== false;
+  const badgeBg = !isPublished ? "rgba(255,255,255,0.18)" : isActive ? "rgba(45,212,160,0.88)" : "rgba(180,90,30,0.82)";
+  const badgeColor = !isPublished ? "#fff" : "#0a1426";
+  const badgeLabel = !isPublished ? t.packageStatusDraft : isActive ? `● ${t.live}` : `○ ${t.packageStatusInactive}`;
 
   return (
     <div style={{
@@ -187,12 +202,11 @@ function PackageCard({
         <div style={{
           position: "absolute", top: 12, left: 12,
           padding: "3px 10px", borderRadius: 99,
-          background: isLive ? "rgba(45,212,160,0.88)" : "rgba(255,255,255,0.18)",
-          backdropFilter: "blur(8px)",
-          color: isLive ? "#0a1426" : "#fff",
+          background: badgeBg, backdropFilter: "blur(8px)",
+          color: badgeColor,
           fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".4px",
         }}>
-          {isLive ? `● ${t.live}` : t.packageStatusDraft}
+          {badgeLabel}
         </div>
 
         {/* Score badge */}
@@ -223,18 +237,34 @@ function PackageCard({
         <div style={{ display: "flex", gap: 6 }}>
           <ActionBtn label={t.preview} onClick={onView} />
           <ActionBtn label={t.apply} onClick={onEdit} icon="edit" />
+          {isPublished && (
+            <button
+              onClick={onToggleActive}
+              title={isActive ? t.markInactive : t.markActive}
+              style={{
+                width: 32, height: 32, borderRadius: 7,
+                background: isActive ? "rgba(45,212,160,0.08)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${isActive ? "rgba(45,212,160,0.25)" : "rgba(255,255,255,0.08)"}`,
+                color: isActive ? "rgba(45,212,160,0.8)" : "rgba(255,255,255,0.35)",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18.36 6.64A9 9 0 1 1 5.64 5.64" /><line x1="12" y1="2" x2="12" y2="12" />
+              </svg>
+            </button>
+          )}
           <button
+            onClick={onDelete}
             style={{
               width: 32, height: 32, borderRadius: 7,
               background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-              color: "rgba(255,255,255,0.55)", cursor: "pointer",
+              color: "rgba(220,80,80,0.7)", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}
-            title="More"
+            title={t.deletePackage}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" />
-            </svg>
+            <Icon name="trash" size={14} color="rgba(220,80,80,0.7)" />
           </button>
         </div>
       </div>
