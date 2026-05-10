@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       views,
       whatsappClicks,
       messengerClicks,
-    });
+    }, userId);
 
     if (!text) {
       return NextResponse.json(

@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import { T } from "@/lib/translations";
 import { useLang } from "@/hooks/useLang";
+import posthog from "posthog-js";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -27,12 +28,17 @@ function Stat({ v, l, sub }: { v: string; l: string; sub?: string }) {
   );
 }
 
-function UnlockRow({ icon, title, sub }: { icon: string; title: string; sub?: string }) {
+function UnlockRow({ icon, title, sub, comingSoon }: { icon: string; title: string; sub?: string; comingSoon?: boolean }) {
   return (
-    <div style={{ display: "flex", gap: 11, alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+    <div style={{ display: "flex", gap: 11, alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", opacity: comingSoon ? 0.65 : 1 }}>
       <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(232,201,123,0.13)", color: SAND, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>{icon}</div>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600 }}>{title}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>{title}</span>
+          {comingSoon && (
+            <span style={{ fontSize: 9.5, fontWeight: 800, padding: "2px 7px", borderRadius: 99, background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)", letterSpacing: ".3px", textTransform: "uppercase" }}>Soon</span>
+          )}
+        </div>
         {sub && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{sub}</div>}
       </div>
     </div>
@@ -84,6 +90,7 @@ export default function PaywallPage() {
   const handleUpgrade = async () => {
     if (!userId) { router.push("/login"); return; }
     setLoading(true);
+    posthog.capture("upgrade_initiated", { billing_period: annual ? "annual" : "monthly", package_count: packageCount, total_views: totalViews, total_clicks: totalClicks });
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -93,6 +100,7 @@ export default function PaywallPage() {
       const json = await res.json();
       if (json.url) window.location.href = json.url;
     } catch (err) {
+      posthog.captureException(err);
       console.error("Checkout error", err);
     } finally {
       setLoading(false);
@@ -108,6 +116,7 @@ export default function PaywallPage() {
         email: userEmail || "",
         createdAt: Date.now(),
       });
+      posthog.capture("agency_plan_notify_requested");
       setAgencyNotified(true);
     } catch {}
     setAgencyNotifying(false);
@@ -247,8 +256,8 @@ export default function PaywallPage() {
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: ".7px", fontWeight: 700, marginBottom: 16 }}>{t.whatUnlocksPro}</div>
               <UnlockRow icon="∞" title={t.unlockPackages} sub={`${t.billingDescA} ${packageCount}/1`} />
               <UnlockRow icon="✦" title={t.unlockAiOpts} sub={t.unlockAiOptsLeft} />
-              <UnlockRow icon="🖼" title={t.unlockAB} sub={t.unlockABSub} />
-              <UnlockRow icon="🎬" title={t.unlockAnalytics} sub={t.unlockAnalyticsSub} />
+              <UnlockRow icon="🖼" title={t.unlockAB} sub={t.unlockABSub} comingSoon />
+              <UnlockRow icon="🎬" title={t.unlockAnalytics} sub={t.unlockAnalyticsSub} comingSoon />
               <UnlockRow icon="📊" title={t.unlockMultilang} sub={t.unlockMultilangSub} />
               <UnlockRow icon="📥" title={t.unlockDomain} sub={t.unlockDomainSub} />
               <UnlockRow icon="🌍" title={t.unlockWhatsAppBiz} sub={t.unlockWhatsAppBizSub} />

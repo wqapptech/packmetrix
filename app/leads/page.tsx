@@ -9,6 +9,7 @@ import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
 import { T } from "@/lib/translations";
+import posthog from "posthog-js";
 
 const SAND = "#e8c97b";
 
@@ -251,6 +252,7 @@ export default function LeadsPage() {
   }, [router]);
 
   const exportCsv = () => {
+    posthog.capture("leads_exported", { filter: activeTab, count: filtered.length });
     const rows = [
       ["Destination", "Price", "Channel", "Status", "Created At"],
       ...filtered.map(l => [
@@ -272,6 +274,8 @@ export default function LeadsPage() {
   };
 
   const updateStatus = async (id: string, status: string) => {
+    const lead = leads.find(l => l.id === id);
+    posthog.capture("lead_status_updated", { new_status: status, previous_status: lead?.status, channel: lead?.channel });
     await fetch("/api/update-lead-status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

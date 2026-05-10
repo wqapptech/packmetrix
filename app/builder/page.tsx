@@ -9,6 +9,7 @@ import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { T, type Lang } from "@/lib/translations";
 import { useLang } from "@/hooks/useLang";
+import posthog from "posthog-js";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -1327,6 +1328,7 @@ function BuilderPageInner() {
         });
         const json = await res.json();
         if (!res.ok) { setError(json.error || "Something went wrong."); return; }
+        posthog.capture("package_updated", { destination: form.destination, price: form.price, language: form.language });
       } else {
         const res = await fetch("/api/generate", {
           method: "POST",
@@ -1339,9 +1341,11 @@ function BuilderPageInner() {
         setPackageId(json.id);
         if (json.agencySlug) setAgencySlug(json.agencySlug);
         localStorage.removeItem("packageData");
+        posthog.capture("package_published", { destination: form.destination, price: form.price, language: form.language, nights: form.nights });
       }
       setDone(true);
     } catch (err: any) {
+      posthog.captureException(err);
       setError(err.message || "Something went wrong.");
     } finally {
       setGenerating(false);

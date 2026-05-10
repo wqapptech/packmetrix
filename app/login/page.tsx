@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import Icon from "@/components/Icon";
+import posthog from "posthog-js";
 
 const SAND = "#e8c97b";
 
@@ -20,9 +21,13 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      posthog.identify(userCred.user.uid, { email: userCred.user.email });
+      posthog.capture("user_logged_in", { email: userCred.user.email });
       router.push("/builder");
     } catch (err: any) {
+      posthog.capture("login_failed", { error_code: err?.code });
+      posthog.captureException(err);
       setError(err?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);

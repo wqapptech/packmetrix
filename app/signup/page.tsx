@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import Icon from "@/components/Icon";
+import posthog from "posthog-js";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -25,7 +26,7 @@ const PLANS: { id: PlanId; price: string; period: string; badge?: string; featur
     price: "€29",
     period: "/mo",
     badge: "Most popular",
-    features: ["Unlimited packages", "AI content writer", "AI image generation", "Promo video creator", "Analytics per package", "Lead inbox", "Arabic + English pages", "Pexels photo library"],
+    features: ["Unlimited packages", "AI content writer", "Analytics per package", "Lead inbox", "Arabic + English pages", "Pexels photo library", "AI image generation (coming soon)", "Promo video creator (coming soon)"],
     cta: "Start with Pro",
   },
   {
@@ -68,6 +69,8 @@ function SignupPageInner() {
         stripeCustomerId: null,
         createdAt: Date.now(),
       });
+      posthog.identify(userCred.user.uid, { email: userCred.user.email, name });
+      posthog.capture("user_signed_up", { plan: selectedPlan, email: userCred.user.email, from_gate: fromGate });
       if (selectedPlan === "pro") {
         // Send to Stripe immediately after account creation
         const res = await fetch("/api/stripe/checkout", {
@@ -80,6 +83,7 @@ function SignupPageInner() {
       }
       router.push("/builder");
     } catch (err: any) {
+      posthog.captureException(err);
       setError(err?.message || "Signup failed. Please try again.");
     } finally {
       setLoading(false);

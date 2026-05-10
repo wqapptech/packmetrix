@@ -9,6 +9,7 @@ import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
 import { T } from "@/lib/translations";
+import posthog from "posthog-js";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -151,11 +152,13 @@ export default function PackagesPage() {
                 onEdit={() => router.push(`/builder?id=${pkg.id}`)}
                 onDelete={async () => {
                   if (!confirm(t.confirmDeletePackage)) return;
+                  posthog.capture("package_deleted", { destination: pkg.destination, views: pkg.views });
                   await deleteDoc(doc(db, "packages", pkg.id));
                   setPackages(prev => prev.filter(p => p.id !== pkg.id));
                 }}
                 onToggleActive={async () => {
                   const next = pkg.isActive === false ? true : false;
+                  posthog.capture("package_toggled_active", { destination: pkg.destination, is_active: next });
                   await updateDoc(doc(db, "packages", pkg.id), { isActive: next });
                   setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, isActive: next } : p));
                 }}

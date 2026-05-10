@@ -1,10 +1,15 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   try {
-    const { text } = await req.json();
+    const { text, userId } = await req.json();
+
+    const traceId = randomUUID();
+    const startTime = Date.now();
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -42,7 +47,26 @@ Do NOT include markdown. Do NOT wrap in code blocks.
       }),
     });
 
+    const latency = (Date.now() - startTime) / 1000;
     const data = await response.json();
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: userId || "anonymous",
+      event: "$ai_generation",
+      properties: {
+        $ai_trace_id: traceId,
+        $ai_span_name: "package_extract",
+        $ai_model: data?.model || "gpt-4o-mini",
+        $ai_provider: "openai",
+        $ai_input_tokens: data?.usage?.prompt_tokens,
+        $ai_output_tokens: data?.usage?.completion_tokens,
+        $ai_latency: latency,
+        $ai_http_status: response.status,
+        $ai_stop_reason: data?.choices?.[0]?.finish_reason,
+      },
+    });
+    await posthog.shutdown();
 
     const content = data?.choices?.[0]?.message?.content;
 

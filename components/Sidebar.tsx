@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import Icon from "./Icon";
 import { useLang } from "@/hooks/useLang";
@@ -95,7 +95,7 @@ export default function Sidebar() {
   const lang = useLang();
   const t = T[lang];
 
-  const [user, setUser] = useState<{ email: string; initials: string; uid: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; initials: string; uid: string; plan: string } | null>(null);
   const [aiModal, setAiModal] = useState(false);
   const [aiRequested, setAiRequested] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -115,7 +115,9 @@ export default function Sidebar() {
       if (u) {
         const parts = (u.displayName || u.email || "").split(/[\s@]/);
         const initials = parts.slice(0, 2).map(p => p[0]?.toUpperCase() || "").join("") || "AG";
-        setUser({ email: u.email || "", initials, uid: u.uid });
+        const snap = await getDoc(doc(db, "users", u.uid));
+        const plan = (snap.data()?.plan as string) || "free";
+        setUser({ email: u.email || "", initials, uid: u.uid, plan });
       } else {
         setUser(null);
       }
@@ -264,7 +266,7 @@ export default function Sidebar() {
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {user.email}
                 </div>
-                <div style={{ fontSize: 10.5, color: SAND }}>{t.freePlanLabel}</div>
+                <div style={{ fontSize: 10.5, color: SAND }}>{user.plan === "pro" ? t.proPlanLabel : t.freePlanLabel}</div>
               </div>
             </div>
             <button onClick={handleLogout} style={{

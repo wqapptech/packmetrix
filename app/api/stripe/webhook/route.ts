@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,14 @@ export async function POST(req: Request) {
           { merge: true }
         );
 
+        const posthog = getPostHogClient();
+        posthog.capture({
+          distinctId: userId,
+          event: "subscription_completed",
+          properties: { stripe_customer_id: customerId, plan: "pro" },
+        });
+        await posthog.shutdown();
+
         console.log("User upgraded:", userId);
         break;
       }
@@ -79,13 +88,20 @@ export async function POST(req: Request) {
           .where("stripeCustomerId", "==", customerId)
           .get();
 
+        const posthogCancel = getPostHogClient();
         snap.forEach(async (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
           await doc.ref.update({
             plan: "free",
             aiLimit: 10,
             updatedAt: Date.now(),
           });
+          posthogCancel.capture({
+            distinctId: doc.id,
+            event: "subscription_cancelled",
+            properties: { stripe_customer_id: customerId },
+          });
         });
+        await posthogCancel.shutdown();
 
         break;
       }

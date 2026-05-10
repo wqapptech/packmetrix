@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { randomUUID } from "crypto";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -16,7 +18,7 @@ type Package = {
 // -----------------------------
 // MAIN AI INSIGHTS ENGINE
 // -----------------------------
-export async function generateInsights(pkg: Package) {
+export async function generateInsights(pkg: Package, distinctId = "anonymous") {
   const clicks = pkg.whatsappClicks + pkg.messengerClicks;
 
   const ctr =
@@ -48,6 +50,9 @@ Do NOT include introductions or fluff.
 Do NOT use markdown.
 `;
 
+  const traceId = randomUUID();
+  const startTime = Date.now();
+
   try {
     const res = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -62,11 +67,29 @@ Do NOT use markdown.
       temperature: 0.6,
     });
 
+    const latency = (Date.now() - startTime) / 1000;
     const text = res.choices[0]?.message?.content;
 
     if (!text) {
       throw new Error("Empty AI response");
     }
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId,
+      event: "$ai_generation",
+      properties: {
+        $ai_trace_id: traceId,
+        $ai_span_name: "ai_insights",
+        $ai_model: res.model,
+        $ai_provider: "openai",
+        $ai_input_tokens: res.usage?.prompt_tokens,
+        $ai_output_tokens: res.usage?.completion_tokens,
+        $ai_latency: latency,
+        $ai_stop_reason: res.choices[0]?.finish_reason,
+      },
+    });
+    await posthog.shutdown();
 
     return text.trim();
   } catch (err) {
