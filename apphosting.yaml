@@ -16,20 +16,20 @@ env:
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
     value: "1:678625187977:web:9c05af52521bd47322ce58"
 
-  # Secrets (values stored in Secret Manager, not here)
-  - variable: STRIPE_SECRET_KEY
-    secret: STRIPE_SECRET_KEY
-  - variable: STRIPE_PRICE_ID
-    secret: STRIPE_PRICE_ID
-  - variable: STRIPE_PRICE_ID_ANNUAL
-    secret: STRIPE_PRICE_ID_ANNUAL
-  - variable: STRIPE_SUCCESS_URL
-    secret: STRIPE_SUCCESS_URL
-  - variable: STRIPE_CANCEL_URL
-    secret: STRIPE_CANCEL_URL
+  # Secrets
   - variable: OPENAI_API_KEY
     secret: OPENAI_API_KEY
-  - variable: DEEPSEEK_API_KEY
-    secret: DEEPSEEK_API_KEY
   - variable: FIREBASE_ADMIN_KEY
     secret: FIREBASE_ADMIN_KEY
+
+  # Stripe — add these back once your Stripe account is set up
+  # - variable: STRIPE_SECRET_KEY
+  #   secret: STRIPE_SECRET_KEY
+  # - variable: STRIPE_PRICE_ID
+  #   secret: STRIPE_PRICE_ID
+  # - variable: STRIPE_PRICE_ID_ANNUAL
+  #   secret: STRIPE_PRICE_ID_ANNUAL
+  # - variable: STRIPE_SUCCESS_URL
+  #   secret: STRIPE_SUCCESS_URL
+  # - variable: STRIPE_CANCEL_URL
+  #   secret: STRIPE_CANCEL_URL
