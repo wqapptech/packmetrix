@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { doc, getDoc } from "firebase/firestore";
@@ -44,7 +44,7 @@ function AgencyMark({ logoUrl, name, color = DEFAULT_BRAND, size = 32 }: { logoU
   );
 }
 
-export default function AgencyPackagesPage() {
+function AgencyPackagesPageInner() {
   const params        = useParams();
   const agencySlug    = params?.agencySlug as string;
   const router        = useRouter();
@@ -200,5 +200,13 @@ export default function AgencyPackagesPage() {
         <div style={{ fontSize: 11, color: SUPER_MUTED }}>{t.poweredBy}</div>
       </div>
     </div>
+  );
+}
+
+export default function AgencyPackagesPage() {
+  return (
+    <Suspense fallback={null}>
+      <AgencyPackagesPageInner />
+    </Suspense>
   );
 }

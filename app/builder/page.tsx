@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, increment, addDoc, collection, getDocs, query, where } from "firebase/firestore";
@@ -1160,7 +1160,7 @@ function MiniPreview({ form, t, lang }: { form: Form; t: TDict; lang: Lang }) {
 
 // ── main page ─────────────────────────────────────────────────────────────────
 
-export default function BuilderPage() {
+function BuilderPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("id");
@@ -1582,5 +1582,13 @@ export default function BuilderPage() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+export default function BuilderPage() {
+  return (
+    <Suspense fallback={null}>
+      <BuilderPageInner />
+    </Suspense>
   );
 }
