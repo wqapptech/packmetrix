@@ -1,0 +1,35 @@
+runConfig:
+  minInstances: 0
+
+env:
+  # Public Firebase config (safe to commit)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyCga-8ZVe_1-X1t8V5L0LxqAFkr1t_lHEg"
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "packmetrics-77450.firebaseapp.com"
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "packmetrics-77450"
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "packmetrics-77450.firebasestorage.app"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "678625187977"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:678625187977:web:9c05af52521bd47322ce58"
+
+  # Secrets (values stored in Secret Manager, not here)
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+  - variable: STRIPE_PRICE_ID
+    secret: STRIPE_PRICE_ID
+  - variable: STRIPE_PRICE_ID_ANNUAL
+    secret: STRIPE_PRICE_ID_ANNUAL
+  - variable: STRIPE_SUCCESS_URL
+    secret: STRIPE_SUCCESS_URL
+  - variable: STRIPE_CANCEL_URL
+    secret: STRIPE_CANCEL_URL
+  - variable: OPENAI_API_KEY
+    secret: OPENAI_API_KEY
+  - variable: DEEPSEEK_API_KEY
+    secret: DEEPSEEK_API_KEY
+  - variable: FIREBASE_ADMIN_KEY
+    secret: FIREBASE_ADMIN_KEY
