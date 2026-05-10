@@ -52,13 +52,16 @@ export default function PackagesPage() {
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [agencySlug, setAgencySlug] = useState("agency");
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
       const snap = await getDoc(doc(db, "users", user.uid));
-      const name = snap.exists() ? snap.data().name || "" : "";
+      const data = snap.exists() ? snap.data() : {};
+      const name = data.name || "";
       setAgencySlug(slugify(name) || "agency");
+      setIsPro(data.plan === "pro" || data.plan === "agency");
       setAuthLoading(false);
 
       const pkgSnap = await getDocs(query(collection(db, "packages"), where("userId", "==", user.uid)));
@@ -92,7 +95,7 @@ export default function PackagesPage() {
             </div>
           </div>
           <button
-            onClick={() => router.push("/builder")}
+            onClick={() => (!isPro && packages.length >= 1) ? router.push("/paywall") : router.push("/builder")}
             style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "9px 16px", borderRadius: 9,
@@ -124,7 +127,7 @@ export default function PackagesPage() {
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{t.createFirst}</div>
             </div>
             <button
-              onClick={() => router.push("/builder")}
+              onClick={() => (!isPro && packages.length >= 1) ? router.push("/paywall") : router.push("/builder")}
               style={{
                 padding: "10px 20px", borderRadius: 9,
                 background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,

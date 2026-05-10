@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { addDoc, collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
@@ -59,9 +59,57 @@ function StatusPill({ status, label }: { status: string; label: string }) {
   );
 }
 
+// ── Trip portal teaser ────────────────────────────────────────────────────────
+
+function TripPortalTeaser({ userId, leadId, t }: { userId: string | null; leadId: string; t: typeof T["en"] }) {
+  const [requested, setRequested] = useState(false);
+
+  const handleWantFaster = async () => {
+    setRequested(true);
+    try {
+      await addDoc(collection(db, "featureRequests"), {
+        feature: "trip-companion-portal",
+        leadId,
+        userId: userId || "anonymous",
+        createdAt: Date.now(),
+      });
+    } catch {}
+  };
+
+  return (
+    <div style={{ marginTop: 16, padding: "14px 16px", borderRadius: 12, background: "rgba(232,201,123,0.06)", border: "1px dashed rgba(232,201,123,0.25)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: SAND }}>{t.tripPortalTitle}</div>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "rgba(232,201,123,0.6)", background: "rgba(232,201,123,0.1)", border: "1px solid rgba(232,201,123,0.2)", borderRadius: 99, padding: "2px 8px", flexShrink: 0 }}>
+          {t.tripPortalComingSoon}
+        </span>
+      </div>
+      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.55, marginBottom: 12 }}>
+        {t.tripPortalDesc}
+      </div>
+      <button
+        disabled
+        style={{ width: "100%", padding: "9px", borderRadius: 9, background: "rgba(232,201,123,0.06)", border: "1px solid rgba(232,201,123,0.15)", color: "rgba(232,201,123,0.35)", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", cursor: "not-allowed", marginBottom: 8 }}
+      >
+        🔒 Generate Trip Portal
+      </button>
+      {requested ? (
+        <div style={{ textAlign: "center", fontSize: 12, color: "#54e0b5", fontWeight: 600 }}>{t.tripPortalRequested}</div>
+      ) : (
+        <button
+          onClick={handleWantFaster}
+          style={{ width: "100%", padding: "7px", borderRadius: 9, background: "none", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)", fontSize: 11.5, fontFamily: "inherit", cursor: "pointer" }}
+        >
+          {t.tripPortalWantFaster}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
-function DetailPanel({ lead, onStatusChange, t }: { lead: Lead; onStatusChange: (id: string, status: string) => void; t: typeof T["en"] }) {
+function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: string | null; onStatusChange: (id: string, status: string) => void; t: typeof T["en"] }) {
   const initials = (lead.destination || "?").slice(0, 2).toUpperCase();
   const avatarColors = ["#c66a3d", "#1f5f8e", "#7c3aed", "#0d6e3f", "#b45309"];
   const avatarColor = avatarColors[Math.abs(lead.id.charCodeAt(0)) % avatarColors.length];
@@ -170,6 +218,7 @@ function DetailPanel({ lead, onStatusChange, t }: { lead: Lead; onStatusChange: 
           </button>
         )}
       </div>
+      {lead.status === "booked" && <TripPortalTeaser userId={userId} leadId={lead.id} t={t} />}
     </div>
   );
 }
@@ -182,6 +231,7 @@ export default function LeadsPage() {
   const t = T[lang];
 
   const [authLoading, setAuthLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [selected, setSelected] = useState<Lead | null>(null);
@@ -189,6 +239,7 @@ export default function LeadsPage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
+      setUserId(user.uid);
       const q = query(collection(db, "leads"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
       const snap = await getDocs(q);
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Lead));
@@ -198,6 +249,27 @@ export default function LeadsPage() {
     });
     return () => unsub();
   }, [router]);
+
+  const exportCsv = () => {
+    const rows = [
+      ["Destination", "Price", "Channel", "Status", "Created At"],
+      ...filtered.map(l => [
+        l.destination,
+        l.price,
+        l.channel,
+        l.status,
+        new Date(l.createdAt).toISOString(),
+      ]),
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const updateStatus = async (id: string, status: string) => {
     await fetch("/api/update-lead-status", {
@@ -250,11 +322,8 @@ export default function LeadsPage() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.65)", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer" }}>
+            <button onClick={exportCsv} style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.65)", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer" }}>
               {t.exportCsv}
-            </button>
-            <button style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.65)", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer" }}>
-              {t.syncWhatsAppBtn}
             </button>
           </div>
         </div>
@@ -351,7 +420,7 @@ export default function LeadsPage() {
 
             {/* Detail panel */}
             {selected ? (
-              <DetailPanel lead={selected} onStatusChange={updateStatus} t={t} />
+              <DetailPanel lead={selected} userId={userId} onStatusChange={updateStatus} t={t} />
             ) : (
               <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>{t.selectLeadNote}</p>

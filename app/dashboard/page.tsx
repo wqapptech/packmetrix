@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, doc, getDoc, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where, orderBy } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
@@ -87,31 +87,27 @@ function KpiCard({ label, value, delta, trend, sparkColor }: {
   );
 }
 
-// ── Weekly bar chart ──────────────────────────────────────────────────────────
+// ── Per-package bar chart ──────────────────────────────────────────────────────
 
-function WeeklyBars({ packages, lang }: { packages: Package[]; lang: "en" | "ar" }) {
-  const t = T[lang];
-  const days = [t.mon, t.tue, t.wed, t.thu, t.fri, t.sat, t.sun];
-  const total = packages.reduce((a, b) => a + (b.views || 0), 0);
-  const totalClicks = packages.reduce((a, b) => a + (b.whatsappClicks || 0) + (b.messengerClicks || 0), 0);
-  const weights = [0.11, 0.14, 0.13, 0.17, 0.2, 0.15, 0.1];
-  const series = weights.map((w) => ({
-    sessions: Math.round(total * w),
-    leads: Math.round(totalClicks * w),
-  }));
-  const peak = Math.max(...series.map(s => s.sessions), 1);
+function PackageBars({ packages }: { packages: Package[] }) {
+  const top = [...packages].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 7);
+  const peak = Math.max(...top.map(p => p.views || 0), 1);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 14, height: 140, alignItems: "end", paddingTop: 8 }}>
-      {series.map((s, i) => (
-        <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-          <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 120 }}>
-            <div style={{ width: 8, borderRadius: 3, background: `linear-gradient(180deg, ${SAND}, ${SAND}60)`, height: `${(s.sessions / peak) * 100}%` }} />
-            <div style={{ width: 8, borderRadius: 3, background: `linear-gradient(180deg, ${TEAL}, ${TEAL}60)`, height: `${Math.min((s.leads / peak) * 4 * 100, 100)}%` }} />
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(top.length, 1)},1fr)`, gap: 14, height: 140, alignItems: "end", paddingTop: 8 }}>
+      {top.map((pkg) => {
+        const clicks = (pkg.whatsappClicks || 0) + (pkg.messengerClicks || 0);
+        const label = pkg.destination.split(/[\s,]/)[0].slice(0, 7);
+        return (
+          <div key={pkg.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 120 }}>
+              <div style={{ width: 8, borderRadius: 3, background: `linear-gradient(180deg, ${SAND}, ${SAND}60)`, height: `${Math.max(((pkg.views || 0) / peak) * 100, 2)}%` }} />
+              <div style={{ width: 8, borderRadius: 3, background: `linear-gradient(180deg, ${TEAL}, ${TEAL}60)`, height: `${Math.min(Math.max((clicks / peak) * 100 * 4, clicks > 0 ? 4 : 0), 100)}%` }} />
+            </div>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "100%" }}>{label}</span>
           </div>
-          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{days[i]}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -220,38 +216,6 @@ function PackageRow({ pkg, lang, onView, onEdit, onDelete, isLast }: {
           </button>
         )}
       </div>
-    </div>
-  );
-}
-
-// ── AI insight row ────────────────────────────────────────────────────────────
-
-function Insight({ icon, title, desc, cta, userId }: { icon: string; title: string; desc: string; cta: string; userId: string | null }) {
-  const [requested, setRequested] = useState(false);
-
-  const handleClick = async () => {
-    setRequested(true);
-    try {
-      await addDoc(collection(db, "featureRequests"), {
-        feature: "ai-optimizer",
-        userId: userId || "anonymous",
-        createdAt: Date.now(),
-      });
-    } catch {}
-  };
-
-  return (
-    <div style={{ display: "flex", gap: 12, padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-      <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(232,201,123,0.13)", color: SAND, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{icon}</div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{title}</div>
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{desc}</div>
-      </div>
-      {requested ? (
-        <div style={{ alignSelf: "center", fontSize: 11, color: SUCCESS, flexShrink: 0, fontWeight: 600 }}>✓ Soon!</div>
-      ) : (
-        <button onClick={handleClick} style={{ alignSelf: "center", fontSize: 11, color: SAND, background: "rgba(232,201,123,0.08)", border: "1px solid rgba(232,201,123,0.25)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, flexShrink: 0 }}>{cta}</button>
-      )}
     </div>
   );
 }
@@ -448,19 +412,7 @@ export default function Dashboard() {
             ) : packages.length === 0 ? (
               <div style={{ height: 140, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>{t.noPackages}</div>
             ) : (
-              <>
-                <WeeklyBars packages={filteredPackages} lang={lang} />
-                {totalViews > 0 && (
-                  <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "rgba(232,201,123,0.07)", border: "1px solid rgba(232,201,123,0.18)", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <span style={{ flexShrink: 0, marginTop: 1, color: SAND, fontSize: 14 }}>✦</span>
-                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
-                      {t.topPackageText}{" "}
-                      <span style={{ color: SAND }}>{t.shareWeekend}</span> {t.hitTarget}
-                      <button onClick={() => { const top = [...filteredPackages].sort((a,b)=>(b.views||0)-(a.views||0))[0]; if (top) window.open(`/${top.agencySlug || userAgencySlug}/${top.id}`,"_blank","noopener,noreferrer"); }} style={{ marginLeft: 10, fontSize: 11, color: SAND, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>{t.viewArrow}</button>
-                    </div>
-                  </div>
-                )}
-              </>
+              <PackageBars packages={filteredPackages} />
             )}
           </div>
 
@@ -528,25 +480,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Right column: AI insights + recent leads */}
+          {/* Right column: recent leads */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* AI Insights */}
-            <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{t.aiInsights}</div>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{t.personalisedPackages}</div>
-                </div>
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 12px", borderRadius: 99, background: "rgba(232,201,123,0.13)", border: "1px solid rgba(232,201,123,0.3)", color: SAND, fontSize: 11.5, fontWeight: 600 }}>
-                  <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: SAND, animation: "pulse 1.4s ease-in-out infinite" }} />
-                  {t.threeNew}
-                </div>
-              </div>
-              <Insight icon="✦" title={t.insightTitle1} desc={t.insightDesc1} cta={t.generate} userId={userId} />
-              <Insight icon="◐" title={t.insightTitle2} desc={t.insightDesc2} cta={t.apply} userId={userId} />
-              <Insight icon="↑" title={t.insightTitle3} desc={t.insightDesc3} cta={t.preview} userId={userId} />
-            </div>
-
             {/* Recent leads */}
             <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>{t.recentLeads}</div>

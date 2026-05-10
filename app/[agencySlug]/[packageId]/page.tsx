@@ -9,12 +9,13 @@ import { T, type Lang } from "@/lib/translations";
 
 type ItineraryDay = { day: number; title: string; desc: string };
 type PricingTier  = { label: string; price: string };
-type Airport      = { name: string; price: string; date?: string };
+type Airport      = { name: string; price: string; date?: string; arrivingAirport?: string; flyingTime?: string; arrivingTime?: string };
 
 type PackageData = {
   id: string; userId: string;
   destination: string; price: string; nights?: string | number; description: string;
   includes?: string[]; excludes?: string[]; advantages?: string[];
+  hotelDescription?: string;
   airports?: Airport[]; itinerary?: ItineraryDay[]; pricingTiers?: PricingTier[];
   cancellation?: string; whatsapp?: string; messenger?: string;
   coverImage?: string; images?: string[]; videoUrl?: string;
@@ -136,7 +137,7 @@ export default function PackagePage() {
   const agencyLogo   = agency?.logoUrl || "";
   const includes     = data.includes?.length ? data.includes : (data.advantages || []);
   const excludes     = data.excludes || [];
-  const airports     = data.airports || [];
+  const airports     = (data.airports || []).filter(a => a.name?.trim());
   const itinerary    = (data.itinerary || []).filter(it => it.title?.trim());
   const pricingTiers = data.pricingTiers || [];
   const nights       = data.nights ? Number(data.nights) : null;
@@ -343,17 +344,35 @@ export default function PackagePage() {
           </section>
         )}
 
+        {data.hotelDescription && (
+          <section style={{ marginBottom: 72 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: brandColor, letterSpacing: isRtl ? "0.5px" : "1.5px", textTransform: "uppercase" }}>{t.hotelLabel}</span>
+            <h2 style={{ fontFamily: headingFont, fontSize: isRtl ? 32 : 38, lineHeight: isRtl ? 1.4 : 1.1, fontWeight: isRtl ? 700 : 400, color: INK, marginBottom: 24, marginTop: 10 }}>{t.hotelSectionTitle}</h2>
+            <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.75, maxWidth: 720 }}>{data.hotelDescription}</p>
+          </section>
+        )}
+
         {airports.length > 0 && (
           <section style={{ marginBottom: 72 }}>
             <h2 style={{ fontFamily: headingFont, fontSize: isRtl ? 32 : 38, lineHeight: isRtl ? 1.4 : 1.1, fontWeight: isRtl ? 700 : 400, color: INK, marginBottom: 32 }}>{t.departureOptions}</h2>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(airports.length, 3)}, 1fr)`, gap: 14 }}>
               {airports.map((a, i) => (
                 <div key={i} style={{ background: i === 0 ? `${brandColor}08` : "rgba(13,27,46,0.02)", border: `1px solid ${i === 0 ? brandColor + "30" : "rgba(13,27,46,0.08)"}`, borderRadius: 14, padding: "22px 22px" }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: INK, marginBottom: 4 }}>{a.name}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: INK, marginBottom: 6 }}>
+                    {a.arrivingAirport ? `${a.name} → ${a.arrivingAirport}` : a.name}
+                  </div>
                   {a.date && (
-                    <div style={{ fontSize: 12, color: MUTED, marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ fontSize: 12, color: MUTED, marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                       {a.date}
+                    </div>
+                  )}
+                  {(a.flyingTime || a.arrivingTime) && (
+                    <div style={{ fontSize: 12, color: MUTED, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      {a.flyingTime && <span>{a.flyingTime}</span>}
+                      {a.flyingTime && a.arrivingTime && <span style={{ opacity: 0.4 }}>→</span>}
+                      {a.arrivingTime && <span>{a.arrivingTime}</span>}
                     </div>
                   )}
                   <div style={{ fontFamily: headingFont, fontSize: 32, fontWeight: isRtl ? 700 : 400, color: brandColor, letterSpacing: "-0.5px", lineHeight: 1, marginBottom: 14 }}>{a.price}</div>

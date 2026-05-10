@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, increment, addDoc, collection } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, increment, addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
@@ -21,7 +21,7 @@ function toLocalDigits(n: number | string, lang: Lang): string {
 
 type TDict = typeof T["en"];
 
-type Airport = { name: string; price: string; date?: string };
+type Airport = { name: string; price: string; date?: string; arrivingAirport?: string; flyingTime?: string; arrivingTime?: string };
 type ItineraryDay = { day: number; title: string; desc: string };
 type PricingTier = { label: string; price: string };
 
@@ -32,6 +32,7 @@ type Form = {
   description: string;
   includes: string[];
   excludes: string[];
+  hotelDescription: string;
   airports: Airport[];
   itinerary: ItineraryDay[];
   pricingTiers: PricingTier[];
@@ -51,6 +52,7 @@ const DEFAULT_FORM: Form = {
   description: "",
   includes: [],
   excludes: [],
+  hotelDescription: "",
   airports: [{ name: "", price: "", date: "" }],
   itinerary: [
     { day: 1, title: "", desc: "" },
@@ -293,9 +295,25 @@ function Step1({ form, update, t }: { form: Form; update: (k: keyof Form, v: any
       </div>
       <TagInput value={form.excludes} onAdd={v => update("excludes", v)} t={t} />
 
+      <FieldLabel>{t.fieldHotelDescription}</FieldLabel>
+      <textarea
+        value={form.hotelDescription}
+        onChange={e => update("hotelDescription", e.target.value)}
+        placeholder={t.hotelDescriptionPlaceholder}
+        style={{
+          width: "100%", minHeight: 100,
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 10, padding: "10px 14px", color: "var(--white)",
+          fontSize: 13, fontFamily: "inherit", outline: "none",
+          resize: "vertical" as const, lineHeight: 1.6,
+        }}
+        onFocus={e => (e.target.style.borderColor = `${SAND}60`)}
+        onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+      />
+
       <FieldLabel>{t.fieldDepartureAirports}</FieldLabel>
       {form.airports.map((a, i) => (
-        <div key={i} style={{ marginBottom: 12, padding: "12px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.07)" }}>
+        <div key={i} style={{ marginBottom: 12, padding: "14px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.07)" }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
             <TextInput value={a.name} onChange={v => {
               const arr = [...form.airports]; arr[i] = { ...arr[i], name: v }; update("airports", arr);
@@ -308,6 +326,35 @@ function Step1({ form, update, t }: { form: Form; update: (k: keyof Form, v: any
               placeholder={t.placeholderAirportPrice}
               style={{ width: 90, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "var(--white)", fontSize: 13, fontFamily: "inherit", outline: "none" }}
             />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <TextInput value={a.arrivingAirport || ""} onChange={v => {
+              const arr = [...form.airports]; arr[i] = { ...arr[i], arrivingAirport: v }; update("airports", arr);
+            }} placeholder={t.airportArrivingPlaceholder} />
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>↑</span>
+              <input
+                value={a.flyingTime || ""}
+                onChange={e => {
+                  const arr = [...form.airports]; arr[i] = { ...arr[i], flyingTime: e.target.value }; update("airports", arr);
+                }}
+                placeholder={t.flyingTimePlaceholder}
+                style={{ flex: 1, background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.1)", padding: "4px 0", color: "rgba(255,255,255,0.7)", fontSize: 12.5, fontFamily: "inherit", outline: "none" }}
+              />
+            </div>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>↓</span>
+              <input
+                value={a.arrivingTime || ""}
+                onChange={e => {
+                  const arr = [...form.airports]; arr[i] = { ...arr[i], arrivingTime: e.target.value }; update("airports", arr);
+                }}
+                placeholder={t.arrivingTimePlaceholder}
+                style={{ flex: 1, background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.1)", padding: "4px 0", color: "rgba(255,255,255,0.7)", fontSize: 12.5, fontFamily: "inherit", outline: "none" }}
+              />
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Icon name="calendar" size={13} color="rgba(255,255,255,0.3)" />
@@ -322,7 +369,7 @@ function Step1({ form, update, t }: { form: Form; update: (k: keyof Form, v: any
           </div>
         </div>
       ))}
-      <button onClick={() => update("airports", [...form.airports, { name: "", price: "", date: "" }])}
+      <button onClick={() => update("airports", [...form.airports, { name: "", price: "", date: "", arrivingAirport: "", flyingTime: "", arrivingTime: "" }])}
         style={{ fontSize: 12, color: SAND, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", marginTop: 4 }}>
         {t.addAirport}
       </button>
@@ -1191,6 +1238,18 @@ export default function BuilderPage() {
         await setDoc(userRef, { plan: "free", packagesUsed: 0, aiLimit: 10, createdAt: Date.now() });
       }
 
+      if (!editId) {
+        const userData = userSnap.exists() ? userSnap.data() : {};
+        const isPro = userData.plan === "pro" || userData.plan === "agency";
+        if (!isPro) {
+          const pkgSnap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid)));
+          if (pkgSnap.size >= 1) {
+            router.push("/paywall");
+            return;
+          }
+        }
+      }
+
       if (editId) {
         const pkgSnap = await getDoc(doc(db, "packages", editId));
         if (pkgSnap.exists() && pkgSnap.data()?.userId === u.uid) {
@@ -1200,9 +1259,10 @@ export default function BuilderPage() {
             price:        d.price        || "",
             nights:       d.nights ? String(d.nights) : "5",
             description:  d.description  || "",
-            includes:     Array.isArray(d.includes)     ? d.includes     : [],
-            excludes:     Array.isArray(d.excludes)     ? d.excludes     : [],
-            airports:     Array.isArray(d.airports)     ? d.airports     : DEFAULT_FORM.airports,
+            includes:          Array.isArray(d.includes)     ? d.includes     : [],
+            excludes:          Array.isArray(d.excludes)     ? d.excludes     : [],
+            hotelDescription:  d.hotelDescription || "",
+            airports:          Array.isArray(d.airports)     ? d.airports     : DEFAULT_FORM.airports,
             itinerary:    Array.isArray(d.itinerary)    ? d.itinerary    : DEFAULT_FORM.itinerary,
             pricingTiers: Array.isArray(d.pricingTiers) ? d.pricingTiers : DEFAULT_FORM.pricingTiers,
             cancellation: d.cancellation || "",
@@ -1476,7 +1536,21 @@ export default function BuilderPage() {
             <Icon name="arrow_left" size={14} /> {t.backBtn}
           </button>
 
-          {step < STEPS.length - 1 ? (
+          {isEditMode ? (
+            <button onClick={handleSubmit} disabled={generating} style={{
+              background: generating ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
+              color: generating ? "rgba(255,255,255,0.4)" : "#0d1b2e",
+              border: "none", borderRadius: 10,
+              padding: "10px 28px", fontSize: 13, fontWeight: 700,
+              fontFamily: "inherit", cursor: generating ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+              {generating
+                ? <><span className="spinner" style={{ borderTopColor: SAND }} /> {t.savingBtn}</>
+                : <><Icon name="check" size={14} color="#0d1b2e" strokeWidth={2.5} /> {t.saveChangesBtn}</>
+              }
+            </button>
+          ) : step < STEPS.length - 1 ? (
             <button onClick={() => setStep(s => s + 1)} style={{
               background: step === 0
                 ? "rgba(255,255,255,0.06)"
@@ -1500,10 +1574,8 @@ export default function BuilderPage() {
               display: "flex", alignItems: "center", gap: 8,
             }}>
               {generating
-                ? <><span className="spinner" style={{ borderTopColor: SAND }} /> {isEditMode ? t.savingBtn : t.generatingBtn}</>
-                : isEditMode
-                  ? <><Icon name="check" size={14} color="#0d1b2e" strokeWidth={2.5} /> {t.saveChangesBtn}</>
-                  : <><Icon name="sparkle" size={14} color="#0d1b2e" strokeWidth={2.5} /> {t.generateLandingPage}</>
+                ? <><span className="spinner" style={{ borderTopColor: SAND }} /> {t.generatingBtn}</>
+                : <><Icon name="sparkle" size={14} color="#0d1b2e" strokeWidth={2.5} /> {t.generateLandingPage}</>
               }
             </button>
           )}

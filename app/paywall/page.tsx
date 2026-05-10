@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import { T } from "@/lib/translations";
@@ -39,6 +39,15 @@ function UnlockRow({ icon, title, sub }: { icon: string; title: string; sub?: st
   );
 }
 
+function AgencyFeatureRow({ label }: { label: string }) {
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <div style={{ width: 18, height: 18, borderRadius: 5, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "rgba(255,255,255,0.3)", flexShrink: 0 }}>✓</div>
+      <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)" }}>{label}</div>
+    </div>
+  );
+}
+
 export default function PaywallPage() {
   const router = useRouter();
   const lang = useLang();
@@ -46,16 +55,21 @@ export default function PaywallPage() {
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [packageCount, setPackageCount] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
   const [totalClicks, setTotalClicks] = useState(0);
   const [avgPrice, setAvgPrice] = useState(800);
+  const [annual, setAnnual] = useState(false);
+  const [agencyNotified, setAgencyNotified] = useState(false);
+  const [agencyNotifying, setAgencyNotifying] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) { router.push("/login"); return; }
       setUserId(u.uid);
+      setUserEmail(u.email);
       const snap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid)));
       const pkgs = snap.docs.map(d => d.data());
       setPackageCount(pkgs.length);
@@ -74,7 +88,7 @@ export default function PaywallPage() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, billingPeriod: annual ? "annual" : "monthly" }),
       });
       const json = await res.json();
       if (json.url) window.location.href = json.url;
@@ -83,6 +97,20 @@ export default function PaywallPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAgencyNotify = async () => {
+    setAgencyNotifying(true);
+    try {
+      await addDoc(collection(db, "featureRequests"), {
+        feature: "agency_tier",
+        userId: userId || "anonymous",
+        email: userEmail || "",
+        createdAt: Date.now(),
+      });
+      setAgencyNotified(true);
+    } catch {}
+    setAgencyNotifying(false);
   };
 
   const estRevenue = Math.round(totalClicks * avgPrice * 0.15);
@@ -95,7 +123,7 @@ export default function PaywallPage() {
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>{t.billingTitle}</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
-            {t.freePlanLabel} · {packageCount} {t.billingDescPackage !== t.billingDescPackages ? (packageCount === 1 ? t.billingDescPackage : t.billingDescPackages) : t.billingDescPackages} / 3
+            {t.freePlanLabel} · {packageCount} {packageCount === 1 ? t.billingDescPackage : t.billingDescPackages} / 1
           </div>
         </div>
 
@@ -145,7 +173,48 @@ export default function PaywallPage() {
                 <Stat v={totalViews > 0 ? `${((totalClicks / totalViews) * 100).toFixed(1)}%` : "—"} l={t.statConversionBilling} sub={t.statIndustryAvg} />
                 <Stat v={`€${estRevenue.toLocaleString()}`} l={t.statRevenue} sub={`avg €${avgPrice.toLocaleString()}/pkg`} />
               </div>
-              <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.28)", marginBottom: 24 }}>{t.billingRevenueNote}</div>
+              <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.28)", marginBottom: 28 }}>{t.billingRevenueNote}</div>
+
+              {/* Billing toggle */}
+              <div style={{ display: "inline-flex", alignItems: "center", background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: 4, marginBottom: 20, gap: 2 }}>
+                {[false, true].map(isAnnual => (
+                  <button
+                    key={String(isAnnual)}
+                    onClick={() => setAnnual(isAnnual)}
+                    style={{
+                      padding: "7px 16px", borderRadius: 7, fontSize: 12.5, fontWeight: 700,
+                      border: "none", cursor: "pointer", fontFamily: "inherit",
+                      background: annual === isAnnual ? (isAnnual ? SAND : "rgba(255,255,255,0.12)") : "transparent",
+                      color: annual === isAnnual ? (isAnnual ? "#0a1426" : "#fff") : "rgba(255,255,255,0.4)",
+                      display: "flex", alignItems: "center", gap: 7, transition: "all 0.15s",
+                    }}
+                  >
+                    {isAnnual ? t.billingAnnual : t.billingMonthly}
+                    {isAnnual && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 99,
+                        background: annual ? "#0a1426" : SAND,
+                        color: annual ? SAND : "#0a1426",
+                      }}>{t.billingSaveLabel}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Price display */}
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, color: "#fff", letterSpacing: "-1px" }}>
+                    {annual ? t.billingAnnualPrice : t.billingMonthlyPrice}
+                  </span>
+                  <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
+                    {annual ? t.billingPerYear : t.billingPerMonth}
+                  </span>
+                  {annual && (
+                    <span style={{ fontSize: 12, color: SUCCESS, fontWeight: 600, marginLeft: 4 }}>{t.billingAnnualEquiv}</span>
+                  )}
+                </div>
+              </div>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
                 <button
@@ -161,7 +230,7 @@ export default function PaywallPage() {
                 >
                   {loading
                     ? <><span className="spinner" style={{ width: 15, height: 15, borderTopColor: "#0a1426" }} /> {t.redirectingBtn}</>
-                    : t.upgradeBtn
+                    : (annual ? t.upgradeBtnAnnual : t.upgradeBtn)
                   }
                 </button>
                 <button onClick={() => router.back()} style={{ padding: "14px 22px", borderRadius: 10, background: "none", border: "1px solid rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.6)", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
@@ -169,14 +238,14 @@ export default function PaywallPage() {
                 </button>
               </div>
               <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.4)" }}>
-                {t.billingCancelNote}
+                {annual ? t.billingCancelNoteAnnual : t.billingCancelNote}
               </div>
             </div>
 
             {/* Right — unlock list */}
             <div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: ".7px", fontWeight: 700, marginBottom: 16 }}>{t.whatUnlocksPro}</div>
-              <UnlockRow icon="∞" title={t.unlockPackages} sub={`${t.billingDescA} ${packageCount}/3`} />
+              <UnlockRow icon="∞" title={t.unlockPackages} sub={`${t.billingDescA} ${packageCount}/1`} />
               <UnlockRow icon="✦" title={t.unlockAiOpts} sub={t.unlockAiOptsLeft} />
               <UnlockRow icon="🖼" title={t.unlockAB} sub={t.unlockABSub} />
               <UnlockRow icon="🎬" title={t.unlockAnalytics} sub={t.unlockAnalyticsSub} />
@@ -188,13 +257,74 @@ export default function PaywallPage() {
           </div>
         </div>
 
+        {/* Agency tier — coming soon */}
+        <div style={{
+          background: "rgba(255,255,255,0.02)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 20, padding: "28px 32px",
+          marginBottom: 20,
+          display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40,
+          position: "relative", overflow: "hidden",
+        }}>
+          {/* Coming soon overlay ribbon */}
+          <div style={{
+            position: "absolute", top: 16, right: -28,
+            background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)",
+            fontSize: 10, fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase",
+            padding: "4px 44px", transform: "rotate(30deg)",
+          }}>{t.agencyTierComingSoon}</div>
+
+          {/* Left */}
+          <div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "4px 10px", borderRadius: 99, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)", fontSize: 10.5, fontWeight: 700, marginBottom: 16 }}>
+              {t.agencyTierComingSoon}
+            </div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 32, letterSpacing: "-0.6px", marginBottom: 6, color: "rgba(255,255,255,0.6)" }}>
+              {t.agencyTierTitle}
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", lineHeight: 1.65, maxWidth: 360, marginBottom: 20 }}>
+              {t.agencyTierDesc}
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: "rgba(255,255,255,0.3)", letterSpacing: "-0.6px" }}>{t.agencyTierPrice}</span>
+            </div>
+            {agencyNotified ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "rgba(45,212,160,0.08)", border: "1px solid rgba(45,212,160,0.25)", color: SUCCESS, fontSize: 13, fontWeight: 600 }}>
+                {t.agencyTierNotified}
+              </div>
+            ) : (
+              <button
+                onClick={handleAgencyNotify}
+                disabled={agencyNotifying}
+                style={{
+                  padding: "11px 22px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                  background: "none", border: "1px solid rgba(255,255,255,0.15)",
+                  color: "rgba(255,255,255,0.5)", cursor: agencyNotifying ? "not-allowed" : "pointer",
+                  fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8,
+                }}
+              >
+                {agencyNotifying ? <span className="spinner" style={{ width: 13, height: 13 }} /> : "🔔"} {t.agencyTierNotify}
+              </button>
+            )}
+          </div>
+
+          {/* Right — feature list */}
+          <div style={{ opacity: 0.6 }}>
+            <AgencyFeatureRow label={t.agencyTierFeature1} />
+            <AgencyFeatureRow label={t.agencyTierFeature2} />
+            <AgencyFeatureRow label={t.agencyTierFeature3} />
+            <AgencyFeatureRow label={t.agencyTierFeature4} />
+            <AgencyFeatureRow label={`📱 ${t.agencyTierFeature5}`} />
+          </div>
+        </div>
+
         {/* Usage bar */}
         <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700 }}>{t.freeUsageTitle}</div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                {packageCount} / 3 {t.billingDescPackages}
+                {packageCount} / 1 {t.billingDescPackages}
               </div>
             </div>
             <button onClick={handleUpgrade} style={{ padding: "7px 14px", borderRadius: 8, background: "none", border: `1px solid ${SAND}50`, color: SAND, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
@@ -202,7 +332,7 @@ export default function PaywallPage() {
             </button>
           </div>
           <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min((packageCount / 3) * 100, 100)}%`, background: `linear-gradient(90deg, ${SAND}, ${SUCCESS})`, borderRadius: 99, transition: "width .8s" }} />
+            <div style={{ height: "100%", width: `${Math.min(packageCount * 100, 100)}%`, background: `linear-gradient(90deg, ${SAND}, ${SUCCESS})`, borderRadius: 99, transition: "width .8s" }} />
           </div>
         </div>
       </div>
