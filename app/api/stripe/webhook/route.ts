@@ -79,7 +79,7 @@ export async function POST(req: Request) {
           .where("stripeCustomerId", "==", customerId)
           .get();
 
-        snap.forEach(async (doc) => {
+        snap.forEach(async (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
           await doc.ref.update({
             plan: "free",
             aiLimit: 10,
