@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import posthog from "posthog-js";
 
@@ -46,6 +47,7 @@ const DOT_COLORS = ["#c9713a", "#2d7a4e", "#2563a8", "#7c3aed", "#0f766e"];
 export default function PackagesPage() {
   const router = useRouter();
   const lang = useLang();
+  const isMobile = useIsMobile();
   const t = T[lang];
   const dir = lang === "ar" ? "rtl" : "ltr";
 
@@ -86,7 +88,7 @@ export default function PackagesPage() {
 
   return (
     <AppLayout>
-      <div dir={dir} style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
+      <div dir={dir} style={{ padding: isMobile ? "16px 16px 40px" : "28px 32px 60px", maxWidth: 1240 }}>
         {/* Page head */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
           <div>
@@ -96,7 +98,7 @@ export default function PackagesPage() {
             </div>
           </div>
           <button
-            onClick={() => (!isPro && packages.length >= 1) ? router.push("/paywall") : router.push("/builder")}
+            onClick={() => (!isPro && packages.length >= 5) ? router.push("/paywall") : router.push("/builder")}
             style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "9px 16px", borderRadius: 9,
@@ -128,7 +130,7 @@ export default function PackagesPage() {
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{t.createFirst}</div>
             </div>
             <button
-              onClick={() => (!isPro && packages.length >= 1) ? router.push("/paywall") : router.push("/builder")}
+              onClick={() => (!isPro && packages.length >= 5) ? router.push("/paywall") : router.push("/builder")}
               style={{
                 padding: "10px 20px", borderRadius: 9,
                 background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
@@ -141,7 +143,7 @@ export default function PackagesPage() {
             </button>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 16 }}>
             {packages.map((pkg, idx) => (
               <PackageCard
                 key={pkg.id}

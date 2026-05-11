@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -42,6 +43,7 @@ const PLANS: { id: PlanId; price: string; period: string; badge?: string; featur
 
 function SignupPageInner() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const searchParams = useSearchParams();
   const fromGate = searchParams.get("from") === "gate";
 
@@ -129,7 +131,7 @@ function SignupPageInner() {
         )}
 
         {/* Plan picker */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 36 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 14, marginBottom: 36 }}>
           {PLANS.map(plan => {
             const isSelected = selectedPlan === plan.id;
             const isPro = plan.id === "pro";

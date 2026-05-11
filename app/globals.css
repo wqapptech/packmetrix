@@ -142,3 +142,17 @@ body[data-lang="ar"] {
   flex-shrink: 0;
   vertical-align: middle;
 }
+
+/* ── Responsive utilities ─────────────────────────────── */
+
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}

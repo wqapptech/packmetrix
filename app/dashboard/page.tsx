@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 
 const SAND = "#e8c97b";
@@ -255,6 +256,7 @@ function sortPackages(pkgs: Package[], by: SortKey): Package[] {
 export default function Dashboard() {
   const router = useRouter();
   const lang = useLang();
+  const isMobile = useIsMobile();
   const t = T[lang];
 
   const [packages, setPackages] = useState<Package[]>([]);
@@ -344,7 +346,7 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
+      <div style={{ padding: isMobile ? "16px 16px 40px" : "28px 32px 60px", maxWidth: 1240 }}>
 
         {/* Page head */}
         <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
@@ -383,7 +385,7 @@ export default function Dashboard() {
         </div>
 
         {/* KPI strip */}
-        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 18 }}>
+        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(5,1fr)", gap: 12, marginBottom: 18 }}>
           <KpiCard label={t.pageViews}  value={totalViews.toLocaleString()}   delta={totalViews > 0 ? t.live : undefined}   trend="up"  sparkColor={SAND} />
           <KpiCard label={t.leads}      value={totalLeads.toLocaleString()}   delta={totalLeads > 0 ? t.active : undefined}  trend="up"  sparkColor={TEAL} />
           <KpiCard label={t.booked}     value={totalBooked.toLocaleString()}  delta={totalBooked > 0 ? `${bookRate}% ${t.closeRate}` : undefined} trend={totalBooked > 0 ? "up" : "flat"} sparkColor={SUCCESS} />
@@ -392,7 +394,7 @@ export default function Dashboard() {
         </div>
 
         {/* Charts row */}
-        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16, marginBottom: 18 }}>
+        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.6fr 1fr", gap: 16, marginBottom: 18 }}>
           {/* Weekly bar chart */}
           <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
@@ -427,7 +429,7 @@ export default function Dashboard() {
         </div>
 
         {/* Packages + Insights/Leads */}
-        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, marginBottom: 18 }}>
+        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.4fr 1fr", gap: 16, marginBottom: 18 }}>
           {/* Package list */}
           <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, overflow: "hidden" }}>
             <div style={{ padding: "16px 22px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

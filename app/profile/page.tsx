@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { T, type Lang } from "@/lib/translations";
 
 const SAND = "#e8c97b";
@@ -131,6 +132,7 @@ export default function BrandingPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lang = useLang();
+  const isMobile = useIsMobile();
   const t = T[lang];
 
   const [uid, setUid] = useState<string | null>(null);
@@ -221,7 +223,7 @@ export default function BrandingPage() {
 
   return (
     <AppLayout>
-      <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
+      <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ padding: isMobile ? "16px 16px 40px" : "28px 32px 60px", maxWidth: 1240 }}>
 
         {/* Page head */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
@@ -252,7 +254,7 @@ export default function BrandingPage() {
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "360px 1fr", gap: 20 }}>
 
           {/* Left: Agency profile */}
           <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", alignSelf: "start" }}>

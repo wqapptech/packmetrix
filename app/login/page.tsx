@@ -45,7 +45,7 @@ export default function LoginPage() {
       fontFamily: "var(--font-dm-sans), 'DM Sans', sans-serif",
       padding: 24, color: "#fdfcf9",
     }}>
-      <div className="fade-up" style={{ width: 400 }}>
+      <div className="fade-up" style={{ width: "100%", maxWidth: 400 }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{

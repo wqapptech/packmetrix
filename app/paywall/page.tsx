@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import { T } from "@/lib/translations";
 import { useLang } from "@/hooks/useLang";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import posthog from "posthog-js";
 
 const SAND = "#e8c97b";
@@ -57,6 +58,7 @@ function AgencyFeatureRow({ label }: { label: string }) {
 export default function PaywallPage() {
   const router = useRouter();
   const lang = useLang();
+  const isMobile = useIsMobile();
   const t = T[lang];
   const dir = lang === "ar" ? "rtl" : "ltr";
 
@@ -79,10 +81,13 @@ export default function PaywallPage() {
       const snap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid)));
       const pkgs = snap.docs.map(d => d.data());
       setPackageCount(pkgs.length);
-      setTotalViews(pkgs.reduce((a, p) => a + (p.views || 0), 0));
-      setTotalClicks(pkgs.reduce((a, p) => a + (p.whatsappClicks || 0) + (p.messengerClicks || 0), 0));
+      const views = pkgs.reduce((a, p) => a + (p.views || 0), 0);
+      const clicks = pkgs.reduce((a, p) => a + (p.whatsappClicks || 0) + (p.messengerClicks || 0), 0);
+      setTotalViews(views);
+      setTotalClicks(clicks);
       const prices = pkgs.map(p => parsePackagePrice(p.price || "")).filter(n => n > 0);
       setAvgPrice(prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 800);
+      posthog.capture("paywall_viewed", { package_count: pkgs.length, total_views: views, total_clicks: clicks });
     });
     return () => unsub();
   }, [router]);
@@ -126,13 +131,13 @@ export default function PaywallPage() {
 
   return (
     <AppLayout>
-      <div dir={dir} style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
+      <div dir={dir} style={{ padding: isMobile ? "16px 16px 40px" : "28px 32px 60px", maxWidth: 1240 }}>
 
         {/* Page head */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>{t.billingTitle}</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
-            {t.freePlanLabel} · {packageCount} {packageCount === 1 ? t.billingDescPackage : t.billingDescPackages} / 1
+            {t.freePlanLabel} · {packageCount} {packageCount === 1 ? t.billingDescPackage : t.billingDescPackages} / 5
           </div>
         </div>
 
@@ -150,7 +155,7 @@ export default function PaywallPage() {
             <rect width="100%" height="100%" fill="url(#pwgrid)" />
           </svg>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 48, position: "relative" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: isMobile ? 24 : 48, position: "relative" }}>
             {/* Left */}
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 12px", borderRadius: 99, background: "rgba(45,212,160,0.13)", border: "1px solid rgba(45,212,160,0.3)", color: SUCCESS, fontSize: 11.5, fontWeight: 700, marginBottom: 24 }}>
@@ -176,7 +181,7 @@ export default function PaywallPage() {
               </p>
 
               {/* Stats */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 10, marginBottom: 8 }}>
                 <Stat v={String(packageCount)} l={t.statPackagesLive} sub={t.statFreeLimit} />
                 <Stat v={totalClicks.toLocaleString()} l={t.statLeadsGenerated} />
                 <Stat v={totalViews > 0 ? `${((totalClicks / totalViews) * 100).toFixed(1)}%` : "—"} l={t.statConversionBilling} sub={t.statIndustryAvg} />
@@ -254,7 +259,7 @@ export default function PaywallPage() {
             {/* Right — unlock list */}
             <div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: ".7px", fontWeight: 700, marginBottom: 16 }}>{t.whatUnlocksPro}</div>
-              <UnlockRow icon="∞" title={t.unlockPackages} sub={`${t.billingDescA} ${packageCount}/1`} />
+              <UnlockRow icon="∞" title={t.unlockPackages} sub={`${t.billingDescA} ${packageCount}/5`} />
               <UnlockRow icon="✦" title={t.unlockAiOpts} sub={t.unlockAiOptsLeft} />
               <UnlockRow icon="🖼" title={t.unlockAB} sub={t.unlockABSub} comingSoon />
               <UnlockRow icon="🎬" title={t.unlockAnalytics} sub={t.unlockAnalyticsSub} comingSoon />
@@ -333,7 +338,7 @@ export default function PaywallPage() {
             <div>
               <div style={{ fontSize: 13, fontWeight: 700 }}>{t.freeUsageTitle}</div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                {packageCount} / 1 {t.billingDescPackages}
+                {packageCount} / 5 {t.billingDescPackages}
               </div>
             </div>
             <button onClick={handleUpgrade} style={{ padding: "7px 14px", borderRadius: 8, background: "none", border: `1px solid ${SAND}50`, color: SAND, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
@@ -341,7 +346,7 @@ export default function PaywallPage() {
             </button>
           </div>
           <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min(packageCount * 100, 100)}%`, background: `linear-gradient(90deg, ${SAND}, ${SUCCESS})`, borderRadius: 99, transition: "width .8s" }} />
+            <div style={{ height: "100%", width: `${Math.min((packageCount / 5) * 100, 100)}%`, background: `linear-gradient(90deg, ${SAND}, ${SUCCESS})`, borderRadius: 99, transition: "width .8s" }} />
           </div>
         </div>
       </div>

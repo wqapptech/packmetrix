@@ -89,7 +89,15 @@ function NavLink({ item, active, locked }: { item: NavItem; active: boolean; loc
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({
+  isMobile = false,
+  isOpen = true,
+  onClose,
+}: {
+  isMobile?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const lang = useLang();
@@ -190,6 +198,12 @@ export default function Sidebar() {
       borderRight: "1px solid rgba(255,255,255,0.08)",
       display: "flex", flexDirection: "column",
       padding: "22px 0", flexShrink: 0,
+      ...(isMobile ? {
+        position: "fixed" as const,
+        left: 0, top: 0, zIndex: 99,
+        transform: isOpen ? "translateX(0)" : "translateX(-100%)",
+        transition: "transform 0.26s cubic-bezier(0.22, 1, 0.36, 1)",
+      } : {}),
     }}>
       {/* Logo */}
       <div style={{ padding: "0 20px 24px", display: "flex", alignItems: "center", gap: 10 }}>
@@ -201,16 +215,27 @@ export default function Sidebar() {
         }}>
           P
         </div>
-        <span style={{ fontWeight: 700, fontSize: 15.5, letterSpacing: "-0.3px", color: "#fdfcf9" }}>
+        <span style={{ fontWeight: 700, fontSize: 15.5, letterSpacing: "-0.3px", color: "#fdfcf9", flex: 1 }}>
           Pack<em style={{ color: SAND, fontStyle: "normal", fontWeight: 600 }}>metrix</em>
         </span>
+        {isMobile && (
+          <button
+            onClick={onClose}
+            style={{
+              background: "none", border: "none", cursor: "pointer", padding: 4,
+              color: "rgba(255,255,255,0.4)", display: "flex", alignItems: "center",
+            }}
+          >
+            <Icon name="x" size={18} color="rgba(255,255,255,0.4)" />
+          </button>
+        )}
       </div>
 
       {/* Main nav */}
-      <nav style={{ flex: 1, padding: "0 12px", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
+      <nav style={{ flex: 1, padding: "0 12px", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }} onClick={isMobile ? onClose : undefined}>
         {NAV_MAIN.map((item) => (
           item.label === "AI Optimizer" ? (
-            <div key={item.label} onClick={() => setAiModal(true)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 12px", borderRadius: 9, color: "rgba(255,255,255,0.3)", fontSize: 13.5, fontWeight: 500, cursor: "pointer", transition: "all .15s" }}
+            <div key={item.label} onClick={(e) => { e.stopPropagation(); setAiModal(true); }} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 12px", borderRadius: 9, color: "rgba(255,255,255,0.3)", fontSize: 13.5, fontWeight: 500, cursor: "pointer", transition: "all .15s" }}
               onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
             >

@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 
 const SAND = "#e8c97b";
+const SUCCESS = "#2dd4a0";
 
 type Step = "paste" | "extracting" | "preview";
 
@@ -20,6 +22,7 @@ type PreviewData = {
 
 export default function Home() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [step, setStep] = useState<Step>("paste");
   const [text, setText] = useState("");
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
@@ -29,7 +32,6 @@ export default function Home() {
     if (!text.trim()) return;
     setStep("extracting");
     setError(null);
-
     try {
       const res = await fetch("/api/extract", {
         method: "POST",
@@ -38,7 +40,6 @@ export default function Home() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Extraction failed");
-
       localStorage.setItem("packageData", JSON.stringify(json));
       setPreviewData(json);
       setStep("preview");
@@ -48,13 +49,255 @@ export default function Home() {
     }
   };
 
-  const steps = [
+  const desktopSteps = [
     { n: "01", label: "Paste your post", desc: "Any format — Instagram, Facebook, WhatsApp" },
     { n: "02", label: "AI extracts & structures", desc: "Destination, pricing, itinerary, inclusions" },
     { n: "03", label: "Review & enrich", desc: "Add media, fill gaps, customize the page" },
     { n: "04", label: "Share & track", desc: "Get a link and monitor leads in real-time" },
   ];
 
+  /* ─────────────────────────────────────────────────────────
+     MOBILE LAYOUT
+  ───────────────────────────────────────────────────────── */
+  if (isMobile) {
+    return (
+      <AppLayout>
+        <div style={{ background: "var(--navy)", display: "flex", flexDirection: "column", minHeight: "100%" }}>
+
+          {/* ── Hero ── */}
+          <div style={{
+            padding: "28px 16px 24px",
+            background: "linear-gradient(160deg, rgba(30,52,90,0.85) 0%, rgba(13,27,46,0) 80%)",
+          }}>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: `${SAND}18`, border: `1px solid ${SAND}35`,
+              borderRadius: 99, padding: "4px 11px",
+              fontSize: 11, fontWeight: 600, color: SAND, marginBottom: 16,
+            }}>
+              <Icon name="sparkle" size={11} color={SAND} strokeWidth={2} />
+              AI-Powered
+            </div>
+
+            <h1 style={{
+              fontFamily: "var(--font-dm-serif), 'DM Serif Display', serif",
+              fontSize: 30, fontWeight: 400, lineHeight: 1.18,
+              letterSpacing: "-0.5px", color: "#fdfcf9",
+              marginBottom: 10,
+            }}>
+              Turn travel posts into{" "}
+              <em style={{ color: SAND, fontStyle: "italic" }}>bookings</em>
+            </h1>
+
+            <p style={{
+              fontSize: 14, color: "rgba(255,255,255,0.45)",
+              lineHeight: 1.6,
+            }}>
+              Paste any social post — AI builds your landing page in seconds.
+            </p>
+          </div>
+
+          {/* ── Input card ── */}
+          <div style={{ padding: "0 16px 14px" }}>
+            <div style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 20, padding: 20,
+            }}>
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: "0.8px",
+                textTransform: "uppercase", color: "rgba(255,255,255,0.3)",
+                marginBottom: 10,
+              }}>
+                Your travel post
+              </div>
+
+              <textarea
+                value={text}
+                onChange={e => setText(e.target.value)}
+                placeholder={"Paste from Facebook, Instagram,\nWhatsApp or any travel post…"}
+                style={{
+                  width: "100%", height: 160,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 14,
+                  color: "#fdfcf9",
+                  fontSize: 14, fontFamily: "inherit", lineHeight: 1.6,
+                  padding: "14px", resize: "none", outline: "none",
+                  transition: "border-color 0.2s",
+                }}
+                onFocus={e => (e.target.style.borderColor = `${SAND}70`)}
+                onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+              />
+
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6, marginBottom: 12 }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>{text.length} characters</span>
+              </div>
+
+              {error && (
+                <p style={{ marginBottom: 10, fontSize: 13, color: "var(--danger)" }}>{error}</p>
+              )}
+
+              <button
+                onClick={handleExtract}
+                disabled={!text.trim() || step === "extracting"}
+                style={{
+                  width: "100%",
+                  padding: "15px",
+                  background: (!text.trim() || step === "extracting")
+                    ? "rgba(255,255,255,0.07)"
+                    : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
+                  border: "none", borderRadius: 12,
+                  fontSize: 15, fontWeight: 700,
+                  color: (!text.trim() || step === "extracting") ? "rgba(255,255,255,0.3)" : "#0d1b2e",
+                  fontFamily: "inherit",
+                  cursor: (!text.trim() || step === "extracting") ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  transition: "all 0.2s",
+                }}
+              >
+                {step === "extracting" ? (
+                  <><span className="spinner" style={{ borderTopColor: SAND }} /> Analyzing post…</>
+                ) : (
+                  <><Icon name="sparkle" size={18} color="#0d1b2e" strokeWidth={2.5} /> Extract Package</>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* ── Extracting skeleton ── */}
+          {step === "extracting" && (
+            <div style={{ padding: "0 16px 14px" }}>
+              <div style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 16, padding: 20,
+              }}>
+                <div style={{ fontSize: 13, color: SAND, fontWeight: 600, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="spinner" style={{ borderTopColor: SAND }} />
+                  Extracting package details…
+                </div>
+                {[75, 50, 85, 60].map((w, i) => (
+                  <div key={i} className="shimmer-bg" style={{ height: i === 0 ? 20 : 13, width: `${w}%`, borderRadius: 6, marginBottom: 10 }} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Preview result ── */}
+          {step === "preview" && previewData && (
+            <div style={{ padding: "0 16px 14px" }}>
+              <div style={{
+                borderRadius: 18, overflow: "hidden",
+                border: `1px solid ${SAND}35`,
+                background: "rgba(255,255,255,0.04)",
+              }}>
+                <div style={{
+                  background: "linear-gradient(135deg, #c9713a, #8b4513)",
+                  padding: "20px 20px 16px", position: "relative",
+                }}>
+                  <div style={{
+                    position: "absolute", top: 12, right: 12,
+                    background: `${SAND}ee`, borderRadius: 99,
+                    padding: "3px 10px", fontSize: 10, fontWeight: 800, color: "#0d1b2e",
+                    textTransform: "uppercase", letterSpacing: ".4px",
+                  }}>✦ AI Extracted</div>
+                  <div style={{ fontFamily: "var(--font-dm-serif), serif", fontSize: 22, color: "#fff", marginBottom: 4 }}>
+                    {previewData.destination}
+                  </div>
+                  <div style={{ fontSize: 14, color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>
+                    {previewData.nights ? `${previewData.nights} nights · ` : ""}{previewData.price}
+                  </div>
+                </div>
+
+                <div style={{ padding: "16px 20px" }}>
+                  {previewData.description && (
+                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.6, marginBottom: 14 }}>
+                      {previewData.description.slice(0, 120)}{previewData.description.length > 120 ? "…" : ""}
+                    </p>
+                  )}
+
+                  {previewData.advantages?.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+                      {previewData.advantages.slice(0, 3).map((a, i) => (
+                        <span key={i} style={{
+                          fontSize: 12, background: `${SUCCESS}15`,
+                          border: `1px solid ${SUCCESS}30`,
+                          borderRadius: 99, padding: "4px 10px", color: SUCCESS,
+                        }}>✓ {a}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => router.push("/builder")}
+                    style={{
+                      width: "100%", padding: "15px",
+                      background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
+                      color: "#0d1b2e", border: "none", borderRadius: 12,
+                      fontSize: 15, fontWeight: 700,
+                      fontFamily: "inherit", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    }}
+                  >
+                    Open in Builder
+                    <Icon name="arrow_right" size={16} color="#0d1b2e" strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── How it works ── */}
+          {step === "paste" && (
+            <div style={{ padding: "4px 16px 0" }}>
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: "0.8px",
+                textTransform: "uppercase", color: "rgba(255,255,255,0.3)",
+                marginBottom: 12, paddingLeft: 2,
+              }}>
+                How it works
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  { n: "01", icon: "copy",    label: "Paste your post",     desc: "Instagram, Facebook, WhatsApp" },
+                  { n: "02", icon: "sparkle", label: "AI structures it",    desc: "Destination, pricing, itinerary" },
+                  { n: "03", icon: "edit",    label: "Review & publish",    desc: "Add photos, customize details" },
+                  { n: "04", icon: "trending", label: "Share & track leads", desc: "Real-time analytics dashboard" },
+                ].map((s, i) => (
+                  <div key={i} style={{
+                    display: "flex", gap: 14, alignItems: "center",
+                    background: "rgba(255,255,255,0.025)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                    borderRadius: 14, padding: "13px 14px",
+                  }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                      background: `${SAND}12`, border: `1px solid ${SAND}25`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <Icon name={s.icon as any} size={16} color={SAND} strokeWidth={1.8} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginBottom: 2 }}>{s.label}</div>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.38)" }}>{s.desc}</div>
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.15)", letterSpacing: "0.5px" }}>{s.n}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ height: "max(32px, env(safe-area-inset-bottom, 32px))" }} />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     DESKTOP LAYOUT  (unchanged)
+  ───────────────────────────────────────────────────────── */
   return (
     <AppLayout>
       <div style={{ flex: 1, overflow: "auto", background: "var(--navy)", display: "flex", flexDirection: "column" }}>
@@ -91,7 +334,7 @@ export default function Home() {
         {/* Content */}
         <div style={{ padding: "40px 64px", flex: 1, display: "flex", gap: 32 }}>
 
-          {/* Left: input */}
+          {/* Left: input + steps */}
           <div className="fade-up" style={{ flex: 1, maxWidth: 540, animationDelay: "0.08s" }}>
             <div style={{
               background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)",
@@ -102,7 +345,6 @@ export default function Home() {
                   Travel Post
                 </span>
               </div>
-
               <textarea
                 value={text}
                 onChange={e => setText(e.target.value)}
@@ -119,16 +361,13 @@ export default function Home() {
                 onFocus={e => (e.target.style.borderColor = `${SAND}60`)}
                 onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
               />
-
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.25)" }}>{text.length} characters</span>
                 <button
                   onClick={handleExtract}
                   disabled={!text.trim() || step === "extracting"}
                   style={{
-                    background: step === "extracting"
-                      ? "rgba(255,255,255,0.08)"
-                      : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
+                    background: step === "extracting" ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
                     color: step === "extracting" ? "rgba(255,255,255,0.4)" : "#0d1b2e",
                     border: "none", borderRadius: 10,
                     padding: "10px 24px", fontSize: 14, fontWeight: 700,
@@ -138,22 +377,17 @@ export default function Home() {
                     transition: "all 0.2s",
                   }}
                 >
-                  {step === "extracting" ? (
-                    <><span className="spinner" style={{ borderTopColor: SAND }} /> Analyzing…</>
-                  ) : (
-                    <><Icon name="sparkle" size={14} color="#0d1b2e" strokeWidth={2.5} /> Extract Package</>
-                  )}
+                  {step === "extracting"
+                    ? <><span className="spinner" style={{ borderTopColor: SAND }} /> Analyzing…</>
+                    : <><Icon name="sparkle" size={14} color="#0d1b2e" strokeWidth={2.5} /> Extract Package</>
+                  }
                 </button>
               </div>
-
-              {error && (
-                <p style={{ marginTop: 10, fontSize: 12, color: "var(--danger)" }}>{error}</p>
-              )}
+              {error && <p style={{ marginTop: 10, fontSize: 12, color: "var(--danger)" }}>{error}</p>}
             </div>
 
-            {/* Steps */}
             <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12 }}>
-              {steps.map((s, i) => {
+              {desktopSteps.map((s, i) => {
                 const done = step === "preview" && i < 2;
                 const active = (step === "extracting" && i === 0) || (step === "paste" && i === 0);
                 return (
@@ -209,11 +443,6 @@ export default function Home() {
                 {[80, 55, 90, 65, 40, 70].map((w, i) => (
                   <div key={i} className="shimmer-bg" style={{ height: i === 0 ? 22 : 14, width: `${w}%`, borderRadius: 6, marginBottom: 12 }} />
                 ))}
-                <div style={{ marginTop: 24, display: "flex", gap: 8 }}>
-                  {[60, 45, 50].map((w, i) => (
-                    <div key={i} className="shimmer-bg" style={{ height: 32, width: `${w}%`, borderRadius: 8 }} />
-                  ))}
-                </div>
               </div>
             )}
 
@@ -225,8 +454,7 @@ export default function Home() {
               }}>
                 <div style={{
                   background: "linear-gradient(135deg, #c9713a, #8b4513)",
-                  height: 80,
-                  display: "flex", alignItems: "flex-end",
+                  height: 80, display: "flex", alignItems: "flex-end",
                   padding: "12px 20px", position: "relative",
                 }}>
                   <div style={{
@@ -243,12 +471,10 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-
                 <div style={{ padding: "16px 20px" }}>
                   <p style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.6, marginBottom: 14 }}>
                     {previewData.description}
                   </p>
-
                   {previewData.advantages?.length > 0 && (
                     <div style={{ marginBottom: 14 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 8 }}>
@@ -259,13 +485,12 @@ export default function Home() {
                           <span key={i} style={{
                             fontSize: 11, background: "rgba(45,212,160,0.12)",
                             border: "1px solid rgba(45,212,160,0.25)",
-                            borderRadius: 99, padding: "3px 10px", color: "#2dd4a0",
+                            borderRadius: 99, padding: "3px 10px", color: SUCCESS,
                           }}>✓ {a}</span>
                         ))}
                       </div>
                     </div>
                   )}
-
                   {previewData.airports?.length > 0 && (
                     <div style={{ marginBottom: 16 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 8 }}>
@@ -284,7 +509,6 @@ export default function Home() {
                       ))}
                     </div>
                   )}
-
                   <button
                     onClick={() => router.push("/builder")}
                     style={{

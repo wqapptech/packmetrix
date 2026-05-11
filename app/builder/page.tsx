@@ -9,10 +9,12 @@ import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { T, type Lang } from "@/lib/translations";
 import { useLang } from "@/hooks/useLang";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import posthog from "posthog-js";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
+const DRAFT_KEY = "builderDraft";
 
 const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 function toLocalDigits(n: number | string, lang: Lang): string {
@@ -1169,6 +1171,7 @@ function BuilderPageInner() {
 
   const lang = useLang();
   const t = T[lang];
+  const isMobile = useIsMobile();
 
   const STEPS = [t.stepPaste, t.stepBasics, t.stepDetails, t.stepItinerary, t.stepPricing, t.stepContact, t.stepCover, t.stepMedia, t.stepVideo];
 
@@ -1182,6 +1185,7 @@ function BuilderPageInner() {
   const [agencySlug, setAgencySlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   const [form, setForm] = useState<Form>(() => {
     if (typeof window !== "undefined") {
@@ -1200,6 +1204,12 @@ function BuilderPageInner() {
       };
 
       if (!editId) {
+        const fullDraft = localStorage.getItem(DRAFT_KEY);
+        if (fullDraft) {
+          try {
+            return { ...DEFAULT_FORM, ...langDefaults, ...JSON.parse(fullDraft) };
+          } catch {}
+        }
         const saved = localStorage.getItem("packageData");
         if (saved) {
           try {
@@ -1222,7 +1232,8 @@ function BuilderPageInner() {
   });
 
   useEffect(() => {
-    if (!isEditMode && typeof window !== "undefined" && localStorage.getItem("packageData")) {
+    if (isEditMode || typeof window === "undefined") return;
+    if (localStorage.getItem(DRAFT_KEY) || localStorage.getItem("packageData")) {
       setStep(1);
       setExtracted(true);
     }
@@ -1244,11 +1255,14 @@ function BuilderPageInner() {
         const isPro = userData.plan === "pro" || userData.plan === "agency";
         if (!isPro) {
           const pkgSnap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid)));
-          if (pkgSnap.size >= 1) {
+          if (pkgSnap.size >= 5) {
             router.push("/paywall");
             return;
           }
         }
+        posthog.capture("builder_opened", { mode: "new" });
+      } else {
+        posthog.capture("builder_opened", { mode: "edit" });
       }
 
       if (editId) {
@@ -1288,6 +1302,16 @@ function BuilderPageInner() {
   }, [router, editId]);
 
   const update = (key: keyof Form, val: any) => setForm(f => ({ ...f, [key]: val }));
+
+  useEffect(() => {
+    if (isEditMode || authLoading) return;
+    setDraftStatus("saving");
+    const timer = setTimeout(() => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+      setDraftStatus("saved");
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [form, isEditMode, authLoading]);
 
   // Swap default tier labels and cancellation text when the landing-page language changes
   useEffect(() => {
@@ -1341,6 +1365,7 @@ function BuilderPageInner() {
         setPackageId(json.id);
         if (json.agencySlug) setAgencySlug(json.agencySlug);
         localStorage.removeItem("packageData");
+        localStorage.removeItem(DRAFT_KEY);
         posthog.capture("package_published", { destination: form.destination, price: form.price, language: form.language, nights: form.nights });
       }
       setDone(true);
@@ -1437,9 +1462,9 @@ function BuilderPageInner() {
 
   return (
     <AppLayout>
-      <div style={{ flex: 1, overflow: "auto", padding: "40px 48px" }}>
+      <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "20px 16px" : "40px 48px" }}>
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
           <div>
             <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
               {isEditMode ? t.editPackageTitle : t.packageBuilderTitle}
@@ -1448,20 +1473,33 @@ function BuilderPageInner() {
               {isEditMode ? t.editPackageSub : t.packageBuilderSub}
             </p>
           </div>
-          {!isEditMode && extracted && (
-            <div style={{
-              background: `${SAND}18`, border: `1px solid ${SAND}35`,
-              borderRadius: 99, padding: "5px 14px", fontSize: 12, color: SAND,
-              display: "flex", alignItems: "center", gap: 6, fontWeight: 500,
-            }}>
-              <Icon name="sparkle" size={12} color={SAND} />
-              {t.aiExtractedBadge}
-            </div>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {!isEditMode && draftStatus !== "idle" && (
+              <div style={{
+                fontSize: 12, color: draftStatus === "saved" ? "rgba(45,212,160,0.7)" : "rgba(255,255,255,0.35)",
+                display: "flex", alignItems: "center", gap: 5, transition: "color 0.3s",
+              }}>
+                {draftStatus === "saving"
+                  ? <><span className="spinner" style={{ width: 10, height: 10, borderWidth: 1.5, borderTopColor: "rgba(255,255,255,0.35)" }} /> Saving draft…</>
+                  : <><Icon name="check" size={11} color="rgba(45,212,160,0.7)" strokeWidth={2.5} /> Draft saved</>
+                }
+              </div>
+            )}
+            {!isEditMode && extracted && (
+              <div style={{
+                background: `${SAND}18`, border: `1px solid ${SAND}35`,
+                borderRadius: 99, padding: "5px 14px", fontSize: 12, color: SAND,
+                display: "flex", alignItems: "center", gap: 6, fontWeight: 500,
+              }}>
+                <Icon name="sparkle" size={12} color={SAND} />
+                {t.aiExtractedBadge}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Step pills */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 32, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 24, overflowX: "auto", flexWrap: isMobile ? "nowrap" : "wrap", paddingBottom: isMobile ? 4 : 0 }}>
           {STEPS.map((s, i) => {
             if (isEditMode && i === 0) return null;
             return (
@@ -1483,7 +1521,7 @@ function BuilderPageInner() {
 
         {/* Step content + mini preview */}
         <div style={{ display: "flex", gap: 32 }}>
-          <div className="fade-in" key={step} style={{ flex: 1, maxWidth: 560 }}>
+          <div className="fade-in" key={step} style={{ flex: 1, maxWidth: isMobile ? "100%" : 560 }}>
             {step === 0 && (
               <StepPaste
                 t={t}
@@ -1511,9 +1549,11 @@ function BuilderPageInner() {
             {step === 7 && <Step5 form={form} update={update} user={user} t={t} lang={lang} />}
             {step === 8 && <Step6 form={form} update={update} user={user} t={t} />}
           </div>
-          <div style={{ width: 260, flexShrink: 0 }}>
-            <MiniPreview form={form} t={t} lang={lang} />
-          </div>
+          {!isMobile && (
+            <div style={{ width: 260, flexShrink: 0 }}>
+              <MiniPreview form={form} t={t} lang={lang} />
+            </div>
+          )}
         </div>
 
         {/* Error */}

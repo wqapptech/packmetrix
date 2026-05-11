@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import posthog from "posthog-js";
 
@@ -229,6 +230,7 @@ function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: 
 export default function LeadsPage() {
   const router = useRouter();
   const lang = useLang();
+  const isMobile = useIsMobile();
   const t = T[lang];
 
   const [authLoading, setAuthLoading] = useState(true);
@@ -314,7 +316,7 @@ export default function LeadsPage() {
 
   return (
     <AppLayout>
-      <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ padding: "28px 32px 60px", maxWidth: 1240 }}>
+      <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ padding: isMobile ? "16px 16px 40px" : "28px 32px 60px", maxWidth: 1240 }}>
 
         {/* Page head */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
@@ -357,7 +359,7 @@ export default function LeadsPage() {
             </p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.6fr 1fr", gap: 18 }}>
             {/* Lead list */}
             <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, overflow: "hidden" }}>
               {/* Column headers */}
