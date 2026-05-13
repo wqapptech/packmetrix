@@ -10,6 +10,7 @@ import { T } from "@/lib/translations";
 import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import posthog from "posthog-js";
+import { FREE_PACKAGE_LIMIT } from "@/lib/limits";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -137,7 +138,7 @@ export default function PaywallPage() {
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>{t.billingTitle}</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
-            {t.freePlanLabel} · {packageCount} {packageCount === 1 ? t.billingDescPackage : t.billingDescPackages} / 5
+            {t.freePlanLabel} · {packageCount} {packageCount === 1 ? t.billingDescPackage : t.billingDescPackages} / {FREE_PACKAGE_LIMIT}
           </div>
         </div>
 
@@ -338,7 +339,7 @@ export default function PaywallPage() {
             <div>
               <div style={{ fontSize: 13, fontWeight: 700 }}>{t.freeUsageTitle}</div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                {packageCount} / 5 {t.billingDescPackages}
+                {packageCount} / {FREE_PACKAGE_LIMIT} {t.billingDescPackages}
               </div>
             </div>
             <button onClick={handleUpgrade} style={{ padding: "7px 14px", borderRadius: 8, background: "none", border: `1px solid ${SAND}50`, color: SAND, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
@@ -346,7 +347,7 @@ export default function PaywallPage() {
             </button>
           </div>
           <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min((packageCount / 5) * 100, 100)}%`, background: `linear-gradient(90deg, ${SAND}, ${SUCCESS})`, borderRadius: 99, transition: "width .8s" }} />
+            <div style={{ height: "100%", width: `${Math.min((packageCount / FREE_PACKAGE_LIMIT) * 100, 100)}%`, background: `linear-gradient(90deg, ${SAND}, ${SUCCESS})`, borderRadius: 99, transition: "width .8s" }} />
           </div>
         </div>
       </div>

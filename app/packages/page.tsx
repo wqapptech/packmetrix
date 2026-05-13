@@ -11,6 +11,7 @@ import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import posthog from "posthog-js";
+import { FREE_PACKAGE_LIMIT } from "@/lib/limits";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -98,7 +99,7 @@ export default function PackagesPage() {
             </div>
           </div>
           <button
-            onClick={() => (!isPro && packages.length >= 5) ? router.push("/paywall") : router.push("/builder")}
+            onClick={() => (!isPro && packages.length >= FREE_PACKAGE_LIMIT) ? router.push("/paywall") : router.push("/builder")}
             style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "9px 16px", borderRadius: 9,
@@ -130,7 +131,7 @@ export default function PackagesPage() {
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{t.createFirst}</div>
             </div>
             <button
-              onClick={() => (!isPro && packages.length >= 5) ? router.push("/paywall") : router.push("/builder")}
+              onClick={() => (!isPro && packages.length >= FREE_PACKAGE_LIMIT) ? router.push("/paywall") : router.push("/builder")}
               style={{
                 padding: "10px 20px", borderRadius: 9,
                 background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,

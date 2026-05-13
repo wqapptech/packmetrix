@@ -14,7 +14,7 @@ type Airport      = { name: string; price: string; date?: string; arrivingAirpor
 
 type PackageData = {
   id: string; userId: string;
-  destination: string; price: string; nights?: string | number; description: string;
+  destination: string; price: string; nights?: string | number; title?: string; description: string;
   includes?: string[]; excludes?: string[]; advantages?: string[];
   hotelDescription?: string;
   airports?: Airport[]; itinerary?: ItineraryDay[]; pricingTiers?: PricingTier[];
@@ -249,12 +249,14 @@ export default function PackagePage() {
               marginBottom: 14, color: INK,
               fontWeight: isRtl ? 700 : 400,
             }}>
-              {data.description ? data.description.split(/[.!?]/)[0].trim() : data.destination}
+              {data.title || (data.description ? data.description.split(/[.!?]/)[0].trim() : data.destination)}
             </h1>
 
-            {data.description && data.description.split(/[.!?]/).length > 1 && (
+            {data.description && (
               <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, marginBottom: 20 }}>
-                {data.description.split(/[.!?]/).slice(1).join(". ").replace(/^\.\s*/, "").trim()}
+                {data.title
+                  ? data.description
+                  : data.description.split(/[.!?]/).slice(1).join(". ").replace(/^\.\s*/, "").trim() || null}
               </p>
             )}
 
@@ -314,11 +316,13 @@ export default function PackagePage() {
                 {data.destination}
               </div>
               <h1 style={{ fontFamily: headingFont, fontSize: isRtl ? 48 : 62, lineHeight: isRtl ? 1.3 : 1.03, letterSpacing: isRtl ? "-0.5px" : "-1.5px", marginBottom: 22, color: INK, fontWeight: isRtl ? 700 : 400 }}>
-                {data.description ? data.description.split(/[.!?]/)[0].trim() : data.destination}
+                {data.title || (data.description ? data.description.split(/[.!?]/)[0].trim() : data.destination)}
               </h1>
-              {data.description && data.description.split(/[.!?]/).length > 1 && (
+              {data.description && (
                 <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.7, maxWidth: 480, marginBottom: 36 }}>
-                  {data.description.split(/[.!?]/).slice(1).join(". ").replace(/^\.\s*/, "").trim()}
+                  {data.title
+                    ? data.description
+                    : data.description.split(/[.!?]/).slice(1).join(". ").replace(/^\.\s*/, "").trim() || null}
                 </p>
               )}
               <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 32 }}>

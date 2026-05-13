@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     const {
       destination,
       price,
+      title,
       description,
       advantages,
       airports,
@@ -69,6 +70,7 @@ export async function POST(req: Request) {
       userId,
       destination,
       price,
+      title: title || "",
       description: description || "",
       advantages: Array.isArray(advantages) ? advantages : [],
       airports: Array.isArray(airports) ? airports : [],

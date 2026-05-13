@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     await ref.update({
       destination:      fields.destination      || "",
       price:            fields.price            || "",
+      title:            fields.title            || "",
       description:      fields.description      || "",
       nights:           fields.nights           || null,
       includes:         Array.isArray(fields.includes)     ? fields.includes     : [],

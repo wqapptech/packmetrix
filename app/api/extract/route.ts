@@ -30,12 +30,16 @@ Return ONLY valid JSON in this format:
 {
   "destination": string,
   "price": string,
+  "title": string,
   "description": string,
   "advantages": string[],
   "airports": { name: string, price: string }[]
 }
 
-If something is missing, use empty string or empty array.
+Rules:
+- "title": a short, punchy headline for the package (5–12 words). Use action words and destination name. Example: "Discover Magical Santorini — 5 Nights of Luxury". Leave empty string if you cannot write a good one.
+- "description": the body copy describing the package (exclude the headline sentence).
+- If something is missing, use empty string or empty array.
 Do NOT include markdown. Do NOT wrap in code blocks.
             `,
           },

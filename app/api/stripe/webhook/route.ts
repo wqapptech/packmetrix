@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { FREE_AI_LIMIT } from "@/lib/limits";
 
 export const dynamic = "force-dynamic";
 
@@ -92,7 +93,7 @@ export async function POST(req: Request) {
         snap.forEach(async (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
           await doc.ref.update({
             plan: "free",
-            aiLimit: 10,
+            aiLimit: FREE_AI_LIMIT,
             updatedAt: Date.now(),
           });
           posthogCancel.capture({

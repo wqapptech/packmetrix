@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, increment, addDoc, collection, getDocs, query, where } from "firebase/firestore";
@@ -11,6 +11,7 @@ import { T, type Lang } from "@/lib/translations";
 import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import posthog from "posthog-js";
+import { FREE_PACKAGE_LIMIT, FREE_AI_LIMIT } from "@/lib/limits";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -32,6 +33,7 @@ type Form = {
   destination: string;
   price: string;
   nights: string;
+  title: string;
   description: string;
   includes: string[];
   excludes: string[];
@@ -52,6 +54,7 @@ const DEFAULT_FORM: Form = {
   destination: "",
   price: "",
   nights: "5",
+  title: "",
   description: "",
   includes: [],
   excludes: [],
@@ -211,6 +214,9 @@ function Step0({ form, update, t }: { form: Form; update: (k: keyof Form, v: any
           <TextInput value={form.nights} onChange={v => update("nights", v)} placeholder={t.placeholderNights} />
         </div>
       </div>
+      <FieldLabel>{t.fieldTitle}</FieldLabel>
+      <TextInput value={form.title} onChange={v => update("title", v)} placeholder={t.titlePlaceholder} />
+
       <FieldLabel>{t.fieldDescription}</FieldLabel>
       <textarea
         value={form.description}
@@ -574,6 +580,8 @@ function PexelsPhotoSearch({ onSelect, placeholder, attribution, t }: {
           <div style={{ marginTop: 8, fontSize: 10.5, color: "rgba(255,255,255,0.2)", textAlign: "right" }}>
             {attribution} ·{" "}
             <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>pexels.com</a>
+            {" "}·{" "}
+            <a href="https://pixabay.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>pixabay.com</a>
           </div>
         </>
       )}
@@ -671,6 +679,8 @@ function PexelsVideoSearch({ onSelect, t }: { onSelect: (url: string) => void; t
           <div style={{ marginTop: 8, fontSize: 10.5, color: "rgba(255,255,255,0.2)", textAlign: "right" }}>
             {t.pexelsVideosAttribution} ·{" "}
             <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>pexels.com</a>
+            {" "}·{" "}
+            <a href="https://pixabay.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>pixabay.com</a>
           </div>
         </>
       )}
@@ -806,6 +816,8 @@ function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof 
   const [mode, setMode] = useState<"upload" | "pexels" | "generate">("upload");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dragIndex = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -829,6 +841,20 @@ function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof 
   };
 
   const removeImage = (i: number) => update("images", form.images.filter((_, j) => j !== i));
+
+  const handleDragStart = (i: number) => { dragIndex.current = i; };
+  const handleDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); setDragOverIndex(i); };
+  const handleDrop = (i: number) => {
+    const from = dragIndex.current;
+    if (from === null || from === i) { dragIndex.current = null; setDragOverIndex(null); return; }
+    const imgs = [...form.images];
+    const [moved] = imgs.splice(from, 1);
+    imgs.splice(i, 0, moved);
+    update("images", imgs);
+    dragIndex.current = null;
+    setDragOverIndex(null);
+  };
+  const handleDragEnd = () => { dragIndex.current = null; setDragOverIndex(null); };
 
   return (
     <div>
@@ -860,8 +886,22 @@ function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof 
           )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
             {form.images.map((url, i) => (
-              <div key={i} style={{ position: "relative", aspectRatio: "4/3", borderRadius: 10, overflow: "hidden", boxShadow: i === 0 ? `0 0 0 2px ${SAND}80` : "none" }}>
-                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <div
+                key={url + i}
+                draggable
+                onDragStart={() => handleDragStart(i)}
+                onDragOver={e => handleDragOver(e, i)}
+                onDrop={() => handleDrop(i)}
+                onDragEnd={handleDragEnd}
+                style={{
+                  position: "relative", aspectRatio: "4/3", borderRadius: 10, overflow: "hidden", cursor: "grab",
+                  boxShadow: i === 0 ? `0 0 0 2px ${SAND}80` : "none",
+                  opacity: dragOverIndex === i ? 0.5 : 1,
+                  outline: dragOverIndex === i ? `2px dashed ${SAND}` : "none",
+                  transition: "opacity 0.15s, outline 0.15s",
+                }}
+              >
+                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} />
                 {i === 0 && (
                   <div style={{ position: "absolute", top: 7, left: 7, background: `${SAND}ee`, color: "#0a1426", borderRadius: 5, padding: "2px 7px", fontSize: 9, fontWeight: 800, letterSpacing: ".4px" }}>HERO</div>
                 )}
@@ -1020,6 +1060,7 @@ function StepPaste({ onExtracted, onNext, t, lang }: {
       onExtracted({
         destination: json.destination || "",
         price:       json.price       || "",
+        title:       json.title       || "",
         description: json.description || "",
         includes:    Array.isArray(json.advantages) ? json.advantages : [],
         airports:    Array.isArray(json.airports) && json.airports.length
@@ -1083,9 +1124,10 @@ function StepPaste({ onExtracted, onNext, t, lang }: {
 function MiniPreview({ form, t, lang }: { form: Form; t: TDict; lang: Lang }) {
   const heroUrl = form.coverImage || form.images[0];
   const score = Math.min(100,
-    (form.destination ? 15 : 0) +
+    (form.destination ? 10 : 0) +
     (form.price ? 10 : 0) +
-    (form.description ? 15 : 0) +
+    (form.title ? 10 : 0) +
+    (form.description ? 10 : 0) +
     (form.includes.length > 0 ? 10 : 0) +
     (form.itinerary.some(d => d.title) ? 15 : 0) +
     (form.whatsapp ? 15 : 0) +
@@ -1123,7 +1165,7 @@ function MiniPreview({ form, t, lang }: { form: Form; t: TDict; lang: Lang }) {
               {toLocalDigits(form.nights, lang)} {t.nightsLabel} · {form.price || "—"}
             </div>
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16, lineHeight: 1.1 }}>
-              {form.destination || t.yourDestination}
+              {form.title || form.destination || t.yourDestination}
             </div>
           </div>
         </div>
@@ -1247,7 +1289,7 @@ function BuilderPageInner() {
       const userRef = doc(db, "users", u.uid);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
-        await setDoc(userRef, { plan: "free", packagesUsed: 0, aiLimit: 10, createdAt: Date.now() });
+        await setDoc(userRef, { plan: "free", packagesUsed: 0, aiLimit: FREE_AI_LIMIT, createdAt: Date.now() });
       }
 
       if (!editId) {
@@ -1255,7 +1297,7 @@ function BuilderPageInner() {
         const isPro = userData.plan === "pro" || userData.plan === "agency";
         if (!isPro) {
           const pkgSnap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid)));
-          if (pkgSnap.size >= 5) {
+          if (pkgSnap.size >= FREE_PACKAGE_LIMIT) {
             router.push("/paywall");
             return;
           }
@@ -1273,6 +1315,7 @@ function BuilderPageInner() {
             destination:  d.destination  || "",
             price:        d.price        || "",
             nights:       d.nights ? String(d.nights) : "5",
+            title:        d.title        || "",
             description:  d.description  || "",
             includes:          Array.isArray(d.includes)     ? d.includes     : [],
             excludes:          Array.isArray(d.excludes)     ? d.excludes     : [],
@@ -1531,6 +1574,7 @@ function BuilderPageInner() {
                     ...f,
                     ...(data.destination ? { destination: data.destination } : {}),
                     ...(data.price       ? { price:       data.price       } : {}),
+                    ...(data.title       ? { title:       data.title       } : {}),
                     ...(data.description ? { description: data.description } : {}),
                     ...(data.includes?.length  ? { includes: data.includes  } : {}),
                     ...(data.airports?.length  ? { airports: data.airports  } : {}),
