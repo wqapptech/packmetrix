@@ -8,6 +8,9 @@ import {
   sendEmailVerification,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  linkWithCredential,
+  OAuthCredential,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
@@ -19,7 +22,7 @@ const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
 
 type PlanId = "free" | "pro" | "agency";
-type Step = "form" | "verify";
+type Step = "form" | "verify" | "link";
 
 const PLANS: { id: PlanId; price: string; period: string; badge?: string; features: string[]; cta: string; disabled?: boolean }[] = [
   {
@@ -94,6 +97,12 @@ function SignupPageInner() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
 
+  // Account linking state (Google sign-in with existing email/password account)
+  const [linkPending, setLinkPending] = useState<{ credential: OAuthCredential; email: string } | null>(null);
+  const [linkPassword, setLinkPassword] = useState("");
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
   const passwordTouched = password.length > 0;
   const passwordValid = password.length >= 8 && password.length <= 64;
   const confirmTouched = confirmPassword.length > 0;
@@ -167,11 +176,39 @@ function SignupPageInner() {
       router.push("/builder");
     } catch (err: any) {
       if (err?.code === "auth/popup-closed-by-user") return;
+      if (err?.code === "auth/account-exists-with-different-credential") {
+        const pending = GoogleAuthProvider.credentialFromError(err);
+        const pendingEmail = err.customData?.email as string;
+        if (pending && pendingEmail) {
+          setLinkPending({ credential: pending, email: pendingEmail });
+          setStep("link");
+          return;
+        }
+      }
       posthog.captureException(err);
       const msg = friendlyError(err?.code);
       setError(msg || "Google sign-in failed. Please try again.");
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleLinkAccount = async () => {
+    if (!linkPending || !linkPassword) { setLinkError("Please enter your password."); return; }
+    setLinkLoading(true);
+    setLinkError(null);
+    try {
+      const userCred = await signInWithEmailAndPassword(auth, linkPending.email, linkPassword);
+      await linkWithCredential(userCred.user, linkPending.credential);
+      posthog.identify(userCred.user.uid, { email: userCred.user.email });
+      posthog.capture("account_linked", { method: "google", email: userCred.user.email });
+      router.push("/builder");
+    } catch (err: any) {
+      posthog.captureException(err);
+      const msg = friendlyError(err?.code);
+      setLinkError(msg || "Failed to link accounts. Please check your password.");
+    } finally {
+      setLinkLoading(false);
     }
   };
 
@@ -321,6 +358,65 @@ function SignupPageInner() {
                 Go back
               </button>
             </p>
+          </div>
+        )}
+
+        {/* Link accounts step */}
+        {step === "link" && linkPending && (
+          <div style={{ maxWidth: 420, margin: "0 auto" }}>
+            <div style={{
+              background: "rgba(232,201,123,0.08)", border: "1px solid rgba(232,201,123,0.2)",
+              borderRadius: 12, padding: "14px 16px", marginBottom: 20,
+              fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.5,
+            }}>
+              <strong style={{ color: SAND, display: "block", marginBottom: 4 }}>Account already exists</strong>
+              <span style={{ color: "#fdfcf9" }}>{linkPending.email}</span> already has a PackMetrics account.
+              Enter your password to link Google sign-in to it.
+            </div>
+
+            <input
+              type="password"
+              value={linkPassword}
+              onChange={e => setLinkPassword(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleLinkAccount(); }}
+              placeholder="Your existing password"
+              style={{ ...inputStyle, marginBottom: 14 }}
+              onFocus={e => (e.target.style.borderColor = `${SAND}70`)}
+              onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+            />
+
+            {linkError && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 10 }}>{linkError}</p>}
+
+            <button
+              onClick={handleLinkAccount}
+              disabled={linkLoading}
+              style={{
+                width: "100%", padding: "13px",
+                background: linkLoading ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
+                border: "none", borderRadius: 12,
+                fontSize: 14, fontWeight: 700,
+                color: linkLoading ? "rgba(255,255,255,0.3)" : "#0d1b2e",
+                fontFamily: "inherit", cursor: linkLoading ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                marginBottom: 16,
+              }}
+            >
+              {linkLoading
+                ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> Linking…</>
+                : "Link Google & sign in"}
+            </button>
+
+            <button
+              onClick={() => { setStep("form"); setLinkPending(null); setLinkPassword(""); setLinkError(null); }}
+              style={{
+                background: "none", border: "none", fontSize: 13,
+                color: "rgba(255,255,255,0.4)", cursor: "pointer", fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: 6, margin: "0 auto",
+              }}
+            >
+              <Icon name="arrow_left" size={14} color="rgba(255,255,255,0.4)" strokeWidth={2} />
+              Back
+            </button>
           </div>
         )}
 

@@ -322,7 +322,8 @@ function Step1({ form, update, t }: { form: Form; update: (k: keyof Form, v: any
 
       <FieldLabel>{t.fieldDepartureAirports}</FieldLabel>
       {form.airports.map((a, i) => (
-        <div key={i} style={{ marginBottom: 12, padding: "14px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.07)" }}>
+        <div key={i} style={{ marginBottom: 12, padding: "14px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.07)", position: "relative" }}>
+          <button onClick={() => update("airports", form.airports.filter((_, j) => j !== i))} style={{ position: "absolute", top: 6, right: 8, width: 20, height: 20, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "none", color: "rgba(255,255,255,0.5)", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>×</button>
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
             <TextInput value={a.name} onChange={v => {
               const arr = [...form.airports]; arr[i] = { ...arr[i], name: v }; update("airports", arr);
