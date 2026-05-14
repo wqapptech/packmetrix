@@ -17,9 +17,9 @@ const dmSerif = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
-  title: "PackMetrics — Travel Package Intelligence",
+  title: "PackMetrix — Travel Package Intelligence",
   description:
-    "Turn travel posts into high-converting package landing pages in seconds.",
+    "Turn travel packages into high-converting landing pages in seconds. Paste any description, itinerary, or WhatsApp message — AI extracts, structures, and publishes.",
 };
 
 export default function RootLayout({

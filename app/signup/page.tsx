@@ -370,7 +370,7 @@ function SignupPageInner() {
               fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.5,
             }}>
               <strong style={{ color: SAND, display: "block", marginBottom: 4 }}>Account already exists</strong>
-              <span style={{ color: "#fdfcf9" }}>{linkPending.email}</span> already has a PackMetrics account.
+              <span style={{ color: "#fdfcf9" }}>{linkPending.email}</span> already has a PackMetrix account.
               Enter your password to link Google sign-in to it.
             </div>
 

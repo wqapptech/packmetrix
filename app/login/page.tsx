@@ -206,7 +206,7 @@ export default function LoginPage() {
           {view === "login" ? (
             <>
               <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>Welcome back</h1>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>Sign in to your PackMetrics account</p>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>Sign in to your PackMetrix account</p>
             </>
           ) : view === "link" ? (
             <>
