@@ -130,6 +130,9 @@ const en = {
   stepCover: "Cover",
   stepMedia: "Media",
   stepVideo: "Video",
+  stepReviews: "Reviews",
+  stepReviewsTitle: "Client reviews",
+  stepReviewsSub: "Add testimonials shown on your landing page.",
 
   // Builder — ComingSoonPanel
   comingSoonInDev: "is in development.",
@@ -485,6 +488,81 @@ const en = {
   homeMobileStep4Desc: "Real-time analytics dashboard",
   homeDepartureAirports: "Departure Airports",
   homeCharacters: "characters",
+
+  // Template system
+  templateSectionTitle: "Page Template",
+  templateSectionSubtitle: "Choose how your package landing pages look to visitors.",
+  templateActive: "Active",
+  templateSelect: "Select",
+  templateAuroraName: "Aurora",
+  templateAuroraTarget: "Luxury · Boutique",
+  templateCompassName: "Compass",
+  templateCompassTarget: "Adventure · Trekking",
+  templatePetalName: "Petal",
+  templatePetalTarget: "Honeymoons · Couples",
+  templateSakinaName: "Sakina",
+  templateSakinaTarget: "Religious · Umrah/Hajj",
+  templatePulseName: "Pulse",
+  templatePulseTarget: "Last-minute Deals",
+  templateTribeName: "Tribe",
+  templateTribeTarget: "Group Tours",
+  templateVoyageName: "Voyage",
+  templateVoyageTarget: "Youth · 18–35",
+  templateAtlasName: "Atlas",
+  templateAtlasTarget: "Premium Curated",
+  templateSmartName: "Smart",
+  templateSmartTarget: "Budget · Transparent",
+  templateFamilyName: "Family",
+  templateFamilyTarget: "Family Vacations",
+
+  // Reviews — agency-managed (still in types, no longer in builder UI)
+  // Editorial copy used in specific templates (must be translatable for AR support)
+  editorialTheJourney: "The journey",
+  editorialJourneyTogether: "The journey together",
+  editorialNightsCurated: "nights, thoughtfully curated.",
+  editorialCrafted: "A carefully crafted journey.",
+  editorialDaysCurated: "days curated",
+  editorialCuratedJourney: "A carefully curated journey",
+  reviewLabel: "review",
+  reviewsLabel: "reviews",
+
+  reviewsSectionTitle: "What clients say",
+  reviewsSectionSubtitle: "Trusted reviews from real travellers",
+  reviewsManageTitle: "Reviews",
+  reviewsManageSubtitle: "Manage testimonials shown on this package page",
+  addReviewBtn: "Add review",
+  noReviewsMsg: "No reviews yet",
+  reviewerNameLabel: "Reviewer name",
+  reviewerNamePlaceholder: "e.g. Sara M.",
+  reviewTextLabel: "Review",
+  reviewTextPlaceholder: "Share their experience…",
+  reviewRatingLabel: "Rating",
+  reviewAvatarLabel: "Avatar URL (optional)",
+  reviewAvatarPlaceholder: "https://…",
+  deleteReviewBtn: "Delete",
+  saveReviewBtn: "Save review",
+
+  // Visitor review form (on landing pages)
+  writeReviewTitle: "Share your experience",
+  writeReviewSub: "Already been on this trip? We'd love to hear from you.",
+  submitReviewBtn: "Submit review",
+  reviewSubmitSuccess: "Thank you! Your review has been submitted.",
+  reviewSubmitError: "Could not submit your review. Please try again.",
+  reviewYourName: "Your name",
+  reviewYourRating: "Your rating",
+  reviewYourReview: "Your review",
+  reviewPlaceholder: "Tell us about your experience…",
+
+  // Branding — reviews settings
+  reviewsSettingsTitle: "Reviews",
+  enableReviewsLabel: "Allow visitor reviews",
+  enableReviewsSub: "Visitors can submit ratings and reviews on your package pages",
+  showReviewsLabel: "Show reviews on landing pages",
+  showReviewsSub: "Display submitted reviews publicly under each package",
+
+  // Branding — preview toggle
+  previewDesktopBtn: "Desktop",
+  previewMobileBtn: "Mobile",
 };
 
 const ar: typeof en = {
@@ -724,6 +802,9 @@ const ar: typeof en = {
   stepCover: "الغلاف",
   stepMedia: "الوسائط",
   stepVideo: "الفيديو",
+  stepReviews: "التقييمات",
+  stepReviewsTitle: "تقييمات العملاء",
+  stepReviewsSub: "أضف شهادات تُعرض على صفحة الهبوط.",
 
   // Builder — ComingSoonPanel
   comingSoonInDev: "قيد التطوير.",
@@ -972,6 +1053,81 @@ const ar: typeof en = {
   homeMobileStep4Desc: "لوحة تحليلات في الوقت الفعلي",
   homeDepartureAirports: "مطارات الإقلاع",
   homeCharacters: "حرف",
+
+  // Template system
+  templateSectionTitle: "قالب الصفحة",
+  templateSectionSubtitle: "اختر كيف تبدو صفحات باقاتك للزوار.",
+  templateActive: "مفعّل",
+  templateSelect: "اختر",
+  templateAuroraName: "أورورا",
+  templateAuroraTarget: "فاخر · بوتيك",
+  templateCompassName: "بوصلة",
+  templateCompassTarget: "مغامرات · رحلات",
+  templatePetalName: "بتلة",
+  templatePetalTarget: "شهر العسل · أزواج",
+  templateSakinaName: "سكينة",
+  templateSakinaTarget: "رحلات دينية · عمرة وحج",
+  templatePulseName: "نبض",
+  templatePulseTarget: "عروض اللحظة الأخيرة",
+  templateTribeName: "قبيلة",
+  templateTribeTarget: "رحلات جماعية",
+  templateVoyageName: "رحلة",
+  templateVoyageTarget: "الشباب · 18–35",
+  templateAtlasName: "أطلس",
+  templateAtlasTarget: "تجارب راقية ومنتقاة",
+  templateSmartName: "ذكي",
+  templateSmartTarget: "اقتصادي · شفاف",
+  templateFamilyName: "عائلة",
+  templateFamilyTarget: "عطلات عائلية",
+
+  // Reviews — agency-managed
+  // Editorial copy used in specific templates
+  editorialTheJourney: "الرحلة",
+  editorialJourneyTogether: "الرحلة معاً",
+  editorialNightsCurated: "ليالٍ، مُصمَّمة بعناية.",
+  editorialCrafted: "رحلة مُصمَّمة بعناية.",
+  editorialDaysCurated: "أيام مُنسَّقة",
+  editorialCuratedJourney: "رحلة مُنسَّقة بعناية",
+  reviewLabel: "تقييم",
+  reviewsLabel: "تقييمات",
+
+  reviewsSectionTitle: "ماذا يقول عملاؤنا",
+  reviewsSectionSubtitle: "تقييمات حقيقية من مسافرين فعليين",
+  reviewsManageTitle: "التقييمات",
+  reviewsManageSubtitle: "إدارة الشهادات المعروضة على صفحة هذه الباقة",
+  addReviewBtn: "إضافة تقييم",
+  noReviewsMsg: "لا توجد تقييمات بعد",
+  reviewerNameLabel: "اسم المقيِّم",
+  reviewerNamePlaceholder: "مثال: سارة م.",
+  reviewTextLabel: "التقييم",
+  reviewTextPlaceholder: "شارك تجربتهم…",
+  reviewRatingLabel: "التقييم",
+  reviewAvatarLabel: "رابط الصورة الرمزية (اختياري)",
+  reviewAvatarPlaceholder: "https://…",
+  deleteReviewBtn: "حذف",
+  saveReviewBtn: "حفظ التقييم",
+
+  // Visitor review form (on landing pages)
+  writeReviewTitle: "شارك تجربتك",
+  writeReviewSub: "هل سافرت معنا؟ نودّ سماع رأيك.",
+  submitReviewBtn: "إرسال التقييم",
+  reviewSubmitSuccess: "شكراً! تم إرسال تقييمك بنجاح.",
+  reviewSubmitError: "تعذّر إرسال التقييم. حاول مرة أخرى.",
+  reviewYourName: "اسمك",
+  reviewYourRating: "تقييمك",
+  reviewYourReview: "مراجعتك",
+  reviewPlaceholder: "أخبرنا عن تجربتك…",
+
+  // Branding — reviews settings
+  reviewsSettingsTitle: "التقييمات",
+  enableReviewsLabel: "السماح بتقييمات الزوار",
+  enableReviewsSub: "يمكن للزوار إرسال تقييماتهم على صفحات باقاتك",
+  showReviewsLabel: "عرض التقييمات على صفحات الهبوط",
+  showReviewsSub: "عرض التقييمات المُرسلة للعموم تحت كل باقة",
+
+  // Branding — preview toggle
+  previewDesktopBtn: "سطح المكتب",
+  previewMobileBtn: "الجوال",
 };
 
 export const T: Record<Lang, typeof en> = { en, ar };

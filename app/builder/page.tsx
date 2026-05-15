@@ -12,6 +12,7 @@ import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import posthog from "posthog-js";
 import { FREE_PACKAGE_LIMIT, FREE_AI_LIMIT } from "@/lib/limits";
+import type { TReview } from "@/components/templates/types";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -48,6 +49,7 @@ type Form = {
   images: string[];
   videoUrl: string;
   language: "en" | "ar";
+  reviews: TReview[];
 };
 
 const DEFAULT_FORM: Form = {
@@ -78,6 +80,7 @@ const DEFAULT_FORM: Form = {
   images: [],
   videoUrl: "",
   language: "en",
+  reviews: [],
 };
 
 // ── shared field components ───────────────────────────────────────────────────
@@ -1036,6 +1039,9 @@ function Step6({ form, update, user, t }: { form: Form; update: (k: keyof Form, 
   );
 }
 
+// ── Reviews step ─────────────────────────────────────────────────────────────
+
+
 function StepPaste({ onExtracted, onNext, t, lang }: {
   onExtracted: (d: Partial<Form>) => void;
   onNext: () => void;
@@ -1331,6 +1337,7 @@ function BuilderPageInner() {
             images:       Array.isArray(d.images) ? d.images : [],
             videoUrl:     d.videoUrl     || "",
             language:     d.language === "ar" ? "ar" : "en",
+            reviews:      Array.isArray(d.reviews) ? d.reviews : [],
           });
           setPackageId(editId);
           if (d.agencySlug) setAgencySlug(d.agencySlug);
@@ -1593,6 +1600,7 @@ function BuilderPageInner() {
             {step === 6 && <StepCover form={form} update={update} user={user} t={t} />}
             {step === 7 && <Step5 form={form} update={update} user={user} t={t} lang={lang} />}
             {step === 8 && <Step6 form={form} update={update} user={user} t={t} />}
+
           </div>
           {!isMobile && (
             <div style={{ width: 260, flexShrink: 0 }}>
