@@ -272,7 +272,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       {/* ── Editorial highlights ── */}
       {highlightItems.length > 0 && (
         <section style={{ padding: "36px 18px 12px" }}>
-          <Eyebrow text={t.editorsPick} brand={brand} />
+          <Eyebrow text={t.whatsIncluded} brand={brand} />
           <div
             style={{
               display: "flex",
@@ -294,7 +294,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, onMessenger, lang 
                   padding: "20px 20px",
                   borderBottom:
                     i < highlightItems.length - 1 ? `1px solid ${tokens.border}` : "none",
-                  alignItems: "flex-start",
+                  alignItems: "center",
                 }}
               >
                 <div
@@ -347,9 +347,9 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
       <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
       <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
       <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <SharedCTABanner

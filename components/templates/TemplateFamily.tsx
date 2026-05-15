@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { T } from "@/lib/translations";
 import {
   WAButton,
@@ -32,36 +32,6 @@ import {
 } from "./shared";
 import type { TPageProps, TCardProps, TemplateTokens } from "./types";
 
-type AgeTab = "toddlers" | "kids" | "teens";
-
-const TAB_LABELS: Record<AgeTab, string> = {
-  toddlers: "Toddlers (0–5)",
-  kids: "Kids (6–12)",
-  teens: "Teens (13+)",
-};
-
-const STATIC_TODDLERS = [
-  "🛏 Cot & high-chair on request",
-  "🏊 Shallow pool",
-  "🍼 Kitchenette available",
-  "🚗 Car seat transfers",
-  "🌴 Child-safe beach",
-];
-const STATIC_KIDS = [
-  "🎭 Kids activities daily",
-  "🍕 Kids menu",
-  "🏖 Beach access",
-  "🎡 Family excursions",
-  "🌊 Snorkeling lessons",
-];
-const STATIC_TEENS = [
-  "📱 Free wifi everywhere",
-  "🏄 Water sports",
-  "🎮 Game room",
-  "🍔 All-day dining",
-  "🚀 Adventure excursions",
-];
-
 // ─── TemplateFamilyPage ──────────────────────────────────────────────────────
 
 export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
@@ -78,8 +48,6 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
     serif,
   };
 
-  const [activeTab, setActiveTab] = useState<AgeTab>("toddlers");
-
   const nights = pkg.nights ? Number(pkg.nights) : null;
   const coverImage = pkg.coverImage || "";
   const title = pkg.title || pkg.destination;
@@ -93,13 +61,6 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
     ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length) ? [{ label: t.navIncluded, href: "#included" }] : []),
     ...((pkg.pricingTiers || []).some(tier => tier.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
   ];
-
-  // If pkg.includes exist, use them for all tabs; otherwise use static defaults
-  const includes = (pkg.includes?.length ? pkg.includes : (pkg.advantages || []));
-
-  const tabItems: Record<AgeTab, string[]> = includes.length > 0
-    ? { toddlers: includes, kids: includes, teens: includes }
-    : { toddlers: STATIC_TODDLERS, kids: STATIC_KIDS, teens: STATIC_TEENS };
 
   if (isDesktop) {
     return (
@@ -127,15 +88,6 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
               <Eyebrow text={pkg.destination} brand={brand} />
               <h1 style={{ fontSize: 60, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.5px", marginTop: 16, marginBottom: 18 }}>{title}</h1>
               <p style={{ fontSize: 16.5, color: tokens.muted, lineHeight: 1.7, margin: 0 }}>{pkg.description}</p>
-              {/* Age tabs (visual only) */}
-              <div style={{ display: "flex", gap: 8, marginTop: 32, marginBottom: 24 }}>
-                {[{ l: "Toddlers", a: "0–5", on: true }, { l: "Kids", a: "6–12" }, { l: "Teens", a: "13+" }].map((tab, i) => (
-                  <div key={i} style={{ padding: "12px 18px", borderRadius: 12, background: tab.on ? brand : "#fff", border: `1px solid ${tab.on ? brand : tokens.border}`, color: tab.on ? "#fff" : tokens.ink, cursor: "pointer" }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 800 }}>{tab.l}</div>
-                    <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>{tab.a}</div>
-                  </div>
-                ))}
-              </div>
               <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
             </div>
           </div>
@@ -218,47 +170,6 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         )}
       </div>
 
-      {/* ── Age tabs + content ── */}
-      <div style={{ padding: "24px 18px 0" }}>
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-          {(Object.keys(TAB_LABELS) as AgeTab[]).map(tab => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  flex: 1, padding: "8px 4px", borderRadius: 10,
-                  background: isActive ? brand : "#fff",
-                  border: `1px solid ${isActive ? brand : tokens.border}`,
-                  color: isActive ? "#fff" : tokens.muted,
-                  fontSize: 11, fontWeight: 700, cursor: "pointer",
-                  fontFamily: "inherit", lineHeight: 1.3, textAlign: "center",
-                  transition: "background 0.15s, color 0.15s",
-                }}
-              >
-                {TAB_LABELS[tab]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Tab content card */}
-        <div style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "18px 16px" }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: brand, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 14 }}>
-            {TAB_LABELS[activeTab]} amenities
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {tabItems[activeTab].map((item, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: brand, flexShrink: 0, marginTop: 5 }} />
-                <span style={{ fontSize: 13, color: tokens.muted, lineHeight: 1.5 }}>{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* ── Family pricing card ── */}
       <div style={{ padding: "22px 18px 0" }}>
@@ -301,9 +212,9 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <SharedItinerary pkg={pkg} tokens={tokens} lang={lang} />
       <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
       <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
       <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <SharedCTABanner pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />

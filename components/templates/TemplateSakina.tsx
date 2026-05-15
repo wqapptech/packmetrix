@@ -141,12 +141,6 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
     );
   }
 
-  // Badge text
-  const heroBadge =
-    airports.length > 0
-      ? `${airports.length} ${airports.length === 1 ? "Group" : "Groups"}`
-      : "Curated itinerary";
-
   // Logistics grid rows
   type LogisticsRow = { label: string; value: string };
   const logisticsRows: LogisticsRow[] = [];
@@ -242,26 +236,6 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
                 "linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.04) 50%, rgba(0,0,0,0.5) 100%)",
             }}
           />
-          {/* Badge pill */}
-          <div
-            style={{
-              position: "absolute",
-              top: 20,
-              left: "50%",
-              transform: "translateX(-50%)",
-              background: brand,
-              color: "#fff",
-              fontSize: 10.5,
-              fontWeight: 800,
-              letterSpacing: "0.5px",
-              textTransform: "uppercase",
-              borderRadius: 99,
-              padding: "5px 16px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {heroBadge}
-          </div>
         </div>
       </div>
 
@@ -427,9 +401,9 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
       <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
       <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
       <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "28px 18px 28px" }}>
         <SharedCTABanner

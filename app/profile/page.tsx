@@ -130,8 +130,8 @@ function Toggle({ enabled, onChange, label, sub }: { enabled: boolean; onChange:
 
 // ─── Scaled template preview ─────────────────────────────────────────────────
 
-function TemplatePreview({ pkg, agency, lang, templateId, fillHeight }: {
-  pkg: TPackage; agency: TAgency; lang: "en" | "ar"; templateId: string; fillHeight?: boolean;
+function TemplatePreview({ pkg, agency, lang, templateId, fillHeight, forceMobile }: {
+  pkg: TPackage; agency: TAgency; lang: "en" | "ar"; templateId: string; fillHeight?: boolean; forceMobile?: boolean;
 }) {
   const tpl = TEMPLATE_MAP[templateId] || TEMPLATE_MAP[DEFAULT_TEMPLATE_ID];
   const Page = tpl.Page;
@@ -183,28 +183,30 @@ function TemplatePreview({ pkg, agency, lang, templateId, fillHeight }: {
 
   return (
     <div ref={containerRef} style={rootStyle}>
-      {/* Toggle + label row */}
+      {/* Toggle + label row — hidden on mobile browsers (forceMobile) */}
       <div style={{ flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: ".6px" }}>
           {t.livePreviewLabel}
         </div>
-        <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: 3, gap: 2 }}>
-          {(["desktop", "mobile"] as const).map(mode => (
-            <button
-              key={mode}
-              onClick={() => setPreviewMode(mode)}
-              style={{
-                padding: "5px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit",
-                fontSize: 11.5, fontWeight: 600,
-                background: previewMode === mode ? "rgba(255,255,255,0.12)" : "transparent",
-                color: previewMode === mode ? "#fff" : "rgba(255,255,255,0.4)",
-                transition: "all 0.15s",
-              }}
-            >
-              {mode === "desktop" ? t.previewDesktopBtn : t.previewMobileBtn}
-            </button>
-          ))}
-        </div>
+        {!forceMobile && (
+          <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: 3, gap: 2 }}>
+            {(["desktop", "mobile"] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setPreviewMode(mode)}
+                style={{
+                  padding: "5px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 11.5, fontWeight: 600,
+                  background: previewMode === mode ? "rgba(255,255,255,0.12)" : "transparent",
+                  color: previewMode === mode ? "#fff" : "rgba(255,255,255,0.4)",
+                  transition: "all 0.15s",
+                }}
+              >
+                {mode === "desktop" ? t.previewDesktopBtn : t.previewMobileBtn}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Preview frame — grows to fill remaining height when fillHeight=true */}
@@ -212,7 +214,20 @@ function TemplatePreview({ pkg, agency, lang, templateId, fillHeight }: {
         ? { flex: 1, minHeight: 0, overflow: "hidden" }
         : { overflow: "hidden" }
       }>
-        {previewMode === "desktop" ? (
+        {forceMobile ? (
+          /* ── Mobile browser: render template directly, no phone frame, no scaling ── */
+          <IsDesktopProvider value={false}>
+            <div style={{
+              borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)",
+              overflow: "hidden", background: "#fff",
+              overflowY: "auto", overflowX: "hidden",
+              maxHeight: "calc(100svh - 280px)",
+              WebkitOverflowScrolling: "touch",
+            } as React.CSSProperties}>
+              <Page pkg={pkg} agency={agency} lang={lang} onWhatsApp={() => {}} onMessenger={() => {}} />
+            </div>
+          </IsDesktopProvider>
+        ) : previewMode === "desktop" ? (
           <IsDesktopProvider value={true}>
             <div style={{
               borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)",
@@ -246,7 +261,7 @@ function TemplatePreview({ pkg, agency, lang, templateId, fillHeight }: {
             </div>
           </IsDesktopProvider>
         ) : (
-          /* ── Mobile preview ── */
+          /* ── Mobile preview (desktop browser) ── */
           <IsDesktopProvider value={false}>
             <div style={{
               display: "flex", justifyContent: "center",
@@ -586,6 +601,7 @@ export default function BrandingPage() {
               lang={lang}
               templateId={activeTemplate}
               fillHeight={!isMobile}
+              forceMobile={isMobile}
             />
           </div>
         </div>

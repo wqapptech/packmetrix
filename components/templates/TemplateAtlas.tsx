@@ -68,10 +68,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   // Photo essay images (not coverImage)
   const extraImages = (pkg.images || []).filter(Boolean);
 
-  // Drop cap: split description into first letter + rest
   const desc = pkg.description || "";
-  const firstChar = desc[0] || "";
-  const restDesc = desc.slice(1);
 
   if (isDesktop) {
     return (
@@ -110,10 +107,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <DContainer max={1080} style={{ padding: "56px 80px 32px" }}>
           <div style={{ columns: 2, columnGap: 48 }}>
             <p style={{ fontFamily: serif, fontSize: 18, lineHeight: 1.55, margin: "0 0 16px" }}>
-              <span style={{ fontSize: 64, float: "left", lineHeight: 0.85, paddingRight: 8, paddingTop: 6, fontWeight: 500 }}>
-                {(pkg.description || "T")[0]}
-              </span>
-              {(pkg.description || "").slice(1)}
+              {pkg.description || ""}
             </p>
             <p style={{ fontFamily: serif, fontSize: 18, lineHeight: 1.55, margin: "0 0 16px" }}>
               A pace deliberately set for the curious traveler. Every stop hand-picked, every detail considered so you can focus on the experience.
@@ -121,15 +115,6 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
           </div>
         </DContainer>
 
-        {/* Pull quote */}
-        <DContainer max={780} style={{ padding: "24px 80px 24px", textAlign: "center" }}>
-          <div style={{ borderTop: `1px solid ${tokens.border}`, borderBottom: `1px solid ${tokens.border}`, padding: "32px 0" }}>
-            <div style={{ fontFamily: serif, fontSize: 32, fontStyle: "italic", lineHeight: 1.25, color: tokens.ink }}>
-              &ldquo;What we ask of a journey is a slowness sufficient to notice.&rdquo;
-            </div>
-            <div style={{ fontSize: 11, color: tokens.superMuted, marginTop: 14, letterSpacing: "1.2px", textTransform: "uppercase" }}>— {agency.name}, curator</div>
-          </div>
-        </DContainer>
 
         {/* Photo essay 3-col */}
         {galleryImages.length > 1 && (
@@ -209,34 +194,14 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         </div>
       </div>
 
-      {/* ── Drop cap description ── */}
+      {/* ── Description ── */}
       {desc && (
         <div style={{ padding: "22px 22px 0" }}>
           <p style={{ fontSize: 15, lineHeight: 1.75, color: tokens.muted, margin: 0 }}>
-            {firstChar && (
-              <span style={{
-                fontFamily: serif, fontSize: 52, fontWeight: 400,
-                float: isRtl ? "right" : "left", lineHeight: 0.85,
-                paddingRight: isRtl ? 0 : 6, paddingLeft: isRtl ? 6 : 0,
-                marginTop: 6, color: brand,
-              }}>
-                {firstChar}
-              </span>
-            )}
-            {restDesc}
+            {desc}
           </p>
-          <div style={{ clear: "both" }} />
         </div>
       )}
-
-      {/* ── Pull quote ── */}
-      <div style={{ padding: "22px 22px 0" }}>
-        <div style={{ borderLeft: `3px solid ${brand}`, paddingLeft: 18 }}>
-          <p style={{ fontFamily: serif, fontSize: 19, fontStyle: "italic", color: tokens.ink, lineHeight: 1.55, margin: 0 }}>
-            &ldquo;What we ask of a journey is a slowness sufficient to notice.&rdquo;
-          </p>
-        </div>
-      </div>
 
       {/* ── Photo essay ── */}
       {extraImages.length > 0 && (
@@ -272,9 +237,9 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
       <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
       <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
       <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <SharedCTABanner pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />

@@ -59,13 +59,6 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
     ? (pkg.pricingTiers || []).filter(tier => tier.price).map(tier => ({ l: tier.label, v: tier.price }))
     : [{ l: t.perPerson, v: pkg.price }];
 
-  // Comparison data
-  const comparisons = [
-    { label: agency.name, value: pkg.price, pct: 100, highlighted: true },
-    { label: "Marketplace average", value: "approx 30% more", pct: 130, highlighted: false },
-    { label: "Walk-in agency", value: "approx 50% more", pct: 150, highlighted: false },
-  ];
-
   const isDesktop = useIsDesktop();
 
   const navLinks = [
@@ -74,13 +67,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
     ...((pkg.pricingTiers || []).some(tier => tier.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
   ];
 
-  // Desktop: reuse breakdownRows and comparisons
   const breakdown = breakdownRows.map(r => ({ l: r.l, v: r.v }));
-  const compareRows = [
-    { l: agency.name, v: pkg.price, us: true, pct: 65 },
-    { l: "Typical marketplace", v: "~30% more", us: false, pct: 85 },
-    { l: "Walk-in agency", v: "~50% more", us: false, pct: 100 },
-  ];
 
   if (isDesktop) {
     return (
@@ -111,44 +98,25 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
           </div>
         </DContainer>
 
-        {/* 2-col: breakdown + comparison */}
-        <DContainer style={{ padding: "32px 80px 64px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
-            {breakdown.length > 0 && (
-              <div>
-                <Eyebrow text={`What's in ${pkg.price}`} brand={brand} />
-                <h3 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.4px", margin: "8px 0 16px" }}>The honest breakdown.</h3>
-                <div style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 12, overflow: "hidden" }}>
-                  {breakdown.map((b, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "14px 18px", borderTop: i === 0 ? "none" : `1px solid ${tokens.border}` }}>
-                      <div style={{ fontSize: 14, color: tokens.ink }}>{b.l}</div>
-                      <div style={{ fontSize: 14, fontWeight: 700 }}>{b.v}</div>
-                    </div>
-                  ))}
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 18px", background: `${brand}0d`, borderTop: `1px solid ${tokens.border}` }}>
-                    <div style={{ fontSize: 14, fontWeight: 800 }}>Total per person</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: brand }}>{pkg.price}</div>
-                  </div>
+        {/* Breakdown */}
+        {breakdown.length > 0 && (
+          <DContainer style={{ padding: "32px 80px 64px" }}>
+            <Eyebrow text={`What's in ${pkg.price}`} brand={brand} />
+            <h3 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.4px", margin: "8px 0 16px" }}>The honest breakdown.</h3>
+            <div style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 12, overflow: "hidden", maxWidth: 560 }}>
+              {breakdown.map((b, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "14px 18px", borderTop: i === 0 ? "none" : `1px solid ${tokens.border}` }}>
+                  <div style={{ fontSize: 14, color: tokens.ink }}>{b.l}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{b.v}</div>
                 </div>
-              </div>
-            )}
-            <div>
-              <Eyebrow text="vs. the alternatives" brand={brand} />
-              <h3 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.4px", margin: "8px 0 16px" }}>You&apos;d pay more elsewhere.</h3>
-              <div style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 12, padding: 20 }}>
-                {compareRows.map((row, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", padding: "12px 0", borderBottom: i === compareRows.length - 1 ? "none" : `1px solid ${tokens.border}` }}>
-                    <div style={{ flex: 1, fontSize: 14, fontWeight: row.us ? 800 : 500, color: row.us ? brand : tokens.ink }}>{row.l}</div>
-                    <div style={{ width: 120, height: 10, background: "rgba(13,27,46,0.06)", borderRadius: 99, marginRight: 16, overflow: "hidden" }}>
-                      <div style={{ width: `${row.pct}%`, height: "100%", background: row.us ? brand : "rgba(13,27,46,0.3)" }} />
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>{row.v}</div>
-                  </div>
-                ))}
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 18px", background: `${brand}0d`, borderTop: `1px solid ${tokens.border}` }}>
+                <div style={{ fontSize: 14, fontWeight: 800 }}>Total per person</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: brand }}>{pkg.price}</div>
               </div>
             </div>
-          </div>
-        </DContainer>
+          </DContainer>
+        )}
 
         <SharedItineraryDesktop pkg={pkg} tokens={tokens} lang={lang} />
         <SharedIncludesDesktop pkg={pkg} tokens={tokens} lang={lang} />
@@ -219,35 +187,6 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         </div>
       </div>
 
-      {/* ── Comparison strip ── */}
-      <div style={{ padding: "22px 18px 0" }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>
-          How we compare
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {comparisons.map((row, i) => {
-            const barWidth = `${Math.min(row.pct, 100)}%`;
-            const barColor = row.highlighted ? brand : "rgba(13,27,46,0.15)";
-            const labelColor = row.highlighted ? brand : tokens.muted;
-            const valueColor = row.highlighted ? brand : tokens.superMuted;
-            return (
-              <div key={i} style={{
-                background: row.highlighted ? `${brand}08` : "#fff",
-                border: `1px solid ${row.highlighted ? brand + "25" : tokens.border}`,
-                borderRadius: 12, padding: "12px 14px",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: row.highlighted ? 800 : 500, color: labelColor }}>{row.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: valueColor }}>{row.value}</span>
-                </div>
-                <div style={{ height: 4, background: "rgba(13,27,46,0.06)", borderRadius: 99, overflow: "hidden" }}>
-                  <div style={{ width: barWidth, height: "100%", background: barColor, borderRadius: 99 }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       {/* ── Book CTA inline ── */}
       <div style={{ padding: "22px 18px 0" }}>
@@ -267,9 +206,9 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
       <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
       <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
       <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <SharedCTABanner pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />

@@ -38,30 +38,6 @@ const DAY_EMOJI: Record<number, string> = {
 };
 function dayEmoji(day: number) { return DAY_EMOJI[day] || "📍"; }
 
-// Static avatar colors
-const AVATAR_COLORS = ["#c46a2f", "#1f5f8e", "#2d7a4e", "#7c3aed", "#b85c2c", "#0f766e"];
-
-// Generate initials from a string
-function makeInitials(src: string, len: number) {
-  const words = src.trim().split(/\s+/);
-  let result = "";
-  for (const w of words) { if (w[0]) result += w[0].toUpperCase(); }
-  // pad with random-ish letters from agency name
-  const EXTRA = "ABCDEFGHJKLMNPQRST";
-  let idx = 0;
-  while (result.length < len) { result += EXTRA[idx % EXTRA.length]; idx++; }
-  return result.slice(0, len);
-}
-
-const STATIC_AVATARS = [
-  { initials: "MR", color: AVATAR_COLORS[0] },
-  { initials: "KL", color: AVATAR_COLORS[1] },
-  { initials: "BN", color: AVATAR_COLORS[2] },
-  { initials: "PT", color: AVATAR_COLORS[3] },
-  { initials: "JS", color: AVATAR_COLORS[4] },
-  { initials: "FD", color: AVATAR_COLORS[5] },
-];
-
 // ─── TemplateTribePage ──────────────────────────────────────────────────────
 
 export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
@@ -150,14 +126,6 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
     );
   }
 
-  // Build avatar list: 2 initials from agency name + 4 static extras
-  const agencyInitials = makeInitials(agency.name, 2);
-  const allAvatars = [
-    { initials: agencyInitials[0] + (agencyInitials[1] || "A"), color: brand },
-    { initials: agencyInitials[1] ? agencyInitials[0] + agencyInitials[1] : "AA", color: AVATAR_COLORS[1] },
-    ...STATIC_AVATARS.slice(0, 4),
-  ].slice(0, 8);
-
   return (
     <div style={{
       minHeight: "100vh", background: tokens.bg, color: tokens.ink,
@@ -183,42 +151,6 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
         </div>
       </div>
 
-      {/* ── Roster card ── */}
-      <div style={{ padding: "22px 18px 0" }}>
-        <div style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 16, padding: "20px 18px" }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: brand, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 14 }}>
-            You&apos;ll travel with
-          </div>
-          {/* Avatar grid */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
-            {allAvatars.map((av, i) => (
-              <div key={i} style={{
-                width: 42, height: 42, borderRadius: "50%",
-                background: av.color, display: "flex", alignItems: "center",
-                justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff",
-                flexShrink: 0,
-              }}>
-                {av.initials.slice(0, 2)}
-              </div>
-            ))}
-          </div>
-          {/* Group stats */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: `${brand}08`, borderRadius: 9 }}>
-              <span style={{ fontSize: 12, color: tokens.muted }}>Average age</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: tokens.ink }}>34</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: `${brand}08`, borderRadius: 9 }}>
-              <span style={{ fontSize: 12, color: tokens.muted }}>Mix</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: tokens.ink }}>Solo &amp; couples</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: `${brand}08`, borderRadius: 9 }}>
-              <span style={{ fontSize: 12, color: tokens.muted }}>Group size</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: tokens.ink }}>Small group · curated</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ── Price strip ── */}
       <div style={{ padding: "18px 18px 0" }}>
@@ -258,29 +190,13 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
         </section>
       )}
 
-      {/* ── Static testimonial card ── */}
-      <div style={{ padding: "22px 18px 0" }}>
-        <div style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 16, padding: "22px 20px" }}>
-          <div style={{ fontSize: 28, color: brand, lineHeight: 1, marginBottom: 10, fontWeight: 800 }}>&ldquo;</div>
-          <p style={{ fontSize: 15, lineHeight: 1.65, color: tokens.ink, fontStyle: "italic", margin: "0 0 14px" }}>
-            Felt like a long weekend with friends I&apos;d known for years.
-          </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: brand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff" }}>SF</div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: tokens.ink }}>Sarah F.</div>
-              <div style={{ fontSize: 11, color: tokens.superMuted }}>June 2024</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
       <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
       <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
       <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <SharedCTABanner pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />

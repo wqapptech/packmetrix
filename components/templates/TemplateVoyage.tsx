@@ -32,8 +32,6 @@ import {
 } from "./shared";
 import type { TPageProps, TCardProps, TemplateTokens } from "./types";
 
-const STORY_LABELS = ["Beach", "Explore", "Eats", "Vibe", "Crew"];
-
 // ─── TemplateVoyagePage ──────────────────────────────────────────────────────
 
 export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
@@ -167,30 +165,6 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
     }}>
       <AgencyBar agency={agency} price={pkg.price} brand={brand} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} dark />
 
-      {/* ── Stories strip ── */}
-      <div style={{ overflowX: "auto", padding: "16px 18px", display: "flex", gap: 14, scrollbarWidth: "none" }}>
-        {STORY_LABELS.map((label, i) => {
-          const angle = (i / STORY_LABELS.length) * 360;
-          return (
-            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              <div style={{
-                width: 60, height: 60, borderRadius: "50%", padding: 2, flexShrink: 0,
-                background: `conic-gradient(from ${angle}deg, ${brand}, #f5a623, ${brand})`,
-              }}>
-                <div style={{
-                  width: "100%", height: "100%", borderRadius: "50%",
-                  background: "#0d1b2e", border: "2px solid #0d1b2e",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 14, fontWeight: 700, color: "#fff",
-                }}>
-                  {label[0]}
-                </div>
-              </div>
-              <span style={{ fontSize: 10, color: tokens.superMuted, whiteSpace: "nowrap" }}>{label}</span>
-            </div>
-          );
-        })}
-      </div>
 
       {/* ── Hero ── */}
       <div style={{ padding: "0 18px" }}>
@@ -264,9 +238,9 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
       <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
       <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
       <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <SharedCTABanner pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
