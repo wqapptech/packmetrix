@@ -124,7 +124,7 @@ function FunnelRow({ label, value, pct, color, tail }: {
         <span style={{ color: "rgba(255,255,255,0.65)" }}>
           {label}{tail && <em style={{ fontStyle: "normal", color: "rgba(255,255,255,0.35)", fontSize: 11, marginLeft: 6 }}> · {tail}</em>}
         </span>
-        <b style={{ color: "#fff" }}>{value} <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 500, fontSize: 11, marginLeft: 4 }}>{pct}%</span></b>
+        <b style={{ color: "#fff" }}>{value} <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 500, fontSize: 11, marginLeft: 4 }}>{Number.isInteger(pct) ? pct : pct.toFixed(1)}%</span></b>
       </div>
       <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: color, borderRadius: 99, transition: "width .8s" }} />
@@ -135,8 +135,8 @@ function FunnelRow({ label, value, pct, color, tail }: {
 
 // ── Package row ───────────────────────────────────────────────────────────────
 
-function PackageRow({ pkg, lang, onView, onEdit, onDelete, isLast }: {
-  pkg: Package; lang: "en" | "ar"; onView: () => void; onEdit: () => void; onDelete: () => Promise<void>; isLast: boolean;
+function PackageRow({ pkg, lang, isMobile, onView, onEdit, onDelete, isLast }: {
+  pkg: Package; lang: "en" | "ar"; isMobile?: boolean; onView: () => void; onEdit: () => void; onDelete: () => Promise<void>; isLast: boolean;
 }) {
   const t = T[lang];
   const [confirming, setConfirming] = useState(false);
@@ -144,17 +144,77 @@ function PackageRow({ pkg, lang, onView, onEdit, onDelete, isLast }: {
 
   const clicks = (pkg.whatsappClicks || 0) + (pkg.messengerClicks || 0);
   const conv = (pkg.views || 0) > 0 ? ((clicks / pkg.views) * 100) : 0;
-  const convStr = conv.toFixed(2) + "%";
+  const convStr = (Number.isInteger(conv) ? conv.toFixed(0) : conv.toFixed(1)) + "%";
   const convColor = conv >= 2 ? SUCCESS : conv >= 1 ? SAND : "rgba(255,255,255,0.7)";
   const thumbUrl = pkg.coverImage || pkg.images?.[0];
   const dotColors = ["#c9713a", "#2d7a4e", "#2563a8", "#7c3aed", "#0f766e"];
   const dotColor = dotColors[Math.abs(pkg.id.charCodeAt(0)) % dotColors.length];
 
+  const borderBottom = isLast ? "none" : "1px solid rgba(255,255,255,0.05)";
+
+  const statusBadge = pkg.agencySlug ? (
+    <span style={{
+      padding: "1px 6px", borderRadius: 99, fontSize: 9, fontWeight: 700,
+      textTransform: "uppercase", letterSpacing: ".4px",
+      background: pkg.isActive !== false ? "rgba(45,212,160,0.12)" : "rgba(200,100,40,0.15)",
+      color: pkg.isActive !== false ? "#2dd4a0" : "#e0843a",
+    }}>
+      {pkg.isActive !== false ? "● Live" : "○ Inactive"}
+    </span>
+  ) : null;
+
+  if (isMobile) {
+    return (
+      <div style={{ padding: "12px 14px", borderBottom }}>
+        {/* Top row: thumb · name · action buttons */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 9, flexShrink: 0,
+            background: thumbUrl ? `url(${thumbUrl}) center/cover` : dotColor,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            overflow: "hidden", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",
+          }}>
+            {!thumbUrl && <Icon name="map" size={14} color="rgba(255,255,255,0.7)" />}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pkg.destination}</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+              {pkg.price}{statusBadge}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+            <button onClick={onView} title="View" style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
+              <Icon name="eye" size={12} />
+            </button>
+            <button onClick={onEdit} title="Edit" style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
+              <Icon name="edit" size={12} />
+            </button>
+          </div>
+        </div>
+        {/* Stats row */}
+        <div style={{ display: "flex", marginTop: 10, paddingLeft: 54 }}>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>{(pkg.views || 0).toLocaleString()}</div>
+            <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px", marginTop: 1 }}>{t.statViews}</div>
+          </div>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>{clicks}</div>
+            <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px", marginTop: 1 }}>{t.statLeads}</div>
+          </div>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: convColor }}>{convStr}</div>
+            <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px", marginTop: 1 }}>{t.statConversion}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pkg-row"
       onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-      style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 22px", borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.05)", transition: "background .15s" }}
+      style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 22px", borderBottom, transition: "background .15s" }}
     >
       {/* Thumb */}
       <div style={{
@@ -432,18 +492,18 @@ export default function Dashboard() {
         <div dir="ltr" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.4fr 1fr", gap: 16, marginBottom: 18 }}>
           {/* Package list */}
           <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, overflow: "hidden" }}>
-            <div style={{ padding: "16px 22px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: isMobile ? "12px 14px" : "16px 22px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 0 }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700 }}>{t.yourPackages}</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{t.sortedBy} {sortOptions.find(o => o.k === sortBy)?.l.toLowerCase()}</div>
               </div>
-              <div style={{ display: "flex", gap: 4 }}>
+              <div style={{ display: "flex", gap: 4, overflowX: isMobile ? "auto" : "visible", width: isMobile ? "100%" : "auto", paddingBottom: isMobile ? 2 : 0 }}>
                 {sortOptions.map(({ k, l }) => (
                   <button
                     key={k}
                     onClick={() => setSortBy(k)}
                     style={{
-                      padding: "4px 10px", borderRadius: 7, fontSize: 11.5, fontFamily: "inherit", cursor: "pointer", transition: "all .12s",
+                      padding: "4px 10px", borderRadius: 7, fontSize: 11.5, fontFamily: "inherit", cursor: "pointer", transition: "all .12s", flexShrink: 0,
                       background: sortBy === k ? `${SAND}18` : "rgba(255,255,255,0.03)",
                       border: sortBy === k ? `1px solid ${SAND}50` : "1px solid rgba(255,255,255,0.07)",
                       color: sortBy === k ? SAND : "rgba(255,255,255,0.45)",
@@ -470,6 +530,7 @@ export default function Dashboard() {
                     key={pkg.id}
                     pkg={pkg}
                     lang={lang}
+                    isMobile={isMobile}
                     onView={() => window.open(`/${pkg.agencySlug || userAgencySlug}/${pkg.id}`, "_blank", "noopener,noreferrer")}
                     onEdit={() => router.push(`/builder?id=${pkg.id}`)}
                     onDelete={async () => {
