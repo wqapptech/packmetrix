@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const leadsSnap = await db.collection("leads").where("packageId", "==", id).get();
     if (!leadsSnap.empty) {
       const batch = db.batch();
-      leadsSnap.docs.forEach((doc) => batch.delete(doc.ref));
+      leadsSnap.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => batch.delete(doc.ref));
       await batch.commit();
     }
 
