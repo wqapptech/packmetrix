@@ -375,11 +375,6 @@ export function SharedPricing({ pkg, tokens, lang, onWhatsApp }: { pkg: TPackage
             borderRadius: 16, padding: "20px 18px", position: "relative",
             boxShadow: i === 0 ? `0 12px 32px ${tokens.brand}30` : "none",
           }}>
-            {i === 0 && (
-              <div style={{ position: "absolute", top: 12, right: 12, background: "rgba(255,255,255,0.22)", borderRadius: 99, padding: "3px 10px", fontSize: 10, fontWeight: 700, color: "#fff" }}>
-                {t.mostPopular}
-              </div>
-            )}
             <div style={{ fontSize: 12, fontWeight: 600, color: i === 0 ? "rgba(255,255,255,0.7)" : tokens.muted, marginBottom: 8 }}>{tier.label}</div>
             <div style={{ fontFamily: tokens.serif, fontSize: 36, fontWeight: 400, letterSpacing: "-1px", lineHeight: 1, color: i === 0 ? "#fff" : tokens.ink, marginBottom: 4 }}>{tier.price}</div>
             <div style={{ fontSize: 11, color: i === 0 ? "rgba(255,255,255,0.5)" : tokens.superMuted, marginBottom: 16 }}>{t.perPerson}</div>
@@ -822,11 +817,6 @@ export function SharedPricingDesktop({ pkg, tokens, lang, onWhatsApp }: { pkg: T
               borderRadius: 18, padding: "28px 28px", position: "relative",
               boxShadow: featured ? `0 12px 32px ${tokens.brand}33` : "none",
             }}>
-              {featured && (
-                <div style={{ position: "absolute", top: 18, right: 18, padding: "4px 10px", borderRadius: 99, background: "rgba(255,255,255,0.22)", fontSize: 10, fontWeight: 800, letterSpacing: "0.4px" }}>
-                  {t.mostPopular}
-                </div>
-              )}
               <div style={{ fontSize: 13.5, fontWeight: 600, opacity: featured ? 0.8 : 0.6, marginBottom: 14 }}>{tier.label}</div>
               <div style={{ fontSize: 44, fontWeight: 800, letterSpacing: "-1.2px", lineHeight: 1 }}>{tier.price}</div>
               <div style={{ fontSize: 11.5, opacity: 0.55, marginTop: 6 }}>{t.perPerson}</div>

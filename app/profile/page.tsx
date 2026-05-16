@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
@@ -342,8 +342,6 @@ export default function BrandingPage() {
   const [activeTemplate, setActiveTemplate] = useState(DEFAULT_TEMPLATE_ID);
   const [templateSaving, setTemplateSaving] = useState(false);
 
-  const [previewPkg, setPreviewPkg] = useState<TPackage | null>(null);
-
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -364,13 +362,6 @@ export default function BrandingPage() {
         if (d.activeTemplate) setActiveTemplate(d.activeTemplate);
         setEnableReviews(d.enableReviews === true);
         setShowReviews(d.showReviews !== false); // default true
-      }
-
-      // Load first package for live preview; fall back to mock data
-      const pkgSnap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid)));
-      if (!pkgSnap.empty) {
-        const first = pkgSnap.docs[0];
-        setPreviewPkg({ id: first.id, ...first.data() } as TPackage);
       }
 
       setAuthLoading(false);
@@ -426,9 +417,9 @@ export default function BrandingPage() {
     );
   }
 
-  // Agency object for live preview — use mock data if no packages
+  // Agency object for branding preview — always uses generic mock, never real package data
   const previewAgency: TAgency = { name: name || "Your Agency", tagline, logoUrl, activeTemplate, enableReviews, showReviews };
-  const previewPackage = previewPkg || MOCK_PACKAGE;
+  const previewPackage = MOCK_PACKAGE;
 
   return (
     <AppLayout>

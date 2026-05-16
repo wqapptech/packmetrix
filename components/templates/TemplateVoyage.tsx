@@ -68,38 +68,22 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <div style={{ minHeight: "100vh", background: tokens.bg, color: "#fff", fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={brand} navLinks={navLinks} lang={lang} dark onWhatsApp={onWhatsApp} />
 
-        {/* Stories strip */}
-        <div style={{ padding: "20px 56px 8px", display: "flex", gap: 12 }}>
-          {[
-            { l: "Beach", c: brand }, { l: "Boat", c: "#f5a623" }, { l: "Hike", c: "#2dd4a0" },
-            { l: "Eats", c: "#7c3aed" }, { l: "Crew", c: "#25d366" },
-          ].map((s, i) => (
-            <div key={i} style={{ textAlign: "center" }}>
-              <div style={{ width: 72, height: 72, borderRadius: "50%", padding: 2.5, background: `conic-gradient(${s.c}, ${brand}, ${s.c})` }}>
-                <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#0d1b2e", border: "3px solid #0d1b2e", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 22, fontWeight: 800 }}>{s.l[0]}</div>
-              </div>
-              <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.65)", marginTop: 6 }}>{s.l}</div>
-            </div>
-          ))}
-        </div>
-
         {/* Hero: big numbers left, image right */}
         <DContainer style={{ padding: "32px 56px 56px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "stretch", minHeight: 480 }}>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <div style={{ display: "inline-flex", padding: "5px 12px", borderRadius: 99, background: brand, color: "#fff", fontSize: 11, fontWeight: 800, letterSpacing: "0.4px", textTransform: "uppercase", transform: "rotate(-2deg)", alignSelf: "flex-start" }}>
-                18–35 only
-              </div>
-              <div style={{ fontSize: 120, fontWeight: 900, lineHeight: 0.85, letterSpacing: "-4px", color: "#fff", marginTop: 24 }}>
-                {nights || "12"}<span style={{ fontSize: 48, opacity: 0.7 }}> days</span>
-              </div>
+              {nights && (
+                <div style={{ fontSize: 120, fontWeight: 900, lineHeight: 0.85, letterSpacing: "-4px", color: "#fff" }}>
+                  {nights}<span style={{ fontSize: 48, opacity: 0.7 }}> days</span>
+                </div>
+              )}
               <div style={{ fontSize: 72, fontWeight: 900, lineHeight: 0.95, letterSpacing: "-3px", color: "#fff" }}>
-                {pkg.destination?.split(",")[0] || "Adventure"}
+                {pkg.destination?.split(",")[0]}
               </div>
               <div style={{ fontSize: 72, fontWeight: 900, lineHeight: 0.95, letterSpacing: "-3px", color: brand }}>awaits.</div>
               <p style={{ fontSize: 16, color: "rgba(255,255,255,0.65)", marginTop: 28, lineHeight: 1.55, maxWidth: 420 }}>{pkg.description}</p>
               <div style={{ marginTop: 28 }}>
-                <WAButton label="Lock it in" size="lg" onClick={onWhatsApp} />
+                <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
               </div>
             </div>
             <div style={{ position: "relative", borderRadius: 28, overflow: "hidden" }}>
@@ -111,14 +95,12 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
           </div>
         </DContainer>
 
-        {/* Stats 4-col */}
+        {/* Stats: price + duration (only builder-backed values) */}
         <DContainer style={{ padding: "0 56px 56px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: nights ? "1fr 1fr" : "1fr", gap: 14 }}>
             {[
               { v: pkg.price, l: "All-in price", c: brand },
-              { v: nights ? `${nights}d` : "12d", l: "Duration", c: "#2dd4a0" },
-              { v: "Solo-OK", l: "Solo-friendly", c: "#f5a623" },
-              { v: "18–35", l: "Age group", c: "#7c3aed" },
+              ...(nights ? [{ v: `${nights}d`, l: "Duration", c: "#2dd4a0" }] : []),
             ].map((s, i) => (
               <div key={i} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "24px 22px" }}>
                 <div style={{ fontSize: 36, fontWeight: 900, color: s.c, letterSpacing: "-1px", lineHeight: 1 }}>{s.v}</div>
@@ -131,8 +113,8 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
         {/* Itinerary 4-col */}
         {itinerary.length > 0 && (
           <DContainer style={{ padding: "32px 56px 56px" }}>
-            <Eyebrow text="What the days look like" brand={brand} light />
-            <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.8px", marginTop: 10, marginBottom: 24, color: "#fff" }}>Loose plan, real adventure.</h2>
+            <Eyebrow text={t.dayByDay} brand={brand} light />
+            <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.8px", marginTop: 10, marginBottom: 24, color: "#fff" }}>{t.yourJourney}</h2>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(itinerary.length, 4)}, 1fr)`, gap: 12 }}>
               {itinerary.slice(0, 4).map((it, i) => (
                 <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18 }}>
@@ -175,16 +157,6 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
             <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${brand}88, #0d1b2e)` }} />
           )}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.75) 100%)" }} />
-
-          {/* 18–35 pill badge */}
-          <div style={{
-            position: "absolute", top: 16, left: 16,
-            background: brand, color: "#fff",
-            padding: "5px 13px", borderRadius: 99, fontSize: 11, fontWeight: 800,
-            transform: "rotate(-3deg)", letterSpacing: "0.5px",
-          }}>
-            18–35 only
-          </div>
 
           {/* Oversized nights + destination at bottom */}
           <div style={{ position: "absolute", bottom: 20, left: 20, right: 20 }}>
