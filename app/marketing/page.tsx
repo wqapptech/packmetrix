@@ -172,7 +172,7 @@ function NavBar() {
             display: "inline-flex", alignItems: "center", gap: 6,
           }}
         >
-          Open Agency App →
+          See It in Action →
         </a>
       </div>
     </nav>

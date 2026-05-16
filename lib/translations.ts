@@ -563,6 +563,32 @@ const en = {
   // Branding — preview toggle
   previewDesktopBtn: "Desktop",
   previewMobileBtn: "Mobile",
+
+  // Branding — custom domain
+  customDomainSectionTitle: "Custom Domain",
+  customDomainSectionSub: "Let visitors reach your packages at your own domain instead of packmetrix.com.",
+  customDomainLabel: "Your domain",
+  customDomainPlaceholder: "e.g. packages.youragency.com",
+  customDomainSaveBtn: "Save domain",
+  customDomainSavingBtn: "Saving…",
+  customDomainSavedBtn: "Saved",
+  customDomainRemoveBtn: "Remove",
+  customDomainRemovingBtn: "Removing…",
+  customDomainActiveLabel: "Active domain",
+  customDomainDnsTitle: "How it works",
+  customDomainDnsStep1: "Enter your domain above and save it.",
+  customDomainDnsStep2: "We register it on our end and email you the DNS records to add (usually within a few hours).",
+  customDomainDnsStep3: "Add those records in your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.).",
+  customDomainDnsStep4: "DNS propagates within 24–48 hours — your packages go live at your domain.",
+  customDomainDnsNote: "SSL is provisioned automatically once your DNS records are verified.",
+  customDomainUpgradeTitle: "Custom domain is a Grow & Scale feature",
+  customDomainUpgradeSub: "Upgrade your plan to connect your own domain to your package pages.",
+  customDomainUpgradeBtn: "Upgrade plan",
+  customDomainCurrentUrl: "Your current packmetrix URL",
+  customDomainError: "Could not save domain. Please check the format and try again.",
+  customDomainRemoveError: "Could not remove domain. Please try again.",
+  customDomainConflictError: "This domain is already registered by another account.",
+  customDomainFormatError: "Invalid domain. Use format: packages.youragency.com",
 };
 
 const ar: typeof en = {
@@ -1128,6 +1154,32 @@ const ar: typeof en = {
   // Branding — preview toggle
   previewDesktopBtn: "سطح المكتب",
   previewMobileBtn: "الجوال",
+
+  // Branding — custom domain
+  customDomainSectionTitle: "النطاق المخصص",
+  customDomainSectionSub: "دع الزوار يصلون إلى باقاتك عبر نطاقك الخاص بدلاً من packmetrix.com.",
+  customDomainLabel: "نطاقك",
+  customDomainPlaceholder: "مثال: packages.youragency.com",
+  customDomainSaveBtn: "حفظ النطاق",
+  customDomainSavingBtn: "جارٍ الحفظ…",
+  customDomainSavedBtn: "تم الحفظ",
+  customDomainRemoveBtn: "إزالة",
+  customDomainRemovingBtn: "جارٍ الإزالة…",
+  customDomainActiveLabel: "النطاق النشط",
+  customDomainDnsTitle: "كيف يعمل",
+  customDomainDnsStep1: "أدخل نطاقك أعلاه واحفظه.",
+  customDomainDnsStep2: "سنسجّله من طرفنا ونرسل لك سجلات DNS عبر البريد الإلكتروني (عادةً في غضون ساعات).",
+  customDomainDnsStep3: "أضف تلك السجلات في مزود النطاق (GoDaddy أو Namecheap أو Cloudflare وغيرها).",
+  customDomainDnsStep4: "ينتشر DNS خلال 24–48 ساعة — تصبح باقاتك مباشرة على نطاقك.",
+  customDomainDnsNote: "يتم إصدار شهادة SSL تلقائياً بعد التحقق من سجلات DNS.",
+  customDomainUpgradeTitle: "النطاق المخصص متاح لخطتَي Grow وScale",
+  customDomainUpgradeSub: "ارقَّ خطتك لربط نطاقك الخاص بصفحات باقاتك.",
+  customDomainUpgradeBtn: "ترقية الخطة",
+  customDomainCurrentUrl: "رابط packmetrix الحالي",
+  customDomainError: "تعذّر حفظ النطاق. تحقق من الصيغة وحاول مجدداً.",
+  customDomainRemoveError: "تعذّرت الإزالة. حاول مجدداً.",
+  customDomainConflictError: "هذا النطاق مسجَّل بالفعل لحساب آخر.",
+  customDomainFormatError: "نطاق غير صالح. استخدم الصيغة: packages.youragency.com",
 };
 
 export const T: Record<Lang, typeof en> = { en, ar };

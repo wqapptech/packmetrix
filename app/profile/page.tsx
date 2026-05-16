@@ -14,6 +14,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_MAP } from "@/components/templates/index";
 import { IsDesktopProvider } from "@/components/templates/shared";
+import { canUseCustomDomain } from "@/lib/limits";
 import type { TPackage, TAgency } from "@/components/templates/types";
 
 const SAND = "#e8c97b";
@@ -342,6 +343,15 @@ export default function BrandingPage() {
   const [activeTemplate, setActiveTemplate] = useState(DEFAULT_TEMPLATE_ID);
   const [templateSaving, setTemplateSaving] = useState(false);
 
+  const [plan, setPlan] = useState<string>("");
+  const [agencySlug, setAgencySlug] = useState<string>("");
+  const [customDomain, setCustomDomain] = useState<string>("");
+  const [domainInput, setDomainInput] = useState<string>("");
+  const [domainSaving, setDomainSaving] = useState(false);
+  const [domainSaved, setDomainSaved] = useState(false);
+  const [domainRemoving, setDomainRemoving] = useState(false);
+  const [domainError, setDomainError] = useState<string | null>(null);
+
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -362,6 +372,11 @@ export default function BrandingPage() {
         if (d.activeTemplate) setActiveTemplate(d.activeTemplate);
         setEnableReviews(d.enableReviews === true);
         setShowReviews(d.showReviews !== false); // default true
+        setPlan(d.plan || "");
+        setAgencySlug(d.agencySlug || d.name || "");
+        const savedDomain = d.customDomain || "";
+        setCustomDomain(savedDomain);
+        setDomainInput(savedDomain);
       }
 
       setAuthLoading(false);
@@ -405,6 +420,56 @@ export default function BrandingPage() {
     setTemplateSaving(true);
     await updateDoc(doc(db, "users", uid), { activeTemplate: id });
     setTemplateSaving(false);
+  };
+
+  const handleSaveDomain = async () => {
+    if (!uid) return;
+    setDomainSaving(true);
+    setDomainError(null);
+    try {
+      const res = await fetch("/api/custom-domain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: uid, domain: domainInput }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setDomainError(json.error || t.customDomainError);
+        return;
+      }
+      setCustomDomain(json.domain);
+      setDomainInput(json.domain);
+      setDomainSaved(true);
+      setTimeout(() => setDomainSaved(false), 2500);
+    } catch {
+      setDomainError(t.customDomainError);
+    } finally {
+      setDomainSaving(false);
+    }
+  };
+
+  const handleRemoveDomain = async () => {
+    if (!uid) return;
+    setDomainRemoving(true);
+    setDomainError(null);
+    try {
+      const res = await fetch("/api/custom-domain", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: uid }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        setDomainError(json.error || t.customDomainRemoveError);
+        return;
+      }
+      setCustomDomain("");
+      setDomainInput("");
+    } catch {
+      setDomainError(t.customDomainRemoveError);
+    } finally {
+      setDomainRemoving(false);
+    }
   };
 
   if (authLoading) {
@@ -564,6 +629,114 @@ export default function BrandingPage() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Custom domain */}
+            <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{t.customDomainSectionTitle}</div>
+              <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.4)", marginBottom: 14 }}>{t.customDomainSectionSub}</div>
+
+              {!canUseCustomDomain(plan) ? (
+                /* ── Upgrade gate ── */
+                <div style={{ borderRadius: 10, background: "rgba(232,201,123,0.06)", border: "1px solid rgba(232,201,123,0.18)", padding: "16px 18px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <Icon name="lock" size={14} color={SAND} />
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: SAND }}>{t.customDomainUpgradeTitle}</div>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginBottom: 14 }}>{t.customDomainUpgradeSub}</div>
+                  <a
+                    href="/paywall"
+                    style={{ display: "inline-block", padding: "8px 16px", borderRadius: 8, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: "#0d1b2e", fontSize: 12, fontWeight: 700, textDecoration: "none" }}
+                  >
+                    {t.customDomainUpgradeBtn}
+                  </a>
+                </div>
+              ) : (
+                /* ── Domain form ── */
+                <div>
+                  {/* Current packmetrix URL */}
+                  {agencySlug && (
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 600, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 5 }}>
+                        {t.customDomainCurrentUrl}
+                      </div>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", fontFamily: "monospace", background: "rgba(255,255,255,0.04)", borderRadius: 7, padding: "6px 10px" }}>
+                        packmetrix.com/{encodeURIComponent(agencySlug)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Active domain badge */}
+                  {customDomain && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "8px 12px", borderRadius: 8, background: "rgba(45,212,160,0.08)", border: "1px solid rgba(45,212,160,0.2)" }}>
+                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: SUCCESS, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(45,212,160,0.8)", textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{t.customDomainActiveLabel}</div>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: SUCCESS, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{customDomain}</div>
+                      </div>
+                      <button
+                        onClick={handleRemoveDomain}
+                        disabled={domainRemoving}
+                        style={{ padding: "4px 10px", borderRadius: 6, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef9090", fontSize: 11, fontWeight: 600, cursor: domainRemoving ? "not-allowed" : "pointer", fontFamily: "inherit", flexShrink: 0 }}
+                      >
+                        {domainRemoving ? t.customDomainRemovingBtn : t.customDomainRemoveBtn}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Domain input */}
+                  <FieldLabel>{t.customDomainLabel}</FieldLabel>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      value={domainInput}
+                      onChange={e => { setDomainInput(e.target.value); setDomainError(null); }}
+                      placeholder={t.customDomainPlaceholder}
+                      style={{
+                        flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+                        borderRadius: 10, padding: "10px 14px", color: "#fdfcf9", fontSize: 13,
+                        fontFamily: "monospace", outline: "none",
+                      }}
+                      onFocus={e => (e.target.style.borderColor = `${SAND}60`)}
+                      onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
+                    />
+                    <button
+                      onClick={handleSaveDomain}
+                      disabled={domainSaving || !domainInput.trim() || domainInput.trim() === customDomain}
+                      style={{
+                        padding: "10px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700,
+                        background: domainSaved ? "rgba(45,212,160,0.15)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
+                        border: domainSaved ? `1px solid ${SUCCESS}` : "none",
+                        color: domainSaved ? SUCCESS : "#0d1b2e",
+                        fontFamily: "inherit", cursor: (domainSaving || !domainInput.trim() || domainInput.trim() === customDomain) ? "not-allowed" : "pointer",
+                        opacity: (!domainInput.trim() || domainInput.trim() === customDomain) ? 0.5 : 1,
+                        flexShrink: 0, whiteSpace: "nowrap" as const,
+                      }}
+                    >
+                      {domainSaving ? t.customDomainSavingBtn : domainSaved ? <><Icon name="check" size={12} color={SUCCESS} strokeWidth={2.5} /> {t.customDomainSavedBtn}</> : t.customDomainSaveBtn}
+                    </button>
+                  </div>
+
+                  {/* Error */}
+                  {domainError && (
+                    <div style={{ fontSize: 11.5, color: "#ef9090", marginTop: 8 }}>{domainError}</div>
+                  )}
+
+                  {/* DNS instructions */}
+                  <div style={{ marginTop: 16, padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Icon name="link" size={13} color="rgba(255,255,255,0.4)" />
+                      {t.customDomainDnsTitle}
+                    </div>
+                    <ol style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 16, paddingRight: lang === "ar" ? 16 : 0, listStyle: "decimal", display: "flex", flexDirection: "column" as const, gap: 6 }}>
+                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep1}</li>
+                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep2}</li>
+                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep3}</li>
+                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep4}</li>
+                    </ol>
+                    <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t.customDomainDnsNote}</div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Template selector */}

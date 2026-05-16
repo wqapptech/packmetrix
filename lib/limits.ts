@@ -46,3 +46,8 @@ export type PlanKey = keyof typeof PLAN_LIMITS;
 
 /** During trial, users get Grow-tier access. */
 export const TRIAL_PLAN_LIMITS = PLAN_LIMITS.grow;
+
+/** Returns true only for paid Grow or Scale plans. Trial is excluded intentionally. */
+export function canUseCustomDomain(plan: string | undefined): boolean {
+  return plan === "grow" || plan === "scale";
+}
