@@ -62,6 +62,7 @@ export async function proxy(request: NextRequest) {
     hostname.endsWith(".packmetrix.com") ||
     hostname.endsWith(".firebaseapp.com") ||
     hostname.endsWith(".web.app") ||
+    hostname.endsWith(".hosted.app") ||   // Firebase App Hosting default domain
     hostname.endsWith(".vercel.app") ||
     hostname.endsWith(".localhost")
   ) {
