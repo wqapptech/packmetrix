@@ -209,11 +209,9 @@ export default function Sidebar({
       <div style={{ padding: "0 20px 24px", display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{
           width: 32, height: 32,
-          background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-          borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0, fontSize: 15, fontWeight: 800, color: "#0a1426",
+          flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          P
+          <img src="/logo.svg" alt="Packmetrix" style={{ width: 32, height: 32, objectFit: "contain" }} />
         </div>
         <span style={{ fontWeight: 700, fontSize: 15.5, letterSpacing: "-0.3px", color: "#fdfcf9", flex: 1 }}>
           Pack<em style={{ color: SAND, fontStyle: "normal", fontWeight: 600 }}>metrix</em>
