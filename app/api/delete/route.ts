@@ -22,6 +22,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    const leadsSnap = await db.collection("leads").where("packageId", "==", id).get();
+    if (!leadsSnap.empty) {
+      const batch = db.batch();
+      leadsSnap.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+    }
+
     await ref.delete();
 
     return NextResponse.json({ success: true });
