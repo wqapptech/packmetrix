@@ -9,6 +9,7 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   linkWithCredential,
+  EmailAuthProvider,
   OAuthCredential,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -20,7 +21,7 @@ import { TRIAL_DAYS, trialEndsAtFromNow } from "@/lib/trial";
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
 
-type Step = "form" | "verify" | "link";
+type Step = "form" | "verify" | "link" | "add-password";
 
 const TRIAL_INCLUDES = [
   "Up to 30 packages",
@@ -81,6 +82,11 @@ function SignupPageInner() {
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
 
+  // email-first signup when Google account already exists
+  const [addPasswordPending, setAddPasswordPending] = useState<{ email: string; password: string } | null>(null);
+  const [addPasswordLoading, setAddPasswordLoading] = useState(false);
+  const [addPasswordError, setAddPasswordError] = useState<string | null>(null);
+
   const passwordTouched = password.length > 0;
   const passwordValid = password.length >= 8 && password.length <= 64;
   const confirmTouched = confirmPassword.length > 0;
@@ -109,10 +115,36 @@ function SignupPageInner() {
       posthog.capture("user_signed_up", { method: "email", trial_days: TRIAL_DAYS, from_gate: fromGate });
       setStep("verify");
     } catch (err: any) {
+      if (err?.code === "auth/email-already-in-use") {
+        setAddPasswordPending({ email, password });
+        setStep("add-password");
+        return;
+      }
       posthog.captureException(err);
       setError(friendlyError(err?.code) || err?.message || "Signup failed. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddPasswordToGoogle = async () => {
+    if (!addPasswordPending) return;
+    setAddPasswordLoading(true);
+    setAddPasswordError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ login_hint: addPasswordPending.email });
+      const userCred = await signInWithPopup(auth, provider);
+      const emailCredential = EmailAuthProvider.credential(addPasswordPending.email, addPasswordPending.password);
+      await linkWithCredential(userCred.user, emailCredential);
+      posthog.identify(userCred.user.uid, { email: userCred.user.email });
+      posthog.capture("account_linked", { method: "email_to_google", email: userCred.user.email });
+      router.push("/builder");
+    } catch (err: any) {
+      if (err?.code === "auth/popup-closed-by-user") return;
+      setAddPasswordError("Failed to link accounts. Please try again.");
+    } finally {
+      setAddPasswordLoading(false);
     }
   };
 
@@ -209,7 +241,7 @@ function SignupPageInner() {
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "40px 24px 60px", color: "#fdfcf9",
     }}>
-      <div className="fade-up" style={{ width: "100%", maxWidth: 880, display: "grid", gridTemplateColumns: step === "form" ? "1fr 1fr" : "1fr", gap: 40, alignItems: "start" }}>
+      <div className="fade-up" style={{ width: "100%", maxWidth: step === "form" ? 880 : 480, display: "grid", gridTemplateColumns: step === "form" ? "1fr 1fr" : "1fr", gap: 40, alignItems: "start" }}>
 
         {/* ── Left: trial pitch (form step only) ── */}
         {step === "form" && (
@@ -285,6 +317,41 @@ function SignupPageInner() {
                 Wrong email?{" "}
                 <button onClick={() => setStep("form")} style={{ background: "none", border: "none", fontSize: 12, color: SAND, cursor: "pointer", fontFamily: "inherit" }}>Go back</button>
               </p>
+            </div>
+          )}
+
+          {/* Add email/password to existing Google account */}
+          {step === "add-password" && addPasswordPending && (
+            <div style={{ maxWidth: 420, margin: "0 auto", textAlign: "center" }}>
+              <div style={{ width: 72, height: 72, borderRadius: 22, margin: "0 auto 28px", background: `${SAND}15`, border: `1px solid ${SAND}25`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="mail" size={30} color={SAND} strokeWidth={1.5} />
+              </div>
+              <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 10 }}>Account already exists</h2>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.6, marginBottom: 28 }}>
+                <span style={{ color: SAND, fontWeight: 600 }}>{addPasswordPending.email}</span> is already registered.
+                If you signed up with Google, click below to also enable password sign-in.
+                Otherwise, just log in.
+              </p>
+              {addPasswordError && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 16 }}>{addPasswordError}</p>}
+              <button
+                onClick={handleAddPasswordToGoogle}
+                disabled={addPasswordLoading}
+                style={{ width: "100%", padding: "13px 16px", background: addPasswordLoading ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, fontSize: 14, fontWeight: 600, color: addPasswordLoading ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.85)", fontFamily: "inherit", cursor: addPasswordLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}
+              >
+                {addPasswordLoading ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> Linking…</> : <><GoogleIcon /> Sign in with Google & enable password</>}
+              </button>
+              <a
+                href="/login"
+                style={{ display: "block", width: "100%", padding: "13px", background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, borderRadius: 12, fontSize: 14, fontWeight: 700, color: "#0d1b2e", textDecoration: "none", marginBottom: 20, boxSizing: "border-box" }}
+              >
+                Log in instead →
+              </a>
+              <button
+                onClick={() => { setStep("form"); setAddPasswordPending(null); setAddPasswordError(null); }}
+                style={{ background: "none", border: "none", fontSize: 13, color: "rgba(255,255,255,0.4)", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, margin: "0 auto" }}
+              >
+                <Icon name="arrow_left" size={14} color="rgba(255,255,255,0.4)" strokeWidth={2} /> Back
+              </button>
             </div>
           )}
 

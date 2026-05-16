@@ -589,6 +589,25 @@ const en = {
   customDomainRemoveError: "Could not remove domain. Please try again.",
   customDomainConflictError: "This domain is already registered by another account.",
   customDomainFormatError: "Invalid domain. Use format: packages.youragency.com",
+
+  // Custom domain — status
+  customDomainStatusPending: "Pending Setup",
+  customDomainStatusPendingDesc: "We received your domain. Our team will register it on our end and send you the DNS records — usually within a few hours.",
+  customDomainStatusRecordsReady: "DNS Records Ready",
+  customDomainStatusRecordsReadyDesc: "Add these records to your domain registrar to complete setup.",
+  customDomainStatusVerifying: "Verifying DNS",
+  customDomainStatusVerifyingDesc: "We're checking your DNS records. This can take up to 48 hours after you've added them.",
+  customDomainStatusActive: "Live",
+  customDomainStatusActiveDesc: "Your domain is fully configured and serving your packages.",
+  customDomainStatusError: "Issue Detected",
+  customDomainRecordsTitle: "DNS Records",
+  customDomainRecordType: "Type",
+  customDomainRecordName: "Name",
+  customDomainRecordValue: "Value",
+  customDomainCopyBtn: "Copy",
+  customDomainCopiedBtn: "Copied!",
+  customDomainRefreshBtn: "Refresh status",
+  customDomainRefreshingBtn: "Refreshing...",
 };
 
 const ar: typeof en = {
@@ -1180,6 +1199,25 @@ const ar: typeof en = {
   customDomainRemoveError: "تعذّرت الإزالة. حاول مجدداً.",
   customDomainConflictError: "هذا النطاق مسجَّل بالفعل لحساب آخر.",
   customDomainFormatError: "نطاق غير صالح. استخدم الصيغة: packages.youragency.com",
+
+  // Custom domain — status
+  customDomainStatusPending: "قيد الإعداد",
+  customDomainStatusPendingDesc: "استلمنا طلب نطاقك. سيقوم فريقنا بتسجيله وإرسال سجلات DNS إليك خلال ساعات قليلة.",
+  customDomainStatusRecordsReady: "سجلات DNS جاهزة",
+  customDomainStatusRecordsReadyDesc: "أضف هذه السجلات إلى مزود النطاق لإكمال الإعداد.",
+  customDomainStatusVerifying: "جارٍ التحقق من DNS",
+  customDomainStatusVerifyingDesc: "نتحقق من سجلات DNS الخاصة بك. قد يستغرق ذلك حتى 48 ساعة بعد إضافتها.",
+  customDomainStatusActive: "مباشر",
+  customDomainStatusActiveDesc: "تم إعداد نطاقك بالكامل وهو يخدم باقاتك الآن.",
+  customDomainStatusError: "تم اكتشاف مشكلة",
+  customDomainRecordsTitle: "سجلات DNS",
+  customDomainRecordType: "النوع",
+  customDomainRecordName: "الاسم",
+  customDomainRecordValue: "القيمة",
+  customDomainCopyBtn: "نسخ",
+  customDomainCopiedBtn: "تم النسخ!",
+  customDomainRefreshBtn: "تحديث الحالة",
+  customDomainRefreshingBtn: "جارٍ التحديث...",
 };
 
 export const T: Record<Lang, typeof en> = { en, ar };

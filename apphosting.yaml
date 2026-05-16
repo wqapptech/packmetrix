@@ -29,6 +29,8 @@ env:
     secret: OPENAI_API_KEY
   - variable: FIREBASE_ADMIN_KEY
     secret: FIREBASE_ADMIN_KEY
+  - variable: ADMIN_EMAILS
+    secret: ADMIN_EMAILS
 
   # Stripe — add these back once your Stripe account is set up
   # - variable: STRIPE_SECRET_KEY

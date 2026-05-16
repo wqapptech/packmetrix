@@ -13,6 +13,7 @@ if (!admin.apps.length) {
 }
 
 export const db = admin.apps[0] ? admin.firestore() : (null as any);
+export const adminAuth = admin.apps[0] ? admin.auth() : (null as any);
 export const bucket = admin.apps[0]
   ? admin.storage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET)
   : (null as any);

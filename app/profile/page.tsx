@@ -17,6 +17,9 @@ import { IsDesktopProvider } from "@/components/templates/shared";
 import { canUseCustomDomain } from "@/lib/limits";
 import type { TPackage, TAgency } from "@/components/templates/types";
 
+type DomainRecord = { type: string; name: string; value: string };
+type DomainStatus = "pending" | "records_ready" | "verifying" | "active" | "error" | "";
+
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
 
@@ -351,6 +354,11 @@ export default function BrandingPage() {
   const [domainSaved, setDomainSaved] = useState(false);
   const [domainRemoving, setDomainRemoving] = useState(false);
   const [domainError, setDomainError] = useState<string | null>(null);
+  const [domainStatus, setDomainStatus] = useState<DomainStatus>("");
+  const [domainRecords, setDomainRecords] = useState<DomainRecord[]>([]);
+  const [domainStatusMsg, setDomainStatusMsg] = useState<string>("");
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -377,6 +385,9 @@ export default function BrandingPage() {
         const savedDomain = d.customDomain || "";
         setCustomDomain(savedDomain);
         setDomainInput(savedDomain);
+        setDomainStatus((d.customDomainStatus as DomainStatus) || "");
+        setDomainRecords(d.customDomainRecords || []);
+        setDomainStatusMsg(d.customDomainStatusMsg || "");
       }
 
       setAuthLoading(false);
@@ -446,6 +457,26 @@ export default function BrandingPage() {
     } finally {
       setDomainSaving(false);
     }
+  };
+
+  const handleRefreshStatus = async () => {
+    if (!uid) return;
+    setRefreshing(true);
+    const snap = await getDoc(doc(db, "users", uid));
+    if (snap.exists()) {
+      const d = snap.data();
+      setDomainStatus((d.customDomainStatus as DomainStatus) || "");
+      setDomainRecords(d.customDomainRecords || []);
+      setDomainStatusMsg(d.customDomainStatusMsg || "");
+    }
+    setRefreshing(false);
+  };
+
+  const handleCopyRecord = (value: string, idx: number) => {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 2000);
+    });
   };
 
   const handleRemoveDomain = async () => {
@@ -666,24 +697,6 @@ export default function BrandingPage() {
                     </div>
                   )}
 
-                  {/* Active domain badge */}
-                  {customDomain && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "8px 12px", borderRadius: 8, background: "rgba(45,212,160,0.08)", border: "1px solid rgba(45,212,160,0.2)" }}>
-                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: SUCCESS, flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(45,212,160,0.8)", textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{t.customDomainActiveLabel}</div>
-                        <div style={{ fontSize: 12.5, fontWeight: 600, color: SUCCESS, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{customDomain}</div>
-                      </div>
-                      <button
-                        onClick={handleRemoveDomain}
-                        disabled={domainRemoving}
-                        style={{ padding: "4px 10px", borderRadius: 6, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef9090", fontSize: 11, fontWeight: 600, cursor: domainRemoving ? "not-allowed" : "pointer", fontFamily: "inherit", flexShrink: 0 }}
-                      >
-                        {domainRemoving ? t.customDomainRemovingBtn : t.customDomainRemoveBtn}
-                      </button>
-                    </div>
-                  )}
-
                   {/* Domain input */}
                   <FieldLabel>{t.customDomainLabel}</FieldLabel>
                   <div style={{ display: "flex", gap: 8 }}>
@@ -712,29 +725,120 @@ export default function BrandingPage() {
                         flexShrink: 0, whiteSpace: "nowrap" as const,
                       }}
                     >
-                      {domainSaving ? t.customDomainSavingBtn : domainSaved ? <><Icon name="check" size={12} color={SUCCESS} strokeWidth={2.5} /> {t.customDomainSavedBtn}</> : t.customDomainSaveBtn}
+                      {domainSaving ? t.customDomainSavingBtn : domainSaved
+                        ? <><Icon name="check" size={12} color={SUCCESS} strokeWidth={2.5} /> {t.customDomainSavedBtn}</>
+                        : t.customDomainSaveBtn}
                     </button>
                   </div>
+                  {domainError && <div style={{ fontSize: 11.5, color: "#ef9090", marginTop: 8 }}>{domainError}</div>}
 
-                  {/* Error */}
-                  {domainError && (
-                    <div style={{ fontSize: 11.5, color: "#ef9090", marginTop: 8 }}>{domainError}</div>
-                  )}
+                  {/* ── Status panel (shown once a domain is saved) ── */}
+                  {customDomain && (() => {
+                    const statusMeta: Record<string, { label: string; desc: string; color: string; bg: string; border: string }> = {
+                      pending:       { label: t.customDomainStatusPending,      desc: t.customDomainStatusPendingDesc,      color: "#f59e0b", bg: "rgba(245,158,11,0.07)",  border: "rgba(245,158,11,0.2)"  },
+                      records_ready: { label: t.customDomainStatusRecordsReady, desc: t.customDomainStatusRecordsReadyDesc, color: "#60a5fa", bg: "rgba(96,165,250,0.07)",  border: "rgba(96,165,250,0.2)"  },
+                      verifying:     { label: t.customDomainStatusVerifying,    desc: t.customDomainStatusVerifyingDesc,    color: "#a78bfa", bg: "rgba(167,139,250,0.07)", border: "rgba(167,139,250,0.2)" },
+                      active:        { label: t.customDomainStatusActive,       desc: t.customDomainStatusActiveDesc,       color: SUCCESS,   bg: "rgba(45,212,160,0.07)", border: "rgba(45,212,160,0.2)"  },
+                      error:         { label: t.customDomainStatusError,        desc: domainStatusMsg,                      color: "#f87171", bg: "rgba(248,113,113,0.07)", border: "rgba(248,113,113,0.2)" },
+                    };
+                    const meta = statusMeta[domainStatus] ?? statusMeta.pending;
+                    const showRecords = (domainStatus === "records_ready" || domainStatus === "verifying" || domainStatus === "error") && domainRecords.length > 0;
 
-                  {/* DNS instructions */}
-                  <div style={{ marginTop: 16, padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                      <Icon name="link" size={13} color="rgba(255,255,255,0.4)" />
-                      {t.customDomainDnsTitle}
+                    return (
+                      <div style={{ marginTop: 14, borderRadius: 11, border: `1px solid ${meta.border}`, background: meta.bg, overflow: "hidden" }}>
+                        {/* Status header */}
+                        <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                            {domainStatus === "verifying"
+                              ? <span className="spinner" style={{ width: 10, height: 10, borderTopColor: meta.color, flexShrink: 0 }} />
+                              : domainStatus === "active"
+                              ? <Icon name="check" size={12} color={meta.color} strokeWidth={2.5} />
+                              : <div style={{ width: 8, height: 8, borderRadius: "50%", background: meta.color, flexShrink: 0 }} />
+                            }
+                            <div>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: meta.color, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{meta.label}</div>
+                              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 1, fontFamily: "monospace" }}>{customDomain}</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                            <button
+                              onClick={handleRefreshStatus}
+                              disabled={refreshing}
+                              style={{ padding: "5px 10px", borderRadius: 7, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, cursor: refreshing ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                            >
+                              {refreshing ? t.customDomainRefreshingBtn : t.customDomainRefreshBtn}
+                            </button>
+                            <button
+                              onClick={handleRemoveDomain}
+                              disabled={domainRemoving}
+                              style={{ padding: "5px 10px", borderRadius: 7, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)", color: "#ef9090", fontSize: 11, fontWeight: 600, cursor: domainRemoving ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                            >
+                              {domainRemoving ? t.customDomainRemovingBtn : t.customDomainRemoveBtn}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Status description */}
+                        <div style={{ padding: "0 14px 12px", fontSize: 11.5, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>{meta.desc}</div>
+
+                        {/* DNS Records table */}
+                        {showRecords && (
+                          <div style={{ borderTop: `1px solid ${meta.border}`, padding: "12px 14px" }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 8 }}>
+                              {t.customDomainRecordsTitle}
+                            </div>
+                            <div style={{ borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)" }}>
+                              {/* Header row */}
+                              <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 1fr auto", background: "rgba(255,255,255,0.04)", padding: "6px 10px", gap: 8 }}>
+                                {[t.customDomainRecordType, t.customDomainRecordName, t.customDomainRecordValue, ""].map((h, i) => (
+                                  <div key={i} style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
+                                ))}
+                              </div>
+                              {/* Data rows */}
+                              {domainRecords.map((rec, idx) => (
+                                <div key={idx} style={{ display: "grid", gridTemplateColumns: "60px 1fr 1fr auto", padding: "8px 10px", gap: 8, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
+                                  <div style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 700, color: meta.color }}>{rec.type}</div>
+                                  <div style={{ fontFamily: "monospace", fontSize: 11.5, color: "rgba(255,255,255,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{rec.name}</div>
+                                  <div style={{ fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.6)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{rec.value}</div>
+                                  <button
+                                    onClick={() => handleCopyRecord(rec.value, idx)}
+                                    style={{ padding: "3px 9px", borderRadius: 5, background: copiedIdx === idx ? "rgba(45,212,160,0.12)" : "rgba(255,255,255,0.06)", border: `1px solid ${copiedIdx === idx ? "rgba(45,212,160,0.3)" : "rgba(255,255,255,0.1)"}`, color: copiedIdx === idx ? SUCCESS : "rgba(255,255,255,0.5)", fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const, transition: "all .15s" }}
+                                  >
+                                    {copiedIdx === idx ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Active state — no extra instructions needed */}
+                        {domainStatus === "active" && (
+                          <div style={{ borderTop: `1px solid ${meta.border}`, padding: "10px 14px", fontSize: 11.5, color: SUCCESS, display: "flex", alignItems: "center", gap: 6 }}>
+                            <Icon name="globe" size={13} color={SUCCESS} />
+                            {customDomain}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* How it works — shown only before a domain is saved */}
+                  {!customDomain && (
+                    <div style={{ marginTop: 16, padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                        <Icon name="link" size={13} color="rgba(255,255,255,0.4)" />
+                        {t.customDomainDnsTitle}
+                      </div>
+                      <ol style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 16, paddingRight: lang === "ar" ? 16 : 0, listStyle: "decimal", display: "flex", flexDirection: "column" as const, gap: 6 }}>
+                        <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep1}</li>
+                        <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep2}</li>
+                        <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep3}</li>
+                        <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep4}</li>
+                      </ol>
+                      <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t.customDomainDnsNote}</div>
                     </div>
-                    <ol style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 16, paddingRight: lang === "ar" ? 16 : 0, listStyle: "decimal", display: "flex", flexDirection: "column" as const, gap: 6 }}>
-                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep1}</li>
-                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep2}</li>
-                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep3}</li>
-                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep4}</li>
-                    </ol>
-                    <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t.customDomainDnsNote}</div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>

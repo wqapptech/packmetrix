@@ -76,8 +76,13 @@ export async function POST(req: Request) {
     updatedAt: Date.now(),
   });
 
-  // Persist on the user profile
-  await userRef.update({ customDomain: cleanDomain });
+  // Persist on the user profile — reset status/records whenever domain changes
+  await userRef.update({
+    customDomain: cleanDomain,
+    customDomainStatus: "pending",
+    customDomainRecords: [],
+    customDomainStatusMsg: "",
+  });
 
   return NextResponse.json({ success: true, domain: cleanDomain });
 }
@@ -105,7 +110,12 @@ export async function DELETE(req: Request) {
     await db.collection("customDomains").doc(domain).delete();
   }
 
-  await userRef.update({ customDomain: null });
+  await userRef.update({
+    customDomain: null,
+    customDomainStatus: null,
+    customDomainRecords: [],
+    customDomainStatusMsg: "",
+  });
 
   return NextResponse.json({ success: true });
 }

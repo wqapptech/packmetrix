@@ -67,6 +67,17 @@ export async function proxy(request: NextRequest) {
     "";
   const hostname = rawHost.split(":")[0].toLowerCase();
 
+  // Admin subdomain → rewrite to /admin routes
+  if (hostname === "admin.packmetrix.com") {
+    const pathname = request.nextUrl.pathname;
+    if (!pathname.startsWith("/admin")) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/admin${pathname === "/" ? "" : pathname}`;
+      return NextResponse.rewrite(url);
+    }
+    return NextResponse.next();
+  }
+
   // Always pass through for packmetrix infrastructure domains
   if (isInfrastructureHost(hostname)) {
     return NextResponse.next();
