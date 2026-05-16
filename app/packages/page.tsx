@@ -11,7 +11,7 @@ import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import posthog from "posthog-js";
-import { FREE_PACKAGE_LIMIT } from "@/lib/limits";
+import { hasFullAccess } from "@/lib/trial";
 import { BaseCard } from "@/components/templates/shared";
 import type { TAgency } from "@/components/templates/types";
 
@@ -48,7 +48,7 @@ export default function PackagesPage() {
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [agencySlug, setAgencySlug] = useState("agency");
-  const [isPro, setIsPro] = useState(false);
+  const [canCreate, setCanCreate] = useState(false);
   const [agency, setAgency] = useState<TAgency>({ name: "Agency" });
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function PackagesPage() {
       const data = snap.exists() ? snap.data() : {};
       const name = data.name || "";
       setAgencySlug(slugify(name) || "agency");
-      setIsPro(data.plan === "pro" || data.plan === "agency");
+      setCanCreate(hasFullAccess(data.plan, data.trialEndsAt));
       setAgency({
         name,
         tagline: data.tagline || "",
@@ -97,7 +97,7 @@ export default function PackagesPage() {
             </div>
           </div>
           <button
-            onClick={() => (!isPro && packages.length >= FREE_PACKAGE_LIMIT) ? router.push("/paywall") : router.push("/builder")}
+            onClick={() => canCreate ? router.push("/builder") : router.push("/paywall")}
             style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "9px 16px", borderRadius: 9,
@@ -129,7 +129,7 @@ export default function PackagesPage() {
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{t.createFirst}</div>
             </div>
             <button
-              onClick={() => (!isPro && packages.length >= FREE_PACKAGE_LIMIT) ? router.push("/paywall") : router.push("/builder")}
+              onClick={() => canCreate ? router.push("/builder") : router.push("/paywall")}
               style={{
                 padding: "10px 20px", borderRadius: 9,
                 background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,

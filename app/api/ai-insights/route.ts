@@ -1,13 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase-admin"; // IMPORTANT: use admin SDK in production
+import { db } from "@/lib/firebase-admin";
 import { generateInsights } from "@/lib/aiInsights";
-
-const PLAN_LIMITS = {
-  free: 10,
-  pro: 999999,
-};
+import { planAiLimit } from "@/lib/limits";
 
 // -----------------------------
 // STRIPE + AI USAGE CONTROLLED ROUTE
@@ -52,7 +48,7 @@ export async function POST(req: Request) {
 
     const plan = user?.plan || "free";
     const usage = user?.aiUsage || 0;
-    const limit = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS];
+    const limit = planAiLimit(plan);
 
     // -----------------------------
     // STRIPE LIMIT CHECK

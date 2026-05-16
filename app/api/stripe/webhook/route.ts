@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
 import { getPostHogClient } from "@/lib/posthog-server";
-import { FREE_AI_LIMIT } from "@/lib/limits";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +51,7 @@ export async function POST(req: Request) {
         const session = event.data.object;
 
         const userId = session.metadata?.userId;
+        const plan   = session.metadata?.plan ?? "grow";
         const customerId = session.customer as string;
 
         if (!userId) {
@@ -60,8 +60,7 @@ export async function POST(req: Request) {
 
         await db.collection("users").doc(userId).set(
           {
-            plan: "pro",
-            aiLimit: 999999,
+            plan,
             stripeCustomerId: customerId,
             updatedAt: Date.now(),
           },
@@ -72,7 +71,7 @@ export async function POST(req: Request) {
         posthog.capture({
           distinctId: userId,
           event: "subscription_completed",
-          properties: { stripe_customer_id: customerId, plan: "pro" },
+          properties: { stripe_customer_id: customerId, plan },
         });
         await posthog.shutdown();
 
@@ -93,7 +92,6 @@ export async function POST(req: Request) {
         snap.forEach(async (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
           await doc.ref.update({
             plan: "free",
-            aiLimit: FREE_AI_LIMIT,
             updatedAt: Date.now(),
           });
           posthogCancel.capture({

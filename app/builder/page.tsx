@@ -11,7 +11,8 @@ import { T, type Lang } from "@/lib/translations";
 import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import posthog from "posthog-js";
-import { FREE_PACKAGE_LIMIT, FREE_AI_LIMIT } from "@/lib/limits";
+import { FREE_AI_LIMIT } from "@/lib/limits";
+import { hasFullAccess } from "@/lib/trial";
 import type { TReview } from "@/components/templates/types";
 
 const SAND = "#e8c97b";
@@ -1301,13 +1302,9 @@ function BuilderPageInner() {
 
       if (!editId) {
         const userData = userSnap.exists() ? userSnap.data() : {};
-        const isPro = userData.plan === "pro" || userData.plan === "agency";
-        if (!isPro) {
-          const pkgSnap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid)));
-          if (pkgSnap.size >= FREE_PACKAGE_LIMIT) {
-            router.push("/paywall");
-            return;
-          }
+        if (!hasFullAccess(userData.plan, userData.trialEndsAt)) {
+          router.push("/paywall");
+          return;
         }
         posthog.capture("builder_opened", { mode: "new" });
       } else {

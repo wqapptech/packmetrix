@@ -15,6 +15,10 @@ env:
     value: "678625187977"
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
     value: "1:678625187977:web:9c05af52521bd47322ce58"
+  - variable: NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
+    value: "phc_mFfUXQMim7L3RkSkxyDmmtdsHKs98c5dGYLmmRXLEuic"
+  - variable: NEXT_PUBLIC_POSTHOG_HOST
+    value: "https://us.i.posthog.com"
 
   # Secrets
   - variable: OPENAI_API_KEY

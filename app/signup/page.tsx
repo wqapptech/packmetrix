@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useIsMobile } from "@/hooks/useIsMobile";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   createUserWithEmailAndPassword,
@@ -16,39 +15,21 @@ import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import Icon from "@/components/Icon";
 import posthog from "posthog-js";
-import { FREE_PACKAGE_LIMIT, FREE_AI_LIMIT } from "@/lib/limits";
+import { TRIAL_DAYS, trialEndsAtFromNow } from "@/lib/trial";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
 
-type PlanId = "free" | "pro" | "agency";
 type Step = "form" | "verify" | "link";
 
-const PLANS: { id: PlanId; price: string; period: string; badge?: string; features: string[]; cta: string; disabled?: boolean }[] = [
-  {
-    id: "free",
-    price: "€0",
-    period: "",
-    features: [`${FREE_PACKAGE_LIMIT} packages`, "Basic analytics", "Lead tracking", "WhatsApp & Messenger CTA"],
-    cta: "Start free",
-  },
-  {
-    id: "pro",
-    price: "€29",
-    period: "/mo",
-    badge: "Most popular",
-    features: ["Unlimited packages", "AI content writer", "Analytics per package", "Lead inbox", "Arabic + English pages", "Pexels photo library", "AI image generation (coming soon)", "Promo video creator (coming soon)"],
-    cta: "Start with Pro",
-  },
-  {
-    id: "agency",
-    price: "€79",
-    period: "/mo",
-    badge: "Coming Soon",
-    features: ["Everything in Pro", "Team seats (up to 5)", "White-label branding", "Custom domain", "📱 Companion mobile app"],
-    cta: "Notify me",
-    disabled: true,
-  },
+const TRIAL_INCLUDES = [
+  "Up to 30 packages",
+  "All templates",
+  "Full analytics + CSV export",
+  "Lead inbox + export",
+  "Custom domain + SSL",
+  "2 users",
+  "Priority email support",
 ];
 
 function friendlyError(code: string): string {
@@ -79,12 +60,10 @@ const inputStyle: React.CSSProperties = {
 
 function SignupPageInner() {
   const router = useRouter();
-  const isMobile = useIsMobile();
   const searchParams = useSearchParams();
   const fromGate = searchParams.get("from") === "gate";
 
   const [step, setStep] = useState<Step>("form");
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>("free");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,7 +76,6 @@ function SignupPageInner() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
 
-  // Account linking state (Google sign-in with existing email/password account)
   const [linkPending, setLinkPending] = useState<{ credential: OAuthCredential; email: string } | null>(null);
   const [linkPassword, setLinkPassword] = useState("");
   const [linkLoading, setLinkLoading] = useState(false);
@@ -109,31 +87,30 @@ function SignupPageInner() {
   const passwordsMatch = password === confirmPassword;
   const valid = name.trim() && email.trim() && passwordValid && passwordsMatch && confirmTouched;
 
+  const newUserDoc = (uid: string, userEmail: string | null, displayName?: string) => ({
+    email: userEmail,
+    name: displayName || name,
+    plan: "free",
+    trialEndsAt: trialEndsAtFromNow(),
+    aiUsage: 0,
+    stripeCustomerId: null,
+    createdAt: Date.now(),
+  });
+
   const handleSignup = async () => {
     if (!valid) return;
     setLoading(true);
     setError(null);
     try {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(db, "users", userCred.user.uid), {
-        email: userCred.user.email,
-        name,
-        plan: "free",
-        aiUsage: 0,
-        aiLimit: FREE_AI_LIMIT,
-        stripeCustomerId: null,
-        createdAt: Date.now(),
-      });
-      await sendEmailVerification(userCred.user, {
-        url: `${window.location.origin}/builder`,
-      });
+      await setDoc(doc(db, "users", userCred.user.uid), newUserDoc(userCred.user.uid, userCred.user.email));
+      await sendEmailVerification(userCred.user, { url: `${window.location.origin}/builder` });
       posthog.identify(userCred.user.uid, { email: userCred.user.email, name });
-      posthog.capture("user_signed_up", { plan: selectedPlan, email: userCred.user.email, from_gate: fromGate });
+      posthog.capture("user_signed_up", { method: "email", trial_days: TRIAL_DAYS, from_gate: fromGate });
       setStep("verify");
     } catch (err: any) {
       posthog.captureException(err);
-      const msg = friendlyError(err?.code);
-      setError(msg || err?.message || "Signup failed. Please try again.");
+      setError(friendlyError(err?.code) || err?.message || "Signup failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -150,29 +127,12 @@ function SignupPageInner() {
       const snap = await getDoc(docRef);
       const isNewUser = !snap.exists();
       if (isNewUser) {
-        await setDoc(docRef, {
-          email: user.email,
-          name: user.displayName || "",
-          plan: "free",
-          aiUsage: 0,
-          aiLimit: FREE_AI_LIMIT,
-          stripeCustomerId: null,
-          createdAt: Date.now(),
-        });
-        posthog.capture("user_signed_up", { method: "google", plan: selectedPlan, email: user.email, from_gate: fromGate });
+        await setDoc(docRef, newUserDoc(user.uid, user.email, user.displayName || ""));
+        posthog.capture("user_signed_up", { method: "google", trial_days: TRIAL_DAYS, from_gate: fromGate });
       } else {
         posthog.capture("user_logged_in", { method: "google", email: user.email });
       }
       posthog.identify(user.uid, { email: user.email, name: user.displayName });
-      if (isNewUser && selectedPlan === "pro") {
-        const res = await fetch("/api/stripe/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: user.uid, billingPeriod: "monthly" }),
-        });
-        const json = await res.json();
-        if (json.url) { window.location.href = json.url; return; }
-      }
       router.push("/builder");
     } catch (err: any) {
       if (err?.code === "auth/popup-closed-by-user") return;
@@ -186,8 +146,7 @@ function SignupPageInner() {
         }
       }
       posthog.captureException(err);
-      const msg = friendlyError(err?.code);
-      setError(msg || "Google sign-in failed. Please try again.");
+      setError(friendlyError(err?.code) || "Google sign-in failed. Please try again.");
     } finally {
       setGoogleLoading(false);
     }
@@ -205,8 +164,7 @@ function SignupPageInner() {
       router.push("/builder");
     } catch (err: any) {
       posthog.captureException(err);
-      const msg = friendlyError(err?.code);
-      setLinkError(msg || "Failed to link accounts. Please check your password.");
+      setLinkError(friendlyError(err?.code) || "Failed to link accounts. Please check your password.");
     } finally {
       setLinkLoading(false);
     }
@@ -219,15 +177,6 @@ function SignupPageInner() {
       if (!auth.currentUser) { router.push("/login"); return; }
       await auth.currentUser.reload();
       if (auth.currentUser.emailVerified) {
-        if (selectedPlan === "pro") {
-          const res = await fetch("/api/stripe/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: auth.currentUser.uid, billingPeriod: "monthly" }),
-          });
-          const json = await res.json();
-          if (json.url) { window.location.href = json.url; return; }
-        }
         router.push("/builder");
       } else {
         setVerifyError("Not verified yet — please click the link in your inbox.");
@@ -244,9 +193,7 @@ function SignupPageInner() {
     setResendLoading(true);
     setResendSent(false);
     try {
-      await sendEmailVerification(auth.currentUser, {
-        url: `${window.location.origin}/builder`,
-      });
+      await sendEmailVerification(auth.currentUser, { url: `${window.location.origin}/builder` });
       setResendSent(true);
     } catch {
       setVerifyError("Failed to resend. Please try again shortly.");
@@ -255,363 +202,153 @@ function SignupPageInner() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSignup();
-  };
-
   return (
     <div style={{
       minHeight: "100vh", background: "var(--navy, #0d1b2e)",
       fontFamily: "var(--font-dm-sans), 'DM Sans', sans-serif",
+      display: "flex", alignItems: "center", justifyContent: "center",
       padding: "40px 24px 60px", color: "#fdfcf9",
     }}>
-      <div className="fade-up" style={{ maxWidth: 860, margin: "0 auto" }}>
+      <div className="fade-up" style={{ width: "100%", maxWidth: 880, display: "grid", gridTemplateColumns: step === "form" ? "1fr 1fr" : "1fr", gap: 40, alignItems: "start" }}>
 
-        {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14, margin: "0 auto 14px",
-            background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Icon name="sparkle" size={22} color="#0d1b2e" strokeWidth={2} />
-          </div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Start growing your bookings</h1>
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>Choose a plan — upgrade or downgrade anytime.</p>
-        </div>
-
-        {fromGate && (
-          <div style={{
-            background: "rgba(46,212,160,0.08)", border: "1px solid rgba(46,212,160,0.2)",
-            borderRadius: 12, padding: "12px 16px", marginBottom: 28,
-            display: "flex", alignItems: "center", gap: 12, maxWidth: 480, margin: "0 auto 28px",
-          }}>
-            <Icon name="check" size={16} color="#2dd4a0" strokeWidth={2.5} />
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.65)" }}>
-              Your package is ready — create an account to save it
-            </span>
-          </div>
-        )}
-
-        {/* Verify email step */}
-        {step === "verify" && (
-          <div style={{ maxWidth: 420, margin: "0 auto", textAlign: "center" }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: 22, margin: "0 auto 28px",
-              background: "rgba(232,201,123,0.1)", border: "1px solid rgba(232,201,123,0.2)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <Icon name="mail" size={30} color={SAND} strokeWidth={1.5} />
-            </div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 10 }}>Verify your email</h2>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginBottom: 6, lineHeight: 1.6 }}>
-              We sent a verification link to
-            </p>
-            <p style={{ fontSize: 14, color: SAND, fontWeight: 600, marginBottom: 28 }}>{email}</p>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 32, lineHeight: 1.7 }}>
-              Click the link in the email to verify your account. Once verified, come back here to continue.
-            </p>
-
-            {verifyError && (
-              <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 16 }}>{verifyError}</p>
-            )}
-            {resendSent && (
-              <p style={{ fontSize: 12, color: SUCCESS, marginBottom: 16 }}>Verification email resent!</p>
-            )}
-
-            <button
-              onClick={handleContinueAfterVerify}
-              disabled={verifyLoading}
-              style={{
-                width: "100%", padding: "13px",
-                background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-                border: "none", borderRadius: 12,
-                fontSize: 14, fontWeight: 700, color: "#0d1b2e",
-                fontFamily: "inherit", cursor: verifyLoading ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                marginBottom: 14, opacity: verifyLoading ? 0.7 : 1,
-              }}
-            >
-              {verifyLoading
-                ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: "#0d1b2e" }} /> Checking…</>
-                : "I've verified my email →"}
-            </button>
-
-            <button
-              onClick={handleResendVerification}
-              disabled={resendLoading}
-              style={{
-                background: "none", border: "none", fontSize: 13,
-                color: resendLoading ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.4)",
-                cursor: resendLoading ? "not-allowed" : "pointer", fontFamily: "inherit",
-              }}
-            >
-              {resendLoading ? "Sending…" : "Resend verification email"}
-            </button>
-
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)", marginTop: 24, lineHeight: 1.6 }}>
-              Wrong email?{" "}
-              <button
-                onClick={() => setStep("form")}
-                style={{ background: "none", border: "none", fontSize: 12, color: SAND, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                Go back
-              </button>
-            </p>
-          </div>
-        )}
-
-        {/* Link accounts step */}
-        {step === "link" && linkPending && (
-          <div style={{ maxWidth: 420, margin: "0 auto" }}>
-            <div style={{
-              background: "rgba(232,201,123,0.08)", border: "1px solid rgba(232,201,123,0.2)",
-              borderRadius: 12, padding: "14px 16px", marginBottom: 20,
-              fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.5,
-            }}>
-              <strong style={{ color: SAND, display: "block", marginBottom: 4 }}>Account already exists</strong>
-              <span style={{ color: "#fdfcf9" }}>{linkPending.email}</span> already has a PackMetrix account.
-              Enter your password to link Google sign-in to it.
-            </div>
-
-            <input
-              type="password"
-              value={linkPassword}
-              onChange={e => setLinkPassword(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleLinkAccount(); }}
-              placeholder="Your existing password"
-              style={{ ...inputStyle, marginBottom: 14 }}
-              onFocus={e => (e.target.style.borderColor = `${SAND}70`)}
-              onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
-            />
-
-            {linkError && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 10 }}>{linkError}</p>}
-
-            <button
-              onClick={handleLinkAccount}
-              disabled={linkLoading}
-              style={{
-                width: "100%", padding: "13px",
-                background: linkLoading ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-                border: "none", borderRadius: 12,
-                fontSize: 14, fontWeight: 700,
-                color: linkLoading ? "rgba(255,255,255,0.3)" : "#0d1b2e",
-                fontFamily: "inherit", cursor: linkLoading ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                marginBottom: 16,
-              }}
-            >
-              {linkLoading
-                ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> Linking…</>
-                : "Link Google & sign in"}
-            </button>
-
-            <button
-              onClick={() => { setStep("form"); setLinkPending(null); setLinkPassword(""); setLinkError(null); }}
-              style={{
-                background: "none", border: "none", fontSize: 13,
-                color: "rgba(255,255,255,0.4)", cursor: "pointer", fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 6, margin: "0 auto",
-              }}
-            >
-              <Icon name="arrow_left" size={14} color="rgba(255,255,255,0.4)" strokeWidth={2} />
-              Back
-            </button>
-          </div>
-        )}
-
-        {/* Signup form step */}
+        {/* ── Left: trial pitch (form step only) ── */}
         {step === "form" && (
-          <>
-            {/* Plan picker */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 14, marginBottom: 36 }}>
-              {PLANS.map(plan => {
-                const isSelected = selectedPlan === plan.id;
-                const isPro = plan.id === "pro";
-                return (
-                  <div
-                    key={plan.id}
-                    onClick={() => !plan.disabled && setSelectedPlan(plan.id)}
-                    style={{
-                      borderRadius: 18,
-                      border: isSelected
-                        ? `2px solid ${isPro ? SAND : "rgba(255,255,255,0.3)"}`
-                        : "1px solid rgba(255,255,255,0.08)",
-                      background: isSelected
-                        ? isPro ? "rgba(232,201,123,0.07)" : "rgba(255,255,255,0.04)"
-                        : "rgba(255,255,255,0.02)",
-                      padding: "24px 22px",
-                      cursor: plan.disabled ? "default" : "pointer",
-                      position: "relative",
-                      opacity: plan.disabled ? 0.55 : 1,
-                      transition: "border 0.15s, background 0.15s",
-                    }}
-                  >
-                    {plan.badge && (
-                      <div style={{
-                        position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)",
-                        padding: "3px 12px", borderRadius: 99, fontSize: 10.5, fontWeight: 800,
-                        background: plan.id === "agency" ? "rgba(255,255,255,0.08)" : SAND,
-                        color: plan.id === "agency" ? "rgba(255,255,255,0.5)" : "#0a1426",
-                        whiteSpace: "nowrap",
-                      }}>{plan.badge}</div>
-                    )}
-
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: isSelected ? "#fff" : "rgba(255,255,255,0.6)", textTransform: "capitalize" }}>{plan.id}</div>
-                      <div style={{
-                        width: 16, height: 16, borderRadius: "50%",
-                        border: `2px solid ${isSelected ? (isPro ? SAND : "rgba(255,255,255,0.6)") : "rgba(255,255,255,0.2)"}`,
-                        background: isSelected ? (isPro ? SAND : "rgba(255,255,255,0.6)") : "transparent",
-                        flexShrink: 0, marginTop: 1,
-                      }} />
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginBottom: 16 }}>
-                      <span style={{
-                        fontFamily: "'DM Serif Display', serif", fontSize: 30,
-                        color: isSelected ? (isPro ? SAND : "#fff") : "rgba(255,255,255,0.4)",
-                        letterSpacing: "-0.6px",
-                      }}>{plan.price}</span>
-                      {plan.period && <span style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>{plan.period}</span>}
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                      {plan.features.map((f, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12 }}>
-                          <span style={{ color: isSelected ? SUCCESS : "rgba(255,255,255,0.25)", fontSize: 10 }}>✓</span>
-                          <span style={{ color: isSelected ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.35)" }}>{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
+              <img src="/logo.svg" alt="PackMetrix" style={{ width: 28, height: 28 }} />
+              <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-0.3px" }}>
+                Pack<em style={{ color: SAND, fontStyle: "normal" }}>metrix</em>
+              </span>
             </div>
 
-            {/* Form area */}
-            <div style={{ maxWidth: 420, margin: "0 auto" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: `${SAND}18`, border: `1px solid ${SAND}35`, borderRadius: 99, padding: "4px 12px", fontSize: 11.5, fontWeight: 600, color: SAND, marginBottom: 20 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: SUCCESS, display: "inline-block" }} />
+              {TRIAL_DAYS}-day free trial
+            </div>
 
-              {/* Google sign-up */}
-              <button
-                onClick={handleGoogleSignup}
-                disabled={googleLoading}
-                style={{
-                  width: "100%", padding: "12px 16px",
-                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 12, fontSize: 14, fontWeight: 600,
-                  color: "rgba(255,255,255,0.85)", fontFamily: "inherit",
-                  cursor: googleLoading ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                  marginBottom: 16, transition: "background 0.15s",
-                }}
-                onMouseEnter={e => { if (!googleLoading) (e.currentTarget.style.background = "rgba(255,255,255,0.1)"); }}
-                onMouseLeave={e => { (e.currentTarget.style.background = "rgba(255,255,255,0.06)"); }}
-              >
-                {googleLoading
-                  ? <span className="spinner" style={{ width: 18, height: 18, borderTopColor: SAND }} />
-                  : <GoogleIcon />}
+            <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 400, lineHeight: 1.12, letterSpacing: "-0.8px", marginBottom: 14 }}>
+              Try the full product,{" "}
+              <em style={{ color: SAND, fontStyle: "italic" }}>free for {TRIAL_DAYS} days</em>
+            </h1>
+
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.7, marginBottom: 28 }}>
+              No credit card required. Get full access to everything — then choose a plan that fits your agency once you've seen the results.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".7px", color: "rgba(255,255,255,0.3)", marginBottom: 12 }}>
+                What's included in your trial
+              </div>
+              {TRIAL_INCLUDES.map((f) => (
+                <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 6, background: `${SUCCESS}18`, border: `1px solid ${SUCCESS}30`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <span style={{ color: SUCCESS, fontSize: 10, fontWeight: 700 }}>✓</span>
+                  </div>
+                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{f}</span>
+                </div>
+              ))}
+            </div>
+
+            {fromGate && (
+              <div style={{ background: `${SUCCESS}10`, border: `1px solid ${SUCCESS}25`, borderRadius: 10, padding: "10px 14px", marginTop: 20, display: "flex", alignItems: "center", gap: 10 }}>
+                <Icon name="check" size={14} color={SUCCESS} strokeWidth={2.5} />
+                <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.65)" }}>Your package is ready — create an account to save it</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Right: form / verify / link ── */}
+        <div>
+
+          {/* Verify email */}
+          {step === "verify" && (
+            <div style={{ maxWidth: 420, margin: "0 auto", textAlign: "center" }}>
+              <div style={{ width: 72, height: 72, borderRadius: 22, margin: "0 auto 28px", background: `${SAND}15`, border: `1px solid ${SAND}25`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="mail" size={30} color={SAND} strokeWidth={1.5} />
+              </div>
+              <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 10 }}>Verify your email</h2>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginBottom: 6, lineHeight: 1.6 }}>We sent a link to</p>
+              <p style={{ fontSize: 14, color: SAND, fontWeight: 600, marginBottom: 28 }}>{email}</p>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 32, lineHeight: 1.7 }}>
+                Click the link to verify, then come back here. Your {TRIAL_DAYS}-day trial starts immediately.
+              </p>
+              {verifyError && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 16 }}>{verifyError}</p>}
+              {resendSent && <p style={{ fontSize: 12, color: SUCCESS, marginBottom: 16 }}>Verification email resent!</p>}
+              <button onClick={handleContinueAfterVerify} disabled={verifyLoading} style={{ width: "100%", padding: "13px", background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, color: "#0d1b2e", fontFamily: "inherit", cursor: verifyLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 14, opacity: verifyLoading ? 0.7 : 1 }}>
+                {verifyLoading ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: "#0d1b2e" }} /> Checking…</> : "I've verified my email →"}
+              </button>
+              <button onClick={handleResendVerification} disabled={resendLoading} style={{ background: "none", border: "none", fontSize: 13, color: resendLoading ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.4)", cursor: resendLoading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                {resendLoading ? "Sending…" : "Resend verification email"}
+              </button>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)", marginTop: 24 }}>
+                Wrong email?{" "}
+                <button onClick={() => setStep("form")} style={{ background: "none", border: "none", fontSize: 12, color: SAND, cursor: "pointer", fontFamily: "inherit" }}>Go back</button>
+              </p>
+            </div>
+          )}
+
+          {/* Link accounts */}
+          {step === "link" && linkPending && (
+            <div style={{ maxWidth: 420, margin: "0 auto" }}>
+              <div style={{ background: `${SAND}10`, border: `1px solid ${SAND}25`, borderRadius: 12, padding: "14px 16px", marginBottom: 20, fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
+                <strong style={{ color: SAND, display: "block", marginBottom: 4 }}>Account already exists</strong>
+                <span style={{ color: "#fdfcf9" }}>{linkPending.email}</span> already has a PackMetrix account. Enter your password to link Google sign-in to it.
+              </div>
+              <input type="password" value={linkPassword} onChange={e => setLinkPassword(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleLinkAccount(); }} placeholder="Your existing password" style={{ ...inputStyle, marginBottom: 14 }} onFocus={e => (e.target.style.borderColor = `${SAND}70`)} onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")} />
+              {linkError && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 10 }}>{linkError}</p>}
+              <button onClick={handleLinkAccount} disabled={linkLoading} style={{ width: "100%", padding: "13px", background: linkLoading ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`, border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, color: linkLoading ? "rgba(255,255,255,0.3)" : "#0d1b2e", fontFamily: "inherit", cursor: linkLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+                {linkLoading ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> Linking…</> : "Link Google & sign in"}
+              </button>
+              <button onClick={() => { setStep("form"); setLinkPending(null); setLinkPassword(""); setLinkError(null); }} style={{ background: "none", border: "none", fontSize: 13, color: "rgba(255,255,255,0.4)", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, margin: "0 auto" }}>
+                <Icon name="arrow_left" size={14} color="rgba(255,255,255,0.4)" strokeWidth={2} /> Back
+              </button>
+            </div>
+          )}
+
+          {/* Signup form */}
+          {step === "form" && (
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "32px 28px" }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Create your account</h2>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 24 }}>No credit card required</p>
+
+              <button onClick={handleGoogleSignup} disabled={googleLoading} style={{ width: "100%", padding: "12px 16px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.85)", fontFamily: "inherit", cursor: googleLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16, transition: "background 0.15s" }} onMouseEnter={e => { if (!googleLoading) e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }} onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}>
+                {googleLoading ? <span className="spinner" style={{ width: 18, height: 18, borderTopColor: SAND }} /> : <GoogleIcon />}
                 Continue with Google
               </button>
 
-              {/* Divider */}
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                 <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
                 <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", whiteSpace: "nowrap" }}>or sign up with email</span>
                 <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
               </div>
 
-              {/* Email/password fields */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
                 {[
                   { value: name, setter: setName, placeholder: "Your name or agency name", type: "text" },
                   { value: email, setter: setEmail, placeholder: "Work email", type: "email" },
                 ].map((field, i) => (
-                  <input
-                    key={i}
-                    type={field.type}
-                    value={field.value}
-                    onChange={e => field.setter(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={field.placeholder}
-                    style={inputStyle}
-                    onFocus={e => (e.target.style.borderColor = `${SAND}70`)}
-                    onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
-                  />
+                  <input key={i} type={field.type} value={field.value} onChange={e => field.setter(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSignup(); }} placeholder={field.placeholder} style={inputStyle} onFocus={e => (e.target.style.borderColor = `${SAND}70`)} onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")} />
                 ))}
                 <div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Create a password"
-                    style={{
-                      ...inputStyle,
-                      borderColor: passwordTouched && !passwordValid ? "#ef9090" : undefined,
-                    }}
-                    onFocus={e => (e.target.style.borderColor = passwordTouched && !passwordValid ? "#ef9090" : `${SAND}70`)}
-                    onBlur={e => (e.target.style.borderColor = passwordTouched && !passwordValid ? "#ef9090" : "rgba(255,255,255,0.1)")}
-                  />
-                  <p style={{
-                    fontSize: 11.5, marginTop: 6, marginLeft: 2,
-                    color: passwordTouched && !passwordValid ? "#ef9090" : "rgba(255,255,255,0.25)",
-                  }}>
-                    {passwordTouched && password.length > 64
-                      ? "Password must be 64 characters or fewer."
-                      : "8–64 characters."}
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSignup(); }} placeholder="Create a password" style={{ ...inputStyle, borderColor: passwordTouched && !passwordValid ? "#ef9090" : undefined }} onFocus={e => (e.target.style.borderColor = passwordTouched && !passwordValid ? "#ef9090" : `${SAND}70`)} onBlur={e => (e.target.style.borderColor = passwordTouched && !passwordValid ? "#ef9090" : "rgba(255,255,255,0.1)")} />
+                  <p style={{ fontSize: 11.5, marginTop: 5, color: passwordTouched && !passwordValid ? "#ef9090" : "rgba(255,255,255,0.25)" }}>
+                    {passwordTouched && password.length > 64 ? "Max 64 characters." : "8–64 characters."}
                   </p>
                 </div>
                 <div>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Confirm password"
-                    style={{
-                      ...inputStyle,
-                      borderColor: confirmTouched && !passwordsMatch ? "#ef9090" : undefined,
-                    }}
-                    onFocus={e => (e.target.style.borderColor = confirmTouched && !passwordsMatch ? "#ef9090" : `${SAND}70`)}
-                    onBlur={e => (e.target.style.borderColor = confirmTouched && !passwordsMatch ? "#ef9090" : "rgba(255,255,255,0.1)")}
-                  />
-                  {confirmTouched && !passwordsMatch && (
-                    <p style={{ fontSize: 11.5, marginTop: 6, marginLeft: 2, color: "#ef9090" }}>
-                      Passwords don't match.
-                    </p>
-                  )}
+                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSignup(); }} placeholder="Confirm password" style={{ ...inputStyle, borderColor: confirmTouched && !passwordsMatch ? "#ef9090" : undefined }} onFocus={e => (e.target.style.borderColor = confirmTouched && !passwordsMatch ? "#ef9090" : `${SAND}70`)} onBlur={e => (e.target.style.borderColor = confirmTouched && !passwordsMatch ? "#ef9090" : "rgba(255,255,255,0.1)")} />
+                  {confirmTouched && !passwordsMatch && <p style={{ fontSize: 11.5, marginTop: 5, color: "#ef9090" }}>Passwords don't match.</p>}
                 </div>
               </div>
 
               {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 10 }}>{error}</p>}
 
-              <button
-                onClick={handleSignup}
-                disabled={loading || !valid}
-                style={{
-                  width: "100%", padding: "13px",
-                  background: !valid ? "rgba(255,255,255,0.06)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-                  border: "none", borderRadius: 12,
-                  fontSize: 14, fontWeight: 700,
-                  color: !valid ? "rgba(255,255,255,0.25)" : "#0d1b2e",
-                  fontFamily: "inherit", cursor: !valid ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  transition: "all 0.2s",
-                }}
-              >
-                {loading ? (
-                  <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> Creating account…</>
-                ) : selectedPlan === "pro" ? "Create account & go Pro →" : "Create free account"}
+              <button onClick={handleSignup} disabled={loading || !valid} style={{ width: "100%", padding: "13px", background: !valid ? "rgba(255,255,255,0.06)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`, border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, color: !valid ? "rgba(255,255,255,0.25)" : "#0d1b2e", fontFamily: "inherit", cursor: !valid ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}>
+                {loading ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> Creating account…</> : `Start ${TRIAL_DAYS}-day free trial →`}
               </button>
 
-              {selectedPlan === "pro" && (
-                <p style={{ textAlign: "center", fontSize: 11.5, color: "rgba(255,255,255,0.3)", marginTop: 10 }}>
-                  You'll be redirected to Stripe to complete payment. Cancel anytime.
-                </p>
-              )}
-
-              <p style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.25)", marginTop: 14, lineHeight: 1.6 }}>
+              <p style={{ textAlign: "center", fontSize: 11.5, color: "rgba(255,255,255,0.25)", marginTop: 12, lineHeight: 1.6 }}>
                 By signing up you agree to our Terms & Privacy Policy.
               </p>
               <p style={{ textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.35)", marginTop: 8 }}>
@@ -619,8 +356,8 @@ function SignupPageInner() {
                 <a href="/login" style={{ color: SAND, fontWeight: 600, textDecoration: "none" }}>Log in</a>
               </p>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
