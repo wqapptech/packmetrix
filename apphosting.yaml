@@ -34,14 +34,34 @@ env:
   - variable: ADMIN_EMAILS
     secret: ADMIN_EMAILS
 
-  # Stripe — add these back once your Stripe account is set up
-  # - variable: STRIPE_SECRET_KEY
-  #   secret: STRIPE_SECRET_KEY
-  # - variable: STRIPE_PRICE_ID
-  #   secret: STRIPE_PRICE_ID
-  # - variable: STRIPE_PRICE_ID_ANNUAL
-  #   secret: STRIPE_PRICE_ID_ANNUAL
-  # - variable: STRIPE_SUCCESS_URL
-  #   secret: STRIPE_SUCCESS_URL
-  # - variable: STRIPE_CANCEL_URL
-  #   secret: STRIPE_CANCEL_URL
+  # Stripe — secrets (sensitive values stored in Secret Manager)
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
+  - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    secret: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+
+  # Stripe — price IDs (non-sensitive, safe to commit)
+  - variable: STRIPE_PRICE_ID
+    value: "price_1TYBai1w5lYoLZrL4zn8M2mB"
+  - variable: STRIPE_PRICE_ID_ANNUAL
+    value: "price_1TYBbV1w5lYoLZrLxVadNDwv"
+  - variable: STRIPE_PRICE_ID_START_MONTHLY
+    value: "price_1TYBYa1w5lYoLZrLFdxONtJd"
+  - variable: STRIPE_PRICE_ID_START_ANNUAL
+    value: "price_1TYBZg1w5lYoLZrLa6RcCaUD"
+  - variable: STRIPE_PRICE_ID_GROW_MONTHLY
+    value: "price_1TYBai1w5lYoLZrL4zn8M2mB"
+  - variable: STRIPE_PRICE_ID_GROW_ANNUAL
+    value: "price_1TYBbV1w5lYoLZrLxVadNDwv"
+  - variable: STRIPE_PRICE_ID_SCALE_MONTHLY
+    value: "price_1TYBc61w5lYoLZrLLhQuZuWe"
+  - variable: STRIPE_PRICE_ID_SCALE_ANNUAL
+    value: "price_1TYBco1w5lYoLZrLFq4ay7pE"
+
+  # Stripe — redirect URLs
+  - variable: STRIPE_SUCCESS_URL
+    value: "https://packmetrix.com/dashboard"
+  - variable: STRIPE_CANCEL_URL
+    value: "https://packmetrix.com/paywall"

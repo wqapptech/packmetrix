@@ -1,4 +1,4 @@
-export const TRIAL_DAYS = 60; // change to 14 after validation
+export const TRIAL_DAYS = 30;
 
 export function trialEndsAtFromNow(): number {
   return Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000;

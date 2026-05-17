@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { db } from "@/lib/firebase-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -27,18 +28,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
+    // Fetch user to check for existing Stripe customer/subscription
+    const userDoc = await db.collection("users").doc(userId).get();
+    const userData = userDoc.data() ?? {};
+    const { stripeCustomerId, stripeSubscriptionId } = userData;
+
+    // Derive return URL from request origin
+    const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+    // If user already has an active subscription, send them to the billing portal to upgrade/downgrade
+    if (stripeSubscriptionId) {
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: stripeCustomerId,
+        return_url: `${origin}/paywall`,
+      });
+      return NextResponse.json({ url: portalSession.url });
+    }
+
     const period = billingPeriod === "annual" ? "annual" : "monthly";
     const priceId = PRICE_IDS[plan]?.[period] ?? PRICE_IDS.grow[period];
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: process.env.STRIPE_SUCCESS_URL!,
       cancel_url: process.env.STRIPE_CANCEL_URL!,
       metadata: { userId, plan },
-    });
+      subscription_data: {
+        metadata: { userId, plan },
+      },
+    };
 
+    // Attach existing Stripe customer so we don't create duplicates
+    if (stripeCustomerId) {
+      sessionParams.customer = stripeCustomerId;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
     return NextResponse.json({ url: session.url });
   } catch (err) {
     console.error("Stripe error:", err);

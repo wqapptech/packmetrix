@@ -686,6 +686,10 @@ const en = {
   billedAnnuallyPrefix: "billed €",
   subscribeToBtn: "✦ Subscribe to",
   choosePlanBtn: "Choose",
+  currentPlanBtn: "Current Plan",
+  currentPlanBadge: "CURRENT",
+  switchPlanBtn: "Switch Plan",
+  manageSubscriptionBtn: "Manage Subscription",
 
   // Paywall — stats labels
   billingTotalViews: "Total views",
@@ -1408,6 +1412,10 @@ const ar: typeof en = {
   billedAnnuallyPrefix: "مدفوع €",
   subscribeToBtn: "✦ اشترك في",
   choosePlanBtn: "اختر",
+  currentPlanBtn: "الخطة الحالية",
+  currentPlanBadge: "الحالية",
+  switchPlanBtn: "تغيير الخطة",
+  manageSubscriptionBtn: "إدارة الاشتراك",
 
   // Paywall — stats labels
   billingTotalViews: "إجمالي المشاهدات",

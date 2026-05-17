@@ -90,16 +90,21 @@ function FeatureRow({ label, included, soon, t }: { label: string; included: boo
 }
 
 function PlanCard({
-  planKey, annual, selected, onSelect, loading, t,
+  planKey, annual, userPlan, isPaid, stripeCustomerId, loading, onSubscribe, onManage, t,
 }: {
   planKey: PlanKey;
   annual: boolean;
-  selected: boolean;
-  onSelect: () => void;
+  userPlan: string;
+  isPaid: boolean;
+  stripeCustomerId: string | null;
   loading: boolean;
+  onSubscribe: (plan: PlanKey) => void;
+  onManage: () => void;
   t: TDict;
 }) {
   const isGrow = planKey === "grow";
+  const isCurrent = userPlan === planKey;
+  const hasStripeCustomer = !!stripeCustomerId;
   const price = annual ? ANNUAL_MONTHLY[planKey] : MONTHLY[planKey];
   const labels: Record<PlanKey, string> = { start: t.planStartLabel, grow: t.planGrowLabel, scale: t.planScaleLabel };
   const descs: Record<PlanKey, string> = {
@@ -109,14 +114,31 @@ function PlanCard({
   };
   const features = getPlanFeatures(t);
 
+  const handleClick = () => {
+    if (isCurrent) return;
+    // Only use portal if there's a real Stripe customer; otherwise fall through to checkout
+    if (isPaid && hasStripeCustomer) {
+      onManage();
+    } else {
+      onSubscribe(planKey);
+    }
+  };
+
+  const btnLabel = () => {
+    if (isCurrent) return t.currentPlanBtn ?? "Current Plan";
+    if (isPaid && hasStripeCustomer) return t.switchPlanBtn ?? "Switch Plan";
+    if (loading) return t.redirectingBtn;
+    return `${t.subscribeToBtn} ${labels[planKey]}`;
+  };
+
   return (
     <div
-      onClick={onSelect}
+      onClick={handleClick}
       style={{
-        border: `1px solid ${selected ? SAND : isGrow ? "rgba(232,201,123,0.25)" : "rgba(255,255,255,0.09)"}`,
+        border: `1px solid ${isCurrent ? SAND : isGrow ? "rgba(232,201,123,0.25)" : "rgba(255,255,255,0.09)"}`,
         borderRadius: 18,
         padding: "24px 22px",
-        background: selected
+        background: isCurrent
           ? `linear-gradient(160deg, rgba(232,201,123,0.09), rgba(11,20,36,0.5))`
           : isGrow
             ? "rgba(232,201,123,0.03)"
@@ -136,8 +158,20 @@ function PlanCard({
         }}>{t.mostPopular}</div>
       )}
 
+      {isCurrent && (
+        <div style={{
+          position: "absolute", top: -11, right: 18,
+          background: "rgba(45,212,160,0.15)",
+          border: "1px solid rgba(45,212,160,0.3)",
+          color: SUCCESS, fontSize: 9, fontWeight: 800,
+          padding: "3px 10px", borderRadius: 99, letterSpacing: ".5px",
+        }}>
+          {t.currentPlanBadge ?? "CURRENT"}
+        </div>
+      )}
+
       <div>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: isGrow ? SAND : "rgba(255,255,255,0.9)" }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: isCurrent ? SAND : isGrow ? SAND : "rgba(255,255,255,0.9)" }}>
           {labels[planKey]}
         </div>
         <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.4)" }}>{descs[planKey]}</div>
@@ -160,26 +194,29 @@ function PlanCard({
       </div>
 
       <button
-        onClick={(e) => { e.stopPropagation(); onSelect(); }}
-        disabled={loading && selected}
+        onClick={(e) => { e.stopPropagation(); handleClick(); }}
+        disabled={loading || isCurrent}
         style={{
           width: "100%", padding: "11px", borderRadius: 9, fontSize: 13, fontWeight: 700,
-          border: `1px solid ${selected ? SAND : isGrow ? "rgba(232,201,123,0.3)" : "rgba(255,255,255,0.1)"}`,
-          background: selected
-            ? `linear-gradient(135deg, ${SAND}, #c4a84f)`
-            : isGrow
-              ? "rgba(232,201,123,0.08)"
-              : "none",
-          color: selected ? "#0a1426" : isGrow ? SAND : "rgba(255,255,255,0.5)",
-          cursor: loading && selected ? "not-allowed" : "pointer",
+          border: `1px solid ${isCurrent ? "rgba(45,212,160,0.3)" : isGrow ? "rgba(232,201,123,0.3)" : "rgba(255,255,255,0.1)"}`,
+          background: isCurrent
+            ? "rgba(45,212,160,0.08)"
+            : isPaid
+              ? `linear-gradient(135deg, ${SAND}, #c4a84f)`
+              : isGrow
+                ? "rgba(232,201,123,0.08)"
+                : "none",
+          color: isCurrent ? SUCCESS : isPaid ? "#0a1426" : isGrow ? SAND : "rgba(255,255,255,0.5)",
+          cursor: loading || isCurrent ? "not-allowed" : "pointer",
           fontFamily: "inherit",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
           transition: "all 0.15s",
+          opacity: isCurrent ? 0.7 : 1,
         }}
       >
-        {loading && selected
-          ? <><span className="spinner" style={{ width: 13, height: 13, borderTopColor: selected ? "#0a1426" : SAND }} /> {t.redirectingBtn}</>
-          : selected ? `${t.subscribeToBtn} ${labels[planKey]}` : `${t.choosePlanBtn} ${labels[planKey]}`
+        {loading
+          ? <><span className="spinner" style={{ width: 13, height: 13, borderTopColor: isPaid ? "#0a1426" : SAND }} /> {t.redirectingBtn}</>
+          : btnLabel()
         }
       </button>
     </div>
@@ -200,9 +237,9 @@ export default function PaywallPage() {
   const [totalClicks, setTotalClicks] = useState(0);
   const [avgPrice, setAvgPrice] = useState(800);
   const [annual, setAnnual] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("grow");
   const [trialEndsAt, setTrialEndsAt] = useState<number | null>(null);
   const [userPlan, setUserPlan] = useState<string>("free");
+  const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -212,6 +249,7 @@ export default function PaywallPage() {
       if (userSnap.exists()) {
         setTrialEndsAt(userSnap.data()?.trialEndsAt ?? null);
         setUserPlan(userSnap.data()?.plan ?? "free");
+        setStripeCustomerId(userSnap.data()?.stripeCustomerId ?? null);
       }
       const snap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid)));
       const pkgs = snap.docs.map(d => d.data());
@@ -227,21 +265,43 @@ export default function PaywallPage() {
     return () => unsub();
   }, [router]);
 
-  const handleUpgrade = async () => {
+  // Subscribe to a new plan (non-paid users)
+  const handleSubscribe = async (plan: PlanKey) => {
     if (!userId) { router.push("/login"); return; }
     setLoading(true);
-    posthog.capture("upgrade_initiated", { plan: selectedPlan, billing_period: annual ? "annual" : "monthly" });
+    posthog.capture("upgrade_initiated", { plan, billing_period: annual ? "annual" : "monthly" });
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, plan: selectedPlan, billingPeriod: annual ? "annual" : "monthly" }),
+        body: JSON.stringify({ userId, plan, billingPeriod: annual ? "annual" : "monthly" }),
       });
       const json = await res.json();
       if (json.url) window.location.href = json.url;
     } catch (err) {
       posthog.captureException(err);
       console.error("Checkout error", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manage/upgrade existing subscription via Stripe Customer Portal
+  const handleManage = async () => {
+    if (!userId) { router.push("/login"); return; }
+    setLoading(true);
+    posthog.capture("manage_subscription_clicked", { current_plan: userPlan });
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const json = await res.json();
+      if (json.url) window.location.href = json.url;
+    } catch (err) {
+      posthog.captureException(err);
+      console.error("Portal error", err);
     } finally {
       setLoading(false);
     }
@@ -256,7 +316,7 @@ export default function PaywallPage() {
     <AppLayout>
       <div dir={dir} style={{ padding: isMobile ? "16px 16px 60px" : "28px 32px 80px", maxWidth: 1100 }}>
 
-        {/* Trial status banner */}
+        {/* Trial / plan status banner */}
         <div style={{
           marginBottom: 28, padding: "14px 20px", borderRadius: 14,
           background: trialActive
@@ -292,15 +352,30 @@ export default function PaywallPage() {
               </div>
             </div>
           </div>
-          {!isPaid && (
-            <div style={{
-              padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700,
-              background: trialActive ? `${SAND}20` : "rgba(255,80,80,0.12)",
-              color: trialActive ? SAND : "#ff8080",
-            }}>
-              {trialActive ? `${t.trialEndsOn} ${new Date(trialEndsAt!).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short", year: "numeric" })}` : t.trialExpiredBadge}
-            </div>
-          )}
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            {!isPaid && (
+              <div style={{
+                padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700,
+                background: trialActive ? `${SAND}20` : "rgba(255,80,80,0.12)",
+                color: trialActive ? SAND : "#ff8080",
+              }}>
+                {trialActive ? `${t.trialEndsOn} ${new Date(trialEndsAt!).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short", year: "numeric" })}` : t.trialExpiredBadge}
+              </div>
+            )}
+            {isPaid && !!stripeCustomerId && (
+              <button
+                onClick={handleManage}
+                disabled={loading}
+                style={{
+                  padding: "7px 16px", borderRadius: 99, fontSize: 12, fontWeight: 700,
+                  background: `${SAND}18`, border: `1px solid ${SAND}40`, color: SAND,
+                  cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
+                }}
+              >
+                {loading ? t.redirectingBtn : (t.manageSubscriptionBtn ?? "Manage Subscription")}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Page title */}
@@ -369,12 +444,12 @@ export default function PaywallPage() {
               key={planKey}
               planKey={planKey}
               annual={annual}
-              selected={selectedPlan === planKey}
-              onSelect={() => {
-                setSelectedPlan(planKey);
-                handleUpgrade();
-              }}
+              userPlan={userPlan}
+              isPaid={isPaid}
+              stripeCustomerId={stripeCustomerId}
               loading={loading}
+              onSubscribe={handleSubscribe}
+              onManage={handleManage}
               t={t}
             />
           ))}
