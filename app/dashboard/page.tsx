@@ -170,7 +170,7 @@ function PackageRow({ pkg, lang, isMobile, onView, onEdit, onDelete, isLast }: {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 44, height: 44, borderRadius: 9, flexShrink: 0,
-            background: thumbUrl ? `url(${thumbUrl}) center/cover` : dotColor,
+            background: thumbUrl ? `url("${thumbUrl}") center/cover` : dotColor,
             display: "flex", alignItems: "center", justifyContent: "center",
             overflow: "hidden", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",
           }}>
@@ -219,7 +219,7 @@ function PackageRow({ pkg, lang, isMobile, onView, onEdit, onDelete, isLast }: {
       {/* Thumb */}
       <div style={{
         width: 54, height: 54, borderRadius: 10, flexShrink: 0,
-        background: thumbUrl ? `url(${thumbUrl}) center/cover` : dotColor,
+        background: thumbUrl ? `url("${thumbUrl}") center/cover` : dotColor,
         display: "flex", alignItems: "center", justifyContent: "center",
         position: "relative", overflow: "hidden",
         boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",

@@ -678,7 +678,7 @@ export function BaseCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggle
 
   return (
     <div style={{ background: cardBg, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, overflow: "hidden" }}>
-      <div style={{ height: 160, position: "relative", background: thumbUrl ? `url(${thumbUrl}) center/cover` : brand, borderRadius: `${imageBorderRadius}px ${imageBorderRadius}px 0 0`, display: "flex", alignItems: "center", justifyContent: "center", backgroundSize: "cover", backgroundPosition: "center" }}>
+      <div style={{ height: 160, position: "relative", background: thumbUrl ? `url("${thumbUrl}") center/cover` : brand, borderRadius: `${imageBorderRadius}px ${imageBorderRadius}px 0 0`, display: "flex", alignItems: "center", justifyContent: "center", backgroundSize: "cover", backgroundPosition: "center" }}>
         {!thumbUrl && <Icon name="map" size={28} color="rgba(255,255,255,0.5)" />}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6))", borderRadius: `${imageBorderRadius}px ${imageBorderRadius}px 0 0` }} />
         <div style={{ position: "absolute", top: 10, left: 10, padding: "3px 10px", borderRadius: 99, background: badgeBg, backdropFilter: "blur(8px)", color: badgeColor, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".4px" }}>{badgeLabel}</div>

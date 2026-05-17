@@ -1164,7 +1164,7 @@ function MiniPreview({ form, t, lang }: { form: Form; t: TDict; lang: Lang }) {
         <div style={{
           height: "42%", position: "relative" as const,
           background: heroUrl
-            ? `url(${heroUrl}) center/cover`
+            ? `url("${heroUrl}") center/cover`
             : "linear-gradient(135deg, #1f5f8e, #0e3a5c)",
         }}>
           <div style={{ position: "absolute" as const, inset: 0, background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7))" }} />

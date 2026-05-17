@@ -64,7 +64,7 @@ function AgencyPackagesPageInner() {
           query(collection(db, "packages"), where("agencySlug", "==", agencySlug))
         );
         const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as Package));
-        const active = all.filter(p => p.isActive !== false);
+const active = all.filter(p => p.isActive !== false);
         setPackages(active);
 
         const first = all[0];
@@ -160,7 +160,7 @@ function AgencyPackagesPageInner() {
                   onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 12px rgba(13,27,46,0.05)"; (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)"; }}
                 >
                   {/* Cover */}
-                  <div style={{ height: 200, background: thumb ? `url(${thumb}) center/cover` : `linear-gradient(135deg, ${brandColor}40, ${brandColor}80)`, position: "relative" }}>
+                  <div style={{ height: 200, backgroundImage: thumb ? `url("${thumb}")` : `linear-gradient(135deg, ${brandColor}40, ${brandColor}80)`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat", position: "relative" }}>
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 40%, rgba(13,27,46,0.55))" }} />
                     {nights && (
                       <div style={{ position: "absolute", top: 14, right: isRtl ? "auto" : 14, left: isRtl ? 14 : "auto", padding: "4px 12px", borderRadius: 99, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", fontSize: 11, fontWeight: 700, color: INK }}>
