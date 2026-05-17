@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
@@ -63,6 +64,7 @@ function SignupPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromGate = searchParams.get("from") === "gate";
+  const isMobile = useIsMobile();
 
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
@@ -241,7 +243,7 @@ function SignupPageInner() {
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "40px 24px 60px", color: "#fdfcf9",
     }}>
-      <div className="fade-up" style={{ width: "100%", maxWidth: step === "form" ? 880 : 480, display: "grid", gridTemplateColumns: step === "form" ? "1fr 1fr" : "1fr", gap: 40, alignItems: "start" }}>
+      <div className="fade-up" style={{ width: "100%", maxWidth: step === "form" && !isMobile ? 880 : 480, display: "grid", gridTemplateColumns: step === "form" && !isMobile ? "1fr 1fr" : "1fr", gap: isMobile ? 24 : 40, alignItems: "start" }}>
 
         {/* ── Left: trial pitch (form step only) ── */}
         {step === "form" && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const SAND = "#e8c97b";
 const SAND_DIM = "#c4a84f";
@@ -133,13 +134,14 @@ const PLANS: Plan[] = [
 /* ─── Sub-components ─────────────────────────────────────── */
 
 function NavBar() {
+  const isMobile = useIsMobile();
   return (
     <nav style={{
       position: "sticky", top: 0, zIndex: 100,
       background: `${NAVY}f0`,
       backdropFilter: "blur(12px)",
       borderBottom: `1px solid ${BORDER}`,
-      padding: "0 32px",
+      padding: isMobile ? "0 16px" : "0 32px",
       display: "flex", alignItems: "center", justifyContent: "space-between",
       height: 64,
     }}>
@@ -150,16 +152,18 @@ function NavBar() {
         </span>
       </a>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <a
-          href="#pricing"
-          style={{ color: MUTED, fontSize: 13.5, fontWeight: 500, textDecoration: "none", padding: "6px 12px" }}
-        >
-          Pricing
-        </a>
+      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
+        {!isMobile && (
+          <a
+            href="#pricing"
+            style={{ color: MUTED, fontSize: 13.5, fontWeight: 500, textDecoration: "none", padding: "6px 12px" }}
+          >
+            Pricing
+          </a>
+        )}
         <a
           href={`${AGENCY_URL}/login`}
-          style={{ color: MUTED, fontSize: 13.5, fontWeight: 500, textDecoration: "none", padding: "6px 12px" }}
+          style={{ color: MUTED, fontSize: 13.5, fontWeight: 500, textDecoration: "none", padding: "6px 8px" }}
         >
           Login
         </a>
@@ -167,12 +171,13 @@ function NavBar() {
           href={`${AGENCY_URL}/signup`}
           style={{
             background: `linear-gradient(135deg, ${SAND}, ${SAND_DIM})`,
-            color: NAVY, fontWeight: 700, fontSize: 13.5,
-            padding: "8px 18px", borderRadius: 9, textDecoration: "none",
+            color: NAVY, fontWeight: 700, fontSize: isMobile ? 12.5 : 13.5,
+            padding: isMobile ? "8px 14px" : "8px 18px", borderRadius: 9, textDecoration: "none",
             display: "inline-flex", alignItems: "center", gap: 6,
+            whiteSpace: "nowrap",
           }}
         >
-          See It in Action →
+          {isMobile ? "Get started" : "See It in Action →"}
         </a>
       </div>
     </nav>

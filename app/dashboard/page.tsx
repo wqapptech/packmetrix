@@ -531,7 +531,7 @@ export default function Dashboard() {
                     pkg={pkg}
                     lang={lang}
                     isMobile={isMobile}
-                    onView={() => window.open(`/${pkg.agencySlug || userAgencySlug}/${pkg.id}`, "_blank", "noopener,noreferrer")}
+                    onView={() => window.open(`https://${pkg.agencySlug || userAgencySlug}.packmetrix.com/${pkg.id}`, "_blank", "noopener,noreferrer")}
                     onEdit={() => router.push(`/builder?id=${pkg.id}`)}
                     onDelete={async () => {
                       const res = await fetch("/api/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pkg.id, userId }) });

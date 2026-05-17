@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Public landing pages read packages and user (agency) data unauthenticated.
+    match /packages/{packageId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // The proxy (middleware) resolves custom domains via a public Firestore read.
+    match /customDomains/{domain} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Everything else requires authentication.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

@@ -149,7 +149,7 @@ export default function PackagesPage() {
                 pkg={pkg}
                 agency={agency}
                 lang={lang}
-                onView={() => window.open(`/${pkg.agencySlug || agencySlug}/${pkg.id}`, "_blank", "noopener,noreferrer")}
+                onView={() => window.open(`https://${pkg.agencySlug || agencySlug}.packmetrix.com/${pkg.id}`, "_blank", "noopener,noreferrer")}
                 onEdit={() => router.push(`/builder?id=${pkg.id}`)}
                 onDelete={async () => {
                   if (!confirm(t.confirmDeletePackage)) return;
