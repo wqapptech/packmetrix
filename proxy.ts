@@ -67,6 +67,24 @@ export async function proxy(request: NextRequest) {
     "";
   const hostname = rawHost.split(":")[0].toLowerCase();
 
+  // Agency subdomain → serve agency portal
+  if (hostname === "agency.packmetrix.com") {
+    const pathname = request.nextUrl.pathname;
+    // Root → serve dashboard internally
+    if (pathname === "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.rewrite(url);
+    }
+    // Block admin routes from the agency subdomain
+    if (pathname.startsWith("/admin")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.rewrite(url);
+    }
+    return NextResponse.next();
+  }
+
   // Admin subdomain → rewrite to /admin routes
   if (hostname === "admin.packmetrix.com") {
     const pathname = request.nextUrl.pathname;

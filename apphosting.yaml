@@ -23,6 +23,8 @@ env:
   # Custom domain routing — the main packmetrix URL (used as fallback target)
   - variable: NEXT_PUBLIC_APP_URL
     value: "https://packmetrix.com"
+  - variable: NEXT_PUBLIC_AGENCY_URL
+    value: "https://agency.packmetrix.com"
 
   # Secrets
   - variable: OPENAI_API_KEY
