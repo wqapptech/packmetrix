@@ -58,6 +58,7 @@ function AgencyPackagesPageInner() {
   useEffect(() => {
     const load = async () => {
       if (!agencySlug) return;
+      let step = "packages";
       try {
         const snap = await getDocs(
           query(collection(db, "packages"), where("agencySlug", "==", agencySlug))
@@ -71,6 +72,7 @@ function AgencyPackagesPageInner() {
           const pkgDoc = snap.docs[0];
           const userId = (pkgDoc.data() as any).userId;
           if (userId) {
+            step = "users";
             const userSnap = await getDoc(doc(db, "users", userId));
             if (userSnap.exists()) {
               const u = userSnap.data();
@@ -85,7 +87,7 @@ function AgencyPackagesPageInner() {
           }
         }
       } catch (err) {
-        console.error(err);
+        console.error(`[AgencyPage] Firestore read failed on "${step}":`, err);
       } finally {
         setLoading(false);
       }

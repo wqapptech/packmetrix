@@ -26,6 +26,7 @@ export default function PackagePage() {
   useEffect(() => {
     const load = async () => {
       if (!packageId || packageId === "undefined") { router.push("/builder"); return; }
+      let step = "packages";
       try {
         const pkgSnap = await getDoc(doc(db, "packages", packageId));
         if (!pkgSnap.exists()) { router.push("/builder"); return; }
@@ -33,6 +34,7 @@ export default function PackagePage() {
         setPkg(data);
 
         if (data.userId) {
+          step = "users";
           const userSnap = await getDoc(doc(db, "users", data.userId));
           if (userSnap.exists()) {
             const u = userSnap.data();
@@ -56,7 +58,7 @@ export default function PackagePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: packageId, sessionId: sid }),
         });
-      } catch (err) { console.error(err); }
+      } catch (err) { console.error(`[PackagePage] Firestore read failed on "${step}":`, err); }
       finally { setLoading(false); }
     };
     load();
