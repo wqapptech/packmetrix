@@ -183,10 +183,10 @@ function PackageRow({ pkg, lang, isMobile, onView, onEdit, onDelete, isLast }: {
             </div>
           </div>
           <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-            <button onClick={onView} title="View" style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
+            <button onClick={onView} title={t.viewBtn} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
               <Icon name="eye" size={12} />
             </button>
-            <button onClick={onEdit} title="Edit" style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
+            <button onClick={onEdit} title={t.editBtn} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
               <Icon name="edit" size={12} />
             </button>
           </div>
@@ -258,10 +258,10 @@ function PackageRow({ pkg, lang, isMobile, onView, onEdit, onDelete, isLast }: {
       </div>
       {/* Action buttons */}
       <div style={{ display: "flex", gap: 5 }}>
-        <button onClick={onView} title="View" style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
+        <button onClick={onView} title={t.viewBtn} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
           <Icon name="eye" size={13} />
         </button>
-        <button onClick={onEdit} title="Edit" style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
+        <button onClick={onEdit} title={t.editBtn} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
           <Icon name="edit" size={13} />
         </button>
         {confirming ? (
@@ -272,7 +272,7 @@ function PackageRow({ pkg, lang, isMobile, onView, onEdit, onDelete, isLast }: {
             <button onClick={() => setConfirming(false)} style={{ height: 30, borderRadius: 8, padding: "0 8px", background: "none", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "inherit", cursor: "pointer" }}>No</button>
           </div>
         ) : (
-          <button onClick={() => setConfirming(true)} title="Delete" style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(239,68,68,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(239,68,68,0.5)" }}>
+          <button onClick={() => setConfirming(true)} title={t.deletePackage} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(239,68,68,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(239,68,68,0.5)" }}>
             <Icon name="trash" size={13} color="rgba(239,68,68,0.5)" />
           </button>
         )}

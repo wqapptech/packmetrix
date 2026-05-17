@@ -577,7 +577,7 @@ function PexelsPhotoSearch({ onSelect, placeholder, attribution, t }: {
                 <img src={photo.src.medium} alt={photo.alt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 <div className="px-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.48)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, opacity: 0, transition: "opacity .15s" }}>
                   <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
-                  <span style={{ color: "#fff", fontSize: 11, fontWeight: 600 }}>Use photo</span>
+                  <span style={{ color: "#fff", fontSize: 11, fontWeight: 600 }}>{t.usePhotoBtn}</span>
                 </div>
               </div>
             ))}
@@ -674,7 +674,7 @@ function PexelsVideoSearch({ onSelect, t }: { onSelect: (url: string) => void; t
                   </div>
                   <div className="px-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: 0, transition: "opacity .15s", flexDirection: "column" }}>
                     <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
-                    <span style={{ color: "#fff", fontSize: 11, fontWeight: 600 }}>Use video</span>
+                    <span style={{ color: "#fff", fontSize: 11, fontWeight: 600 }}>{t.useVideoBtn}</span>
                   </div>
                   <div style={{ position: "absolute", bottom: 6, right: 8, fontSize: 10, color: "rgba(255,255,255,0.85)", fontWeight: 600, background: "rgba(0,0,0,0.45)", borderRadius: 4, padding: "1px 5px" }}>{Math.floor(video.duration)}s</div>
                 </div>
@@ -908,7 +908,7 @@ function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof 
               >
                 <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} />
                 {i === 0 && (
-                  <div style={{ position: "absolute", top: 7, left: 7, background: `${SAND}ee`, color: "#0a1426", borderRadius: 5, padding: "2px 7px", fontSize: 9, fontWeight: 800, letterSpacing: ".4px" }}>HERO</div>
+                  <div style={{ position: "absolute", top: 7, left: 7, background: `${SAND}ee`, color: "#0a1426", borderRadius: 5, padding: "2px 7px", fontSize: 9, fontWeight: 800, letterSpacing: ".4px" }}>{t.heroBadge}</div>
                 )}
                 <button onClick={() => removeImage(i)} style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", color: "white", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>×</button>
               </div>
@@ -1203,7 +1203,7 @@ function MiniPreview({ form, t, lang }: { form: Form; t: TDict; lang: Lang }) {
       <div style={{ marginTop: 10, padding: "8px 10px", background: "rgba(232,201,123,0.07)", border: "1px solid rgba(232,201,123,0.2)", borderRadius: 9, fontSize: 10.5, color: "rgba(255,255,255,0.65)", display: "flex", gap: 8, alignItems: "center" }}>
         <span style={{ color: SAND }}>✦</span>
         <span>
-          <b style={{ color: scoreColor }}>Score: {toLocalDigits(score, lang)}/100</b>
+          <b style={{ color: scoreColor }}>{t.scoreLabel} {toLocalDigits(score, lang)}/100</b>
           {" · "}{score >= 80 ? t.scoreLookingStrong : score >= 50 ? t.scoreKeepFilling : t.scoreAddDetails}
         </span>
       </div>
@@ -1529,8 +1529,8 @@ function BuilderPageInner() {
                 display: "flex", alignItems: "center", gap: 5, transition: "color 0.3s",
               }}>
                 {draftStatus === "saving"
-                  ? <><span className="spinner" style={{ width: 10, height: 10, borderWidth: 1.5, borderTopColor: "rgba(255,255,255,0.35)" }} /> Saving draft…</>
-                  : <><Icon name="check" size={11} color="rgba(45,212,160,0.7)" strokeWidth={2.5} /> Draft saved</>
+                  ? <><span className="spinner" style={{ width: 10, height: 10, borderWidth: 1.5, borderTopColor: "rgba(255,255,255,0.35)" }} /> {t.savingDraft}</>
+                  : <><Icon name="check" size={11} color="rgba(45,212,160,0.7)" strokeWidth={2.5} /> {t.draftSaved}</>
                 }
               </div>
             )}

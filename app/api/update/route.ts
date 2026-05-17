@@ -34,8 +34,10 @@ export async function POST(req: Request) {
     }
 
     const userSnap = await db.collection("users").doc(userId).get();
-    const agencyName = userSnap.exists ? (userSnap.data()?.name || "") : "";
-    const agencySlug = slugify(agencyName) || "agency";
+    const userData = userSnap.exists ? userSnap.data()! : {};
+    const agencyName = userData.name || "";
+    const emailPrefix = slugify((userData.email || "").split("@")[0]);
+    const agencySlug = slugify(agencyName) || emailPrefix || userId.slice(0, 8).toLowerCase();
 
     await ref.update({
       agencySlug,

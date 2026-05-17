@@ -65,7 +65,14 @@ export async function proxy(request: NextRequest) {
     request.headers.get("x-forwarded-host") ||
     request.headers.get("host") ||
     "";
-  const hostname = rawHost.split(":")[0].toLowerCase();
+  // Take only the first value if the header is a comma-separated list (multi-proxy environments)
+  const hostname = rawHost.split(",")[0].trim().split(":")[0].toLowerCase();
+
+  // App routes that should always be served directly on agency.packmetrix.com
+  const APP_ROOTS = [
+    "/dashboard", "/builder", "/login", "/signup", "/profile",
+    "/leads", "/packages", "/paywall", "/home", "/api", "/_next", "/ingest",
+  ];
 
   // Agency subdomain → serve agency portal
   if (hostname === "agency.packmetrix.com") {
@@ -82,6 +89,20 @@ export async function proxy(request: NextRequest) {
       url.pathname = "/dashboard";
       return NextResponse.rewrite(url);
     }
+    // Known app routes — pass through for the portal
+    if (APP_ROOTS.some(r => pathname === r || pathname.startsWith(r + "/"))) {
+      return NextResponse.next();
+    }
+    // Single-segment path: treat as a package share URL for the "agency" slug
+    // e.g. /pkgId → /agency/pkgId so it hits [agencySlug]/[packageId]
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length === 1) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/agency/${segments[0]}`;
+      return NextResponse.rewrite(url);
+    }
+    // Two+ segments (e.g. /agencySlug/packageId from the dashboard View button)
+    // Pass through so Next.js can serve [agencySlug]/[packageId] directly
     return NextResponse.next();
   }
 

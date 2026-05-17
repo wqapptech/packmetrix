@@ -654,6 +654,72 @@ const en = {
   customDomainCopiedBtn: "Copied!",
   customDomainRefreshBtn: "Refresh status",
   customDomainRefreshingBtn: "Refreshing...",
+
+  // Builder — Pexels panels
+  usePhotoBtn: "Use photo",
+  useVideoBtn: "Use video",
+  heroBadge: "HERO",
+
+  // Builder — draft save status
+  savingDraft: "Saving draft…",
+  draftSaved: "Draft saved",
+
+  // Builder — score label
+  scoreLabel: "Score:",
+
+  // Dashboard — action button tooltips
+  viewBtn: "View",
+  editBtn: "Edit",
+
+  // Paywall — plan names & descriptions
+  planStartLabel: "Start",
+  planGrowLabel: "Grow",
+  planScaleLabel: "Scale",
+  planStartDesc: "Perfect for getting started",
+  planGrowDesc: "For agencies growing fast",
+  planScaleDesc: "For multi-user teams",
+
+  // Paywall — UI chrome
+  billingChoosePlan: "Choose your plan",
+  billingSave20: "Save 20%",
+  soonBadge: "Soon",
+  billedAnnuallyPrefix: "billed €",
+  subscribeToBtn: "✦ Subscribe to",
+  choosePlanBtn: "Choose",
+
+  // Paywall — stats labels
+  billingTotalViews: "Total views",
+  billingDirectInquiries: "Direct inquiries",
+  billingEstRevenue: "Est. revenue",
+  billingConversionRate: "at 15% conversion",
+
+  // Paywall — trial status banner
+  trialDaysLeftSuffix: "days left in your free trial",
+  trialExpiredTitle: "Your free trial has expired",
+  trialSubscribeBeforeEnds: "Subscribe before it ends to keep full access to all features",
+  trialSubscribeNowRestore: "Subscribe now to restore access to your packages and leads",
+  trialEndsOn: "Trial ends",
+  trialExpiredBadge: "Trial expired",
+  manageSubscription: "Manage your subscription below",
+  youreOnPlanPrefix: "You're on the",
+  youreOnPlanSuffix: "plan",
+
+  // Paywall — fine print
+  billingFinePrint1: "Cancel anytime · 7-day money-back guarantee · Billed securely via Stripe",
+  billingFinePrint2: "All plans include unlimited leads and views · Prices in EUR (VAT may apply)",
+
+  // Paywall — plan features
+  feat10PackagePages: "10 package pages",
+  feat2Templates: "2 templates",
+  featLeadInboxWA: "Lead inbox (WhatsApp & Messenger)",
+  feat30DayAnalytics: "30-day analytics history",
+  featAllTemplates: "All templates",
+  featLeadExportCsv: "Lead export (CSV)",
+  featCustomDomainPlan: "Custom domain",
+  feat30PackagePages: "30 package pages",
+  featUnlimitedAnalytics: "Unlimited analytics history",
+  featUnlimitedPackagePages: "Unlimited package pages",
+  featMobileApp: "Mobile app",
 };
 
 const ar: typeof en = {
@@ -1310,6 +1376,72 @@ const ar: typeof en = {
   customDomainCopiedBtn: "تم النسخ!",
   customDomainRefreshBtn: "تحديث الحالة",
   customDomainRefreshingBtn: "جارٍ التحديث...",
+
+  // Builder — Pexels panels
+  usePhotoBtn: "استخدم الصورة",
+  useVideoBtn: "استخدم الفيديو",
+  heroBadge: "HERO",
+
+  // Builder — draft save status
+  savingDraft: "جارٍ حفظ المسودة...",
+  draftSaved: "تم حفظ المسودة",
+
+  // Builder — score label
+  scoreLabel: "النتيجة:",
+
+  // Dashboard — action button tooltips
+  viewBtn: "عرض",
+  editBtn: "تعديل",
+
+  // Paywall — plan names & descriptions
+  planStartLabel: "ابدأ",
+  planGrowLabel: "نمو",
+  planScaleLabel: "توسع",
+  planStartDesc: "مثالي للبدء",
+  planGrowDesc: "للوكالات المتنامية",
+  planScaleDesc: "للفرق متعددة المستخدمين",
+
+  // Paywall — UI chrome
+  billingChoosePlan: "اختر خطتك",
+  billingSave20: "وفّر 20%",
+  soonBadge: "قريباً",
+  billedAnnuallyPrefix: "مدفوع €",
+  subscribeToBtn: "✦ اشترك في",
+  choosePlanBtn: "اختر",
+
+  // Paywall — stats labels
+  billingTotalViews: "إجمالي المشاهدات",
+  billingDirectInquiries: "الاستفسارات المباشرة",
+  billingEstRevenue: "إيرادات تقديرية",
+  billingConversionRate: "بنسبة تحويل 15%",
+
+  // Paywall — trial status banner
+  trialDaysLeftSuffix: "أيام متبقية في تجربتك",
+  trialExpiredTitle: "انتهت فترة تجربتك المجانية",
+  trialSubscribeBeforeEnds: "اشترك قبل انتهائها للحفاظ على وصولك الكامل لجميع الميزات",
+  trialSubscribeNowRestore: "اشترك الآن لاستعادة الوصول إلى باقاتك وعملائك",
+  trialEndsOn: "تنتهي التجربة",
+  trialExpiredBadge: "انتهت التجربة",
+  manageSubscription: "أدِر اشتراكك أدناه",
+  youreOnPlanPrefix: "أنت على خطة",
+  youreOnPlanSuffix: "",
+
+  // Paywall — fine print
+  billingFinePrint1: "إلغاء في أي وقت · ضمان استرداد 7 أيام · دفع آمن عبر Stripe",
+  billingFinePrint2: "جميع الخطط تشمل عملاء ومشاهدات غير محدودة · الأسعار بالليرة الأوروبية (قد تُطبَّق ضريبة القيمة المضافة)",
+
+  // Paywall — plan features
+  feat10PackagePages: "١٠ صفحات باقات",
+  feat2Templates: "قالبان",
+  featLeadInboxWA: "صندوق العملاء (واتساب وماسنجر)",
+  feat30DayAnalytics: "سجل 30 يوم من التحليلات",
+  featAllTemplates: "جميع القوالب",
+  featLeadExportCsv: "تصدير العملاء (CSV)",
+  featCustomDomainPlan: "نطاق مخصص",
+  feat30PackagePages: "٣٠ صفحة باقات",
+  featUnlimitedAnalytics: "سجل تحليلات غير محدود",
+  featUnlimitedPackagePages: "صفحات باقات غير محدودة",
+  featMobileApp: "تطبيق جوال",
 };
 
 export const T: Record<Lang, typeof en> = { en, ar };

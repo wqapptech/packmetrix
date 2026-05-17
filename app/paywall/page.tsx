@@ -10,6 +10,9 @@ import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import posthog from "posthog-js";
 import { isTrialActive, trialDaysLeft } from "@/lib/trial";
+import { T } from "@/lib/translations";
+
+type TDict = typeof T["en"];
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -20,35 +23,37 @@ const MONTHLY = { start: 29, grow: 79, scale: 179 };
 const ANNUAL_MONTHLY = { start: 23, grow: 63, scale: 143 };
 const ANNUAL_TOTAL = { start: 276, grow: 756, scale: 1716 };
 
-const PLAN_FEATURES: Record<PlanKey, { label: string; included: boolean; soon?: boolean }[]> = {
-  start: [
-    { label: "10 package pages", included: true },
-    { label: "2 templates", included: true },
-    { label: "Lead inbox (WhatsApp & Messenger)", included: true },
-    { label: "30-day analytics history", included: true },
-    { label: "All templates", included: false },
-    { label: "Lead export (CSV)", included: false },
-    { label: "Custom domain", included: false },
-  ],
-  grow: [
-    { label: "30 package pages", included: true },
-    { label: "All templates", included: true },
-    { label: "Lead inbox (WhatsApp & Messenger)", included: true },
-    { label: "Unlimited analytics history", included: true },
-    { label: "Lead export (CSV)", included: true },
-    { label: "Custom domain", included: true },
-    { label: "Mobile app", included: false, soon: true },
-  ],
-  scale: [
-    { label: "Unlimited package pages", included: true },
-    { label: "All templates", included: true },
-    { label: "Lead inbox (WhatsApp & Messenger)", included: true },
-    { label: "Unlimited analytics history", included: true },
-    { label: "Lead export (CSV)", included: true },
-    { label: "Custom domain", included: true },
-    { label: "Mobile app", included: true, soon: true },
-  ],
-};
+function getPlanFeatures(t: TDict): Record<PlanKey, { label: string; included: boolean; soon?: boolean }[]> {
+  return {
+    start: [
+      { label: t.feat10PackagePages, included: true },
+      { label: t.feat2Templates, included: true },
+      { label: t.featLeadInboxWA, included: true },
+      { label: t.feat30DayAnalytics, included: true },
+      { label: t.featAllTemplates, included: false },
+      { label: t.featLeadExportCsv, included: false },
+      { label: t.featCustomDomainPlan, included: false },
+    ],
+    grow: [
+      { label: t.feat30PackagePages, included: true },
+      { label: t.featAllTemplates, included: true },
+      { label: t.featLeadInboxWA, included: true },
+      { label: t.featUnlimitedAnalytics, included: true },
+      { label: t.featLeadExportCsv, included: true },
+      { label: t.featCustomDomainPlan, included: true },
+      { label: t.featMobileApp, included: false, soon: true },
+    ],
+    scale: [
+      { label: t.featUnlimitedPackagePages, included: true },
+      { label: t.featAllTemplates, included: true },
+      { label: t.featLeadInboxWA, included: true },
+      { label: t.featUnlimitedAnalytics, included: true },
+      { label: t.featLeadExportCsv, included: true },
+      { label: t.featCustomDomainPlan, included: true },
+      { label: t.featMobileApp, included: true, soon: true },
+    ],
+  };
+}
 
 function parsePackagePrice(s: string): number {
   const n = parseFloat(s.replace(/[^\d.]/g, ""));
@@ -65,7 +70,7 @@ function Stat({ v, l, sub }: { v: string; l: string; sub?: string }) {
   );
 }
 
-function FeatureRow({ label, included, soon }: { label: string; included: boolean; soon?: boolean }) {
+function FeatureRow({ label, included, soon, t }: { label: string; included: boolean; soon?: boolean; t: TDict }) {
   return (
     <div style={{ display: "flex", gap: 9, alignItems: "center", padding: "6px 0", opacity: included ? 1 : 0.35 }}>
       <div style={{
@@ -78,29 +83,31 @@ function FeatureRow({ label, included, soon }: { label: string; included: boolea
       </div>
       <span style={{ fontSize: 12.5, color: included ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.3)", flex: 1 }}>{label}</span>
       {soon && included && (
-        <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 99, background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".3px" }}>Soon</span>
+        <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 99, background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".3px" }}>{t.soonBadge}</span>
       )}
     </div>
   );
 }
 
 function PlanCard({
-  planKey, annual, selected, onSelect, loading,
+  planKey, annual, selected, onSelect, loading, t,
 }: {
   planKey: PlanKey;
   annual: boolean;
   selected: boolean;
   onSelect: () => void;
   loading: boolean;
+  t: TDict;
 }) {
   const isGrow = planKey === "grow";
   const price = annual ? ANNUAL_MONTHLY[planKey] : MONTHLY[planKey];
-  const labels: Record<PlanKey, string> = { start: "Start", grow: "Grow", scale: "Scale" };
+  const labels: Record<PlanKey, string> = { start: t.planStartLabel, grow: t.planGrowLabel, scale: t.planScaleLabel };
   const descs: Record<PlanKey, string> = {
-    start: "Perfect for getting started",
-    grow: "For agencies growing fast",
-    scale: "For multi-user teams",
+    start: t.planStartDesc,
+    grow: t.planGrowDesc,
+    scale: t.planScaleDesc,
   };
+  const features = getPlanFeatures(t);
 
   return (
     <div
@@ -126,7 +133,7 @@ function PlanCard({
           background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
           color: "#0a1426", fontSize: 10, fontWeight: 800,
           padding: "3px 12px", borderRadius: 99, letterSpacing: ".5px", whiteSpace: "nowrap",
-        }}>MOST POPULAR</div>
+        }}>{t.mostPopular}</div>
       )}
 
       <div>
@@ -138,17 +145,17 @@ function PlanCard({
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
         <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 34, letterSpacing: "-0.8px", color: "#fff" }}>€{price}</span>
-        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>/mo</span>
+        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{t.billingPerMonth}</span>
         {annual && (
           <span style={{ fontSize: 10.5, color: SUCCESS, fontWeight: 600, marginLeft: 6 }}>
-            billed €{ANNUAL_TOTAL[planKey]}/yr
+            {t.billedAnnuallyPrefix}{ANNUAL_TOTAL[planKey]}{t.billingPerYear}
           </span>
         )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        {PLAN_FEATURES[planKey].map((f) => (
-          <FeatureRow key={f.label} label={f.label} included={f.included} soon={f.soon} />
+        {features[planKey].map((f) => (
+          <FeatureRow key={f.label} label={f.label} included={f.included} soon={f.soon} t={t} />
         ))}
       </div>
 
@@ -171,8 +178,8 @@ function PlanCard({
         }}
       >
         {loading && selected
-          ? <><span className="spinner" style={{ width: 13, height: 13, borderTopColor: selected ? "#0a1426" : SAND }} /> Redirecting…</>
-          : selected ? `✦ Subscribe to ${labels[planKey]}` : `Choose ${labels[planKey]}`
+          ? <><span className="spinner" style={{ width: 13, height: 13, borderTopColor: selected ? "#0a1426" : SAND }} /> {t.redirectingBtn}</>
+          : selected ? `${t.subscribeToBtn} ${labels[planKey]}` : `${t.choosePlanBtn} ${labels[planKey]}`
         }
       </button>
     </div>
@@ -182,6 +189,7 @@ function PlanCard({
 export default function PaywallPage() {
   const router = useRouter();
   const lang = useLang();
+  const t = T[lang];
   const isMobile = useIsMobile();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
@@ -268,18 +276,18 @@ export default function PaywallPage() {
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: isPaid ? SAND : trialActive ? "#fff" : "#ff8080" }}>
                 {isPaid
-                  ? `You're on the ${userPlan.charAt(0).toUpperCase() + userPlan.slice(1)} plan`
+                  ? `${t.youreOnPlanPrefix} ${userPlan.charAt(0).toUpperCase() + userPlan.slice(1)}${t.youreOnPlanSuffix ? ` ${t.youreOnPlanSuffix}` : ""}`
                   : trialActive
-                    ? `${daysLeft} days left in your free trial`
-                    : "Your free trial has expired"
+                    ? `${daysLeft} ${t.trialDaysLeftSuffix}`
+                    : t.trialExpiredTitle
                 }
               </div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
                 {isPaid
-                  ? "Manage your subscription below"
+                  ? t.manageSubscription
                   : trialActive
-                    ? "Subscribe before it ends to keep full access to all features"
-                    : "Subscribe now to restore access to your packages and leads"
+                    ? t.trialSubscribeBeforeEnds
+                    : t.trialSubscribeNowRestore
                 }
               </div>
             </div>
@@ -290,14 +298,14 @@ export default function PaywallPage() {
               background: trialActive ? `${SAND}20` : "rgba(255,80,80,0.12)",
               color: trialActive ? SAND : "#ff8080",
             }}>
-              {trialActive ? `Trial ends ${new Date(trialEndsAt!).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : "Trial expired"}
+              {trialActive ? `${t.trialEndsOn} ${new Date(trialEndsAt!).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short", year: "numeric" })}` : t.trialExpiredBadge}
             </div>
           )}
         </div>
 
         {/* Page title */}
         <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.4px" }}>Billing</div>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.4px" }}>{t.billingTitle}</div>
         </div>
 
         {/* Stats row */}
@@ -309,10 +317,10 @@ export default function PaywallPage() {
             border: "1px solid rgba(255,255,255,0.07)",
           }}>
             {[
-              { v: String(packageCount), l: "Packages", sub: undefined },
-              { v: totalViews.toLocaleString(), l: "Total views", sub: undefined },
-              { v: String(totalClicks), l: "Direct inquiries", sub: undefined },
-              { v: `€${estRevenue.toLocaleString()}`, l: "Est. revenue", sub: "at 15% conversion" },
+              { v: String(packageCount), l: t.packages, sub: undefined },
+              { v: totalViews.toLocaleString(), l: t.billingTotalViews, sub: undefined },
+              { v: String(totalClicks), l: t.billingDirectInquiries, sub: undefined },
+              { v: `€${estRevenue.toLocaleString()}`, l: t.billingEstRevenue, sub: t.billingConversionRate },
             ].map(({ v, l, sub }) => (
               <div key={l} style={{ padding: "18px 20px", background: "rgba(7,14,26,0.8)", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
                 <Stat v={v} l={l} sub={sub} />
@@ -323,7 +331,7 @@ export default function PaywallPage() {
 
         {/* Annual / Monthly toggle */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>Choose your plan</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{t.billingChoosePlan}</div>
           <div style={{ display: "inline-flex", alignItems: "center", background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: 4, gap: 2 }}>
             {[false, true].map(isAnnual => (
               <button
@@ -337,13 +345,13 @@ export default function PaywallPage() {
                   display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
                 }}
               >
-                {isAnnual ? "Annual" : "Monthly"}
+                {isAnnual ? t.billingAnnual : t.billingMonthly}
                 {isAnnual && (
                   <span style={{
                     fontSize: 9.5, fontWeight: 800, padding: "2px 5px", borderRadius: 99,
                     background: annual ? "#0a1426" : "rgba(255,255,255,0.12)",
                     color: annual ? SAND : "rgba(255,255,255,0.5)",
-                  }}>Save 20%</span>
+                  }}>{t.billingSave20}</span>
                 )}
               </button>
             ))}
@@ -367,14 +375,15 @@ export default function PaywallPage() {
                 handleUpgrade();
               }}
               loading={loading}
+              t={t}
             />
           ))}
         </div>
 
         {/* Fine print */}
         <div style={{ textAlign: "center", fontSize: 11.5, color: "rgba(255,255,255,0.3)", lineHeight: 1.8 }}>
-          Cancel anytime · 7-day money-back guarantee · Billed securely via Stripe<br />
-          All plans include unlimited leads and views · Prices in EUR (VAT may apply)
+          {t.billingFinePrint1}<br />
+          {t.billingFinePrint2}
         </div>
 
       </div>

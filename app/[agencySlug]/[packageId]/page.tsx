@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
 import PackageRenderer from "@/components/PackageRenderer";
 import type { TPackage, TAgency, Lang } from "@/components/templates/types";
 import { DEFAULT_TEMPLATE_ID } from "@/components/templates/index";
+import { T } from "@/lib/translations";
 
 const DEFAULT_BRAND = "#1f5f8e";
 const BG  = "#fdfcf9";
@@ -83,12 +84,13 @@ export default function PackagePage() {
 
   if (pkg.isActive === false) {
     const lang = (pkg.language === "ar" ? "ar" : "en") as Lang;
+    const t = T[lang];
     const dir = lang === "ar" ? "rtl" : "ltr";
     return (
       <div dir={dir} style={{ minHeight: "100vh", background: BG, color: INK, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 40, textAlign: "center" }}>
         <div style={{ width: 64, height: 64, borderRadius: 18, background: "rgba(13,27,46,0.06)", border: "1px solid rgba(13,27,46,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>○</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: INK }}>Package unavailable</div>
-        <div style={{ fontSize: 15, color: "rgba(13,27,46,0.55)", maxWidth: 380, lineHeight: 1.6 }}>This package is not currently available. Contact the agency for alternatives.</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: INK }}>{t.packageUnavailableTitle}</div>
+        <div style={{ fontSize: 15, color: "rgba(13,27,46,0.55)", maxWidth: 380, lineHeight: 1.6 }}>{t.packageUnavailableSub}</div>
       </div>
     );
   }
