@@ -244,6 +244,96 @@ function DomainEditorModal({
   );
 }
 
+// ─── Delete Confirmation Modal ────────────────────────────────────────────────
+
+function DeleteAgencyModal({
+  agency,
+  token,
+  onClose,
+  onDeleted,
+}: {
+  agency: Agency;
+  token: string;
+  onClose: () => void;
+  onDeleted: (uid: string) => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/agencies", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ uid: agency.uid }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Delete failed");
+      onDeleted(agency.uid);
+      onClose();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ width: "100%", maxWidth: 460, background: "#111c2d", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 16, overflow: "hidden" }}>
+        {/* Header */}
+        <div style={{ padding: "18px 22px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#f87171" }}>Delete Agency</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{agency.name || agency.email}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 20, cursor: "pointer", lineHeight: 1, padding: "2px 6px" }}>×</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.6 }}>
+            This will permanently delete:
+            <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+              <li>The agency account &amp; profile</li>
+              <li>All packages</li>
+              <li>All leads</li>
+              <li>Custom domain configuration</li>
+              <li>Firebase Auth account</li>
+            </ul>
+          </div>
+          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.4)" }}>
+            This action <strong style={{ color: "rgba(255,255,255,0.7)" }}>cannot be undone</strong>. Are you sure you want to delete <strong style={{ color: "#fdfcf9" }}>{agency.name || agency.email}</strong>?
+          </div>
+          {error && (
+            <div style={{ fontSize: 12, color: "#f87171", padding: "8px 12px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "14px 22px", borderTop: `1px solid ${BORDER}`, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} disabled={deleting} style={{ padding: "9px 18px", borderRadius: 9, background: "rgba(255,255,255,0.05)", border: `1px solid ${BORDER}`, color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            style={{ padding: "9px 20px", borderRadius: 9, background: deleting ? "rgba(248,113,113,0.3)" : "rgba(248,113,113,0.85)", color: "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: deleting ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+          >
+            {deleting ? "Deleting…" : "Delete permanently"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
 function Label({ children }: { children: React.ReactNode }) {
@@ -273,6 +363,7 @@ export default function AdminPage() {
   const [error, setError]         = useState<string | null>(null);
   const [search, setSearch]       = useState("");
   const [editing, setEditing]     = useState<Agency | null>(null);
+  const [deleting, setDeleting]   = useState<Agency | null>(null);
   const [filterPlan, setFilterPlan] = useState<string>("all");
 
   // Get Firebase ID token then load agencies
@@ -309,6 +400,10 @@ export default function AdminPage() {
 
   const handleSaved = (uid: string, updated: Partial<Agency>) => {
     setAgencies(prev => prev.map(a => a.uid === uid ? { ...a, ...updated } : a));
+  };
+
+  const handleDeleted = (uid: string) => {
+    setAgencies(prev => prev.filter(a => a.uid !== uid));
   };
 
   const filtered = agencies.filter(a => {
@@ -369,9 +464,9 @@ export default function AdminPage() {
       ) : (
         <div style={{ borderRadius: 12, border: `1px solid ${BORDER}`, overflow: "hidden" }}>
           {/* Table header */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 180px 70px 180px 130px 100px", padding: "10px 16px", background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${BORDER}`, gap: 12 }}>
-            {["Agency", "Email", "Plan", "Custom Domain", "Status", ""].map((h) => (
-              <div key={h} style={{ fontSize: 10.5, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 180px 70px 180px 130px 100px 40px", padding: "10px 16px", background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${BORDER}`, gap: 12 }}>
+            {["Agency", "Email", "Plan", "Custom Domain", "Status", "", ""].map((h, i) => (
+              <div key={i} style={{ fontSize: 10.5, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
             ))}
           </div>
 
@@ -381,7 +476,7 @@ export default function AdminPage() {
             filtered.map((agency, idx) => (
               <div
                 key={agency.uid}
-                style={{ display: "grid", gridTemplateColumns: "1fr 180px 70px 180px 130px 100px", padding: "13px 16px", borderTop: idx === 0 ? "none" : `1px solid ${BORDER}`, gap: 12, alignItems: "center", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.01)" }}
+                style={{ display: "grid", gridTemplateColumns: "1fr 180px 70px 180px 130px 100px 40px", padding: "13px 16px", borderTop: idx === 0 ? "none" : `1px solid ${BORDER}`, gap: 12, alignItems: "center", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.01)" }}
               >
                 {/* Agency name + slug */}
                 <div style={{ minWidth: 0 }}>
@@ -418,6 +513,17 @@ export default function AdminPage() {
                     <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>No domain</span>
                   )}
                 </div>
+
+                {/* Delete */}
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <button
+                    onClick={() => setDeleting(agency)}
+                    title="Delete agency"
+                    style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 7, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", color: "#f87171", fontSize: 14, cursor: "pointer", lineHeight: 1, padding: 0 }}
+                  >
+                    🗑
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -431,6 +537,16 @@ export default function AdminPage() {
           token={token}
           onClose={() => setEditing(null)}
           onSaved={(updated) => { handleSaved(editing.uid, updated); setEditing(null); }}
+        />
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleting && token && (
+        <DeleteAgencyModal
+          agency={deleting}
+          token={token}
+          onClose={() => setDeleting(null)}
+          onDeleted={(uid) => { handleDeleted(uid); setDeleting(null); }}
         />
       )}
     </>
