@@ -82,7 +82,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: brand, fontStyle: "italic", fontFamily: serif }}>
                 <span style={{ width: 32, height: 1, background: brand }} />
-                A journey for two · {pkg.destination}
+                {t.petalJourneyTagline} · {pkg.destination}
               </div>
               <h1 style={{ fontFamily: serif, fontSize: 64, lineHeight: 1.02, fontWeight: 400, fontStyle: "italic", letterSpacing: "-1px", marginTop: 20, marginBottom: 22 }}>
                 {title}
@@ -99,7 +99,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <DContainer style={{ padding: "48px 80px 96px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 48, alignItems: "start" }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: brand, letterSpacing: "1.4px", textTransform: "uppercase", marginBottom: 18 }}>What we&apos;ve planned</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: brand, letterSpacing: "1.4px", textTransform: "uppercase", marginBottom: 18 }}>{t.petalWhatsPlanned}</div>
               <h2 style={{ fontFamily: serif, fontSize: 38, fontWeight: 400, lineHeight: 1.1, marginTop: 0, marginBottom: 24 }}>
                 {nights ? `${nights} days, nothing else to organise.` : "Everything organised."}
               </h2>
@@ -117,12 +117,12 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
             </div>
             {/* Sticky price card */}
             <div style={{ background: brand, color: "#fff", borderRadius: 22, padding: 32, textAlign: "center", position: "sticky", top: 88 }}>
-              <div style={{ fontSize: 11, opacity: 0.75, letterSpacing: "1.4px", textTransform: "uppercase" }}>For two · all-in</div>
+              <div style={{ fontSize: 11, opacity: 0.75, letterSpacing: "1.4px", textTransform: "uppercase" }}>{t.petalForTwoAllIn}</div>
               <div style={{ fontFamily: serif, fontSize: 60, fontWeight: 400, lineHeight: 1, marginTop: 10 }}>{pkg.price}</div>
               <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>{nights ? `${nights} ${t.nightsLabel}` : t.perPerson}</div>
               <div style={{ height: 1, background: "rgba(255,255,255,0.2)", margin: "22px 0" }} />
               <WAButton label={t.bookWhatsApp} full size="md" style={{ background: "#fff", color: tokens.ink }} onClick={onWhatsApp} />
-              <div style={{ fontSize: 11, opacity: 0.7, marginTop: 12 }}>Replies usually within an hour</div>
+              <div style={{ fontSize: 11, opacity: 0.7, marginTop: 12 }}>{t.petalRepliesWithin}</div>
             </div>
           </div>
         </DContainer>
@@ -176,7 +176,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               whiteSpace: "nowrap",
             }}
           >
-            A journey for two · {pkg.destination}
+            {t.petalJourneyTagline} · {pkg.destination}
           </div>
           <div style={{ flex: 1, height: 1, background: `${brand}40`, maxWidth: 48 }} />
         </div>
@@ -262,7 +262,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
                 textTransform: "uppercase",
               }}
             >
-              What we&apos;ve planned
+              {t.petalWhatsPlanned}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
               {plannedItems.map((item, i) => (
@@ -317,7 +317,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               marginBottom: 8,
             }}
           >
-            For two, all in
+            {t.petalForTwoAllIn}
           </div>
           <div
             style={{

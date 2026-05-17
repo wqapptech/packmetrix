@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { db } from "@/lib/firebase-admin";
 import { verifyAdminToken } from "@/lib/admin-auth";
 
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
     .orderBy("createdAt", "desc")
     .get();
 
-  const agencies = snap.docs.map((doc) => {
+  const agencies = snap.docs.map((doc: QueryDocumentSnapshot) => {
     const d = doc.data();
     return {
       uid: doc.id,

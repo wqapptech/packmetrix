@@ -90,7 +90,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
               <div style={{ fontSize: 42, fontWeight: 800, letterSpacing: "-1px", marginTop: 4, lineHeight: 1 }}>{pkg.price}</div>
               <div style={{ fontSize: 11, color: tokens.superMuted, marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ${t.perPerson}` : t.perPerson}</div>
               <div style={{ height: 1, background: tokens.border, margin: "16px 0" }} />
-              <WAButton label="Save my seat" full size="md" onClick={onWhatsApp} />
+              <WAButton label={t.saveMySeat} full size="md" onClick={onWhatsApp} />
             </div>
           </DContainer>
         </div>
@@ -99,11 +99,11 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
         {itinerary.length > 0 && (
           <DContainer style={{ padding: "56px 80px 56px" }}>
             <Eyebrow text={t.editorialJourneyTogether} brand={brand} />
-            <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.6px", marginTop: 10, marginBottom: 24 }}>Day by day.</h2>
+            <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.6px", marginTop: 10, marginBottom: 24 }}>{t.dayByDayHeading}</h2>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(itinerary.length, 5)}, 1fr)`, gap: 12 }}>
               {itinerary.slice(0, 5).map((it, i) => (
                 <div key={i} style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 12, padding: 18 }}>
-                  <div style={{ fontSize: 10.5, color: brand, fontWeight: 800, letterSpacing: "0.5px", textTransform: "uppercase" }}>Day {it.day}</div>
+                  <div style={{ fontSize: 10.5, color: brand, fontWeight: 800, letterSpacing: "0.5px", textTransform: "uppercase" }}>{t.dayLabel} {it.day}</div>
                   <div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 4, lineHeight: 1.3 }}>{it.title}</div>
                   {it.desc && <div style={{ fontSize: 12, color: tokens.muted, marginTop: 4, lineHeight: 1.45 }}>{it.desc}</div>}
                 </div>
@@ -179,7 +179,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
                 <div style={{ fontSize: 24, flexShrink: 0, lineHeight: 1, marginTop: 2 }}>{dayEmoji(it.day)}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: brand, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 4 }}>
-                    Day {it.day}
+                    {t.dayLabel} {it.day}
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: tokens.ink, lineHeight: 1.3, marginBottom: it.desc ? 4 : 0 }}>{it.title}</div>
                   {it.desc && <div style={{ fontSize: 12, color: tokens.muted, lineHeight: 1.55 }}>{it.desc}</div>}

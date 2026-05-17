@@ -79,9 +79,9 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
               </div>
               {/* Overlapping price card */}
               <div style={{ position: "absolute", bottom: -16, right: -16, background: "#fff", borderRadius: 14, padding: "16px 20px", boxShadow: "0 10px 24px rgba(0,0,0,0.08)", border: `1px solid ${tokens.border}` }}>
-                <div style={{ fontSize: 10.5, color: tokens.superMuted, letterSpacing: "0.7px", textTransform: "uppercase" }}>Family of 4</div>
+                <div style={{ fontSize: 10.5, color: tokens.superMuted, letterSpacing: "0.7px", textTransform: "uppercase" }}>{t.familyOf4}</div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: brand, marginTop: 4, letterSpacing: "-0.5px" }}>{pkg.price}</div>
-                <div style={{ fontSize: 11, color: tokens.superMuted, marginTop: 2 }}>Kids under 6 stay free</div>
+                <div style={{ fontSize: 11, color: tokens.superMuted, marginTop: 2 }}>{t.kidsUnder6Free}</div>
               </div>
             </div>
             <div>
@@ -96,8 +96,8 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         {/* Family features 3-col */}
         {familyFeatures.length > 0 && (
           <DContainer style={{ padding: "32px 80px 56px" }}>
-            <Eyebrow text="Built for families" brand={brand} />
-            <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.8px", marginTop: 10, marginBottom: 28 }}>Everything you&apos;d think to ask for. Already in place.</h2>
+            <Eyebrow text={t.builtForFamilies} brand={brand} />
+            <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.8px", marginTop: 10, marginBottom: 28 }}>{t.familyFeaturesHeading}</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
               {familyFeatures.map((it, i) => (
                 <div key={i} style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: 22 }}>
@@ -111,12 +111,12 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         {/* Itinerary 4-col */}
         {itinerary.length > 0 && (
           <DContainer style={{ padding: "0 80px 56px" }}>
-            <Eyebrow text="A typical day" brand={brand} />
-            <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.8px", marginTop: 10, marginBottom: 24 }}>Easy mornings, naps respected.</h2>
+            <Eyebrow text={t.familyTypicalDay} brand={brand} />
+            <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.8px", marginTop: 10, marginBottom: 24 }}>{t.familyEasyMornings}</h2>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(itinerary.length, 4)}, 1fr)`, gap: 12 }}>
               {itinerary.slice(0, 4).map((it, i) => (
                 <div key={i} style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 12, padding: 18 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: brand, letterSpacing: "0.4px" }}>Day {it.day}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: brand, letterSpacing: "0.4px" }}>{t.dayLabel} {it.day}</div>
                   <div style={{ fontSize: 14, marginTop: 8, lineHeight: 1.4 }}>{it.title}</div>
                 </div>
               ))}
@@ -186,13 +186,13 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
           <div style={{ position: "relative" }}>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 8, fontWeight: 600 }}>
-              per family of four
+              {t.perFamilyOfFour}
             </div>
             <div style={{ fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1px", lineHeight: 1, marginBottom: 6 }}>
               {pkg.price}
             </div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 20 }}>
-              Kids under 12 stay free
+              {t.kidsUnder12Free}
             </div>
             <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} style={{ background: "#fff", color: brand }} />
           </div>

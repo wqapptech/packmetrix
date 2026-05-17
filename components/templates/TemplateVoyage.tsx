@@ -53,7 +53,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
   const coverImage = pkg.coverImage || "";
   const title = pkg.title || pkg.destination;
   const isRtl = lang === "ar";
-  const langLabel = lang === "ar" ? "Arabic" : "English";
+  const langLabel = t.langNameLabel;
   const itinerary = (pkg.itinerary || []).filter(it => it.title?.trim());
   const isDesktop = useIsDesktop();
 
@@ -74,13 +74,13 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
               {nights && (
                 <div style={{ fontSize: 120, fontWeight: 900, lineHeight: 0.85, letterSpacing: "-4px", color: "#fff" }}>
-                  {nights}<span style={{ fontSize: 48, opacity: 0.7 }}> days</span>
+                  {nights}<span style={{ fontSize: 48, opacity: 0.7 }}> {t.daysUnit}</span>
                 </div>
               )}
               <div style={{ fontSize: 72, fontWeight: 900, lineHeight: 0.95, letterSpacing: "-3px", color: "#fff" }}>
                 {pkg.destination?.split(",")[0]}
               </div>
-              <div style={{ fontSize: 72, fontWeight: 900, lineHeight: 0.95, letterSpacing: "-3px", color: brand }}>awaits.</div>
+              <div style={{ fontSize: 72, fontWeight: 900, lineHeight: 0.95, letterSpacing: "-3px", color: brand }}>{t.awaitsLabel}</div>
               <p style={{ fontSize: 16, color: "rgba(255,255,255,0.65)", marginTop: 28, lineHeight: 1.55, maxWidth: 420 }}>{pkg.description}</p>
               <div style={{ marginTop: 28 }}>
                 <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
@@ -99,8 +99,8 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <DContainer style={{ padding: "0 56px 56px" }}>
           <div style={{ display: "grid", gridTemplateColumns: nights ? "1fr 1fr" : "1fr", gap: 14 }}>
             {[
-              { v: pkg.price, l: "All-in price", c: brand },
-              ...(nights ? [{ v: `${nights}d`, l: "Duration", c: "#2dd4a0" }] : []),
+              { v: pkg.price, l: t.allInPriceLabel, c: brand },
+              ...(nights ? [{ v: `${nights}d`, l: t.logisticsDuration, c: "#2dd4a0" }] : []),
             ].map((s, i) => (
               <div key={i} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "24px 22px" }}>
                 <div style={{ fontSize: 36, fontWeight: 900, color: s.c, letterSpacing: "-1px", lineHeight: 1 }}>{s.v}</div>
@@ -118,7 +118,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(itinerary.length, 4)}, 1fr)`, gap: 12 }}>
               {itinerary.slice(0, 4).map((it, i) => (
                 <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: brand, letterSpacing: "0.5px" }}>Day {it.day}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: brand, letterSpacing: "0.5px" }}>{t.dayLabel} {it.day}</div>
                   <div style={{ fontSize: 14, color: "#fff", marginTop: 8, lineHeight: 1.4 }}>{it.title}</div>
                 </div>
               ))}
@@ -184,12 +184,12 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
           {/* Card 1: Destination */}
           <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "16px 14px" }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: brand, lineHeight: 1.2, marginBottom: 5, wordBreak: "break-word" }}>{pkg.destination}</div>
-            <div style={{ fontSize: 10, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "0.6px" }}>Destination</div>
+            <div style={{ fontSize: 10, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "0.6px" }}>{t.fieldDestination}</div>
           </div>
           {/* Card 2: Price */}
           <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "16px 14px" }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#f5a623", lineHeight: 1.2, marginBottom: 5 }}>{pkg.price}</div>
-            <div style={{ fontSize: 10, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "0.6px" }}>All-in</div>
+            <div style={{ fontSize: 10, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "0.6px" }}>{t.allInStatLabel}</div>
           </div>
           {/* Card 3: Nights */}
           <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "16px 14px" }}>
@@ -201,7 +201,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
           {/* Card 4: Language */}
           <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "16px 14px" }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#7c3aed", lineHeight: 1.2, marginBottom: 5 }}>{langLabel}</div>
-            <div style={{ fontSize: 10, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "0.6px" }}>Language</div>
+            <div style={{ fontSize: 10, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "0.6px" }}>{t.languageStatLabel}</div>
           </div>
         </div>
       </div>

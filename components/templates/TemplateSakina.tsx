@@ -55,11 +55,11 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
   const airports = (pkg.airports || []).filter((a) => a.name?.trim());
 
   const logisticsItems = [
-    { l: "Destination", v: pkg.destination },
-    ...(nights ? [{ l: "Duration", v: `${nights} nights` }] : []),
-    ...(airports[0] ? [{ l: "Flight", v: airports[0].name }] : []),
-    ...(pkg.hotelDescription ? [{ l: "Hotel", v: pkg.hotelDescription.slice(0, 30) + "…" }] : []),
-    { l: "Visa support", v: "Included" },
+    { l: t.fieldDestination, v: pkg.destination },
+    ...(nights ? [{ l: t.logisticsDuration, v: `${nights} ${t.nightsLabel}` }] : []),
+    ...(airports[0] ? [{ l: t.logisticsFlight, v: airports[0].name }] : []),
+    ...(pkg.hotelDescription ? [{ l: t.logisticsHotel, v: pkg.hotelDescription.slice(0, 30) + "…" }] : []),
+    { l: t.visaSupport, v: t.includedLabel },
   ].slice(0, 5);
 
   const isDesktop = useIsDesktop();
@@ -90,7 +90,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
               <h1 style={{ fontSize: 56, fontWeight: 700, lineHeight: 1.05, letterSpacing: "-1px", marginTop: 18, marginBottom: 20 }}>{title}</h1>
               <p style={{ fontSize: 16.5, color: tokens.muted, lineHeight: 1.7, margin: 0 }}>{pkg.description}</p>
               <div style={{ marginTop: 32 }}>
-                <WAButton label="WhatsApp the office" size="lg" onClick={onWhatsApp} />
+                <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />
               </div>
             </div>
           </div>
@@ -114,7 +114,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         {airports.length > 0 && (
           <DContainer style={{ padding: "48px 80px 96px" }}>
             <Eyebrow text="Departures" brand={brand} />
-            <h2 style={{ fontSize: 38, fontWeight: 700, letterSpacing: "-0.8px", marginTop: 10, marginBottom: 24 }}>Choose your date.</h2>
+            <h2 style={{ fontSize: 38, fontWeight: 700, letterSpacing: "-0.8px", marginTop: 10, marginBottom: 24 }}>{t.chooseYourDate}</h2>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(airports.length, 6)}, 1fr)`, gap: 12 }}>
               {airports.slice(0, 6).map((a, i) => (
                 <div key={i} style={{ border: `1px solid ${brand}`, background: "#fff", borderRadius: 12, padding: "18px 16px", cursor: "pointer" }} onClick={onWhatsApp}>
@@ -147,33 +147,33 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
   if (pkg.hotelDescription) {
     logisticsRows.push({
-      label: "Hotel",
+      label: t.logisticsHotel,
       value: pkg.hotelDescription.slice(0, 20) + " ★★★★★",
     });
   } else {
-    logisticsRows.push({ label: "Hotel", value: "Included" });
+    logisticsRows.push({ label: t.logisticsHotel, value: t.includedLabel });
   }
 
   if (airports.length > 0) {
-    logisticsRows.push({ label: "Flight", value: airports[0].name });
+    logisticsRows.push({ label: t.logisticsFlight, value: airports[0].name });
   } else {
-    logisticsRows.push({ label: "Flight", value: "Included" });
+    logisticsRows.push({ label: t.logisticsFlight, value: t.includedLabel });
   }
 
   logisticsRows.push({
-    label: "Guide language",
-    value: lang === "ar" ? "Arabic & English" : "English",
+    label: t.guideLanguage,
+    value: lang === "ar" ? t.arabicAndEnglish : t.langEn,
   });
 
-  logisticsRows.push({ label: "Visa support", value: "Included" });
+  logisticsRows.push({ label: t.visaSupport, value: t.includedLabel });
 
   if (pkg.cancellation) {
     logisticsRows.push({
-      label: "Cancellation",
+      label: t.cancellationLabel,
       value: pkg.cancellation.slice(0, 20),
     });
   } else {
-    logisticsRows.push({ label: "Cancellation", value: "Flexible" });
+    logisticsRows.push({ label: t.cancellationLabel, value: t.flexible });
   }
 
   // Departure dates from airports or static placeholders
@@ -185,10 +185,10 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
           sub: a.date || a.price,
         }))
       : [
-          { label: "Dec 12", sub: "From " + pkg.price },
-          { label: "Dec 26", sub: "Sold out", soldOut: true },
-          { label: "Jan 9", sub: "From " + pkg.price },
-          { label: "Feb 6", sub: "From " + pkg.price, isNew: true },
+          { label: "Dec 12", sub: t.from + " " + pkg.price },
+          { label: "Dec 26", sub: t.soldOut, soldOut: true },
+          { label: "Jan 9", sub: t.from + " " + pkg.price },
+          { label: "Feb 6", sub: t.from + " " + pkg.price, isNew: true },
         ];
 
   return (
@@ -363,7 +363,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
                     padding: "2px 7px",
                   }}
                 >
-                  New
+                  {t.newBadge}
                 </div>
               )}
               <div

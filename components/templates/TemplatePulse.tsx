@@ -95,8 +95,8 @@ export function TemplatePulsePage({ pkg, agency, onWhatsApp, onMessenger, lang }
         {/* Includes 3-col grid */}
         {includesItems.length > 0 && (
           <DContainer style={{ padding: "72px 80px 56px" }}>
-            <Eyebrow text="In the package" brand={brand} />
-            <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.6px", marginTop: 10, marginBottom: 28 }}>Everything included.</h2>
+            <Eyebrow text={t.inThePackage} brand={brand} />
+            <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.6px", marginTop: 10, marginBottom: 28 }}>{t.everythingIncluded}</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
               {includesItems.slice(0, 6).map((it, i) => (
                 <div key={i} style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 12, padding: 20, display: "flex", gap: 14, alignItems: "flex-start" }}>

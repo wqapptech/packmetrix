@@ -78,7 +78,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         {/* Centered masthead */}
         <DContainer style={{ padding: "56px 80px 32px", textAlign: "center" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 14, fontSize: 11, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "2px", fontWeight: 700 }}>
-            <span>Curated</span>
+            <span>{t.editorialCurated}</span>
             <span style={{ width: 1, height: 10, background: tokens.border }} />
             <span>{pkg.destination}</span>
           </div>
@@ -110,7 +110,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               {pkg.description || ""}
             </p>
             <p style={{ fontFamily: serif, fontSize: 18, lineHeight: 1.55, margin: "0 0 16px" }}>
-              A pace deliberately set for the curious traveler. Every stop hand-picked, every detail considered so you can focus on the experience.
+              {t.atlasEditorialBody}
             </p>
           </div>
         </DContainer>
@@ -135,7 +135,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               <div style={{ fontFamily: serif, fontSize: 48, fontWeight: 400, marginTop: 4, letterSpacing: "-1px", lineHeight: 1 }}>{pkg.price}</div>
               <div style={{ fontSize: 12, color: tokens.superMuted, marginTop: 6 }}>{nights ? `${nights} ${t.nightsLabel} · ${t.perPerson}` : t.perPerson}</div>
             </div>
-            <WAButton label="Enquire" size="lg" onClick={onWhatsApp} />
+            <WAButton label={t.enquire} size="lg" onClick={onWhatsApp} />
           </div>
         </DContainer>
 
@@ -162,7 +162,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
       {/* ── Magazine masthead ── */}
       <div style={{ padding: "18px 22px 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 10, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", fontWeight: 600 }}>No. 01</span>
+        <span style={{ fontSize: 10, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", fontWeight: 600 }}>{t.atlasIssueNo}</span>
         <span style={{ width: 1, height: 10, background: tokens.border, display: "inline-block" }} />
         <span style={{ fontSize: 10, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", fontWeight: 600 }}>{monthYear}</span>
         <span style={{ width: 1, height: 10, background: tokens.border, display: "inline-block" }} />
@@ -178,7 +178,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
           {title}
         </h1>
         <p style={{ fontSize: 13, fontStyle: "italic", color: tokens.muted, margin: 0 }}>
-          {agency.tagline ? agency.tagline : `Curated by ${agency.name}`}
+          {agency.tagline ? agency.tagline : `${t.curatedByPrefix} ${agency.name}`}
         </p>
       </div>
 
@@ -190,7 +190,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
           <div style={{ width: "100%", height: 340, background: `linear-gradient(135deg, ${brand}44, ${brand}22)`, borderRadius: 4 }} />
         )}
         <div style={{ marginTop: 8, fontSize: 11, fontStyle: "italic", color: tokens.superMuted }}>
-          A curated journey · {pkg.destination}
+          {t.curatedJourneyCaption} · {pkg.destination}
         </div>
       </div>
 

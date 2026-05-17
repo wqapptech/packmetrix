@@ -89,7 +89,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               <p style={{ fontSize: 16, color: tokens.muted, lineHeight: 1.65, margin: 0 }}>{pkg.description}</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 28 }}>
                 <div style={{ fontSize: 56, fontWeight: 800, color: brand, letterSpacing: "-1.5px", lineHeight: 1 }}>{pkg.price}</div>
-                <div style={{ fontSize: 14, color: tokens.superMuted }}>{t.perPerson} · all-in</div>
+                <div style={{ fontSize: 14, color: tokens.superMuted }}>{t.perPerson} · {t.allInSuffix}</div>
               </div>
               <div style={{ marginTop: 24 }}>
                 <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
@@ -101,8 +101,8 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         {/* Breakdown */}
         {breakdown.length > 0 && (
           <DContainer style={{ padding: "32px 80px 64px" }}>
-            <Eyebrow text={`What's in ${pkg.price}`} brand={brand} />
-            <h3 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.4px", margin: "8px 0 16px" }}>The honest breakdown.</h3>
+            <Eyebrow text={`${t.whatsInPriceEyebrow} ${pkg.price}`} brand={brand} />
+            <h3 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.4px", margin: "8px 0 16px" }}>{t.honestBreakdown}</h3>
             <div style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 12, overflow: "hidden", maxWidth: 560 }}>
               {breakdown.map((b, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "14px 18px", borderTop: i === 0 ? "none" : `1px solid ${tokens.border}` }}>
@@ -111,7 +111,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 18px", background: `${brand}0d`, borderTop: `1px solid ${tokens.border}` }}>
-                <div style={{ fontSize: 14, fontWeight: 800 }}>Total per person</div>
+                <div style={{ fontSize: 14, fontWeight: 800 }}>{t.totalPerPerson}</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: brand }}>{pkg.price}</div>
               </div>
             </div>
@@ -163,7 +163,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       {/* ── "What's in the price" breakdown ── */}
       <div style={{ padding: "22px 18px 0" }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: tokens.superMuted, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>
-          What&apos;s in the price
+          {t.whatsInThePriceLabel}
         </div>
         <div style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, overflow: "hidden" }}>
           {breakdownRows.map((row, i) => (
@@ -181,7 +181,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
             padding: "14px 16px", background: `${brand}0d`,
             borderTop: `1px solid ${brand}20`,
           }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: tokens.ink }}>{t.perPerson} total</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: tokens.ink }}>{t.totalPerPerson}</span>
             <span style={{ fontSize: 16, fontWeight: 800, color: brand }}>{pkg.price}</span>
           </div>
         </div>
