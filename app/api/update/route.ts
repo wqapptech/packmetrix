@@ -3,6 +3,16 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -23,7 +33,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    const userSnap = await db.collection("users").doc(userId).get();
+    const agencyName = userSnap.exists ? (userSnap.data()?.name || "") : "";
+    const agencySlug = slugify(agencyName) || "agency";
+
     await ref.update({
+      agencySlug,
       destination:      fields.destination      || "",
       price:            fields.price            || "",
       title:            fields.title            || "",
@@ -45,7 +60,7 @@ export async function POST(req: Request) {
       updatedAt:        Date.now(),
     });
 
-    return NextResponse.json({ id });
+    return NextResponse.json({ id, agencySlug });
   } catch (err: any) {
     console.error("update-package error:", err);
     return NextResponse.json({ error: err?.message || "Internal server error" }, { status: 500 });

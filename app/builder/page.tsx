@@ -1400,6 +1400,7 @@ function BuilderPageInner() {
         });
         const json = await res.json();
         if (!res.ok) { setError(json.error || "Something went wrong."); return; }
+        if (json.agencySlug) setAgencySlug(json.agencySlug);
         posthog.capture("package_updated", { destination: form.destination, price: form.price, language: form.language });
       } else {
         const res = await fetch("/api/generate", {
@@ -1427,7 +1428,7 @@ function BuilderPageInner() {
 
   const finalPackageId = packageId || editId;
   const shareUrl = finalPackageId && agencySlug
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/${agencySlug}/${finalPackageId}`
+    ? `https://${agencySlug}.packmetrix.com/${finalPackageId}`
     : "";
 
   const handleCopy = () => {
