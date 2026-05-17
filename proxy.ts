@@ -96,6 +96,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Agency slug subdomains: [slug].packmetrix.com → rewrite to /[slug]/...
+  const slugSubdomain = hostname.match(/^([a-z0-9-]+)\.packmetrix\.com$/);
+  if (slugSubdomain) {
+    const agencySlug = slugSubdomain[1];
+    const pathname = request.nextUrl.pathname;
+    // Already prefixed — serve directly
+    if (pathname === `/${agencySlug}` || pathname.startsWith(`/${agencySlug}/`)) {
+      return NextResponse.next();
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = `/${agencySlug}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
   // Always pass through for packmetrix infrastructure domains
   if (isInfrastructureHost(hostname)) {
     return NextResponse.next();
