@@ -28,3 +28,8 @@ export function useLang(): "en" | "ar" {
 }
 
 export const LANG_STORAGE_KEY = STORAGE_KEY;
+
+export function switchLang(lang: "en" | "ar") {
+  localStorage.setItem(STORAGE_KEY, lang);
+  document.body.setAttribute("data-lang", lang);
+}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, increment, addDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
@@ -120,53 +120,6 @@ function TextInput({
 }
 
 // ── step components ───────────────────────────────────────────────────────────
-
-function ComingSoonPanel({ feature, featureKey, user, onBack, t }: { feature: string; featureKey: string; user: any; onBack?: () => void; t: TDict }) {
-  const [requested, setRequested] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleRequest = async () => {
-    setLoading(true);
-    try {
-      await addDoc(collection(db, "featureRequests"), {
-        feature: featureKey,
-        userId: user?.uid || "anonymous",
-        email: user?.email || "",
-        createdAt: Date.now(),
-      });
-      setRequested(true);
-    } catch {}
-    setLoading(false);
-  };
-
-  return (
-    <div style={{ textAlign: "center", padding: "36px 24px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16 }}>
-      <div style={{ width: 52, height: 52, borderRadius: 14, background: `${SAND}18`, border: `1px solid ${SAND}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, margin: "0 auto 16px" }}>✦</div>
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{t.comingSoonTitle}</div>
-      <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6, marginBottom: 24 }}>
-        <b style={{ color: "#fff" }}>{feature}</b> {t.comingSoonInDev}<br />{t.comingSoonTellUs}
-      </div>
-      {requested ? (
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 10, background: "rgba(45,212,160,0.1)", border: "1px solid rgba(45,212,160,0.3)", color: SUCCESS, fontSize: 13, fontWeight: 600 }}>
-          {t.onTheList}
-        </div>
-      ) : (
-        <button
-          onClick={handleRequest}
-          disabled={loading}
-          style={{ padding: "11px 24px", borderRadius: 10, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, border: "none", color: "#0a1426", fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8 }}
-        >
-          {loading ? <span className="spinner" style={{ width: 13, height: 13, borderTopColor: "#0a1426" }} /> : "⚡"} {t.iWantFaster}
-        </button>
-      )}
-      {onBack && (
-        <div>
-          <button onClick={onBack} style={{ marginTop: 16, fontSize: 12, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>{t.goBack}</button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function Step0({ form, update, t }: { form: Form; update: (k: keyof Form, v: any) => void; t: TDict }) {
   return (
@@ -516,16 +469,55 @@ function PexelsPhotoSearch({ onSelect, placeholder, attribution, t }: {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
+  function interleave3<T>(a: T[], b: T[], c: T[]): T[] {
+    const out: T[] = [];
+    const len = Math.max(a.length, b.length, c.length);
+    for (let i = 0; i < len; i++) {
+      if (i < a.length) out.push(a[i]);
+      if (i < b.length) out.push(b[i]);
+      if (i < c.length) out.push(c[i]);
+    }
+    return out;
+  }
+
   const search = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setSearched(true);
     try {
-      const res = await fetch(`/api/pexels/photos?query=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      setResults(data.photos || []);
+      const [pexelsRes, unsplashRes] = await Promise.allSettled([
+        fetch(`/api/pexels/photos?query=${encodeURIComponent(query)}`).then(r => r.json()),
+        fetch(`/api/unsplash/photos?query=${encodeURIComponent(query)}`).then(r => r.json()),
+      ]);
+
+      const pexelsPhotos: any[] = pexelsRes.status === "fulfilled" ? (pexelsRes.value.photos || []) : [];
+      const rawUnsplash: any[] = unsplashRes.status === "fulfilled" ? (unsplashRes.value.photos || []) : [];
+
+      // Normalize Unsplash photos to match the Pexels shape, plus extra fields for compliance
+      const unsplashPhotos = rawUnsplash.map(p => ({
+        ...p,
+        src: { medium: p.src.small, large: p.src.regular, large2x: p.src.regular },
+        _unsplash: true,
+      }));
+
+      // pexelsPhotos already interleaves Pexels + Pixabay; split by source prefix for fair 3-way mix
+      const pexels = pexelsPhotos.filter((p: any) => !String(p.id).startsWith("pb_"));
+      const pixabay = pexelsPhotos.filter((p: any) => String(p.id).startsWith("pb_"));
+
+      setResults(interleave3(pexels, pixabay, unsplashPhotos));
     } catch {}
     setLoading(false);
+  };
+
+  const handleSelect = (photo: any) => {
+    if (photo._unsplash && photo.downloadLocation) {
+      fetch("/api/unsplash/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ downloadLocation: photo.downloadLocation }),
+      }).catch(() => {});
+    }
+    onSelect(photo.src.large2x || photo.src.large);
   };
 
   return (
@@ -568,16 +560,31 @@ function PexelsPhotoSearch({ onSelect, placeholder, attribution, t }: {
             {results.map(photo => (
               <div
                 key={photo.id}
-                onClick={() => onSelect(photo.src.large2x || photo.src.large)}
+                onClick={() => handleSelect(photo)}
                 title={photo.photographer}
                 style={{ position: "relative", aspectRatio: "4/3", borderRadius: 9, overflow: "hidden", cursor: "pointer" }}
                 onMouseEnter={e => { const o = e.currentTarget.querySelector(".px-overlay") as HTMLElement; if (o) o.style.opacity = "1"; }}
                 onMouseLeave={e => { const o = e.currentTarget.querySelector(".px-overlay") as HTMLElement; if (o) o.style.opacity = "0"; }}
               >
                 <img src={photo.src.medium} alt={photo.alt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                <div className="px-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.48)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, opacity: 0, transition: "opacity .15s" }}>
+                <div className="px-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.48)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, opacity: 0, transition: "opacity .15s", padding: "8px" }}>
                   <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
                   <span style={{ color: "#fff", fontSize: 11, fontWeight: 600 }}>{t.usePhotoBtn}</span>
+                  {photo._unsplash && (
+                    <span style={{ fontSize: 9.5, color: "rgba(255,255,255,0.6)", textAlign: "center", lineHeight: 1.4, marginTop: 2 }}>
+                      {t.unsplashPhotoBy}{" "}
+                      <a
+                        href={`${photo.photographerUrl}?utm_source=packmetrix&utm_medium=referral`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        style={{ color: "rgba(255,255,255,0.85)", textDecoration: "underline" }}
+                      >
+                        {photo.photographer}
+                      </a>
+                      {" "}{t.unsplashOn}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -587,6 +594,8 @@ function PexelsPhotoSearch({ onSelect, placeholder, attribution, t }: {
             <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>pexels.com</a>
             {" "}·{" "}
             <a href="https://pixabay.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>pixabay.com</a>
+            {" "}·{" "}
+            <a href="https://unsplash.com/?utm_source=packmetrix&utm_medium=referral" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>unsplash.com</a>
           </div>
         </>
       )}
@@ -774,7 +783,7 @@ function StepCover({ form, update, user, t }: { form: Form; update: (k: keyof Fo
 
       {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
 
-      {mode === "upload" ? (
+      {mode === "upload" && (
         <>
           {!form.coverImage && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${SAND}15`, border: `1px solid ${SAND}30`, borderRadius: 8, padding: "5px 12px", fontSize: 11, color: SAND, fontWeight: 600, marginBottom: 14 }}>
@@ -805,7 +814,9 @@ function StepCover({ form, update, user, t }: { form: Form; update: (k: keyof Fo
             </div>
           </label>
         </>
-      ) : (
+      )}
+
+      {mode === "pexels" && (
         <PexelsPhotoSearch
           onSelect={url => { update("coverImage", url); setMode("upload"); }}
           placeholder={t.pexelsSearchPhotos}
@@ -813,12 +824,13 @@ function StepCover({ form, update, user, t }: { form: Form; update: (k: keyof Fo
           t={t}
         />
       )}
+
     </div>
   );
 }
 
 function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof Form, v: any) => void; user: any; t: TDict; lang: Lang }) {
-  const [mode, setMode] = useState<"upload" | "pexels" | "generate">("upload");
+  const [mode, setMode] = useState<"upload" | "pexels">("upload");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dragIndex = useRef<number | null>(null);
@@ -874,15 +886,12 @@ function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof 
           <Icon name="image" size={12} color={mode === "pexels" ? SAND : "rgba(255,255,255,0.4)"} />
           <span style={{ color: mode === "pexels" ? SAND : undefined }}>{t.mediaPexelsPhotoTab}</span>
         </button>
-        <button onClick={() => setMode("generate")} style={TAB_BTN(mode === "generate")}>
-          <Icon name="sparkle" size={12} color={mode === "generate" ? SAND : "rgba(255,255,255,0.4)"} /> {t.mediaGenerateTab}
-        </button>
       </div>
 
       {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
 
       {/* Always show current gallery */}
-      {form.images.length > 0 && mode !== "generate" && (
+      {form.images.length > 0 && (
         <>
           {mode === "upload" && (
             <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(45,212,160,0.06)", border: "1px solid rgba(45,212,160,0.2)", fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 14 }}>
@@ -944,15 +953,12 @@ function Step5({ form, update, user, t, lang }: { form: Form; update: (k: keyof 
         />
       )}
 
-      {mode === "generate" && (
-        <ComingSoonPanel feature={t.mediaGenerateTab} featureKey="ai-images" user={user} onBack={() => setMode("upload")} t={t} />
-      )}
     </div>
   );
 }
 
 function Step6({ form, update, user, t }: { form: Form; update: (k: keyof Form, v: any) => void; user: any; t: TDict }) {
-  const [mode, setMode] = useState<"upload" | "pexels" | "generate">("upload");
+  const [mode, setMode] = useState<"upload" | "pexels">("upload");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1001,9 +1007,6 @@ function Step6({ form, update, user, t }: { form: Form; update: (k: keyof Form, 
           <Icon name="video" size={12} color={mode === "pexels" ? SAND : "rgba(255,255,255,0.4)"} />
           <span style={{ color: mode === "pexels" ? SAND : undefined }}>{t.mediaPexelsVideoTab}</span>
         </button>
-        <button onClick={() => setMode("generate")} style={TAB_BTN(mode === "generate")}>
-          <Icon name="sparkle" size={12} color={mode === "generate" ? SAND : "rgba(255,255,255,0.4)"} /> {t.generateAiVideo}
-        </button>
       </div>
 
       {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 12 }}>{error}</p>}
@@ -1033,9 +1036,6 @@ function Step6({ form, update, user, t }: { form: Form; update: (k: keyof Form, 
         />
       )}
 
-      {mode === "generate" && (
-        <ComingSoonPanel feature={t.generateAiVideo} featureKey="ai-video" user={user} onBack={() => setMode("upload")} t={t} />
-      )}
     </div>
   );
 }

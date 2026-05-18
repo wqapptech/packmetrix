@@ -17,23 +17,13 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import Icon from "@/components/Icon";
 import posthog from "posthog-js";
 import { FREE_AI_LIMIT } from "@/lib/limits";
+import { useLang, switchLang } from "@/hooks/useLang";
+import { T } from "@/lib/translations";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
 
 type View = "login" | "forgot" | "link";
-
-function friendlyError(code: string): string {
-  switch (code) {
-    case "auth/user-not-found":
-    case "auth/wrong-password":
-    case "auth/invalid-credential": return "Incorrect email or password.";
-    case "auth/invalid-email": return "Please enter a valid email address.";
-    case "auth/too-many-requests": return "Too many attempts. Please try again later.";
-    case "auth/popup-closed-by-user": return "";
-    default: return "";
-  }
-}
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "12px 16px",
@@ -51,41 +41,69 @@ const GoogleIcon = () => (
   </svg>
 );
 
+function LangToggle() {
+  const lang = useLang();
+  return (
+    <button
+      onClick={() => switchLang(lang === "en" ? "ar" : "en")}
+      style={{
+        background: "none", border: `1px solid rgba(255,255,255,0.12)`,
+        borderRadius: 8, padding: "5px 11px",
+        fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.4)",
+        cursor: "pointer", fontFamily: "inherit",
+      }}
+    >
+      {lang === "en" ? "عربي" : "EN"}
+    </button>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  const lang = useLang();
+  const t = T[lang];
+  const isRtl = lang === "ar";
+
   const [view, setView] = useState<View>("login");
 
-  // Login state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Forgot password state
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
 
-  // Account linking state (Google sign-in with existing email/password account)
   const [linkPending, setLinkPending] = useState<{ credential: OAuthCredential; email: string } | null>(null);
   const [linkPassword, setLinkPassword] = useState("");
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
 
+  function friendlyError(code: string): string {
+    switch (code) {
+      case "auth/user-not-found":
+      case "auth/wrong-password":
+      case "auth/invalid-credential": return t.authErrEmailOrPassword;
+      case "auth/invalid-email": return t.authErrInvalidEmail;
+      case "auth/too-many-requests": return t.authErrTooManyRequests;
+      case "auth/popup-closed-by-user": return "";
+      default: return "";
+    }
+  }
+
   const handleLogin = async () => {
-    if (!email || !password) { setError("Please fill in all fields."); return; }
+    if (!email || !password) { setError(t.authErrPleaseFillAll); return; }
     setLoading(true);
     setError(null);
     try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       if (!userCred.user.emailVerified) {
-        await sendEmailVerification(userCred.user, {
-          url: `${window.location.origin}/builder`,
-        });
+        await sendEmailVerification(userCred.user, { url: `${window.location.origin}/builder` });
         await signOut(auth);
-        setError("Please verify your email before signing in. We've sent a new verification link to your inbox.");
+        setError(t.authErrEmailVerification);
         return;
       }
       posthog.identify(userCred.user.uid, { email: userCred.user.email });
@@ -94,8 +112,7 @@ export default function LoginPage() {
     } catch (err: any) {
       posthog.capture("login_failed", { error_code: err?.code });
       posthog.captureException(err);
-      const msg = friendlyError(err?.code);
-      setError(msg || err?.message || "Login failed. Please try again.");
+      setError(friendlyError(err?.code) || err?.message || t.authErrLoginFailed);
     } finally {
       setLoading(false);
     }
@@ -138,15 +155,14 @@ export default function LoginPage() {
         }
       }
       posthog.captureException(err);
-      const msg = friendlyError(err?.code);
-      setError(msg || "Google sign-in failed. Please try again.");
+      setError(friendlyError(err?.code) || t.authErrGoogleSignin);
     } finally {
       setGoogleLoading(false);
     }
   };
 
   const handleLinkAccount = async () => {
-    if (!linkPending || !linkPassword) { setLinkError("Please enter your password."); return; }
+    if (!linkPending || !linkPassword) { setLinkError(t.authErrPleaseFillAll); return; }
     setLinkLoading(true);
     setLinkError(null);
     try {
@@ -157,32 +173,24 @@ export default function LoginPage() {
       router.push("/builder");
     } catch (err: any) {
       posthog.captureException(err);
-      const msg = friendlyError(err?.code);
-      setLinkError(msg || "Failed to link accounts. Please check your password.");
+      setLinkError(friendlyError(err?.code) || t.authErrLinkFailed);
     } finally {
       setLinkLoading(false);
     }
   };
 
   const handleForgotPassword = async () => {
-    if (!resetEmail.trim()) { setResetError("Please enter your email address."); return; }
+    if (!resetEmail.trim()) { setResetError(t.authErrPleaseFillEmail); return; }
     setResetLoading(true);
     setResetError(null);
     try {
-      await sendPasswordResetEmail(auth, resetEmail, {
-        url: `${window.location.origin}/login`,
-      });
+      await sendPasswordResetEmail(auth, resetEmail, { url: `${window.location.origin}/login` });
       setResetSent(true);
     } catch (err: any) {
-      const msg = friendlyError(err?.code);
-      setResetError(msg || "Failed to send reset email. Please try again.");
+      setResetError(friendlyError(err?.code) || t.authErrResetFailed);
     } finally {
       setResetLoading(false);
     }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleLogin();
   };
 
   return (
@@ -191,7 +199,13 @@ export default function LoginPage() {
       display: "flex", alignItems: "center", justifyContent: "center",
       fontFamily: "var(--font-dm-sans), 'DM Sans', sans-serif",
       padding: 24, color: "#fdfcf9",
+      direction: isRtl ? "rtl" : "ltr",
     }}>
+      {/* Lang switcher — fixed top corner */}
+      <div style={{ position: "fixed", top: 16, [isRtl ? "left" : "right"]: 16, zIndex: 50 }}>
+        <LangToggle />
+      </div>
+
       <div className="fade-up" style={{ width: "100%", maxWidth: 400 }}>
 
         {/* Logo */}
@@ -205,18 +219,18 @@ export default function LoginPage() {
           </div>
           {view === "login" ? (
             <>
-              <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>Welcome back</h1>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>Sign in to your PackMetrix account</p>
+              <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>{t.authLoginTitle}</h1>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>{t.authLoginSubtitle}</p>
             </>
           ) : view === "link" ? (
             <>
-              <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>Link Google account</h1>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>Connect Google to your existing account</p>
+              <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>{t.authLinkGoogleTitle}</h1>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>{t.authLinkGoogleSubtitle}</p>
             </>
           ) : (
             <>
-              <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>Reset password</h1>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>We'll send a reset link to your inbox</p>
+              <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>{t.authResetPasswordTitle}</h1>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>{t.authResetPasswordSubtitle}</p>
             </>
           )}
         </div>
@@ -224,7 +238,6 @@ export default function LoginPage() {
         {/* Login view */}
         {view === "login" && (
           <>
-            {/* Google sign-in */}
             <button
               onClick={handleGoogleLogin}
               disabled={googleLoading}
@@ -243,33 +256,28 @@ export default function LoginPage() {
               {googleLoading
                 ? <span className="spinner" style={{ width: 18, height: 18, borderTopColor: SAND }} />
                 : <GoogleIcon />}
-              Continue with Google
+              {t.authContinueWithGoogle}
             </button>
 
-            {/* Divider */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
               <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", whiteSpace: "nowrap" }}>or sign in with email</span>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", whiteSpace: "nowrap" }}>{t.authOrSignInEmail}</span>
               <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
               <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Email address"
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleLogin(); }}
+                placeholder={t.authEmailPlaceholder}
                 style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = `${SAND}70`)}
                 onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
               />
               <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Password"
+                type="password" value={password} onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleLogin(); }}
+                placeholder={t.authPasswordPlaceholder}
                 style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = `${SAND}70`)}
                 onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
@@ -278,12 +286,12 @@ export default function LoginPage() {
 
             {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 10 }}>{error}</p>}
 
-            <div style={{ textAlign: "right", marginBottom: 16 }}>
+            <div style={{ textAlign: isRtl ? "left" : "right", marginBottom: 16 }}>
               <button
                 onClick={() => { setView("forgot"); setResetEmail(email); setError(null); }}
                 style={{ background: "none", border: "none", fontSize: 12, color: SAND, cursor: "pointer", fontFamily: "inherit" }}
               >
-                Forgot password?
+                {t.authForgotPassword}
               </button>
             </div>
 
@@ -300,15 +308,15 @@ export default function LoginPage() {
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               }}
             >
-              {loading ? (
-                <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> Signing in…</>
-              ) : "Sign in"}
+              {loading
+                ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> {t.authSigningIn}</>
+                : t.authSignInBtn}
             </button>
 
             <p style={{ textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.35)", marginTop: 20 }}>
-              No account yet?{" "}
+              {t.authNoAccount}{" "}
               <a href="/signup" style={{ color: SAND, fontWeight: 600, textDecoration: "none" }}>
-                Sign up free
+                {t.authSignUpFreeBtn}
               </a>
             </p>
           </>
@@ -320,11 +328,9 @@ export default function LoginPage() {
             {!resetSent ? (
               <>
                 <input
-                  type="email"
-                  value={resetEmail}
-                  onChange={e => setResetEmail(e.target.value)}
+                  type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") handleForgotPassword(); }}
-                  placeholder="Your email address"
+                  placeholder={t.authYourEmailPlaceholder}
                   style={{ ...inputStyle, marginBottom: 14 }}
                   onFocus={e => (e.target.style.borderColor = `${SAND}70`)}
                   onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
@@ -346,9 +352,9 @@ export default function LoginPage() {
                     marginBottom: 16,
                   }}
                 >
-                  {resetLoading ? (
-                    <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> Sending…</>
-                  ) : "Send reset link"}
+                  {resetLoading
+                    ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> {t.authSending}</>
+                    : t.authSendResetLink}
                 </button>
               </>
             ) : (
@@ -359,9 +365,11 @@ export default function LoginPage() {
               }}>
                 <div style={{ marginTop: 2 }}><Icon name="check" size={16} color={SUCCESS} strokeWidth={2.5} /></div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#fdfcf9", marginBottom: 4 }}>Reset link sent</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#fdfcf9", marginBottom: 4 }}>{t.authResetLinkSentTitle}</p>
                   <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
-                    Check <span style={{ color: SAND }}>{resetEmail}</span> for a link to reset your password.
+                    {t.authResetLinkSentDescPrefix}{" "}
+                    <span style={{ color: SAND }}>{resetEmail}</span>{" "}
+                    {t.authResetLinkSentDescSuffix}
                   </p>
                 </div>
               </div>
@@ -376,7 +384,7 @@ export default function LoginPage() {
               }}
             >
               <Icon name="arrow_left" size={14} color="rgba(255,255,255,0.4)" strokeWidth={2} />
-              Back to sign in
+              {t.authBackToSignIn}
             </button>
           </>
         )}
@@ -389,17 +397,15 @@ export default function LoginPage() {
               borderRadius: 12, padding: "14px 16px", marginBottom: 20,
               fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.5,
             }}>
-              <strong style={{ color: SAND, display: "block", marginBottom: 4 }}>Account already exists</strong>
-              <span style={{ color: "#fdfcf9" }}>{linkPending.email}</span> already has a PackMetrics account.
-              Enter your password to link Google sign-in to it.
+              <strong style={{ color: SAND, display: "block", marginBottom: 4 }}>{t.authLinkAccountTitle}</strong>
+              <span style={{ color: "#fdfcf9" }}>{linkPending.email}</span>{" "}
+              {t.authLinkAccountDescSuffix}
             </div>
 
             <input
-              type="password"
-              value={linkPassword}
-              onChange={e => setLinkPassword(e.target.value)}
+              type="password" value={linkPassword} onChange={e => setLinkPassword(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") handleLinkAccount(); }}
-              placeholder="Your existing password"
+              placeholder={t.authExistingPasswordPlaceholder}
               style={{ ...inputStyle, marginBottom: 14 }}
               onFocus={e => (e.target.style.borderColor = `${SAND}70`)}
               onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
@@ -422,8 +428,8 @@ export default function LoginPage() {
               }}
             >
               {linkLoading
-                ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> Linking…</>
-                : "Link Google & sign in"}
+                ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: SAND }} /> {t.authLinking}</>
+                : t.authLinkGoogleBtn}
             </button>
 
             <button
@@ -435,7 +441,7 @@ export default function LoginPage() {
               }}
             >
               <Icon name="arrow_left" size={14} color="rgba(255,255,255,0.4)" strokeWidth={2} />
-              Back to sign in
+              {t.authBackToSignIn}
             </button>
           </>
         )}
