@@ -184,7 +184,9 @@ export default function LoginPage() {
     setResetLoading(true);
     setResetError(null);
     try {
-      await sendPasswordResetEmail(auth, resetEmail, { url: `${window.location.origin}/login` });
+      const continueUrl = `${window.location.origin}/login`;
+      console.log("Continue URL being sent:", continueUrl);
+      await sendPasswordResetEmail(auth, resetEmail, { url: continueUrl });
       setResetSent(true);
     } catch (err: any) {
       console.error("sendPasswordResetEmail failed:", err?.code, err?.message);
