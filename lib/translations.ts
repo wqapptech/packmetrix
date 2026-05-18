@@ -825,6 +825,14 @@ const en = {
   mktPlanGrowSupport: "Priority email",
   mktPlanScaleSupport: "Chat + onboarding call",
 
+  // Scale — coming soon / waitlist
+  scaleComingSoon: "Coming soon",
+  scaleNotifyTitle: "Be first to know",
+  scaleNotifyEmailPlaceholder: "your@email.com",
+  scaleNotifyBtn: "Notify me",
+  scaleNotifySuccess: "You're on the list!",
+  scaleNotifyMeBtn: "Notify me when available",
+
   mktRowUsers: "Users",
   mktRowPackages: "Packages",
   mktRowTemplates: "Templates",
@@ -1776,6 +1784,14 @@ const ar: typeof en = {
   mktPlanStartSupport: "دعم بالبريد",
   mktPlanGrowSupport: "بريد أولوية",
   mktPlanScaleSupport: "دردشة + مكالمة تأهيل",
+
+  // Scale — coming soon / waitlist
+  scaleComingSoon: "قريباً",
+  scaleNotifyTitle: "كن أول من يعلم",
+  scaleNotifyEmailPlaceholder: "بريدك@الإلكتروني.com",
+  scaleNotifyBtn: "أبلغني",
+  scaleNotifySuccess: "أنت على القائمة!",
+  scaleNotifyMeBtn: "أبلغني عند الإتاحة",
 
   mktRowUsers: "المستخدمون",
   mktRowPackages: "الباقات",

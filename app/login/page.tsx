@@ -187,6 +187,8 @@ export default function LoginPage() {
       await sendPasswordResetEmail(auth, resetEmail, { url: `${window.location.origin}/login` });
       setResetSent(true);
     } catch (err: any) {
+      console.error("sendPasswordResetEmail failed:", err?.code, err?.message);
+      posthog.capture("reset_email_failed", { error_code: err?.code, error_message: err?.message });
       setResetError(friendlyError(err?.code) || t.authErrResetFailed);
     } finally {
       setResetLoading(false);

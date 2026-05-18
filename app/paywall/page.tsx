@@ -90,7 +90,7 @@ function FeatureRow({ label, included, soon, t }: { label: string; included: boo
 }
 
 function PlanCard({
-  planKey, annual, userPlan, isPaid, stripeCustomerId, loading, onSubscribe, onManage, t,
+  planKey, annual, userPlan, isPaid, stripeCustomerId, loading, onSubscribe, onManage, onNotify, notifiedScale, t,
 }: {
   planKey: PlanKey;
   annual: boolean;
@@ -100,9 +100,12 @@ function PlanCard({
   loading: boolean;
   onSubscribe: (plan: PlanKey) => void;
   onManage: () => void;
+  onNotify: () => Promise<void>;
+  notifiedScale: boolean;
   t: TDict;
 }) {
   const isGrow = planKey === "grow";
+  const isScale = planKey === "scale";
   const isCurrent = userPlan === planKey;
   const hasStripeCustomer = !!stripeCustomerId;
   const price = annual ? ANNUAL_MONTHLY[planKey] : MONTHLY[planKey];
@@ -113,15 +116,22 @@ function PlanCard({
     scale: t.planScaleDesc,
   };
   const features = getPlanFeatures(t);
+  const [notifying, setNotifying] = useState(false);
 
   const handleClick = () => {
-    if (isCurrent) return;
-    // Only use portal if there's a real Stripe customer; otherwise fall through to checkout
+    if (isScale || isCurrent) return;
     if (isPaid && hasStripeCustomer) {
       onManage();
     } else {
       onSubscribe(planKey);
     }
+  };
+
+  const handleNotify = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNotifying(true);
+    await onNotify();
+    setNotifying(false);
   };
 
   const btnLabel = () => {
@@ -143,12 +153,24 @@ function PlanCard({
           : isGrow
             ? "rgba(232,201,123,0.03)"
             : "rgba(255,255,255,0.015)",
-        cursor: "pointer",
+        cursor: isScale || isCurrent ? "default" : "pointer",
         position: "relative",
         transition: "border-color 0.15s, background 0.15s",
         display: "flex", flexDirection: "column", gap: 16,
+        opacity: isScale ? 0.75 : 1,
       }}
     >
+      {isScale && (
+        <div style={{
+          position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)",
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          color: "rgba(255,255,255,0.5)", fontSize: 10, fontWeight: 800,
+          padding: "3px 12px", borderRadius: 99, letterSpacing: ".5px", whiteSpace: "nowrap",
+          textTransform: "uppercase",
+        }}>{t.scaleComingSoon}</div>
+      )}
+
       {isGrow && (
         <div style={{
           position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)",
@@ -193,32 +215,51 @@ function PlanCard({
         ))}
       </div>
 
-      <button
-        onClick={(e) => { e.stopPropagation(); handleClick(); }}
-        disabled={loading || isCurrent}
-        style={{
-          width: "100%", padding: "11px", borderRadius: 9, fontSize: 13, fontWeight: 700,
-          border: `1px solid ${isCurrent ? "rgba(45,212,160,0.3)" : isGrow ? "rgba(232,201,123,0.3)" : "rgba(255,255,255,0.1)"}`,
-          background: isCurrent
-            ? "rgba(45,212,160,0.08)"
-            : isPaid
-              ? `linear-gradient(135deg, ${SAND}, #c4a84f)`
-              : isGrow
-                ? "rgba(232,201,123,0.08)"
-                : "none",
-          color: isCurrent ? SUCCESS : isPaid ? "#0a1426" : isGrow ? SAND : "rgba(255,255,255,0.5)",
-          cursor: loading || isCurrent ? "not-allowed" : "pointer",
-          fontFamily: "inherit",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-          transition: "all 0.15s",
-          opacity: isCurrent ? 0.7 : 1,
-        }}
-      >
-        {loading
-          ? <><span className="spinner" style={{ width: 13, height: 13, borderTopColor: isPaid ? "#0a1426" : SAND }} /> {t.redirectingBtn}</>
-          : btnLabel()
-        }
-      </button>
+      {isScale ? (
+        <button
+          onClick={handleNotify}
+          disabled={notifying || notifiedScale}
+          style={{
+            width: "100%", padding: "11px", borderRadius: 9, fontSize: 13, fontWeight: 700,
+            border: `1px solid ${notifiedScale ? "rgba(45,212,160,0.3)" : "rgba(255,255,255,0.12)"}`,
+            background: notifiedScale ? "rgba(45,212,160,0.08)" : "rgba(255,255,255,0.04)",
+            color: notifiedScale ? SUCCESS : "rgba(255,255,255,0.55)",
+            cursor: notifying || notifiedScale ? "default" : "pointer",
+            fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+            transition: "all 0.15s",
+          }}
+        >
+          {notifiedScale ? `✓ ${t.scaleNotifySuccess}` : notifying ? "…" : t.scaleNotifyMeBtn}
+        </button>
+      ) : (
+        <button
+          onClick={(e) => { e.stopPropagation(); handleClick(); }}
+          disabled={loading || isCurrent}
+          style={{
+            width: "100%", padding: "11px", borderRadius: 9, fontSize: 13, fontWeight: 700,
+            border: `1px solid ${isCurrent ? "rgba(45,212,160,0.3)" : isGrow ? "rgba(232,201,123,0.3)" : "rgba(255,255,255,0.1)"}`,
+            background: isCurrent
+              ? "rgba(45,212,160,0.08)"
+              : isPaid
+                ? `linear-gradient(135deg, ${SAND}, #c4a84f)`
+                : isGrow
+                  ? "rgba(232,201,123,0.08)"
+                  : "none",
+            color: isCurrent ? SUCCESS : isPaid ? "#0a1426" : isGrow ? SAND : "rgba(255,255,255,0.5)",
+            cursor: loading || isCurrent ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+            transition: "all 0.15s",
+            opacity: isCurrent ? 0.7 : 1,
+          }}
+        >
+          {loading
+            ? <><span className="spinner" style={{ width: 13, height: 13, borderTopColor: isPaid ? "#0a1426" : SAND }} /> {t.redirectingBtn}</>
+            : btnLabel()
+          }
+        </button>
+      )}
     </div>
   );
 }
@@ -231,6 +272,7 @@ export default function PaywallPage() {
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [packageCount, setPackageCount] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
@@ -240,11 +282,13 @@ export default function PaywallPage() {
   const [trialEndsAt, setTrialEndsAt] = useState<number | null>(null);
   const [userPlan, setUserPlan] = useState<string>("free");
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
+  const [notifiedScale, setNotifiedScale] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) { router.push("/login"); return; }
       setUserId(u.uid);
+      setUserEmail(u.email ?? null);
       const userSnap = await getDoc(doc(db, "users", u.uid));
       if (userSnap.exists()) {
         setTrialEndsAt(userSnap.data()?.trialEndsAt ?? null);
@@ -284,6 +328,16 @@ export default function PaywallPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNotifyScale = async () => {
+    if (!userEmail) return;
+    await fetch("/api/scale-waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: userEmail, userId }),
+    });
+    setNotifiedScale(true);
   };
 
   // Manage/upgrade existing subscription via Stripe Customer Portal
@@ -450,6 +504,8 @@ export default function PaywallPage() {
               loading={loading}
               onSubscribe={handleSubscribe}
               onManage={handleManage}
+              onNotify={handleNotifyScale}
+              notifiedScale={notifiedScale}
               t={t}
             />
           ))}

@@ -343,6 +343,9 @@ function HowItWorks() {
 function PricingCard({ planId, annual, lang }: { planId: PlanId; annual: boolean; lang: Lang }) {
   const t = T[lang];
   const isRtl = lang === "ar";
+  const isScale = planId === "scale";
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [notifyState, setNotifyState] = useState<"idle" | "loading" | "done">("idle");
 
   const planData = {
     start: {
@@ -404,6 +407,18 @@ function PricingCard({ planId, annual, lang }: { planId: PlanId; annual: boolean
     { label: t.mktRowSupport, value: plan.support },
   ];
 
+  const handleNotify = async (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    if (!notifyEmail.includes("@")) return;
+    setNotifyState("loading");
+    await fetch("/api/scale-waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: notifyEmail }),
+    });
+    setNotifyState("done");
+  };
+
   return (
     <div style={{
       background: plan.highlight ? `linear-gradient(160deg, rgba(232,201,123,0.07), ${NAVY_MID})` : NAVY_MID,
@@ -413,7 +428,21 @@ function PricingCard({ planId, annual, lang }: { planId: PlanId; annual: boolean
       position: "relative",
       display: "flex", flexDirection: "column",
       direction: isRtl ? "rtl" : "ltr",
+      opacity: isScale ? 0.8 : 1,
     }}>
+      {isScale && (
+        <div style={{
+          position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)",
+          background: "rgba(255,255,255,0.07)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          color: "rgba(255,255,255,0.5)", fontSize: 10.5, fontWeight: 800,
+          padding: "4px 14px", borderRadius: 99, letterSpacing: ".5px", textTransform: "uppercase",
+          whiteSpace: "nowrap",
+        }}>
+          {t.scaleComingSoon}
+        </div>
+      )}
+
       {plan.highlight && (
         <div style={{
           position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)",
@@ -442,20 +471,63 @@ function PricingCard({ planId, annual, lang }: { planId: PlanId; annual: boolean
         )}
       </div>
 
-      <a
-        href={`${AGENCY_URL}/signup`}
-        style={{
-          display: "block", textAlign: "center",
-          background: plan.highlight ? `linear-gradient(135deg, ${SAND}, ${SAND_DIM})` : "rgba(255,255,255,0.06)",
-          border: plan.highlight ? "none" : `1px solid ${BORDER}`,
-          color: plan.highlight ? NAVY : "rgba(255,255,255,0.75)",
-          fontWeight: 700, fontSize: 14,
-          padding: "12px 20px", borderRadius: 10, textDecoration: "none",
-          marginBottom: 28,
-        }}
-      >
-        {t.mktPricingGetStarted}
-      </a>
+      {isScale ? (
+        notifyState === "done" ? (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            padding: "12px 20px", borderRadius: 10, marginBottom: 28,
+            background: "rgba(45,212,160,0.08)", border: "1px solid rgba(45,212,160,0.25)",
+            color: SUCCESS, fontWeight: 700, fontSize: 14,
+          }}>
+            ✓ {t.scaleNotifySuccess}
+          </div>
+        ) : (
+          <form onSubmit={handleNotify} style={{ marginBottom: 28, display: "flex", flexDirection: "column", gap: 8 }}>
+            <input
+              type="email"
+              value={notifyEmail}
+              onChange={(e) => setNotifyEmail(e.target.value)}
+              placeholder={t.scaleNotifyEmailPlaceholder}
+              required
+              style={{
+                width: "100%", padding: "10px 14px", borderRadius: 9, fontSize: 13,
+                border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.04)",
+                color: "#fdfcf9", fontFamily: "inherit", outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+            <button
+              type="submit"
+              disabled={notifyState === "loading"}
+              style={{
+                width: "100%", padding: "11px 20px", borderRadius: 9, fontSize: 13, fontWeight: 700,
+                border: `1px solid rgba(255,255,255,0.15)`,
+                background: "rgba(255,255,255,0.06)",
+                color: "rgba(255,255,255,0.75)",
+                cursor: notifyState === "loading" ? "default" : "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {notifyState === "loading" ? "…" : t.scaleNotifyBtn}
+            </button>
+          </form>
+        )
+      ) : (
+        <a
+          href={`${AGENCY_URL}/signup`}
+          style={{
+            display: "block", textAlign: "center",
+            background: plan.highlight ? `linear-gradient(135deg, ${SAND}, ${SAND_DIM})` : "rgba(255,255,255,0.06)",
+            border: plan.highlight ? "none" : `1px solid ${BORDER}`,
+            color: plan.highlight ? NAVY : "rgba(255,255,255,0.75)",
+            fontWeight: 700, fontSize: 14,
+            padding: "12px 20px", borderRadius: 10, textDecoration: "none",
+            marginBottom: 28,
+          }}
+        >
+          {t.mktPricingGetStarted}
+        </a>
+      )}
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
         {rows.map((r) => {
