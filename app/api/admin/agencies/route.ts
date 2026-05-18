@@ -30,8 +30,8 @@ export async function DELETE(req: Request) {
     db.collection("leads").where("userId", "==", uid).get(),
   ]);
 
-  await batchDelete(packagesSnap.docs.map(d => d.ref));
-  await batchDelete(leadsSnap.docs.map(d => d.ref));
+  await batchDelete(packagesSnap.docs.map((d: QueryDocumentSnapshot) => d.ref));
+  await batchDelete(leadsSnap.docs.map((d: QueryDocumentSnapshot) => d.ref));
 
   if (userData.customDomain) {
     await db.collection("customDomains").doc(userData.customDomain).delete().catch(() => {});
