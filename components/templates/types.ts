@@ -39,6 +39,8 @@ export type TPackage = {
   language?: string;
   isActive?: boolean;
   reviews?: TReview[];
+  // sections-based architecture (Phase 5+)
+  sections?: Array<{ id: string; type: string; order: number; data: Record<string, unknown> }>;
 };
 
 export type TAgency = {
@@ -83,6 +85,7 @@ export type TCardProps = {
   onEdit: () => void;
   onDelete: () => void;
   onToggleActive: () => void;
+  onDuplicate?: () => void;
 };
 
 export type TemplateDefinition = {

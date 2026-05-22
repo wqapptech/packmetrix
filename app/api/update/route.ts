@@ -56,9 +56,11 @@ export async function POST(req: Request) {
       whatsapp:         fields.whatsapp         || "",
       messenger:        fields.messenger        || "",
       coverImage:       fields.coverImage       || "",
-      images:           Array.isArray(fields.images) ? fields.images : [],
+      images:           Array.isArray(fields.images)    ? fields.images    : [],
       videoUrl:         fields.videoUrl         || "",
       language:         fields.language === "ar" ? "ar" : "en",
+      reviews:          Array.isArray(fields.reviews)   ? fields.reviews   : [],
+      sections:         Array.isArray(fields.sections)  ? fields.sections  : [],
       updatedAt:        Date.now(),
     });
 

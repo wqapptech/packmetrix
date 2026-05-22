@@ -7,11 +7,6 @@ import {
   Eyebrow,
   AgencyBar,
   StickyCTA,
-  SharedIncludes,
-  SharedPricing,
-  SharedGallery,
-  SharedHotel,
-  SharedAirports,
   SharedCTABanner,
   SharedFooter,
   BaseCard,
@@ -19,15 +14,12 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
-  SharedItineraryDesktop,
-  SharedIncludesDesktop,
-  SharedHotelDesktop,
-  SharedPricingDesktop,
-  SharedAirportsDesktop,
-  SharedGalleryDesktop,
   SharedCTABannerDesktop,
   ReviewsSection,
   ReviewsSectionDesktop,
+  DynamicSections,
+  DynamicSectionsDesktop,
+  getItineraryDays,
 } from "./shared";
 import type { TPageProps, TCardProps, TemplateTokens } from "./types";
 
@@ -57,12 +49,12 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
   const nights = pkg.nights ? Number(pkg.nights) : null;
   const coverImage = pkg.coverImage || "";
   const title = pkg.title || pkg.destination;
-  const itinerary = (pkg.itinerary || []).filter(it => it.title?.trim());
+  const itinerary = getItineraryDays(pkg).filter(it => it.title?.trim());
   const isRtl = lang === "ar";
   const isDesktop = useIsDesktop();
 
   const navLinks = [
-    ...((pkg.itinerary || []).some(it => it.title?.trim()) ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
+    ...(itinerary.length ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
     ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length) ? [{ label: t.navIncluded, href: "#included" }] : []),
     ...((pkg.pricingTiers || []).some(tier => tier.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
   ];
@@ -112,12 +104,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
           </DContainer>
         )}
 
-        <SharedItineraryDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedIncludesDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedHotelDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedPricingDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedAirportsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedGalleryDesktop pkg={pkg} tokens={tokens} lang={lang} />
+        <DynamicSectionsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} skip={["itinerary"]} />
         <ReviewsSectionDesktop pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
         <SharedCTABannerDesktop pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
 
@@ -191,11 +178,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
       )}
 
 
-      <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-      <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <DynamicSections pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} skip={["itinerary"]} />
       <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "0 18px 28px" }}>
@@ -211,11 +194,11 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
 // ─── TemplateTribeCard ──────────────────────────────────────────────────────
 
-export function TemplateTribeCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive }: TCardProps) {
+export function TemplateTribeCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, onDuplicate }: TCardProps) {
   return (
     <BaseCard
       pkg={pkg} agency={agency} lang={lang}
-      onView={onView} onEdit={onEdit} onDelete={onDelete} onToggleActive={onToggleActive}
+      onView={onView} onEdit={onEdit} onDelete={onDelete} onToggleActive={onToggleActive} onDuplicate={onDuplicate}
       headingFont="var(--font-dm-sans, sans-serif)"
       imageBorderRadius={0}
       cardBg="#faf6ef"

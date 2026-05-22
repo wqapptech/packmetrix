@@ -8,6 +8,7 @@ import PackageRenderer from "@/components/PackageRenderer";
 import type { TPackage, TAgency, Lang } from "@/components/templates/types";
 import { DEFAULT_TEMPLATE_ID } from "@/components/templates/index";
 import { T } from "@/lib/translations";
+import { normalizePkg } from "@/lib/sections/normalize";
 
 const DEFAULT_BRAND = "#1f5f8e";
 const BG  = "#fdfcf9";
@@ -31,7 +32,7 @@ export default function PackagePage() {
         const pkgSnap = await getDoc(doc(db, "packages", packageId));
         if (!pkgSnap.exists()) { router.push("/builder"); return; }
         const data = { id: pkgSnap.id, ...pkgSnap.data() } as TPackage;
-        setPkg(data);
+        setPkg(normalizePkg(data));
 
         if (data.userId) {
           step = "users";

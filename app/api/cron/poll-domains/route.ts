@@ -1,0 +1,156 @@
+// Scheduled by GCP Cloud Scheduler — see setup instructions at the bottom of this file.
+//
+// Cloud Scheduler job config (run once, then repeat as needed):
+//   Name:        poll-domains-5min
+//   Frequency:   */5 * * * *   (every 5 minutes)
+//   Target:      HTTP  POST  https://packmetrix.com/api/cron/poll-domains
+//   Headers:     X-Cron-Secret: <value of CRON_SECRET env var>
+//   Body:        (empty)
+//   Retry:       0 retries  (next run will catch any missed domains)
+
+import { NextResponse } from "next/server";
+import { createHash, timingSafeEqual } from "crypto";
+import { db, adminAuth } from "@/lib/firebase-admin";
+import { getCustomHostname } from "@/lib/cloudflare";
+import {
+  mapCFStatus,
+  extractDnsRecords,
+  upsertDomainState,
+  type DomainStatus,
+} from "@/lib/domain-sync";
+import {
+  sendDomainAddedEmail,
+  sendDomainActiveEmail,
+  sendDomainFailedEmail,
+} from "@/lib/email";
+
+export const dynamic = "force-dynamic";
+
+// Statuses that are still in-flight and need polling.
+const PENDING_STATUSES: DomainStatus[] = ["pending_dns", "verifying", "ssl_provisioning"];
+
+const FOUR_MIN_MS   = 4  * 60 * 1000;  // debounce: skip if updated within last 4 min
+const FIFTY_FIVE_MIN_MS = 55 * 60 * 1000; // hourly cadence threshold
+const H24_MS = 24 * 60 * 60 * 1000;
+const H48_MS = 48 * 60 * 60 * 1000;
+
+// Constant-time secret comparison — hashing normalises length before timingSafeEqual.
+function isValidCronSecret(provided: string | null): boolean {
+  const expected = process.env.CRON_SECRET;
+  if (!expected || !provided) return false;
+  const a = createHash("sha256").update(expected).digest();
+  const b = createHash("sha256").update(provided).digest();
+  return timingSafeEqual(a, b);
+}
+
+export async function POST(req: Request) {
+  if (!isValidCronSecret(req.headers.get("x-cron-secret"))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const now = Date.now();
+
+  const snap = await db
+    .collection("users")
+    .where("customDomainStatus", "in", PENDING_STATUSES)
+    .get();
+
+  const summary = { polled: 0, timed_out: 0, skipped: 0, errors: 0 };
+
+  for (const doc of snap.docs) {
+    const data      = doc.data();
+    const cfId      = (data.customDomainCfId   as string | null) ?? null;
+    const hostname  = (data.customDomain       as string | null) ?? null;
+    const createdAt = (data.customDomainCreatedAt as number | null) ?? now;
+    const updatedAt = (data.customDomainUpdatedAt as number | null) ?? now;
+    const prevStatus = data.customDomainStatus as DomainStatus;
+    const agencySlug: string = data.agencySlug || data.name || doc.id;
+
+    if (!cfId || !hostname) { summary.skipped++; continue; }
+
+    const ageMs         = now - createdAt;
+    const sinceUpdateMs = now - updatedAt;
+
+    // ── 48h timeout ────────────────────────────────────────────────────────────
+    if (ageMs > H48_MS) {
+      await upsertDomainState(doc.id, agencySlug, {
+        hostname,
+        cf_hostname_id: cfId,
+        status: "failed",
+        verification_records: data.customDomainVerificationRecords ?? [],
+        ssl_records: data.customDomainSslRecords ?? [],
+        error_message: "Domain verification timed out after 48 hours.",
+        created_at: createdAt,
+        updated_at: now,
+      });
+      try {
+        const userRecord = await adminAuth.getUser(doc.id);
+        if (userRecord.email) {
+          await sendDomainFailedEmail({
+            to: userRecord.email,
+            hostname,
+            errorMessage: "Domain verification timed out after 48 hours.",
+          });
+        }
+      } catch { /* email failure must not abort the batch */ }
+      summary.timed_out++;
+      continue;
+    }
+
+    // ── Cadence gates ──────────────────────────────────────────────────────────
+    // 24h–48h band: drop to hourly polling.
+    if (ageMs > H24_MS && sinceUpdateMs < FIFTY_FIVE_MIN_MS) {
+      summary.skipped++;
+      continue;
+    }
+    // Under 24h: skip if this domain was already processed in the last 4 min,
+    // so overlapping Cloud Scheduler runs don't double-poll the same hostname.
+    if (ageMs <= H24_MS && sinceUpdateMs < FOUR_MIN_MS) {
+      summary.skipped++;
+      continue;
+    }
+
+    // ── Poll Cloudflare ────────────────────────────────────────────────────────
+    try {
+      const cfResult = await getCustomHostname(cfId);
+      const newStatus = mapCFStatus(cfResult);
+      const { verification_records, ssl_records } = extractDnsRecords(cfResult);
+
+      await upsertDomainState(doc.id, agencySlug, {
+        hostname,
+        cf_hostname_id: cfId,
+        status: newStatus,
+        verification_records,
+        ssl_records,
+        error_message: cfResult.ssl?.validation_errors?.[0]?.message ?? "",
+        created_at: createdAt,
+        updated_at: now,
+      });
+
+      try {
+        if (prevStatus !== "active" && newStatus === "active") {
+          const userRecord = await adminAuth.getUser(doc.id);
+          if (userRecord.email) {
+            await sendDomainActiveEmail({ to: userRecord.email, hostname });
+          }
+        } else if (prevStatus !== "failed" && newStatus === "failed") {
+          const userRecord = await adminAuth.getUser(doc.id);
+          if (userRecord.email) {
+            await sendDomainFailedEmail({
+              to: userRecord.email,
+              hostname,
+              errorMessage: cfResult.ssl?.validation_errors?.[0]?.message,
+            });
+          }
+        }
+      } catch { /* email failure must not abort the batch */ }
+
+      summary.polled++;
+    } catch {
+      // Don't abort the batch on a single CF API failure; next run will retry.
+      summary.errors++;
+    }
+  }
+
+  return NextResponse.json({ ok: true, ...summary });
+}

@@ -7,11 +7,6 @@ import {
   Eyebrow,
   AgencyBar,
   StickyCTA,
-  SharedIncludes,
-  SharedPricing,
-  SharedGallery,
-  SharedHotel,
-  SharedAirports,
   SharedCTABanner,
   SharedFooter,
   BaseCard,
@@ -19,15 +14,12 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
-  SharedItineraryDesktop,
-  SharedIncludesDesktop,
-  SharedHotelDesktop,
-  SharedPricingDesktop,
-  SharedAirportsDesktop,
-  SharedGalleryDesktop,
   SharedCTABannerDesktop,
   ReviewsSection,
   ReviewsSectionDesktop,
+  DynamicSections,
+  DynamicSectionsDesktop,
+  getItineraryDays,
 } from "./shared";
 import type { TPageProps, TCardProps, TemplateTokens } from "./types";
 
@@ -51,12 +43,12 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
   const coverImage = pkg.coverImage || "";
   const title = pkg.title || pkg.destination;
   const isRtl = lang === "ar";
-  const itinerary = (pkg.itinerary || []).filter((it) => it.title?.trim());
+  const itinerary = getItineraryDays(pkg).filter((it) => it.title?.trim());
 
   const isDesktop = useIsDesktop();
 
   const navLinks = [
-    ...((pkg.itinerary || []).some(it => it.title?.trim()) ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
+    ...(itinerary.length ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
     ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length) ? [{ label: t.navIncluded, href: "#included" }] : []),
     ...((pkg.pricingTiers || []).some(tier => tier.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
   ];
@@ -86,12 +78,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
         </div>
 
 
-        <SharedItineraryDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedIncludesDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedHotelDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedPricingDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedAirportsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedGalleryDesktop pkg={pkg} tokens={tokens} lang={lang} />
+        <DynamicSectionsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
         <ReviewsSectionDesktop pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
         <SharedCTABannerDesktop pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
 
@@ -244,12 +231,8 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
         </section>
       )}
 
-      <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-      <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
+      <DynamicSections pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} skip={["itinerary"]} />
       <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
-      <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <SharedCTABanner
@@ -285,6 +268,7 @@ export function TemplateCompassCard({
   onEdit,
   onDelete,
   onToggleActive,
+  onDuplicate,
 }: TCardProps) {
   return (
     <BaseCard
@@ -295,6 +279,7 @@ export function TemplateCompassCard({
       onEdit={onEdit}
       onDelete={onDelete}
       onToggleActive={onToggleActive}
+      onDuplicate={onDuplicate}
       headingFont="var(--font-dm-sans, sans-serif)"
       imageBorderRadius={0}
     />

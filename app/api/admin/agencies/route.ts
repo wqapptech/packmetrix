@@ -65,8 +65,6 @@ export async function GET(req: Request) {
       agencySlug: d.agencySlug || d.name || "",
       customDomain: d.customDomain || null,
       customDomainStatus: d.customDomainStatus || null,
-      customDomainRecords: d.customDomainRecords || [],
-      customDomainStatusMsg: d.customDomainStatusMsg || "",
       createdAt: d.createdAt || 0,
     };
   });

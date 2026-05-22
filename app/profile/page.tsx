@@ -18,7 +18,11 @@ import { canUseCustomDomain } from "@/lib/limits";
 import type { TPackage, TAgency } from "@/components/templates/types";
 
 type DomainRecord = { type: string; name: string; value: string };
-type DomainStatus = "pending" | "records_ready" | "verifying" | "active" | "error" | "";
+type DomainStatus = "pending_dns" | "verifying" | "ssl_provisioning" | "active" | "failed" | "";
+
+function isApexDomain(hostname: string): boolean {
+  return hostname.split(".").length === 2;
+}
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -350,15 +354,19 @@ export default function BrandingPage() {
   const [agencySlug, setAgencySlug] = useState<string>("");
   const [customDomain, setCustomDomain] = useState<string>("");
   const [domainInput, setDomainInput] = useState<string>("");
+  const [domainCfId, setDomainCfId] = useState<string>("");
   const [domainSaving, setDomainSaving] = useState(false);
   const [domainSaved, setDomainSaved] = useState(false);
   const [domainRemoving, setDomainRemoving] = useState(false);
   const [domainError, setDomainError] = useState<string | null>(null);
   const [domainStatus, setDomainStatus] = useState<DomainStatus>("");
-  const [domainRecords, setDomainRecords] = useState<DomainRecord[]>([]);
-  const [domainStatusMsg, setDomainStatusMsg] = useState<string>("");
-  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [cnameRecord, setCnameRecord] = useState<DomainRecord | null>(null);
+  const [verificationRecords, setVerificationRecords] = useState<DomainRecord[]>([]);
+  const [sslRecords, setSslRecords] = useState<DomainRecord[]>([]);
+  const [apexGuidance, setApexGuidance] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -385,9 +393,11 @@ export default function BrandingPage() {
         const savedDomain = d.customDomain || "";
         setCustomDomain(savedDomain);
         setDomainInput(savedDomain);
+        setDomainCfId(d.customDomainCfId || "");
         setDomainStatus((d.customDomainStatus as DomainStatus) || "");
-        setDomainRecords(d.customDomainRecords || []);
-        setDomainStatusMsg(d.customDomainStatusMsg || "");
+        setVerificationRecords(d.customDomainVerificationRecords || []);
+        setSslRecords(d.customDomainSslRecords || []);
+        if (savedDomain && !isApexDomain(savedDomain)) setCnameRecord({ type: "CNAME", name: savedDomain, value: "cname.packmetrix.com" });
       }
 
       setAuthLoading(false);
@@ -434,22 +444,26 @@ export default function BrandingPage() {
   };
 
   const handleSaveDomain = async () => {
-    if (!uid) return;
+    if (!auth.currentUser) return;
     setDomainSaving(true);
     setDomainError(null);
     try {
-      const res = await fetch("/api/custom-domain", {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch("/api/domains", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: uid, domain: domainInput }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ hostname: domainInput }),
       });
       const json = await res.json();
-      if (!res.ok) {
-        setDomainError(json.error || t.customDomainError);
-        return;
-      }
-      setCustomDomain(json.domain);
-      setDomainInput(json.domain);
+      if (!res.ok) { setDomainError(json.error || t.customDomainError); return; }
+      setCustomDomain(json.hostname);
+      setDomainInput(json.hostname);
+      setDomainCfId(json.cf_hostname_id);
+      setDomainStatus(json.status);
+      setCnameRecord(json.cname_record ?? null);
+      setVerificationRecords(json.verification_records ?? []);
+      setSslRecords(json.ssl_records ?? []);
+      setApexGuidance(json.apex_guidance ?? null);
       setDomainSaved(true);
       setTimeout(() => setDomainSaved(false), 2500);
     } catch {
@@ -460,48 +474,92 @@ export default function BrandingPage() {
   };
 
   const handleRefreshStatus = async () => {
-    if (!uid) return;
+    if (!domainCfId || !auth.currentUser) return;
     setRefreshing(true);
-    const snap = await getDoc(doc(db, "users", uid));
-    if (snap.exists()) {
-      const d = snap.data();
-      setDomainStatus((d.customDomainStatus as DomainStatus) || "");
-      setDomainRecords(d.customDomainRecords || []);
-      setDomainStatusMsg(d.customDomainStatusMsg || "");
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`/api/domains/${domainCfId}/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setDomainStatus(data.status);
+      setVerificationRecords(data.verification_records ?? []);
+      setSslRecords(data.ssl_records ?? []);
+      if (data.error_message) setDomainError(data.error_message);
+    } finally {
+      setRefreshing(false);
     }
-    setRefreshing(false);
   };
 
-  const handleCopyRecord = (value: string, idx: number) => {
+  const handleCopyRecord = (name: string, value: string) => {
     navigator.clipboard.writeText(value).then(() => {
-      setCopiedIdx(idx);
-      setTimeout(() => setCopiedIdx(null), 2000);
+      setCopiedKey(name);
+      setTimeout(() => setCopiedKey(null), 2000);
     });
   };
 
   const handleRemoveDomain = async () => {
-    if (!uid) return;
+    if (!domainCfId || !auth.currentUser) return;
     setDomainRemoving(true);
     setDomainError(null);
     try {
-      const res = await fetch("/api/custom-domain", {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`/api/domains/${domainCfId}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: uid }),
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
         const json = await res.json();
         setDomainError(json.error || t.customDomainRemoveError);
         return;
       }
-      setCustomDomain("");
-      setDomainInput("");
+      setCustomDomain(""); setDomainInput(""); setDomainCfId(""); setDomainStatus("");
+      setCnameRecord(null); setVerificationRecords([]); setSslRecords([]); setApexGuidance(null);
     } catch {
       setDomainError(t.customDomainRemoveError);
     } finally {
       setDomainRemoving(false);
     }
   };
+
+  const handleResetDomain = async () => {
+    if (!auth.currentUser) return;
+    setDomainRemoving(true);
+    try {
+      if (domainCfId) {
+        const token = await auth.currentUser.getIdToken();
+        await fetch(`/api/domains/${domainCfId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
+      }
+    } finally {
+      setCustomDomain(""); setDomainInput(""); setDomainCfId(""); setDomainStatus("");
+      setCnameRecord(null); setVerificationRecords([]); setSslRecords([]); setApexGuidance(null); setDomainError(null);
+      setDomainRemoving(false);
+    }
+  };
+
+  // Auto-refresh every 30 s while the domain is in a pending state.
+  useEffect(() => {
+    const POLLING = ["pending_dns", "verifying", "ssl_provisioning"];
+    if (!domainCfId || !POLLING.includes(domainStatus)) return;
+    const id = setInterval(async () => {
+      if (!auth.currentUser) return;
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`/api/domains/${domainCfId}/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setDomainStatus(data.status);
+      setVerificationRecords(data.verification_records ?? []);
+      setSslRecords(data.ssl_records ?? []);
+      if (data.error_message) setDomainError(data.error_message);
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [domainStatus, domainCfId]);
 
   if (authLoading) {
     return (
@@ -675,17 +733,146 @@ export default function BrandingPage() {
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: SAND }}>{t.customDomainUpgradeTitle}</div>
                   </div>
                   <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginBottom: 14 }}>{t.customDomainUpgradeSub}</div>
-                  <a
-                    href="/paywall"
-                    style={{ display: "inline-block", padding: "8px 16px", borderRadius: 8, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: "#0d1b2e", fontSize: 12, fontWeight: 700, textDecoration: "none" }}
-                  >
+                  <a href="/paywall" style={{ display: "inline-block", padding: "8px 16px", borderRadius: 8, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: "#0d1b2e", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
                     {t.customDomainUpgradeBtn}
                   </a>
                 </div>
-              ) : (
-                /* ── Domain form ── */
+              ) : customDomain ? (() => {
+                /* ── Domain is registered — render state-specific UI ── */
+                const allRecords = ([cnameRecord, ...verificationRecords, ...sslRecords] as (DomainRecord | null)[]).filter(Boolean) as DomainRecord[];
+
+                /* ── Active ── */
+                if (domainStatus === "active") return (
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(45,212,160,0.07)", border: "1px solid rgba(45,212,160,0.2)", marginBottom: 12 }}>
+                      <Icon name="check" size={13} color={SUCCESS} strokeWidth={2.5} />
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: SUCCESS, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>Active</div>
+                        <div style={{ fontSize: 12, fontFamily: "monospace", color: "rgba(255,255,255,0.6)", marginTop: 1 }}>{customDomain}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+                      <a
+                        href={`https://${customDomain}`} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: "#0d1b2e", fontSize: 12, fontWeight: 700, textDecoration: "none" }}
+                      >
+                        <Icon name="globe" size={13} color="#0d1b2e" /> Visit site
+                      </a>
+                      <button
+                        onClick={() => setConfirmRemoveOpen(true)} disabled={domainRemoving}
+                        style={{ padding: "8px 14px", borderRadius: 9, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)", color: "#ef9090", fontSize: 12, fontWeight: 600, cursor: domainRemoving ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                      >
+                        {t.customDomainRemoveBtn}
+                      </button>
+                    </div>
+                    {domainError && <div style={{ fontSize: 11.5, color: "#ef9090", marginTop: 8 }}>{domainError}</div>}
+                  </div>
+                );
+
+                /* ── Failed ── */
+                if (domainStatus === "failed") return (
+                  <div>
+                    <div style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.2)", marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#f87171", textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 4 }}>Verification failed</div>
+                      <div style={{ fontSize: 12, fontFamily: "monospace", color: "rgba(255,255,255,0.5)", marginBottom: 6 }}>{customDomain}</div>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
+                        {domainError || "DNS records were not found within 48 hours. Please check your registrar settings and try again."}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setConfirmRemoveOpen(true)} disabled={domainRemoving}
+                      style={{ padding: "8px 14px", borderRadius: 9, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, border: "none", color: "#0d1b2e", fontSize: 12, fontWeight: 700, cursor: domainRemoving ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                    >
+                      Try a different domain
+                    </button>
+                  </div>
+                );
+
+                /* ── Pending DNS / Verifying / SSL provisioning ── */
+                const isApex = isApexDomain(customDomain);
+                const statusMeta = {
+                  pending_dns:      { color: "#f59e0b", bg: "rgba(245,158,11,0.07)",  border: "rgba(245,158,11,0.2)",  label: "Waiting for DNS",        desc: isApex ? "Follow the apex domain guidance below at your registrar, then wait a few minutes." : "Add the CNAME record below at your registrar, then wait a few minutes." },
+                  verifying:        { color: "#a78bfa", bg: "rgba(167,139,250,0.07)", border: "rgba(167,139,250,0.2)", label: "Verifying",              desc: "Cloudflare detected your DNS record and is verifying it. HTTPS may take a few minutes to become active once verification completes." },
+                  ssl_provisioning: { color: "#60a5fa", bg: "rgba(96,165,250,0.07)",  border: "rgba(96,165,250,0.2)",  label: "Issuing SSL certificate", desc: "DNS is verified. Your SSL certificate is being issued — HTTPS will become active within a few minutes." },
+                };
+                const meta = statusMeta[domainStatus as keyof typeof statusMeta] ?? statusMeta.pending_dns;
+                return (
+                  <div>
+                    {/* Status badge */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "10px 14px", borderRadius: 10, background: meta.bg, border: `1px solid ${meta.border}`, marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span className="spinner" style={{ width: 10, height: 10, borderTopColor: meta.color, flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: meta.color, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{meta.label}</div>
+                          <div style={{ fontSize: 12, fontFamily: "monospace", color: "rgba(255,255,255,0.5)", marginTop: 1 }}>{customDomain}</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", flexShrink: 0 }}>Auto-refreshing every 30s</div>
+                    </div>
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 12, lineHeight: 1.5 }}>{meta.desc}</div>
+
+                    {/* Apex domain guidance */}
+                    {isApex && (apexGuidance || domainStatus === "pending_dns") && (
+                      <div style={{ marginBottom: 14, padding: "12px 14px", borderRadius: 9, background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.18)" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 6 }}>Apex domain — special DNS required</div>
+                        <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>
+                          {apexGuidance || `${customDomain} is a root/apex domain. A plain CNAME is not valid at an apex per the DNS spec. Your DNS provider must support CNAME flattening (ALIAS records), or you must add A records pointing to Cloudflare's IP addresses. Check your registrar's documentation or contact support@packmetrix.com for help.`}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* DNS records table */}
+                    {allRecords.length > 0 && (
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 8 }}>
+                          {t.customDomainRecordsTitle}
+                        </div>
+                        <div style={{ borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "55px 1fr 1fr auto", background: "rgba(255,255,255,0.04)", padding: "6px 10px", gap: 8 }}>
+                            {[t.customDomainRecordType, t.customDomainRecordName, t.customDomainRecordValue, ""].map((h, i) => (
+                              <div key={i} style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
+                            ))}
+                          </div>
+                          {allRecords.map((rec, idx) => (
+                            <div key={`${rec.type}:${rec.name}:${idx}`} style={{ display: "grid", gridTemplateColumns: "55px 1fr 1fr auto", padding: "8px 10px", gap: 8, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
+                              <div style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: meta.color }}>{rec.type}</div>
+                              <div style={{ fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{rec.name}</div>
+                              <div style={{ fontFamily: "monospace", fontSize: 10.5, color: "rgba(255,255,255,0.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{rec.value}</div>
+                              <button
+                                onClick={() => { const k = `${rec.type}:${rec.name}:${idx}`; handleCopyRecord(k, rec.value); }}
+                                style={{ padding: "3px 9px", borderRadius: 5, background: copiedKey === `${rec.type}:${rec.name}:${idx}` ? "rgba(45,212,160,0.12)" : "rgba(255,255,255,0.06)", border: `1px solid ${copiedKey === `${rec.type}:${rec.name}:${idx}` ? "rgba(45,212,160,0.3)" : "rgba(255,255,255,0.1)"}`, color: copiedKey === `${rec.type}:${rec.name}:${idx}` ? SUCCESS : "rgba(255,255,255,0.5)", fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const, transition: "all .15s" }}
+                              >
+                                {copiedKey === `${rec.type}:${rec.name}:${idx}` ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
+                          Need help? Check your registrar&apos;s documentation for adding DNS records.
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={handleRefreshStatus} disabled={refreshing}
+                        style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, cursor: refreshing ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                      >
+                        {refreshing ? t.customDomainRefreshingBtn : t.customDomainRefreshBtn}
+                      </button>
+                      <button
+                        onClick={() => setConfirmRemoveOpen(true)} disabled={domainRemoving}
+                        style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)", color: "#ef9090", fontSize: 11, fontWeight: 600, cursor: domainRemoving ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                      >
+                        {t.customDomainRemoveBtn}
+                      </button>
+                    </div>
+                    {domainError && <div style={{ fontSize: 11.5, color: "#ef9090", marginTop: 8 }}>{domainError}</div>}
+                  </div>
+                );
+              })() : (
+                /* ── No domain yet ── */
                 <div>
-                  {/* Current packmetrix URL */}
                   {agencySlug && (
                     <div style={{ marginBottom: 14 }}>
                       <div style={{ fontSize: 10.5, fontWeight: 600, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 5 }}>
@@ -696,149 +883,46 @@ export default function BrandingPage() {
                       </div>
                     </div>
                   )}
-
-                  {/* Domain input */}
                   <FieldLabel>{t.customDomainLabel}</FieldLabel>
                   <div style={{ display: "flex", gap: 8 }}>
                     <input
                       value={domainInput}
                       onChange={e => { setDomainInput(e.target.value); setDomainError(null); }}
                       placeholder={t.customDomainPlaceholder}
-                      style={{
-                        flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                        borderRadius: 10, padding: "10px 14px", color: "#fdfcf9", fontSize: 13,
-                        fontFamily: "monospace", outline: "none",
-                      }}
+                      style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", color: "#fdfcf9", fontSize: 13, fontFamily: "monospace", outline: "none" }}
                       onFocus={e => (e.target.style.borderColor = `${SAND}60`)}
                       onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
                     />
                     <button
                       onClick={handleSaveDomain}
-                      disabled={domainSaving || !domainInput.trim() || domainInput.trim() === customDomain}
+                      disabled={domainSaving || !domainInput.trim()}
                       style={{
                         padding: "10px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700,
                         background: domainSaved ? "rgba(45,212,160,0.15)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
                         border: domainSaved ? `1px solid ${SUCCESS}` : "none",
                         color: domainSaved ? SUCCESS : "#0d1b2e",
-                        fontFamily: "inherit", cursor: (domainSaving || !domainInput.trim() || domainInput.trim() === customDomain) ? "not-allowed" : "pointer",
-                        opacity: (!domainInput.trim() || domainInput.trim() === customDomain) ? 0.5 : 1,
-                        flexShrink: 0, whiteSpace: "nowrap" as const,
+                        fontFamily: "inherit", cursor: (domainSaving || !domainInput.trim()) ? "not-allowed" : "pointer",
+                        opacity: !domainInput.trim() ? 0.5 : 1, flexShrink: 0, whiteSpace: "nowrap" as const,
                       }}
                     >
-                      {domainSaving ? t.customDomainSavingBtn : domainSaved
-                        ? <><Icon name="check" size={12} color={SUCCESS} strokeWidth={2.5} /> {t.customDomainSavedBtn}</>
-                        : t.customDomainSaveBtn}
+                      {domainSaving ? t.customDomainSavingBtn : domainSaved ? <><Icon name="check" size={12} color={SUCCESS} strokeWidth={2.5} /> {t.customDomainSavedBtn}</> : t.customDomainSaveBtn}
                     </button>
                   </div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 6 }}>{t.customDomainSubdomainHint}</div>
                   {domainError && <div style={{ fontSize: 11.5, color: "#ef9090", marginTop: 8 }}>{domainError}</div>}
-
-                  {/* ── Status panel (shown once a domain is saved) ── */}
-                  {customDomain && (() => {
-                    const statusMeta: Record<string, { label: string; desc: string; color: string; bg: string; border: string }> = {
-                      pending:       { label: t.customDomainStatusPending,      desc: t.customDomainStatusPendingDesc,      color: "#f59e0b", bg: "rgba(245,158,11,0.07)",  border: "rgba(245,158,11,0.2)"  },
-                      records_ready: { label: t.customDomainStatusRecordsReady, desc: t.customDomainStatusRecordsReadyDesc, color: "#60a5fa", bg: "rgba(96,165,250,0.07)",  border: "rgba(96,165,250,0.2)"  },
-                      verifying:     { label: t.customDomainStatusVerifying,    desc: t.customDomainStatusVerifyingDesc,    color: "#a78bfa", bg: "rgba(167,139,250,0.07)", border: "rgba(167,139,250,0.2)" },
-                      active:        { label: t.customDomainStatusActive,       desc: t.customDomainStatusActiveDesc,       color: SUCCESS,   bg: "rgba(45,212,160,0.07)", border: "rgba(45,212,160,0.2)"  },
-                      error:         { label: t.customDomainStatusError,        desc: domainStatusMsg,                      color: "#f87171", bg: "rgba(248,113,113,0.07)", border: "rgba(248,113,113,0.2)" },
-                    };
-                    const meta = statusMeta[domainStatus] ?? statusMeta.pending;
-                    const showRecords = (domainStatus === "records_ready" || domainStatus === "verifying" || domainStatus === "error") && domainRecords.length > 0;
-
-                    return (
-                      <div style={{ marginTop: 14, borderRadius: 11, border: `1px solid ${meta.border}`, background: meta.bg, overflow: "hidden" }}>
-                        {/* Status header */}
-                        <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                            {domainStatus === "verifying"
-                              ? <span className="spinner" style={{ width: 10, height: 10, borderTopColor: meta.color, flexShrink: 0 }} />
-                              : domainStatus === "active"
-                              ? <Icon name="check" size={12} color={meta.color} strokeWidth={2.5} />
-                              : <div style={{ width: 8, height: 8, borderRadius: "50%", background: meta.color, flexShrink: 0 }} />
-                            }
-                            <div>
-                              <div style={{ fontSize: 11, fontWeight: 700, color: meta.color, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{meta.label}</div>
-                              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 1, fontFamily: "monospace" }}>{customDomain}</div>
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                            <button
-                              onClick={handleRefreshStatus}
-                              disabled={refreshing}
-                              style={{ padding: "5px 10px", borderRadius: 7, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, cursor: refreshing ? "not-allowed" : "pointer", fontFamily: "inherit" }}
-                            >
-                              {refreshing ? t.customDomainRefreshingBtn : t.customDomainRefreshBtn}
-                            </button>
-                            <button
-                              onClick={handleRemoveDomain}
-                              disabled={domainRemoving}
-                              style={{ padding: "5px 10px", borderRadius: 7, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)", color: "#ef9090", fontSize: 11, fontWeight: 600, cursor: domainRemoving ? "not-allowed" : "pointer", fontFamily: "inherit" }}
-                            >
-                              {domainRemoving ? t.customDomainRemovingBtn : t.customDomainRemoveBtn}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Status description */}
-                        <div style={{ padding: "0 14px 12px", fontSize: 11.5, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>{meta.desc}</div>
-
-                        {/* DNS Records table */}
-                        {showRecords && (
-                          <div style={{ borderTop: `1px solid ${meta.border}`, padding: "12px 14px" }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 8 }}>
-                              {t.customDomainRecordsTitle}
-                            </div>
-                            <div style={{ borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)" }}>
-                              {/* Header row */}
-                              <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 1fr auto", background: "rgba(255,255,255,0.04)", padding: "6px 10px", gap: 8 }}>
-                                {[t.customDomainRecordType, t.customDomainRecordName, t.customDomainRecordValue, ""].map((h, i) => (
-                                  <div key={i} style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
-                                ))}
-                              </div>
-                              {/* Data rows */}
-                              {domainRecords.map((rec, idx) => (
-                                <div key={idx} style={{ display: "grid", gridTemplateColumns: "60px 1fr 1fr auto", padding: "8px 10px", gap: 8, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
-                                  <div style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 700, color: meta.color }}>{rec.type}</div>
-                                  <div style={{ fontFamily: "monospace", fontSize: 11.5, color: "rgba(255,255,255,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{rec.name}</div>
-                                  <div style={{ fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.6)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{rec.value}</div>
-                                  <button
-                                    onClick={() => handleCopyRecord(rec.value, idx)}
-                                    style={{ padding: "3px 9px", borderRadius: 5, background: copiedIdx === idx ? "rgba(45,212,160,0.12)" : "rgba(255,255,255,0.06)", border: `1px solid ${copiedIdx === idx ? "rgba(45,212,160,0.3)" : "rgba(255,255,255,0.1)"}`, color: copiedIdx === idx ? SUCCESS : "rgba(255,255,255,0.5)", fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const, transition: "all .15s" }}
-                                  >
-                                    {copiedIdx === idx ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Active state — no extra instructions needed */}
-                        {domainStatus === "active" && (
-                          <div style={{ borderTop: `1px solid ${meta.border}`, padding: "10px 14px", fontSize: 11.5, color: SUCCESS, display: "flex", alignItems: "center", gap: 6 }}>
-                            <Icon name="globe" size={13} color={SUCCESS} />
-                            {customDomain}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  {/* How it works — shown only before a domain is saved */}
-                  {!customDomain && (
-                    <div style={{ marginTop: 16, padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                      <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                        <Icon name="link" size={13} color="rgba(255,255,255,0.4)" />
-                        {t.customDomainDnsTitle}
-                      </div>
-                      <ol style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 16, paddingRight: lang === "ar" ? 16 : 0, listStyle: "decimal", display: "flex", flexDirection: "column" as const, gap: 6 }}>
-                        <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep1}</li>
-                        <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep2}</li>
-                        <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep3}</li>
-                        <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep4}</li>
-                      </ol>
-                      <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t.customDomainDnsNote}</div>
+                  <div style={{ marginTop: 16, padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Icon name="link" size={13} color="rgba(255,255,255,0.4)" />
+                      {t.customDomainDnsTitle}
                     </div>
-                  )}
+                    <ol style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 16, paddingRight: lang === "ar" ? 16 : 0, listStyle: "decimal", display: "flex", flexDirection: "column" as const, gap: 6 }}>
+                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep1}</li>
+                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep2}</li>
+                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep3}</li>
+                      <li style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{t.customDomainDnsStep4}</li>
+                    </ol>
+                    <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t.customDomainDnsNote}</div>
+                  </div>
                 </div>
               )}
             </div>
@@ -874,6 +958,66 @@ export default function BrandingPage() {
           </div>
         </div>
       </div>
+      {/* ── Remove domain confirmation modal ── */}
+      {confirmRemoveOpen && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget && !domainRemoving) setConfirmRemoveOpen(false); }}
+        >
+          <div style={{ width: "100%", maxWidth: 420, background: "#111c2d", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 16, overflow: "hidden" }}>
+            {/* Header */}
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#fdfcf9" }}>
+                  {domainStatus === "failed" ? "Remove & try a different domain" : "Remove custom domain"}
+                </div>
+                <div style={{ fontSize: 12, fontFamily: "monospace", color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{customDomain}</div>
+              </div>
+              <button
+                onClick={() => setConfirmRemoveOpen(false)} disabled={domainRemoving}
+                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 20, cursor: "pointer", lineHeight: 1, padding: "2px 4px", flexShrink: 0 }}
+              >×</button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: "18px 22px" }}>
+              <p style={{ margin: "0 0 16px", fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>
+                {domainStatus === "active"
+                  ? `Your site at https://${customDomain} will stop working immediately. You can connect a new domain after removing this one.`
+                  : `This will remove the domain registration. You can connect a new domain straight away.`}
+              </p>
+              {domainError && (
+                <div style={{ fontSize: 12, color: "#f87171", padding: "8px 12px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", marginBottom: 14 }}>
+                  {domainError}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button
+                  onClick={() => setConfirmRemoveOpen(false)} disabled={domainRemoving}
+                  style={{ padding: "9px 18px", borderRadius: 9, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, cursor: domainRemoving ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={domainRemoving}
+                  onClick={async () => {
+                    if (domainStatus === "failed") {
+                      await handleResetDomain();
+                    } else {
+                      await handleRemoveDomain();
+                    }
+                    setConfirmRemoveOpen(false);
+                  }}
+                  style={{ padding: "9px 20px", borderRadius: 9, background: domainRemoving ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.85)", color: "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: domainRemoving ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  {domainRemoving && <span className="spinner" style={{ width: 12, height: 12, borderTopColor: "#fff", flexShrink: 0 }} />}
+                  {domainRemoving ? "Removing…" : "Yes, remove domain"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

@@ -7,11 +7,6 @@ import {
   Eyebrow,
   AgencyBar,
   StickyCTA,
-  SharedItinerary,
-  SharedPricing,
-  SharedGallery,
-  SharedHotel,
-  SharedAirports,
   SharedCTABanner,
   SharedFooter,
   BaseCard,
@@ -19,15 +14,11 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
-  SharedIncludesDesktop,
-  SharedItineraryDesktop,
-  SharedHotelDesktop,
-  SharedPricingDesktop,
-  SharedAirportsDesktop,
-  SharedGalleryDesktop,
   SharedCTABannerDesktop,
   ReviewsSection,
   ReviewsSectionDesktop,
+  DynamicSections,
+  DynamicSectionsDesktop,
 } from "./shared";
 import type { TPageProps, TCardProps, TemplateTokens } from "./types";
 
@@ -108,12 +99,7 @@ export function TemplatePulsePage({ pkg, agency, onWhatsApp, onMessenger, lang }
           </DContainer>
         )}
 
-        <SharedItineraryDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedIncludesDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedHotelDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedPricingDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedAirportsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedGalleryDesktop pkg={pkg} tokens={tokens} lang={lang} />
+        <DynamicSectionsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
         <ReviewsSectionDesktop pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
         <SharedCTABannerDesktop pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
 
@@ -295,12 +281,8 @@ export function TemplatePulsePage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <WAButton label={t.bookWhatsApp} full size="lg" onClick={onWhatsApp} />
       </div>
 
-      <SharedItinerary pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-      <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
+      <DynamicSections pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
-      <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <SharedCTABanner
@@ -336,6 +318,7 @@ export function TemplatePulseCard({
   onEdit,
   onDelete,
   onToggleActive,
+  onDuplicate,
 }: TCardProps) {
   return (
     <BaseCard
@@ -346,6 +329,7 @@ export function TemplatePulseCard({
       onEdit={onEdit}
       onDelete={onDelete}
       onToggleActive={onToggleActive}
+      onDuplicate={onDuplicate}
       headingFont="var(--font-dm-sans, sans-serif)"
       imageBorderRadius={0}
     />

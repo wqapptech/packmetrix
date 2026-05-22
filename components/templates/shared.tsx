@@ -288,6 +288,19 @@ export function StickyCTA({ price, nights, label, dark, onWhatsApp, lang }: {
 
 // ─── Shared page sections ───────────────────────────────────────────────────
 
+/**
+ * Returns itinerary days from whichever storage path is populated.
+ * New packages store days inside pkg.sections; legacy packages use pkg.itinerary.
+ */
+export function getItineraryDays(pkg: TPackage): NonNullable<TPackage["itinerary"]> {
+  if (pkg.sections?.length) {
+    const sec = pkg.sections.find(s => s.type === "itinerary");
+    const days = sec?.data?.days;
+    if (Array.isArray(days) && days.length) return days as NonNullable<TPackage["itinerary"]>;
+  }
+  return pkg.itinerary ?? [];
+}
+
 export function SharedItinerary({ pkg, tokens, lang }: { pkg: TPackage; tokens: TemplateTokens; lang: Lang }) {
   const t = T[lang];
   const itinerary = (pkg.itinerary || []).filter(it => it.title?.trim());
@@ -625,9 +638,10 @@ export function CardStatRow({ views, clicks, conv, scoreColor, t }: {
   );
 }
 
-export function CardActions({ lang, onView, onEdit, onDelete, onToggleActive, isActive, isPublished }: {
+export function CardActions({ lang, onView, onEdit, onDelete, onToggleActive, onDuplicate, isActive, isPublished }: {
   lang: Lang; onView: () => void; onEdit: () => void;
   onDelete: () => void; onToggleActive: () => void;
+  onDuplicate?: () => void;
   isActive: boolean; isPublished: boolean;
 }) {
   const t = T[lang];
@@ -640,6 +654,11 @@ export function CardActions({ lang, onView, onEdit, onDelete, onToggleActive, is
         <Icon name="edit" size={12} color="rgba(255,255,255,0.55)" />
         {t.apply}
       </button>
+      {onDuplicate && (
+        <button onClick={onDuplicate} title={T[lang].duplicatePackageTooltip} style={{ width: 32, height: 32, borderRadius: 7, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon name="copy" size={13} color="rgba(255,255,255,0.55)" />
+        </button>
+      )}
       {isPublished && (
         <button onClick={onToggleActive} title={isActive ? t.markInactive : t.markActive} style={{ width: 32, height: 32, borderRadius: 7, background: isActive ? "rgba(45,212,160,0.08)" : "rgba(255,255,255,0.04)", border: `1px solid ${isActive ? "rgba(45,212,160,0.25)" : "rgba(255,255,255,0.08)"}`, color: isActive ? "rgba(45,212,160,0.8)" : "rgba(255,255,255,0.35)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 5.64" /><line x1="12" y1="2" x2="12" y2="12" /></svg>
@@ -653,11 +672,12 @@ export function CardActions({ lang, onView, onEdit, onDelete, onToggleActive, is
 }
 
 // BaseCard — used by all template card variants with their visual customizations
-export function BaseCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, imageBorderRadius = 0, headingFont = "inherit", cardBg = "rgba(255,255,255,0.025)", accentColor }: {
+export function BaseCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, onDuplicate, imageBorderRadius = 0, headingFont = "inherit", cardBg = "rgba(255,255,255,0.025)", accentColor }: {
   pkg: import("./types").TListPackage;
   agency: TAgency; lang: Lang;
   onView: () => void; onEdit: () => void;
   onDelete: () => void; onToggleActive: () => void;
+  onDuplicate?: () => void;
   imageBorderRadius?: number;
   headingFont?: string;
   cardBg?: string;
@@ -691,7 +711,7 @@ export function BaseCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggle
         </div>
       </div>
       <CardStatRow views={pkg.views || 0} clicks={clicks} conv={conv} scoreColor={scoreColor} t={t} />
-      <CardActions lang={lang} onView={onView} onEdit={onEdit} onDelete={onDelete} onToggleActive={onToggleActive} isActive={isActive} isPublished={isPublished} />
+      <CardActions lang={lang} onView={onView} onEdit={onEdit} onDelete={onDelete} onToggleActive={onToggleActive} onDuplicate={onDuplicate} isActive={isActive} isPublished={isPublished} />
     </div>
   );
 }
@@ -1241,6 +1261,866 @@ export function ReviewsSectionDesktop({ pkg, tokens, lang, agency }: {
     <>
       <SharedReviewsDesktop pkg={pkg} tokens={tokens} lang={lang} agency={agency} reviews={localReviews} />
       <VisitorReviewFormDesktop pkg={pkg} agency={agency} tokens={tokens} lang={lang} onNewReview={addReview} />
+    </>
+  );
+}
+
+// ─── Highlights ──────────────────────────────────────────────────────────────
+
+export function SharedHighlights({ items, tokens, lang }: {
+  items: unknown; tokens: TemplateTokens; lang: Lang;
+}) {
+  const strItems = (Array.isArray(items) ? items : []).map(i => String(i)).filter(Boolean);
+  if (!strItems.length) return null;
+  const isRtl = lang === "ar";
+  const title = isRtl ? "أبرز المميزات" : "Highlights";
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <Eyebrow text={title} brand={tokens.brand} />
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, margin: "10px 0 16px" }}>
+        {title}
+      </h2>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {strItems.map((item, i) => (
+          <div key={i} style={{ padding: "7px 14px", borderRadius: 99, background: `${tokens.brand}12`, border: `1px solid ${tokens.brand}30`, fontSize: 13, fontWeight: 600, color: tokens.brand, direction: isRtl ? "rtl" : "ltr" }}>
+            ✦ {item}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function SharedHighlightsDesktop({ items, tokens, lang }: {
+  items: unknown; tokens: TemplateTokens; lang: Lang;
+}) {
+  const strItems = (Array.isArray(items) ? items : []).map(i => String(i)).filter(Boolean);
+  if (!strItems.length) return null;
+  const isRtl = lang === "ar";
+  const title = isRtl ? "أبرز المميزات" : "Highlights";
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 700, color: tokens.dark ? "rgba(255,255,255,0.85)" : tokens.brand, letterSpacing: "1.6px", textTransform: "uppercase" }}>
+          <span style={{ width: 18, height: 1, background: tokens.dark ? "rgba(255,255,255,0.5)" : tokens.brand }} />
+          {title}
+        </div>
+        <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, margin: "10px 0 0", color: tokens.dark ? "#fff" : tokens.ink }}>
+          {title}
+        </h2>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        {strItems.map((item, i) => (
+          <div key={i} style={{ padding: "14px 18px", borderRadius: 12, background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${i === 0 ? tokens.brand + "40" : tokens.border}`, fontSize: 14, fontWeight: 600, color: tokens.dark ? "#fff" : tokens.ink, display: "flex", alignItems: "center", gap: 10, direction: isRtl ? "rtl" : "ltr" }}>
+            <span style={{ color: tokens.brand, fontSize: 18, flexShrink: 0 }}>✦</span>
+            {item}
+          </div>
+        ))}
+      </div>
+    </DContainer>
+  );
+}
+
+// ─── FAQ ─────────────────────────────────────────────────────────────────────
+
+export function SharedFaq({ items, tokens, lang }: {
+  items: unknown; tokens: TemplateTokens; lang: Lang;
+}) {
+  const faqItems = (Array.isArray(items) ? items : []) as Array<{ question?: string; answer?: string }>;
+  const valid = faqItems.filter(it => it?.question?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = isRtl ? "الأسئلة الشائعة" : "FAQ";
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 20 }}>
+        {title}
+      </h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "14px 16px" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: tokens.ink, marginBottom: it.answer ? 8 : 0, direction: isRtl ? "rtl" : "ltr" }}>{it.question}</div>
+            {it.answer && <div style={{ fontSize: 13, color: tokens.muted, lineHeight: 1.6, direction: isRtl ? "rtl" : "ltr" }}>{it.answer}</div>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function SharedFaqDesktop({ items, tokens, lang }: {
+  items: unknown; tokens: TemplateTokens; lang: Lang;
+}) {
+  const faqItems = (Array.isArray(items) ? items : []) as Array<{ question?: string; answer?: string }>;
+  const valid = faqItems.filter(it => it?.question?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = isRtl ? "الأسئلة الشائعة" : "FAQ";
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, margin: 0, color: tokens.dark ? "#fff" : tokens.ink }}>{title}</h2>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "20px 22px" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: tokens.dark ? "#fff" : tokens.ink, marginBottom: it.answer ? 10 : 0, direction: isRtl ? "rtl" : "ltr" }}>{it.question}</div>
+            {it.answer && <div style={{ fontSize: 13.5, color: tokens.muted, lineHeight: 1.65, direction: isRtl ? "rtl" : "ltr" }}>{it.answer}</div>}
+          </div>
+        ))}
+      </div>
+    </DContainer>
+  );
+}
+
+// ─── Booking Terms ────────────────────────────────────────────────────────────
+
+export function SharedBookingTerms({ content, tokens, lang }: {
+  content: unknown; tokens: TemplateTokens; lang: Lang;
+}) {
+  const text = typeof content === "string" ? content.trim() : "";
+  if (!text) return null;
+  const isRtl = lang === "ar";
+  const title = isRtl ? "شروط الحجز" : "Booking Terms";
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 16 }}>
+        {title}
+      </h2>
+      <div style={{ background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "16px 18px" }}>
+        <p style={{ fontSize: 13, color: tokens.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr", whiteSpace: "pre-wrap" }}>{text}</p>
+      </div>
+    </section>
+  );
+}
+
+export function SharedBookingTermsDesktop({ content, tokens, lang }: {
+  content: unknown; tokens: TemplateTokens; lang: Lang;
+}) {
+  const text = typeof content === "string" ? content.trim() : "";
+  if (!text) return null;
+  const isRtl = lang === "ar";
+  const title = isRtl ? "شروط الحجز" : "Booking Terms";
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, margin: 0, color: tokens.dark ? "#fff" : tokens.ink }}>{title}</h2>
+      </div>
+      <div style={{ background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "24px 28px", maxWidth: 800 }}>
+        <p style={{ fontSize: 14, color: tokens.muted, lineHeight: 1.8, margin: 0, direction: isRtl ? "rtl" : "ltr", whiteSpace: "pre-wrap" }}>{text}</p>
+      </div>
+    </DContainer>
+  );
+}
+
+// ─── Custom Section ───────────────────────────────────────────────────────────
+
+export function SharedCustomSection({ heading, content, image, tokens, lang }: {
+  heading: unknown; content?: unknown; image?: unknown;
+  tokens: TemplateTokens; lang: Lang;
+}) {
+  const h   = typeof heading === "string" ? heading.trim() : "";
+  const c   = typeof content === "string" ? content.trim() : "";
+  const img = typeof image   === "string" ? image.trim()   : "";
+  if (!h && !c) return null;
+  const isRtl = lang === "ar";
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      {h && (
+        <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14, direction: isRtl ? "rtl" : "ltr" }}>
+          {h}
+        </h2>
+      )}
+      {img && <img src={img} alt="" style={{ width: "100%", borderRadius: 12, marginBottom: 14, aspectRatio: "16/9", objectFit: "cover", display: "block" }} />}
+      {c && <p style={{ fontSize: 14, color: tokens.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{c}</p>}
+    </section>
+  );
+}
+
+export function SharedCustomSectionDesktop({ heading, content, image, tokens, lang }: {
+  heading: unknown; content?: unknown; image?: unknown;
+  tokens: TemplateTokens; lang: Lang;
+}) {
+  const h   = typeof heading === "string" ? heading.trim() : "";
+  const c   = typeof content === "string" ? content.trim() : "";
+  const img = typeof image   === "string" ? image.trim()   : "";
+  if (!h && !c) return null;
+  const isRtl = lang === "ar";
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      {h && (
+        <div style={{ marginBottom: 28 }}>
+          <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, margin: 0, color: tokens.dark ? "#fff" : tokens.ink, direction: isRtl ? "rtl" : "ltr" }}>{h}</h2>
+        </div>
+      )}
+      {img ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 40, alignItems: "start" }}>
+          <img src={img} alt="" style={{ width: "100%", borderRadius: 14, aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
+          {c && <p style={{ fontSize: 15, color: tokens.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{c}</p>}
+        </div>
+      ) : (
+        c && <p style={{ fontSize: 15, color: tokens.muted, lineHeight: 1.75, margin: 0, maxWidth: 720, direction: isRtl ? "rtl" : "ltr" }}>{c}</p>
+      )}
+    </DContainer>
+  );
+}
+
+// ─── Extras ───────────────────────────────────────────────────────────────────
+
+export function SharedExtras({ items, tokens, lang }: { items: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const list = (Array.isArray(items) ? items : []) as Array<{ name?: string; description?: string; price?: string }>;
+  const valid = list.filter(it => it?.name?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionExtrasTitle;
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: tokens.ink, direction: isRtl ? "rtl" : "ltr" }}>{it.name}</div>
+              {it.price && <div style={{ fontSize: 13, fontWeight: 700, color: tokens.brand, whiteSpace: "nowrap" }}>{it.price}</div>}
+            </div>
+            {it.description && <div style={{ fontSize: 12.5, color: tokens.muted, lineHeight: 1.6, marginTop: 5, direction: isRtl ? "rtl" : "ltr" }}>{it.description}</div>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function SharedExtrasDesktop({ items, tokens, lang }: { items: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const list = (Array.isArray(items) ? items : []) as Array<{ name?: string; description?: string; price?: string }>;
+  const valid = list.filter(it => it?.name?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionExtrasTitle;
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 28 }}>{title}</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "20px 22px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: it.description ? 8 : 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: tokens.ink, direction: isRtl ? "rtl" : "ltr" }}>{it.name}</div>
+              {it.price && <div style={{ fontSize: 14, fontWeight: 700, color: tokens.brand, whiteSpace: "nowrap" }}>{it.price}</div>}
+            </div>
+            {it.description && <div style={{ fontSize: 13, color: tokens.muted, lineHeight: 1.6, direction: isRtl ? "rtl" : "ltr" }}>{it.description}</div>}
+          </div>
+        ))}
+      </div>
+    </DContainer>
+  );
+}
+
+// ─── Meals ────────────────────────────────────────────────────────────────────
+
+export function SharedMeals({ plan, notes, tokens, lang }: { plan: unknown; notes: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const p = typeof plan === "string" ? plan : "none";
+  const n = typeof notes === "string" ? notes.trim() : "";
+  const t = T[lang];
+  const mealKey = p === "none" ? "mealNone" : p === "breakfast" ? "mealBreakfast" : p === "half_board" ? "mealHalfBoard" : p === "full_board" ? "mealFullBoard" : p === "all_inclusive" ? "mealAllInclusive" : null;
+  const label = mealKey ? t[mealKey] : t.mealNotSpecified;
+  const title = t.sectionMealsTitle;
+  const isRtl = lang === "ar";
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      <div style={{ background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "16px 18px" }}>
+        <div style={{ display: "inline-flex", padding: "6px 14px", borderRadius: 99, background: `${tokens.brand}15`, border: `1px solid ${tokens.brand}30`, fontSize: 13, fontWeight: 700, color: tokens.brand, marginBottom: n ? 12 : 0 }}>
+          {label}
+        </div>
+        {n && <p style={{ fontSize: 13, color: tokens.muted, lineHeight: 1.7, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{n}</p>}
+      </div>
+    </section>
+  );
+}
+
+export function SharedMealsDesktop({ plan, notes, tokens, lang }: { plan: unknown; notes: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const p = typeof plan === "string" ? plan : "none";
+  const n = typeof notes === "string" ? notes.trim() : "";
+  const t = T[lang];
+  const mealKey = p === "none" ? "mealNone" : p === "breakfast" ? "mealBreakfast" : p === "half_board" ? "mealHalfBoard" : p === "full_board" ? "mealFullBoard" : p === "all_inclusive" ? "mealAllInclusive" : null;
+  const label = mealKey ? t[mealKey] : t.mealNotSpecified;
+  const title = t.sectionMealsTitle;
+  const isRtl = lang === "ar";
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 22 }}>{title}</h2>
+      <div style={{ display: "inline-flex", padding: "8px 20px", borderRadius: 99, background: `${tokens.brand}15`, border: `1px solid ${tokens.brand}30`, fontSize: 15, fontWeight: 700, color: tokens.brand, marginBottom: n ? 16 : 0 }}>
+        {label}
+      </div>
+      {n && <p style={{ fontSize: 15, color: tokens.muted, lineHeight: 1.75, margin: 0, maxWidth: 680, direction: isRtl ? "rtl" : "ltr" }}>{n}</p>}
+    </DContainer>
+  );
+}
+
+// ─── Tour Guide ───────────────────────────────────────────────────────────────
+
+export function SharedGuide({ name, bio, photo, languages, tokens, lang }: {
+  name: unknown; bio: unknown; photo: unknown; languages: unknown;
+  tokens: TemplateTokens; lang: Lang;
+}) {
+  const n = typeof name === "string" ? name.trim() : "";
+  const b = typeof bio === "string" ? bio.trim() : "";
+  const img = typeof photo === "string" ? photo.trim() : "";
+  const langs = (Array.isArray(languages) ? languages : []).map(l => String(l)).filter(Boolean);
+  if (!n && !b) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionGuideTitle;
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      <div style={{ background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "18px 16px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+        {img && <img src={img} alt={n} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />}
+        <div style={{ flex: 1 }}>
+          {n && <div style={{ fontSize: 15, fontWeight: 700, color: tokens.ink, marginBottom: 4, direction: isRtl ? "rtl" : "ltr" }}>{n}</div>}
+          {langs.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: b ? 10 : 0 }}>
+              {langs.map((l, i) => (
+                <span key={i} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: `${tokens.brand}12`, color: tokens.brand, fontWeight: 600 }}>{l}</span>
+              ))}
+            </div>
+          )}
+          {b && <p style={{ fontSize: 13, color: tokens.muted, lineHeight: 1.65, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{b}</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function SharedGuideDesktop({ name, bio, photo, languages, tokens, lang }: {
+  name: unknown; bio: unknown; photo: unknown; languages: unknown;
+  tokens: TemplateTokens; lang: Lang;
+}) {
+  const n = typeof name === "string" ? name.trim() : "";
+  const b = typeof bio === "string" ? bio.trim() : "";
+  const img = typeof photo === "string" ? photo.trim() : "";
+  const langs = (Array.isArray(languages) ? languages : []).map(l => String(l)).filter(Boolean);
+  if (!n && !b) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionGuideTitle;
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 28 }}>{title}</h2>
+      <div style={{ display: "grid", gridTemplateColumns: img ? "auto 1fr" : "1fr", gap: 32, alignItems: "start", maxWidth: 700 }}>
+        {img && <img src={img} alt={n} style={{ width: 100, height: 100, borderRadius: "50%", objectFit: "cover" }} />}
+        <div>
+          {n && <div style={{ fontSize: 22, fontWeight: 700, color: tokens.ink, marginBottom: 8, direction: isRtl ? "rtl" : "ltr" }}>{n}</div>}
+          {langs.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              {langs.map((l, i) => (
+                <span key={i} style={{ fontSize: 12, padding: "3px 10px", borderRadius: 99, background: `${tokens.brand}12`, color: tokens.brand, fontWeight: 600 }}>{l}</span>
+              ))}
+            </div>
+          )}
+          {b && <p style={{ fontSize: 15, color: tokens.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{b}</p>}
+        </div>
+      </div>
+    </DContainer>
+  );
+}
+
+// ─── Important Notes ──────────────────────────────────────────────────────────
+
+export function SharedImportantNotes({ items, tokens, lang }: { items: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const list = (Array.isArray(items) ? items : []) as Array<{ text?: string }>;
+  const valid = list.filter(it => it?.text?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionImportantNotesTitle;
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      <div style={{ background: `${tokens.brand}08`, border: `1px solid ${tokens.brand}25`, borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={{ color: tokens.brand, fontSize: 16, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>⚑</span>
+            <p style={{ fontSize: 13, color: tokens.ink, lineHeight: 1.65, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{it.text}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function SharedImportantNotesDesktop({ items, tokens, lang }: { items: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const list = (Array.isArray(items) ? items : []) as Array<{ text?: string }>;
+  const valid = list.filter(it => it?.text?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionImportantNotesTitle;
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 28 }}>{title}</h2>
+      <div style={{ background: `${tokens.brand}08`, border: `1px solid ${tokens.brand}25`, borderRadius: 16, padding: "24px 28px", display: "grid", gridTemplateColumns: valid.length > 3 ? "1fr 1fr" : "1fr", gap: 14, maxWidth: 800 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span style={{ color: tokens.brand, fontSize: 18, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>⚑</span>
+            <p style={{ fontSize: 14, color: tokens.ink, lineHeight: 1.7, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{it.text}</p>
+          </div>
+        ))}
+      </div>
+    </DContainer>
+  );
+}
+
+// ─── About Agency ─────────────────────────────────────────────────────────────
+
+export function SharedAboutAgency({ content, image, tokens, lang }: { content: unknown; image: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const c = typeof content === "string" ? content.trim() : "";
+  const img = typeof image === "string" ? image.trim() : "";
+  if (!c && !img) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionAboutAgencyTitle;
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      {img && <img src={img} alt="" style={{ width: "100%", borderRadius: 12, marginBottom: 14, aspectRatio: "16/9", objectFit: "cover", display: "block" }} />}
+      {c && <p style={{ fontSize: 14, color: tokens.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{c}</p>}
+    </section>
+  );
+}
+
+export function SharedAboutAgencyDesktop({ content, image, tokens, lang }: { content: unknown; image: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const c = typeof content === "string" ? content.trim() : "";
+  const img = typeof image === "string" ? image.trim() : "";
+  if (!c && !img) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionAboutAgencyTitle;
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: img ? "1fr 1fr" : "1fr", gap: 48, alignItems: "center" }}>
+        <div>
+          <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 20 }}>{title}</h2>
+          {c && <p style={{ fontSize: 15, color: tokens.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{c}</p>}
+        </div>
+        {img && <img src={img} alt="" style={{ width: "100%", borderRadius: 16, aspectRatio: "4/3", objectFit: "cover", display: "block" }} />}
+      </div>
+    </DContainer>
+  );
+}
+
+// ─── Schedule ─────────────────────────────────────────────────────────────────
+
+export function SharedSchedule({ items, tokens, lang }: { items: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const list = (Array.isArray(items) ? items : []) as Array<{ time?: string; activity?: string; location?: string }>;
+  const valid = list.filter(it => it?.activity?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionScheduleTitle;
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < valid.length - 1 ? `1px solid ${tokens.border}` : "none", alignItems: "flex-start" }}>
+            {it.time && <div style={{ fontSize: 12, fontWeight: 700, color: tokens.brand, minWidth: 44, flexShrink: 0, paddingTop: 2 }}>{it.time}</div>}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: tokens.ink, direction: isRtl ? "rtl" : "ltr" }}>{it.activity}</div>
+              {it.location && <div style={{ fontSize: 12, color: tokens.muted, marginTop: 2, direction: isRtl ? "rtl" : "ltr" }}>{it.location}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function SharedScheduleDesktop({ items, tokens, lang }: { items: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const list = (Array.isArray(items) ? items : []) as Array<{ time?: string; activity?: string; location?: string }>;
+  const valid = list.filter(it => it?.activity?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionScheduleTitle;
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 28 }}>{title}</h2>
+      <div style={{ maxWidth: 700 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ display: "flex", gap: 24, padding: "14px 0", borderBottom: i < valid.length - 1 ? `1px solid ${tokens.border}` : "none", alignItems: "flex-start" }}>
+            {it.time && <div style={{ fontSize: 13, fontWeight: 700, color: tokens.brand, minWidth: 52, flexShrink: 0, paddingTop: 2 }}>{it.time}</div>}
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: tokens.ink, direction: isRtl ? "rtl" : "ltr" }}>{it.activity}</div>
+              {it.location && <div style={{ fontSize: 13, color: tokens.muted, marginTop: 3, direction: isRtl ? "rtl" : "ltr" }}>{it.location}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </DContainer>
+  );
+}
+
+// ─── Transfers ────────────────────────────────────────────────────────────────
+
+export function SharedTransfers({ description, items, tokens, lang }: { description: unknown; items: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const d = typeof description === "string" ? description.trim() : "";
+  const list = (Array.isArray(items) ? items : []).map(i => String(i)).filter(Boolean);
+  if (!d && !list.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionTransfersTitle;
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      {d && <p style={{ fontSize: 14, color: tokens.muted, lineHeight: 1.7, margin: "0 0 14px", direction: isRtl ? "rtl" : "ltr" }}>{d}</p>}
+      {list.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {list.map((item, i) => (
+            <div key={i} style={{ padding: "6px 13px", borderRadius: 99, background: tokens.dark ? "rgba(255,255,255,0.07)" : "#fff", border: `1px solid ${tokens.border}`, fontSize: 12.5, color: tokens.ink, fontWeight: 500 }}>
+              ✓ {item}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export function SharedTransfersDesktop({ description, items, tokens, lang }: { description: unknown; items: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const d = typeof description === "string" ? description.trim() : "";
+  const list = (Array.isArray(items) ? items : []).map(i => String(i)).filter(Boolean);
+  if (!d && !list.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionTransfersTitle;
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 20 }}>{title}</h2>
+      {d && <p style={{ fontSize: 15, color: tokens.muted, lineHeight: 1.75, margin: "0 0 20px", maxWidth: 680, direction: isRtl ? "rtl" : "ltr" }}>{d}</p>}
+      {list.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+          {list.map((item, i) => (
+            <div key={i} style={{ padding: "12px 16px", background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 10, fontSize: 14, color: tokens.ink, fontWeight: 500, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: tokens.brand, fontWeight: 700, fontSize: 16 }}>✓</span> {item}
+            </div>
+          ))}
+        </div>
+      )}
+    </DContainer>
+  );
+}
+
+// ─── Visa ─────────────────────────────────────────────────────────────────────
+
+function getVisaLabel(s: string, lang: Lang): string {
+  const t = T[lang];
+  if (s === "included")   return t.visaIncluded;
+  if (s === "assistance") return t.visaAssistance;
+  if (s === "free")       return t.visaFree;
+  return t.visaRequired;
+}
+
+export function SharedVisa({ included, content, tokens, lang }: { included: unknown; content: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const s = typeof included === "string" ? included : "required";
+  const c = typeof content === "string" ? content.trim() : "";
+  const label = getVisaLabel(s, lang);
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionVisaTitle;
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      <div style={{ background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "16px 18px" }}>
+        <div style={{ display: "inline-flex", padding: "5px 13px", borderRadius: 99, background: `${tokens.brand}15`, border: `1px solid ${tokens.brand}30`, fontSize: 12.5, fontWeight: 700, color: tokens.brand, marginBottom: c ? 12 : 0 }}>
+          {label}
+        </div>
+        {c && <p style={{ fontSize: 13, color: tokens.muted, lineHeight: 1.7, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{c}</p>}
+      </div>
+    </section>
+  );
+}
+
+export function SharedVisaDesktop({ included, content, tokens, lang }: { included: unknown; content: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const s = typeof included === "string" ? included : "required";
+  const c = typeof content === "string" ? content.trim() : "";
+  const label = getVisaLabel(s, lang);
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionVisaTitle;
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 22 }}>{title}</h2>
+      <div style={{ display: "inline-flex", padding: "8px 20px", borderRadius: 99, background: `${tokens.brand}15`, border: `1px solid ${tokens.brand}30`, fontSize: 14, fontWeight: 700, color: tokens.brand, marginBottom: c ? 16 : 0 }}>
+        {label}
+      </div>
+      {c && <p style={{ fontSize: 15, color: tokens.muted, lineHeight: 1.75, margin: 0, maxWidth: 680, direction: isRtl ? "rtl" : "ltr" }}>{c}</p>}
+    </DContainer>
+  );
+}
+
+// ─── Departure Dates ──────────────────────────────────────────────────────────
+
+export function SharedDepartureDates({ dates, tokens, lang }: { dates: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const list = (Array.isArray(dates) ? dates : []) as Array<{ date?: string; returnDate?: string; price?: string; spots?: string }>;
+  const valid = list.filter(it => it?.date?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionDepartureDatesTitle;
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 12, padding: "13px 15px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: tokens.ink, direction: isRtl ? "rtl" : "ltr" }}>{it.date}{it.returnDate ? ` → ${it.returnDate}` : ""}</div>
+                {it.spots && <div style={{ fontSize: 11.5, color: tokens.brand, fontWeight: 600, marginTop: 2 }}>{it.spots}</div>}
+              </div>
+              {it.price && <div style={{ fontSize: 15, fontWeight: 800, color: tokens.brand, whiteSpace: "nowrap" }}>{it.price}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function SharedDepartureDatesDesktop({ dates, tokens, lang }: { dates: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const list = (Array.isArray(dates) ? dates : []) as Array<{ date?: string; returnDate?: string; price?: string; spots?: string }>;
+  const valid = list.filter(it => it?.date?.trim());
+  if (!valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionDepartureDatesTitle;
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 28 }}>{title}</h2>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(valid.length, 3)}, 1fr)`, gap: 12 }}>
+        {valid.map((it, i) => (
+          <div key={i} style={{ background: "#fff", border: `1px solid ${i === 0 ? tokens.brand + "40" : tokens.border}`, borderRadius: 14, padding: "20px 22px" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: tokens.ink, marginBottom: 6, direction: isRtl ? "rtl" : "ltr" }}>{it.date}</div>
+            {it.returnDate && <div style={{ fontSize: 13, color: tokens.muted, marginBottom: 6 }}>→ {it.returnDate}</div>}
+            {it.price && <div style={{ fontSize: 22, fontWeight: 800, color: tokens.brand, letterSpacing: "-0.5px", lineHeight: 1 }}>{it.price}</div>}
+            {it.spots && <div style={{ fontSize: 12, color: tokens.brand, fontWeight: 600, marginTop: 6 }}>{it.spots}</div>}
+          </div>
+        ))}
+      </div>
+    </DContainer>
+  );
+}
+
+// ─── Payment Plan ─────────────────────────────────────────────────────────────
+
+export function SharedPaymentPlan({ content, steps, tokens, lang }: { content: unknown; steps: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const c = typeof content === "string" ? content.trim() : "";
+  const list = (Array.isArray(steps) ? steps : []) as Array<{ label?: string; amount?: string; dueDate?: string }>;
+  const valid = list.filter(it => it?.label?.trim());
+  if (!c && !valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionPaymentPlanTitle;
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 14 }}>{title}</h2>
+      {c && <p style={{ fontSize: 13.5, color: tokens.muted, lineHeight: 1.7, margin: "0 0 14px", direction: isRtl ? "rtl" : "ltr" }}>{c}</p>}
+      {valid.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {valid.map((step, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: tokens.dark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${tokens.border}`, borderRadius: 10, padding: "12px 14px" }}>
+              <div style={{ width: 24, height: 24, borderRadius: "50%", background: tokens.brand, color: "#fff", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: tokens.ink, direction: isRtl ? "rtl" : "ltr" }}>{step.label}</div>
+                {step.dueDate && <div style={{ fontSize: 11.5, color: tokens.muted }}>{step.dueDate}</div>}
+              </div>
+              {step.amount && <div style={{ fontSize: 14, fontWeight: 800, color: tokens.brand, whiteSpace: "nowrap" }}>{step.amount}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export function SharedPaymentPlanDesktop({ content, steps, tokens, lang }: { content: unknown; steps: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const c = typeof content === "string" ? content.trim() : "";
+  const list = (Array.isArray(steps) ? steps : []) as Array<{ label?: string; amount?: string; dueDate?: string }>;
+  const valid = list.filter(it => it?.label?.trim());
+  if (!c && !valid.length) return null;
+  const isRtl = lang === "ar";
+  const title = T[lang].sectionPaymentPlanTitle;
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, color: tokens.ink, marginBottom: 20 }}>{title}</h2>
+      {c && <p style={{ fontSize: 15, color: tokens.muted, lineHeight: 1.75, margin: "0 0 24px", maxWidth: 680, direction: isRtl ? "rtl" : "ltr" }}>{c}</p>}
+      {valid.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(valid.length, 4)}, 1fr)`, gap: 12 }}>
+          {valid.map((step, i) => (
+            <div key={i} style={{ background: "#fff", border: `1px solid ${tokens.border}`, borderRadius: 14, padding: "20px 22px" }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: tokens.brand, color: "#fff", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>{i + 1}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: tokens.ink, marginBottom: 4, direction: isRtl ? "rtl" : "ltr" }}>{step.label}</div>
+              {step.amount && <div style={{ fontSize: 20, fontWeight: 800, color: tokens.brand, letterSpacing: "-0.5px" }}>{step.amount}</div>}
+              {step.dueDate && <div style={{ fontSize: 12, color: tokens.muted, marginTop: 4 }}>{step.dueDate}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </DContainer>
+  );
+}
+
+// ─── Map ──────────────────────────────────────────────────────────────────────
+
+export function SharedMap({ image, caption, tokens, lang }: { image: unknown; caption: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const img = typeof image === "string" ? image.trim() : "";
+  const cap = typeof caption === "string" ? caption.trim() : "";
+  if (!img) return null;
+  const isRtl = lang === "ar";
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <img src={img} alt={cap || "Map"} style={{ width: "100%", borderRadius: 14, display: "block", objectFit: "cover", aspectRatio: "16/9" }} />
+      {cap && <div style={{ fontSize: 12, color: tokens.muted, textAlign: "center", marginTop: 8, direction: isRtl ? "rtl" : "ltr" }}>{cap}</div>}
+    </section>
+  );
+}
+
+export function SharedMapDesktop({ image, caption, tokens, lang }: { image: unknown; caption: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const img = typeof image === "string" ? image.trim() : "";
+  const cap = typeof caption === "string" ? caption.trim() : "";
+  if (!img) return null;
+  const isRtl = lang === "ar";
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <img src={img} alt={cap || "Map"} style={{ width: "100%", borderRadius: 18, display: "block", objectFit: "cover", aspectRatio: "21/9" }} />
+      {cap && <div style={{ fontSize: 13, color: tokens.muted, textAlign: "center", marginTop: 12, direction: isRtl ? "rtl" : "ltr" }}>{cap}</div>}
+    </DContainer>
+  );
+}
+
+export function SharedVideo({ videoUrl, tokens, lang }: { videoUrl: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const url = typeof videoUrl === "string" ? videoUrl.trim() : "";
+  if (!url) return null;
+  const title = lang === "ar" ? "فيديو" : "Video";
+  return (
+    <section style={{ padding: "20px 18px" }}>
+      <h2 style={{ fontFamily: tokens.serif, fontSize: 24, fontWeight: 400, letterSpacing: "-0.4px", color: tokens.ink, marginBottom: 16 }}>
+        {title}
+      </h2>
+      <video src={url} controls style={{ width: "100%", borderRadius: 14, background: "#0d1b2e", maxHeight: 280, display: "block" }} />
+    </section>
+  );
+}
+
+export function SharedVideoDesktop({ videoUrl, tokens, lang }: { videoUrl: unknown; tokens: TemplateTokens; lang: Lang }) {
+  const url = typeof videoUrl === "string" ? videoUrl.trim() : "";
+  if (!url) return null;
+  const title = lang === "ar" ? "فيديو" : "Video";
+  return (
+    <DContainer style={{ padding: "52px 80px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.1, margin: 0, color: tokens.dark ? "#fff" : tokens.ink }}>{title}</h2>
+      </div>
+      <video src={url} controls muted style={{ width: "100%", borderRadius: 18, background: "#000", maxHeight: 520, display: "block" }} />
+    </DContainer>
+  );
+}
+
+// ─── Dynamic section renderer ─────────────────────────────────────────────────
+// Renders sections in stored order (new packages) or legacy hardcoded order (old packages).
+
+export function DynamicSections({ pkg, tokens, lang, onWhatsApp, skip }: {
+  pkg: TPackage; tokens: TemplateTokens; lang: Lang;
+  onWhatsApp: () => void; skip?: string[];
+}) {
+  const skipSet = new Set(skip || []);
+  const sections = pkg.sections;
+
+  if (!sections?.length) {
+    return (
+      <>
+        {!skipSet.has("itinerary")  && <SharedItinerary  pkg={pkg} tokens={tokens} lang={lang} />}
+        {!skipSet.has("inclusions") && <SharedIncludes   pkg={pkg} tokens={tokens} lang={lang} />}
+        {!skipSet.has("pricing")    && <SharedPricing    pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />}
+        {!skipSet.has("gallery")    && <SharedGallery    pkg={pkg} tokens={tokens} lang={lang} />}
+        {!skipSet.has("hotel")      && <SharedHotel      pkg={pkg} tokens={tokens} lang={lang} />}
+        {!skipSet.has("flights")    && <SharedAirports   pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />}
+      </>
+    );
+  }
+
+  const sorted = [...sections].sort((a, b) => a.order - b.order);
+  return (
+    <>
+      {sorted.map(s => {
+        if (skipSet.has(s.type)) return null;
+        switch (s.type) {
+          case "itinerary":     return <SharedItinerary      key={s.id} pkg={{ ...pkg, itinerary: s.data.days as TPackage["itinerary"] }} tokens={tokens} lang={lang} />;
+          case "inclusions":    return <SharedIncludes       key={s.id} pkg={{ ...pkg, includes: s.data.includes as string[], excludes: s.data.excludes as string[] }} tokens={tokens} lang={lang} />;
+          case "pricing":       return <SharedPricing        key={s.id} pkg={{ ...pkg, pricingTiers: s.data.tiers as TPackage["pricingTiers"], cancellation: s.data.cancellation as string }} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />;
+          case "gallery":       return <SharedGallery        key={s.id} pkg={{ ...pkg, images: s.data.images as string[], videoUrl: "" }} tokens={tokens} lang={lang} />;
+          case "hotel":         return <SharedHotel          key={s.id} pkg={{ ...pkg, hotelDescription: s.data.description as string }} tokens={tokens} lang={lang} />;
+          case "flights":       return <SharedAirports       key={s.id} pkg={{ ...pkg, airports: s.data.departures as TPackage["airports"] }} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />;
+          case "highlights":      return <SharedHighlights       key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "faq":             return <SharedFaq              key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "booking_terms":   return <SharedBookingTerms     key={s.id} content={s.data.content} tokens={tokens} lang={lang} />;
+          case "custom":          return <SharedCustomSection    key={s.id} heading={s.data.heading} content={s.data.content} image={s.data.image} tokens={tokens} lang={lang} />;
+          case "extras":          return <SharedExtras           key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "meals":           return <SharedMeals            key={s.id} plan={s.data.plan} notes={s.data.notes} tokens={tokens} lang={lang} />;
+          case "guide":           return <SharedGuide            key={s.id} name={s.data.name} bio={s.data.bio} photo={s.data.photo} languages={s.data.languages} tokens={tokens} lang={lang} />;
+          case "important_notes": return <SharedImportantNotes   key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "about_agency":    return <SharedAboutAgency      key={s.id} content={s.data.content} image={s.data.image} tokens={tokens} lang={lang} />;
+          case "schedule":        return <SharedSchedule         key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "transfers":       return <SharedTransfers        key={s.id} description={s.data.description} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "visa":            return <SharedVisa             key={s.id} included={s.data.included} content={s.data.content} tokens={tokens} lang={lang} />;
+          case "departure_dates": return <SharedDepartureDates   key={s.id} dates={s.data.dates} tokens={tokens} lang={lang} />;
+          case "payment_plan":    return <SharedPaymentPlan      key={s.id} content={s.data.content} steps={s.data.steps} tokens={tokens} lang={lang} />;
+          case "map":             return <SharedMap              key={s.id} image={s.data.image} caption={s.data.caption} tokens={tokens} lang={lang} />;
+          case "video":           return <SharedVideo            key={s.id} videoUrl={s.data.videoUrl} tokens={tokens} lang={lang} />;
+          default:                return null;
+        }
+      })}
+    </>
+  );
+}
+
+export function DynamicSectionsDesktop({ pkg, tokens, lang, onWhatsApp, skip }: {
+  pkg: TPackage; tokens: TemplateTokens; lang: Lang;
+  onWhatsApp: () => void; skip?: string[];
+}) {
+  const skipSet = new Set(skip || []);
+  const sections = pkg.sections;
+
+  if (!sections?.length) {
+    return (
+      <>
+        {!skipSet.has("itinerary")  && <SharedItineraryDesktop  pkg={pkg} tokens={tokens} lang={lang} />}
+        {!skipSet.has("inclusions") && <SharedIncludesDesktop   pkg={pkg} tokens={tokens} lang={lang} />}
+        {!skipSet.has("hotel")      && <SharedHotelDesktop      pkg={pkg} tokens={tokens} lang={lang} />}
+        {!skipSet.has("pricing")    && <SharedPricingDesktop    pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />}
+        {!skipSet.has("flights")    && <SharedAirportsDesktop   pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />}
+        {!skipSet.has("gallery")    && <SharedGalleryDesktop    pkg={pkg} tokens={tokens} lang={lang} />}
+      </>
+    );
+  }
+
+  const sorted = [...sections].sort((a, b) => a.order - b.order);
+  return (
+    <>
+      {sorted.map(s => {
+        if (skipSet.has(s.type)) return null;
+        switch (s.type) {
+          case "itinerary":     return <SharedItineraryDesktop     key={s.id} pkg={{ ...pkg, itinerary: s.data.days as TPackage["itinerary"] }} tokens={tokens} lang={lang} />;
+          case "inclusions":    return <SharedIncludesDesktop      key={s.id} pkg={{ ...pkg, includes: s.data.includes as string[], excludes: s.data.excludes as string[] }} tokens={tokens} lang={lang} />;
+          case "pricing":       return <SharedPricingDesktop       key={s.id} pkg={{ ...pkg, pricingTiers: s.data.tiers as TPackage["pricingTiers"], cancellation: s.data.cancellation as string }} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />;
+          case "gallery":       return <SharedGalleryDesktop       key={s.id} pkg={{ ...pkg, images: s.data.images as string[], videoUrl: "" }} tokens={tokens} lang={lang} />;
+          case "hotel":         return <SharedHotelDesktop         key={s.id} pkg={{ ...pkg, hotelDescription: s.data.description as string }} tokens={tokens} lang={lang} />;
+          case "flights":       return <SharedAirportsDesktop      key={s.id} pkg={{ ...pkg, airports: s.data.departures as TPackage["airports"] }} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />;
+          case "highlights":      return <SharedHighlightsDesktop    key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "faq":             return <SharedFaqDesktop           key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "booking_terms":   return <SharedBookingTermsDesktop  key={s.id} content={s.data.content} tokens={tokens} lang={lang} />;
+          case "custom":          return <SharedCustomSectionDesktop key={s.id} heading={s.data.heading} content={s.data.content} image={s.data.image} tokens={tokens} lang={lang} />;
+          case "extras":          return <SharedExtrasDesktop        key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "meals":           return <SharedMealsDesktop         key={s.id} plan={s.data.plan} notes={s.data.notes} tokens={tokens} lang={lang} />;
+          case "guide":           return <SharedGuideDesktop         key={s.id} name={s.data.name} bio={s.data.bio} photo={s.data.photo} languages={s.data.languages} tokens={tokens} lang={lang} />;
+          case "important_notes": return <SharedImportantNotesDesktop key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "about_agency":    return <SharedAboutAgencyDesktop   key={s.id} content={s.data.content} image={s.data.image} tokens={tokens} lang={lang} />;
+          case "schedule":        return <SharedScheduleDesktop      key={s.id} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "transfers":       return <SharedTransfersDesktop     key={s.id} description={s.data.description} items={s.data.items} tokens={tokens} lang={lang} />;
+          case "visa":            return <SharedVisaDesktop          key={s.id} included={s.data.included} content={s.data.content} tokens={tokens} lang={lang} />;
+          case "departure_dates": return <SharedDepartureDatesDesktop key={s.id} dates={s.data.dates} tokens={tokens} lang={lang} />;
+          case "payment_plan":    return <SharedPaymentPlanDesktop   key={s.id} content={s.data.content} steps={s.data.steps} tokens={tokens} lang={lang} />;
+          case "map":             return <SharedMapDesktop           key={s.id} image={s.data.image} caption={s.data.caption} tokens={tokens} lang={lang} />;
+          case "video":           return <SharedVideoDesktop         key={s.id} videoUrl={s.data.videoUrl} tokens={tokens} lang={lang} />;
+          default:                return null;
+        }
+      })}
     </>
   );
 }

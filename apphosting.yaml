@@ -43,25 +43,35 @@ env:
     secret: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
   # Stripe — price IDs (non-sensitive, safe to commit)
-  - variable: STRIPE_PRICE_ID
-    value: "price_1TYBai1w5lYoLZrL4zn8M2mB"
-  - variable: STRIPE_PRICE_ID_ANNUAL
-    value: "price_1TYBbV1w5lYoLZrLxVadNDwv"
-  - variable: STRIPE_PRICE_ID_START_MONTHLY
-    value: "price_1TYBYa1w5lYoLZrLFdxONtJd"
-  - variable: STRIPE_PRICE_ID_START_ANNUAL
-    value: "price_1TYBZg1w5lYoLZrLa6RcCaUD"
-  - variable: STRIPE_PRICE_ID_GROW_MONTHLY
-    value: "price_1TYBai1w5lYoLZrL4zn8M2mB"
-  - variable: STRIPE_PRICE_ID_GROW_ANNUAL
-    value: "price_1TYBbV1w5lYoLZrLxVadNDwv"
-  - variable: STRIPE_PRICE_ID_SCALE_MONTHLY
-    value: "price_1TYBc61w5lYoLZrLLhQuZuWe"
-  - variable: STRIPE_PRICE_ID_SCALE_ANNUAL
-    value: "price_1TYBco1w5lYoLZrLFq4ay7pE"
+  - variable: STRIPE_PRICE_ID_FOUNDING_MONTHLY
+    value: "price_1TYYes1w5lYoLZrLAZ5rGHxp"
+  - variable: STRIPE_PRICE_ID_FOUNDING_ANNUAL
+    value: "price_1TYYgP1w5lYoLZrLXPvrbK0G"
+  - variable: STRIPE_PRICE_ID_STANDARD_MONTHLY
+    value: "price_1TYYiF1w5lYoLZrL1UcT3WFK"
+  - variable: STRIPE_PRICE_ID_STANDARD_ANNUAL
+    value: "price_1TYYiX1w5lYoLZrLEckLjEz5"
 
   # Stripe — redirect URLs
   - variable: STRIPE_SUCCESS_URL
     value: "https://packmetrix.com/dashboard"
   - variable: STRIPE_CANCEL_URL
     value: "https://packmetrix.com/paywall"
+
+  # Cloudflare for SaaS — custom domain provisioning
+  - variable: CLOUDFLARE_ZONE_ID
+    value: "cf89d388191248b28e431ebe934c0ee1"
+  - variable: CLOUDFLARE_CUSTOM_HOSTNAME_TARGET
+    value: "cname.packmetrix.com"
+  - variable: CLOUDFLARE_FALLBACK_ORIGIN
+    value: "proxy.packmetrix.com"
+  - variable: CLOUDFLARE_API_TOKEN
+    secret: CLOUDFLARE_API_TOKEN
+
+  # Cron authentication — Cloud Scheduler sends this as X-Cron-Secret
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+
+  # Resend — transactional emails
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY

@@ -7,11 +7,6 @@ import {
   AgencyBar,
   StickyCTA,
   SharedItinerary,
-  SharedIncludes,
-  SharedPricing,
-  SharedGallery,
-  SharedHotel,
-  SharedAirports,
   SharedCTABanner,
   SharedFooter,
   BaseCard,
@@ -19,15 +14,12 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
-  SharedItineraryDesktop,
-  SharedIncludesDesktop,
-  SharedHotelDesktop,
-  SharedPricingDesktop,
-  SharedAirportsDesktop,
-  SharedGalleryDesktop,
   SharedCTABannerDesktop,
   ReviewsSection,
   ReviewsSectionDesktop,
+  DynamicSections,
+  DynamicSectionsDesktop,
+  getItineraryDays,
 } from "./shared";
 import type { TPageProps, TCardProps, TemplateTokens } from "./types";
 
@@ -60,7 +52,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   const isDesktop = useIsDesktop();
 
   const navLinks = [
-    ...((pkg.itinerary || []).some(it => it.title?.trim()) ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
+    ...(getItineraryDays(pkg).some(it => it.title?.trim()) ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
     ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length) ? [{ label: t.navIncluded, href: "#included" }] : []),
     ...((pkg.pricingTiers || []).some(tier => tier.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
   ];
@@ -113,7 +105,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
                   ))}
                 </div>
               )}
-              <SharedItinerary pkg={pkg} tokens={tokens} lang={lang} />
+              <SharedItinerary pkg={{ ...pkg, itinerary: getItineraryDays(pkg) }} tokens={tokens} lang={lang} />
             </div>
             {/* Sticky price card */}
             <div style={{ background: brand, color: "#fff", borderRadius: 22, padding: 32, textAlign: "center", position: "sticky", top: 88 }}>
@@ -127,12 +119,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
           </div>
         </DContainer>
 
-        <SharedItineraryDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedIncludesDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedHotelDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedPricingDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedAirportsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedGalleryDesktop pkg={pkg} tokens={tokens} lang={lang} />
+        <DynamicSectionsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} skip={["itinerary"]} />
         <ReviewsSectionDesktop pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
         <SharedCTABannerDesktop pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
 
@@ -353,13 +340,8 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         </div>
       </div>
 
-      <SharedItinerary pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-      <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
+      <DynamicSections pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
-      <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <SharedCTABanner
@@ -395,6 +377,7 @@ export function TemplatePetalCard({
   onEdit,
   onDelete,
   onToggleActive,
+  onDuplicate,
 }: TCardProps) {
   return (
     <BaseCard
@@ -405,6 +388,7 @@ export function TemplatePetalCard({
       onEdit={onEdit}
       onDelete={onDelete}
       onToggleActive={onToggleActive}
+      onDuplicate={onDuplicate}
       headingFont="var(--font-cormorant, var(--font-dm-serif), serif)"
       imageBorderRadius={200}
       cardBg="#faf3ef"

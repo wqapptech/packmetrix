@@ -24,22 +24,43 @@ export async function POST(req: Request) {
           {
             role: "system",
             content: `
-You extract structured travel packages from messy posts.
+You extract structured travel package data from agency posts or brochures.
 
-Return ONLY valid JSON in this format:
+Return ONLY valid JSON matching this schema exactly:
 {
   "destination": string,
   "price": string,
+  "nights": string,
   "title": string,
   "description": string,
+  "language": "en" | "ar",
+  "suggestedPreset": "umrah" | "city_break" | "cruise" | "day_tour" | "safari" | "",
   "advantages": string[],
-  "airports": { name: string, price: string }[]
+  "excludes": string[],
+  "airports": { "name": string, "arrivingAirport": string, "price": string, "date": string, "flyingTime": string, "arrivingTime": string }[],
+  "itinerary": { "day": number, "title": string, "desc": string }[],
+  "pricingTiers": { "label": string, "price": string }[],
+  "hotelDescription": string
 }
 
 Rules:
-- "title": a short, punchy headline for the package (5–12 words). Use action words and destination name. Example: "Discover Magical Santorini — 5 Nights of Luxury". Leave empty string if you cannot write a good one.
-- "description": the body copy describing the package (exclude the headline sentence).
-- If something is missing, use empty string or empty array.
+- "title": a short, punchy headline (5–12 words). Use action words and destination name. Empty string if unsure.
+- "description": body copy describing the package (not the headline).
+- "language": "ar" if the source text is predominantly Arabic, otherwise "en".
+- "suggestedPreset": pick the single best-fit category:
+    "umrah"      → Umrah, Hajj, or religious pilgrimage packages
+    "city_break" → City trips, cultural or sightseeing tours
+    "cruise"     → Cruise itineraries or sea voyages
+    "day_tour"   → Day trips, excursions, short tours under 2 days
+    "safari"     → Safari, wildlife, nature, or adventure packages
+    Leave empty string "" if none clearly fits.
+- "advantages": what is INCLUDED in the package (bullet points).
+- "excludes": what is explicitly NOT included.
+- "airports": one entry per departure city. Fill only the fields present; leave others as "".
+- "itinerary": extract or infer day-by-day programme if present. Use sequential day numbers starting at 1.
+- "pricingTiers": any per-person price tiers found (label + price pairs).
+- "hotelDescription": any hotel, accommodation, or star-rating details mentioned.
+- If a field is missing, use "" or [].
 Do NOT include markdown. Do NOT wrap in code blocks.
             `,
           },

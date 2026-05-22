@@ -627,6 +627,7 @@ const en = {
   customDomainSectionTitle: "Custom Domain",
   customDomainSectionSub: "Let visitors reach your packages at your own domain instead of packmetrix.com.",
   customDomainLabel: "Your domain",
+  customDomainSubdomainHint: "Use a subdomain (e.g. tours.youragency.com) — it needs only one CNAME record.",
   customDomainPlaceholder: "e.g. packages.youragency.com",
   customDomainSaveBtn: "Save domain",
   customDomainSavingBtn: "Saving…",
@@ -958,6 +959,53 @@ const en = {
   authErrLinkFailedRetry: "Failed to link accounts. Please try again.",
   authErrResetFailed: "Failed to send reset email. Please try again.",
   authErrPleaseFillEmail: "Please enter your email address.",
+
+  // Section renderer titles (shared.tsx)
+  sectionExtrasTitle: "Optional Extras",
+  sectionMealsTitle: "Meal Plan",
+  sectionGuideTitle: "Your Guide",
+  sectionImportantNotesTitle: "Important Notes",
+  sectionAboutAgencyTitle: "About the Agency",
+  sectionScheduleTitle: "Daily Schedule",
+  sectionTransfersTitle: "Transfers",
+  sectionVisaTitle: "Visa Information",
+  sectionDepartureDatesTitle: "Departure Dates",
+  sectionPaymentPlanTitle: "Payment Plan",
+
+  // Meal plan labels
+  mealNone: "No meals included",
+  mealBreakfast: "Breakfast included",
+  mealHalfBoard: "Half board",
+  mealFullBoard: "Full board",
+  mealAllInclusive: "All inclusive",
+  mealNotSpecified: "Not specified",
+
+  // Visa status labels
+  visaIncluded: "Visa included",
+  visaAssistance: "Visa assistance provided",
+  visaRequired: "Visa required",
+  visaFree: "Visa-free",
+
+  // Builder — save as template
+  saveAsTemplateBtn: "Save as template",
+  saveAsTemplateModalTitle: "Save as template",
+  saveAsTemplatePlaceholder: "Template name…",
+  saveAsTemplateSaving: "Saving…",
+  saveAsTemplateSaved: "✓ Saved",
+  saveAsTemplateSave: "Save",
+  saveAsTemplateCancel: "Cancel",
+
+  // Packages page
+  confirmDuplicate: "Duplicate this package?",
+  duplicateTooltip: "Duplicate",
+
+  // PresetPicker
+  yourSavedTemplates: "Your saved templates",
+  builtInTemplates: "Built-in templates",
+  deleteTemplateTooltip: "Delete template",
+
+  // CardActions
+  duplicatePackageTooltip: "Duplicate",
 };
 
 const ar: typeof en = {
@@ -1587,6 +1635,7 @@ const ar: typeof en = {
   customDomainSectionTitle: "النطاق المخصص",
   customDomainSectionSub: "دع الزوار يصلون إلى باقاتك عبر نطاقك الخاص بدلاً من packmetrix.com.",
   customDomainLabel: "نطاقك",
+  customDomainSubdomainHint: "استخدم نطاقاً فرعياً (مثال: tours.youragency.com) — يحتاج فقط إلى سجل CNAME واحد.",
   customDomainPlaceholder: "مثال: packages.youragency.com",
   customDomainSaveBtn: "حفظ النطاق",
   customDomainSavingBtn: "جارٍ الحفظ…",
@@ -1918,6 +1967,53 @@ const ar: typeof en = {
   authErrLinkFailedRetry: "فشل ربط الحسابات. يرجى المحاولة مرة أخرى.",
   authErrResetFailed: "فشل إرسال البريد. يرجى المحاولة مرة أخرى.",
   authErrPleaseFillEmail: "يرجى إدخال بريدك الإلكتروني.",
+
+  // Section renderer titles (shared.tsx)
+  sectionExtrasTitle: "الإضافات الاختيارية",
+  sectionMealsTitle: "خطة الوجبات",
+  sectionGuideTitle: "المرشد السياحي",
+  sectionImportantNotesTitle: "ملاحظات مهمة",
+  sectionAboutAgencyTitle: "عن الوكالة",
+  sectionScheduleTitle: "الجدول اليومي",
+  sectionTransfersTitle: "التنقلات",
+  sectionVisaTitle: "معلومات التأشيرة",
+  sectionDepartureDatesTitle: "مواعيد المغادرة",
+  sectionPaymentPlanTitle: "خطة الدفع",
+
+  // Meal plan labels
+  mealNone: "بدون وجبات",
+  mealBreakfast: "إفطار مشمول",
+  mealHalfBoard: "نصف إقامة",
+  mealFullBoard: "إقامة كاملة",
+  mealAllInclusive: "شامل بالكامل",
+  mealNotSpecified: "غير محدد",
+
+  // Visa status labels
+  visaIncluded: "التأشيرة مشمولة",
+  visaAssistance: "مساعدة في التأشيرة",
+  visaRequired: "التأشيرة مطلوبة",
+  visaFree: "بدون تأشيرة",
+
+  // Builder — save as template
+  saveAsTemplateBtn: "حفظ كقالب",
+  saveAsTemplateModalTitle: "حفظ كقالب",
+  saveAsTemplatePlaceholder: "اسم القالب…",
+  saveAsTemplateSaving: "جاري الحفظ…",
+  saveAsTemplateSaved: "✓ تم الحفظ",
+  saveAsTemplateSave: "حفظ",
+  saveAsTemplateCancel: "إلغاء",
+
+  // Packages page
+  confirmDuplicate: "تكرار هذه الباقة؟",
+  duplicateTooltip: "تكرار",
+
+  // PresetPicker
+  yourSavedTemplates: "قوالبك المحفوظة",
+  builtInTemplates: "القوالب الجاهزة",
+  deleteTemplateTooltip: "حذف القالب",
+
+  // CardActions
+  duplicatePackageTooltip: "تكرار الباقة",
 };
 
 export const T: Record<Lang, typeof en> = { en, ar };

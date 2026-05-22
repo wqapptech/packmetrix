@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useLang, switchLang } from "@/hooks/useLang";
 import { T } from "@/lib/translations";
@@ -17,8 +17,6 @@ const AGENCY_URL =
   (process.env.NODE_ENV === "development" ? "" : "https://agency.packmetrix.com");
 
 /* ─── Types ─────────────────────────────────────────────── */
-type PlanId = "start" | "grow" | "scale";
-type Lang = "en" | "ar";
 
 /* ─── Lang switcher button ───────────────────────────────── */
 function LangToggle() {
@@ -340,241 +338,87 @@ function HowItWorks() {
   );
 }
 
-function PricingCard({ planId, annual, lang }: { planId: PlanId; annual: boolean; lang: Lang }) {
-  const t = T[lang];
-  const isRtl = lang === "ar";
-  const isScale = planId === "scale";
-  const [notifyEmail, setNotifyEmail] = useState("");
-  const [notifyState, setNotifyState] = useState<"idle" | "loading" | "done">("idle");
-
-  const planData = {
-    start: {
-      name: t.planStartLabel,
-      tagline: t.mktPlanStartTagline,
-      monthly: 29, annual: 23,
-      highlight: false,
-      packages: t.mktPlanStartPackages,
-      users: t.mktPlanStartUsers,
-      templates: t.mktPlanStartTemplates,
-      domain: t.mktPlanStartDomain,
-      analytics: t.mktPlanStartAnalytics,
-      leads: t.mktPlanStartLeads,
-      ai: false, mobileApp: false,
-      support: t.mktPlanStartSupport,
-    },
-    grow: {
-      name: t.planGrowLabel,
-      tagline: t.mktPlanGrowTagline,
-      monthly: 79, annual: 63,
-      highlight: true,
-      packages: t.mktPlanGrowPackages,
-      users: t.mktPlanGrowUsers,
-      templates: t.mktPlanGrowTemplates,
-      domain: t.mktPlanGrowDomain,
-      analytics: t.mktPlanGrowAnalytics,
-      leads: t.mktPlanGrowLeads,
-      ai: false, mobileApp: false,
-      support: t.mktPlanGrowSupport,
-    },
-    scale: {
-      name: t.planScaleLabel,
-      tagline: t.mktPlanScaleTagline,
-      monthly: 179, annual: 143,
-      highlight: false,
-      packages: t.mktPlanScalePackages,
-      users: t.mktPlanScaleUsers,
-      templates: t.mktPlanScaleTemplates,
-      domain: t.mktPlanScaleDomain,
-      analytics: t.mktPlanScaleAnalytics,
-      leads: t.mktPlanScaleLeads,
-      ai: true, mobileApp: true,
-      support: t.mktPlanScaleSupport,
-    },
-  };
-
-  const plan = planData[planId];
-  const price = annual ? plan.annual : plan.monthly;
-
-  const rows: { label: string; value: string | boolean }[] = [
-    { label: t.mktRowUsers, value: plan.users },
-    { label: t.mktRowPackages, value: plan.packages },
-    { label: t.mktRowTemplates, value: plan.templates },
-    { label: t.mktRowDomain, value: plan.domain },
-    { label: t.mktRowAnalytics, value: plan.analytics },
-    { label: t.mktRowLeads, value: plan.leads },
-    { label: t.mktRowAI, value: plan.ai ? t.mktRowIncluded : false },
-    { label: t.mktRowMobileApp, value: plan.mobileApp ? t.mktRowIncluded : false },
-    { label: t.mktRowSupport, value: plan.support },
-  ];
-
-  const handleNotify = async (e: { preventDefault(): void }) => {
-    e.preventDefault();
-    if (!notifyEmail.includes("@")) return;
-    setNotifyState("loading");
-    await fetch("/api/scale-waitlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: notifyEmail }),
-    });
-    setNotifyState("done");
-  };
-
-  return (
-    <div style={{
-      background: plan.highlight ? `linear-gradient(160deg, rgba(232,201,123,0.07), ${NAVY_MID})` : NAVY_MID,
-      border: plan.highlight ? `1px solid ${SAND}45` : `1px solid ${BORDER}`,
-      borderRadius: 22,
-      padding: "36px 30px",
-      position: "relative",
-      display: "flex", flexDirection: "column",
-      direction: isRtl ? "rtl" : "ltr",
-      opacity: isScale ? 0.8 : 1,
-    }}>
-      {isScale && (
-        <div style={{
-          position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)",
-          background: "rgba(255,255,255,0.07)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          color: "rgba(255,255,255,0.5)", fontSize: 10.5, fontWeight: 800,
-          padding: "4px 14px", borderRadius: 99, letterSpacing: ".5px", textTransform: "uppercase",
-          whiteSpace: "nowrap",
-        }}>
-          {t.scaleComingSoon}
-        </div>
-      )}
-
-      {plan.highlight && (
-        <div style={{
-          position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)",
-          background: `linear-gradient(135deg, ${SAND}, ${SAND_DIM})`,
-          color: NAVY, fontSize: 10.5, fontWeight: 800,
-          padding: "4px 14px", borderRadius: 99, letterSpacing: ".5px", textTransform: "uppercase",
-          whiteSpace: "nowrap",
-        }}>
-          {t.mktPricingMostPopular}
-        </div>
-      )}
-
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "#fdfcf9", marginBottom: 4 }}>{plan.name}</div>
-        <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 20 }}>{plan.tagline}</div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexDirection: isRtl ? "row-reverse" : "row" }}>
-          <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, color: "#fdfcf9", letterSpacing: "-1px" }}>
-            €{price}
-          </span>
-          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", fontWeight: 500 }}>{t.mktPricingMoSuffix}</span>
-        </div>
-        {annual && (
-          <div style={{ fontSize: 11.5, color: SUCCESS, fontWeight: 600, marginTop: 4 }}>
-            {t.mktPricingAnnualSave}
-          </div>
-        )}
-      </div>
-
-      {isScale ? (
-        notifyState === "done" ? (
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            padding: "12px 20px", borderRadius: 10, marginBottom: 28,
-            background: "rgba(45,212,160,0.08)", border: "1px solid rgba(45,212,160,0.25)",
-            color: SUCCESS, fontWeight: 700, fontSize: 14,
-          }}>
-            ✓ {t.scaleNotifySuccess}
-          </div>
-        ) : (
-          <form onSubmit={handleNotify} style={{ marginBottom: 28, display: "flex", flexDirection: "column", gap: 8 }}>
-            <input
-              type="email"
-              value={notifyEmail}
-              onChange={(e) => setNotifyEmail(e.target.value)}
-              placeholder={t.scaleNotifyEmailPlaceholder}
-              required
-              style={{
-                width: "100%", padding: "10px 14px", borderRadius: 9, fontSize: 13,
-                border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.04)",
-                color: "#fdfcf9", fontFamily: "inherit", outline: "none",
-                boxSizing: "border-box",
-              }}
-            />
-            <button
-              type="submit"
-              disabled={notifyState === "loading"}
-              style={{
-                width: "100%", padding: "11px 20px", borderRadius: 9, fontSize: 13, fontWeight: 700,
-                border: `1px solid rgba(255,255,255,0.15)`,
-                background: "rgba(255,255,255,0.06)",
-                color: "rgba(255,255,255,0.75)",
-                cursor: notifyState === "loading" ? "default" : "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              {notifyState === "loading" ? "…" : t.scaleNotifyBtn}
-            </button>
-          </form>
-        )
-      ) : (
-        <a
-          href={`${AGENCY_URL}/signup`}
-          style={{
-            display: "block", textAlign: "center",
-            background: plan.highlight ? `linear-gradient(135deg, ${SAND}, ${SAND_DIM})` : "rgba(255,255,255,0.06)",
-            border: plan.highlight ? "none" : `1px solid ${BORDER}`,
-            color: plan.highlight ? NAVY : "rgba(255,255,255,0.75)",
-            fontWeight: 700, fontSize: 14,
-            padding: "12px 20px", borderRadius: 10, textDecoration: "none",
-            marginBottom: 28,
-          }}
-        >
-          {t.mktPricingGetStarted}
-        </a>
-      )}
-
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
-        {rows.map((r) => {
-          const active = r.value !== false;
-          return (
-            <div
-              key={r.label}
-              style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "9px 0",
-                borderBottom: `1px solid ${BORDER}`,
-                opacity: active ? 1 : 0.3,
-              }}
-            >
-              <span style={{ fontSize: 12.5, color: MUTED }}>{r.label}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: active ? "#fdfcf9" : "rgba(255,255,255,0.25)" }}>
-                {typeof r.value === "string" ? r.value : r.value ? "✓" : "—"}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function Pricing() {
   const [annual, setAnnual] = useState(false);
+  const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
   const lang = useLang();
   const t = T[lang];
   const isRtl = lang === "ar";
+  const isAr = lang === "ar";
+
+  useEffect(() => {
+    fetch("/api/founding-spots")
+      .then(r => r.json())
+      .then(d => setSpotsRemaining(d.remaining ?? 0))
+      .catch(() => setSpotsRemaining(0));
+  }, []);
+
+  const soldOut = spotsRemaining !== null && spotsRemaining <= 0;
+  const monthlyPrice = soldOut ? 79 : 39;
+  const annualTotal = soldOut ? 756 : 390;
+  const annualEquiv = soldOut ? "63" : "32.50";
+  const displayPrice = annual ? annualEquiv : String(monthlyPrice);
+
+  const features = isAr ? [
+    "صفحات باقات غير محدودة",
+    "جميع القوالب",
+    "صندوق بريد العملاء (واتساب وماسنجر)",
+    "تصدير العملاء (CSV)",
+    "تاريخ تحليلات غير محدود",
+    "نطاق مخصص",
+    "كتابة محتوى بالذكاء الاصطناعي",
+    "حتى عضوَين في الفريق",
+  ] : [
+    "Unlimited package pages",
+    "All templates",
+    "Lead inbox (WhatsApp & Messenger)",
+    "Lead export (CSV)",
+    "Unlimited analytics history",
+    "Custom domain",
+    "AI-powered content writing",
+    "Up to 2 team members",
+  ];
 
   return (
     <section id="pricing" style={{ padding: "88px 32px", background: NAVY, direction: isRtl ? "rtl" : "ltr" }}>
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
+
+        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: MUTED, marginBottom: 12 }}>
-            {t.mktPricingEyebrow}
-          </div>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 400, letterSpacing: "-0.8px", color: "#fdfcf9", marginBottom: 16 }}>
-            {t.mktPricingH2Pre}{" "}
-            <em style={{ color: SAND, fontStyle: "italic" }}>{t.mktPricingH2Em}</em>
+          {!soldOut && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{
+                fontSize: 11, fontWeight: 800, padding: "3px 12px", borderRadius: 99,
+                background: `linear-gradient(135deg, ${SAND}, ${SAND_DIM})`,
+                color: NAVY, textTransform: "uppercase", letterSpacing: ".5px",
+              }}>
+                {isAr ? "عرض محدود" : "Limited Offer"}
+              </span>
+              {spotsRemaining !== null && (
+                <span style={{ fontSize: 13, color: MUTED }}>
+                  {isAr ? `${spotsRemaining} من 50 مقعداً متبقياً` : `${spotsRemaining} of 50 spots remaining`}
+                </span>
+              )}
+            </div>
+          )}
+          <h2 style={{
+            fontFamily: "'DM Serif Display', serif",
+            fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 400, letterSpacing: "-0.8px",
+            color: "#fdfcf9", margin: "0 0 14px",
+          }}>
+            {soldOut
+              ? (isAr ? "ابدأ مع الخطة القياسية" : "Get Started with Standard")
+              : (isAr ? "كن عضواً مؤسساً" : "Become a Founding Member")
+            }
           </h2>
-          <p style={{ fontSize: 15, color: MUTED, maxWidth: 440, margin: "0 auto 28px" }}>
-            {t.mktPricingSubText}
+          <p style={{ fontSize: 15, color: MUTED, maxWidth: 460, margin: "0 auto 28px" }}>
+            {soldOut
+              ? (isAr ? "المقاعد التأسيسية نفدت. الأسعار القياسية تُطبَّق الآن." : "Founding spots are gone. Standard pricing now applies.")
+              : (isAr ? "احجز أقل سعر للأبد. 50 مقعداً فقط — لن يرتفع السعر أبداً." : "Lock in the lowest price forever. Only 50 spots — your rate never increases.")
+            }
           </p>
 
+          {/* Toggle */}
           <div style={{ display: "inline-flex", alignItems: "center", background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 4, gap: 2 }}>
             {[false, true].map((isAnnual) => (
               <button
@@ -594,27 +438,124 @@ function Pricing() {
                     fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 99,
                     background: annual ? NAVY : SAND,
                     color: annual ? SAND : NAVY,
-                  }}>{t.mktBillingSave20}</span>
+                  }}>
+                    {isAr ? "وفّر 17%" : "Save 17%"}
+                  </span>
                 )}
               </button>
             ))}
           </div>
         </div>
 
+        {/* Card */}
         <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: 20,
-          alignItems: "start",
+          background: soldOut ? NAVY_MID : `linear-gradient(160deg, rgba(232,201,123,0.07), ${NAVY_MID})`,
+          border: soldOut ? `1px solid ${BORDER}` : `1.5px solid ${SAND}45`,
+          borderRadius: 22, padding: "36px 32px", position: "relative",
+          direction: isRtl ? "rtl" : "ltr",
         }}>
-          {(["start", "grow", "scale"] as PlanId[]).map((id) => (
-            <PricingCard key={id} planId={id} annual={annual} lang={lang} />
-          ))}
+          {!soldOut && (
+            <div style={{
+              position: "absolute", top: -13, left: isRtl ? "auto" : 28, right: isRtl ? 28 : "auto",
+              background: `linear-gradient(135deg, ${SAND}, ${SAND_DIM})`,
+              color: NAVY, fontSize: 10.5, fontWeight: 800,
+              padding: "4px 14px", borderRadius: 99, letterSpacing: ".5px", textTransform: "uppercase",
+              whiteSpace: "nowrap",
+            }}>
+              {isAr ? "عضو مؤسس" : "FOUNDING MEMBER"}
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 28 }}>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: soldOut ? "#fdfcf9" : SAND, marginBottom: 6 }}>
+                {soldOut ? (isAr ? "قياسي" : "Standard") : (isAr ? "تأسيسي" : "Founding")}
+              </div>
+              <div style={{ fontSize: 13, color: MUTED }}>
+                {soldOut
+                  ? (isAr ? "للأعضاء الجدد" : "For new members")
+                  : (isAr ? "مثبّت مدى الحياة · لن يرتفع أبداً" : "Locked in for life · Never increases")
+                }
+              </div>
+            </div>
+            <div style={{ textAlign: isRtl ? "left" : "right" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, justifyContent: isRtl ? "flex-start" : "flex-end" }}>
+                <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 46, color: "#fdfcf9", letterSpacing: "-1px", lineHeight: 1 }}>
+                  €{displayPrice}
+                </span>
+                <span style={{ fontSize: 14, color: MUTED }}>{t.mktPricingMoSuffix}</span>
+              </div>
+              {annual && (
+                <div style={{ fontSize: 12, color: SUCCESS, fontWeight: 600, marginTop: 4 }}>
+                  {isAr ? `مدفوع €${annualTotal} سنوياً` : `billed €${annualTotal}/yr`}
+                </div>
+              )}
+              {!soldOut && !annual && (
+                <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
+                  {isAr ? "مقابل 79€ بعد البيع" : "vs. €79/mo after founding"}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: BORDER, marginBottom: 24 }} />
+
+          <div style={{
+            display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 24px", marginBottom: 28,
+          }}>
+            {features.map((f) => (
+              <div key={f} style={{ display: "flex", gap: 8, alignItems: "center", padding: "5px 0" }}>
+                <div style={{
+                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                  background: `${SAND}22`, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 9, color: SAND,
+                }}>✓</div>
+                <span style={{ fontSize: 13, color: "rgba(255,255,255,0.75)" }}>{f}</span>
+              </div>
+            ))}
+          </div>
+
+          <a
+            href={`${AGENCY_URL}/signup`}
+            style={{
+              display: "block", textAlign: "center",
+              background: soldOut ? "rgba(255,255,255,0.06)" : `linear-gradient(135deg, ${SAND}, ${SAND_DIM})`,
+              border: soldOut ? `1px solid ${BORDER}` : "none",
+              color: soldOut ? "rgba(255,255,255,0.75)" : NAVY,
+              fontWeight: 700, fontSize: 15,
+              padding: "14px 20px", borderRadius: 10, textDecoration: "none",
+              transition: "opacity 0.15s",
+            }}
+          >
+            {soldOut
+              ? (isAr ? "✦ ابدأ الآن مجاناً" : "✦ Start Free Trial")
+              : (isAr ? "✦ احجز مقعدك التأسيسي" : "✦ Claim Your Founding Spot")
+            }
+          </a>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 32 }}>
+        {/* After-founding note */}
+        {!soldOut && (
+          <div style={{
+            marginTop: 14, padding: "10px 18px", borderRadius: 10,
+            background: "rgba(255,255,255,0.02)", border: `1px solid ${BORDER}`,
+            textAlign: "center",
+          }}>
+            <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.3)" }}>
+              {isAr
+                ? `بعد نفاد المقاعد: 79€/شهر${annual ? " · 756€/سنة" : ""}`
+                : `After founding sells out: €79/mo${annual ? " · €756/yr annual" : ""}`
+              }
+            </span>
+          </div>
+        )}
+
+        <div style={{ textAlign: "center", marginTop: 28 }}>
           <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.3)" }}>
-            {t.mktPricingFinePrint}
+            {isAr
+              ? "تجربة مجانية 14 يوماً · لا يلزم بطاقة ائتمانية · إلغاء في أي وقت"
+              : "14-day free trial · No credit card required · Cancel anytime"
+            }
           </p>
         </div>
       </div>

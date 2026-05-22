@@ -7,12 +7,6 @@ import {
   Eyebrow,
   AgencyBar,
   StickyCTA,
-  SharedItinerary,
-  SharedIncludes,
-  SharedPricing,
-  SharedGallery,
-  SharedHotel,
-  SharedAirports,
   SharedCTABanner,
   SharedFooter,
   BaseCard,
@@ -20,15 +14,11 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
-  SharedItineraryDesktop,
-  SharedIncludesDesktop,
-  SharedHotelDesktop,
-  SharedPricingDesktop,
-  SharedAirportsDesktop,
-  SharedGalleryDesktop,
   SharedCTABannerDesktop,
   ReviewsSection,
   ReviewsSectionDesktop,
+  DynamicSections,
+  DynamicSectionsDesktop,
 } from "./shared";
 import type { TPageProps, TCardProps, TemplateTokens } from "./types";
 
@@ -153,12 +143,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         )}
 
         {/* Shared sections */}
-        <SharedItineraryDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedIncludesDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedHotelDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedPricingDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedAirportsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedGalleryDesktop pkg={pkg} tokens={tokens} lang={lang} />
+        <DynamicSectionsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
         <ReviewsSectionDesktop pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
         <SharedCTABannerDesktop pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
 
@@ -343,12 +328,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         </section>
       )}
 
-      <SharedItinerary pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-      <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <DynamicSections pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "0 18px 28px" }}>
@@ -385,6 +365,7 @@ export function TemplateAuroraCard({
   onEdit,
   onDelete,
   onToggleActive,
+  onDuplicate,
 }: TCardProps) {
   return (
     <BaseCard
@@ -395,6 +376,7 @@ export function TemplateAuroraCard({
       onEdit={onEdit}
       onDelete={onDelete}
       onToggleActive={onToggleActive}
+      onDuplicate={onDuplicate}
       headingFont="var(--font-cormorant, var(--font-dm-serif), serif)"
       imageBorderRadius={0}
     />

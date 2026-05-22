@@ -16,6 +16,9 @@ import { BaseCard } from "@/components/templates/shared";
 import type { TAgency } from "@/components/templates/types";
 
 const SAND = "#e8c97b";
+const AGENCY_BASE =
+  process.env.NEXT_PUBLIC_AGENCY_URL ??
+  (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://agency.packmetrix.com");
 
 type Package = {
   id: string;
@@ -48,12 +51,14 @@ export default function PackagesPage() {
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [agencySlug, setAgencySlug] = useState("agency");
+  const [userId, setUserId] = useState("");
   const [canCreate, setCanCreate] = useState(false);
   const [agency, setAgency] = useState<TAgency>({ name: "Agency" });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
+      setUserId(user.uid);
       const snap = await getDoc(doc(db, "users", user.uid));
       const data = snap.exists() ? snap.data() : {};
       const name = data.name || "";
@@ -149,7 +154,7 @@ export default function PackagesPage() {
                 pkg={pkg}
                 agency={agency}
                 lang={lang}
-                onView={() => window.open(`https://${pkg.agencySlug || agencySlug}.packmetrix.com/${pkg.id}`, "_blank", "noopener,noreferrer")}
+                onView={() => window.open(`${AGENCY_BASE}/${pkg.agencySlug || agencySlug}/${pkg.id}`, "_blank", "noopener,noreferrer")}
                 onEdit={() => router.push(`/builder?id=${pkg.id}`)}
                 onDelete={async () => {
                   if (!confirm(t.confirmDeletePackage)) return;
@@ -162,6 +167,26 @@ export default function PackagesPage() {
                   posthog.capture("package_toggled_active", { destination: pkg.destination, is_active: next });
                   await updateDoc(doc(db, "packages", pkg.id), { isActive: next });
                   setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, isActive: next } : p));
+                }}
+                onDuplicate={async () => {
+                  if (!confirm(t.confirmDuplicate)) return;
+                  const res = await fetch("/api/duplicate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ packageId: pkg.id, userId }),
+                  });
+                  if (!res.ok) return;
+                  const { id, agencySlug: slug } = await res.json();
+                  setPackages(prev => [{
+                    ...pkg,
+                    id,
+                    agencySlug: slug,
+                    isActive: false,
+                    views: 0,
+                    whatsappClicks: 0,
+                    messengerClicks: 0,
+                    createdAt: Date.now(),
+                  }, ...prev]);
                 }}
               />
             ))}

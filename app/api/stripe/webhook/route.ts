@@ -8,14 +8,10 @@ export const dynamic = "force-dynamic";
 function getPlanFromPriceId(priceId: string | undefined): string | null {
   if (!priceId) return null;
   const map: Record<string, string> = {
-    [process.env.STRIPE_PRICE_ID_START_MONTHLY ?? ""]: "start",
-    [process.env.STRIPE_PRICE_ID_START_ANNUAL ?? ""]: "start",
-    [process.env.STRIPE_PRICE_ID_GROW_MONTHLY ?? ""]: "grow",
-    [process.env.STRIPE_PRICE_ID_GROW_ANNUAL ?? ""]: "grow",
-    [process.env.STRIPE_PRICE_ID_SCALE_MONTHLY ?? ""]: "scale",
-    [process.env.STRIPE_PRICE_ID_SCALE_ANNUAL ?? ""]: "scale",
-    [process.env.STRIPE_PRICE_ID ?? ""]: "grow",
-    [process.env.STRIPE_PRICE_ID_ANNUAL ?? ""]: "grow",
+    [process.env.STRIPE_PRICE_ID_FOUNDING_MONTHLY ?? ""]: "founding",
+    [process.env.STRIPE_PRICE_ID_FOUNDING_ANNUAL ?? ""]: "founding",
+    [process.env.STRIPE_PRICE_ID_STANDARD_MONTHLY ?? ""]: "standard",
+    [process.env.STRIPE_PRICE_ID_STANDARD_ANNUAL ?? ""]: "standard",
   };
   return map[priceId] ?? null;
 }
@@ -47,21 +43,33 @@ export async function POST(req: Request) {
         const session = event.data.object;
 
         const userId = session.metadata?.userId;
-        const plan = session.metadata?.plan ?? "grow";
+        const plan = session.metadata?.plan ?? "founding";
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
 
         if (!userId) throw new Error("Missing userId in session metadata");
 
-        await db.collection("users").doc(userId).set(
-          {
-            plan,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
-            updatedAt: Date.now(),
-          },
-          { merge: true }
-        );
+        const userRef: FirebaseFirestore.DocumentReference = db.collection("users").doc(userId);
+        const counterRef: FirebaseFirestore.DocumentReference = db.collection("config").doc("foundingCounter");
+
+        // Use a transaction to atomically write user + increment founding counter (once per subscription)
+        await db.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+          const userSnap = await tx.get(userRef);
+          const wasNew = !userSnap.data()?.stripeSubscriptionId;
+
+          tx.set(
+            userRef,
+            { plan, stripeCustomerId: customerId, stripeSubscriptionId: subscriptionId, updatedAt: Date.now() },
+            { merge: true }
+          );
+
+          if (plan === "founding" && wasNew) {
+            const counterSnap = await tx.get(counterRef);
+            const claimed = (counterSnap.data()?.claimed as number) ?? 0;
+            const cap = (counterSnap.data()?.cap as number) ?? 50;
+            tx.set(counterRef, { claimed: claimed + 1, cap }, { merge: true });
+          }
+        });
 
         const posthog = getPostHogClient();
         posthog.capture({
@@ -71,7 +79,7 @@ export async function POST(req: Request) {
         });
         await posthog.shutdown();
 
-        console.log("User upgraded:", userId, "→", plan);
+        console.log("User subscribed:", userId, "→", plan);
         break;
       }
 
@@ -79,7 +87,6 @@ export async function POST(req: Request) {
         const sub = event.data.object;
         const customerId = sub.customer as string;
 
-        // Plan can come from subscription metadata (set at checkout) or from price ID mapping
         const planFromMeta = sub.metadata?.plan;
         const priceId = sub.items?.data[0]?.price?.id;
         const plan = planFromMeta || getPlanFromPriceId(priceId);

@@ -7,12 +7,6 @@ import {
   Eyebrow,
   AgencyBar,
   StickyCTA,
-  SharedItinerary,
-  SharedIncludes,
-  SharedPricing,
-  SharedGallery,
-  SharedHotel,
-  SharedAirports,
   SharedCTABanner,
   SharedFooter,
   BaseCard,
@@ -20,15 +14,11 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
-  SharedItineraryDesktop,
-  SharedIncludesDesktop,
-  SharedHotelDesktop,
-  SharedPricingDesktop,
-  SharedAirportsDesktop,
-  SharedGalleryDesktop,
   SharedCTABannerDesktop,
   ReviewsSection,
   ReviewsSectionDesktop,
+  DynamicSections,
+  DynamicSectionsDesktop,
 } from "./shared";
 import type { TPageProps, TCardProps, TemplateTokens } from "./types";
 
@@ -127,12 +117,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
           </DContainer>
         )}
 
-        <SharedItineraryDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedIncludesDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedHotelDesktop pkg={pkg} tokens={tokens} lang={lang} />
-        <SharedPricingDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedAirportsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <SharedGalleryDesktop pkg={pkg} tokens={tokens} lang={lang} />
+        <DynamicSectionsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
         <ReviewsSectionDesktop pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
         <SharedCTABannerDesktop pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
 
@@ -397,12 +382,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <WAButton label={t.bookWhatsApp} full size="lg" onClick={onWhatsApp} />
       </div>
 
-      <SharedItinerary pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedIncludes pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedPricing pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-      <SharedGallery pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedHotel pkg={pkg} tokens={tokens} lang={lang} />
-      <SharedAirports pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+      <DynamicSections pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
       <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
 
       <div style={{ padding: "28px 18px 28px" }}>
@@ -439,6 +419,7 @@ export function TemplateSakinaCard({
   onEdit,
   onDelete,
   onToggleActive,
+  onDuplicate,
 }: TCardProps) {
   return (
     <BaseCard
@@ -449,6 +430,7 @@ export function TemplateSakinaCard({
       onEdit={onEdit}
       onDelete={onDelete}
       onToggleActive={onToggleActive}
+      onDuplicate={onDuplicate}
       headingFont="var(--font-dm-sans, sans-serif)"
       imageBorderRadius={160}
       cardBg="#f7f4ed"

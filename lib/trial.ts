@@ -1,4 +1,4 @@
-export const TRIAL_DAYS = 30;
+export const TRIAL_DAYS = 14;
 
 export function trialEndsAtFromNow(): number {
   return Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000;
@@ -19,6 +19,8 @@ export function hasFullAccess(
   plan: string | undefined,
   trialEndsAt: number | null | undefined
 ): boolean {
+  if (plan === "founding" || plan === "standard") return true;
+  // legacy plan names (pre-launch accounts)
   if (plan === "start" || plan === "grow" || plan === "scale") return true;
   return isTrialActive(trialEndsAt);
 }

@@ -5,38 +5,31 @@ import { db } from "@/lib/firebase-admin";
 export const dynamic = "force-dynamic";
 
 const PRICE_IDS: Record<string, Record<string, string>> = {
-  start: {
-    monthly: process.env.STRIPE_PRICE_ID_START_MONTHLY ?? process.env.STRIPE_PRICE_ID ?? "",
-    annual: process.env.STRIPE_PRICE_ID_START_ANNUAL ?? process.env.STRIPE_PRICE_ID_ANNUAL ?? "",
+  founding: {
+    monthly: process.env.STRIPE_PRICE_ID_FOUNDING_MONTHLY ?? "",
+    annual: process.env.STRIPE_PRICE_ID_FOUNDING_ANNUAL ?? "",
   },
-  grow: {
-    monthly: process.env.STRIPE_PRICE_ID_GROW_MONTHLY ?? process.env.STRIPE_PRICE_ID ?? "",
-    annual: process.env.STRIPE_PRICE_ID_GROW_ANNUAL ?? process.env.STRIPE_PRICE_ID_ANNUAL ?? "",
-  },
-  scale: {
-    monthly: process.env.STRIPE_PRICE_ID_SCALE_MONTHLY ?? process.env.STRIPE_PRICE_ID ?? "",
-    annual: process.env.STRIPE_PRICE_ID_SCALE_ANNUAL ?? process.env.STRIPE_PRICE_ID_ANNUAL ?? "",
+  standard: {
+    monthly: process.env.STRIPE_PRICE_ID_STANDARD_MONTHLY ?? "",
+    annual: process.env.STRIPE_PRICE_ID_STANDARD_ANNUAL ?? "",
   },
 };
 
 export async function POST(req: Request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   try {
-    const { userId, plan = "grow", billingPeriod = "monthly" } = await req.json();
+    const { userId, plan = "founding", billingPeriod = "monthly" } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    // Fetch user to check for existing Stripe customer/subscription
     const userDoc = await db.collection("users").doc(userId).get();
     const userData = userDoc.data() ?? {};
     const { stripeCustomerId, stripeSubscriptionId } = userData;
 
-    // Derive return URL from request origin
     const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-    // If user already has an active subscription, send them to the billing portal to upgrade/downgrade
     if (stripeSubscriptionId) {
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: stripeCustomerId,
@@ -45,8 +38,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ url: portalSession.url });
     }
 
+    // Enforce founding cap server-side: fall back to standard if sold out
+    let resolvedPlan = plan === "founding" || plan === "standard" ? plan : "founding";
+    if (resolvedPlan === "founding") {
+      const counterSnap = await db.collection("config").doc("foundingCounter").get();
+      const counter = counterSnap.data() ?? { claimed: 0, cap: 50 };
+      if ((counter.claimed ?? 0) >= (counter.cap ?? 50)) {
+        resolvedPlan = "standard";
+      }
+    }
+
     const period = billingPeriod === "annual" ? "annual" : "monthly";
-    const priceId = PRICE_IDS[plan]?.[period] ?? PRICE_IDS.grow[period];
+    const priceId = PRICE_IDS[resolvedPlan]?.[period];
+
+    if (!priceId) {
+      return NextResponse.json({ error: "Price not configured" }, { status: 500 });
+    }
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
@@ -54,13 +61,12 @@ export async function POST(req: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: process.env.STRIPE_SUCCESS_URL!,
       cancel_url: process.env.STRIPE_CANCEL_URL!,
-      metadata: { userId, plan },
+      metadata: { userId, plan: resolvedPlan },
       subscription_data: {
-        metadata: { userId, plan },
+        metadata: { userId, plan: resolvedPlan },
       },
     };
 
-    // Attach existing Stripe customer so we don't create duplicates
     if (stripeCustomerId) {
       sessionParams.customer = stripeCustomerId;
     }
