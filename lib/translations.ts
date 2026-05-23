@@ -995,9 +995,26 @@ const en = {
   saveAsTemplateSave: "Save",
   saveAsTemplateCancel: "Cancel",
 
+  // Builder — template selection step
+  builderTemplateStepTitle: "Choose a template",
+  builderTemplateStepSub: "Pick the look that fits your package. You can change it any time from the builder.",
+  builderTemplateComingSoon: "Coming soon",
+  builderTemplateSelected: "Selected",
+  builderTemplateChoose: "Choose",
+  builderTemplateContinue: "Continue",
+
   // Packages page
   confirmDuplicate: "Duplicate this package?",
   duplicateTooltip: "Duplicate",
+  copyLink: "Copy link",
+  filterAll: "All",
+  filterLive: "Live",
+  filterDraft: "Draft",
+  filterTopPerformers: "Top performers",
+  statsActivePackages: "Active packages",
+  statsViewsThirtyDay: "Views · 30d",
+  statsLeadsThirtyDay: "WhatsApp leads · 30d",
+  statsAvgConversion: "Avg conversion",
 
   // PresetPicker
   yourSavedTemplates: "Your saved templates",
@@ -1006,6 +1023,65 @@ const en = {
 
   // CardActions
   duplicatePackageTooltip: "Duplicate",
+
+  // Phase 4 — Aurora (agent band)
+  travelDesignerLabel: "Travel designer",
+  yearsExpSuffix: "yrs experience",
+  repliesInLabel: "Replies in",
+  meetYourDesigner: "Meet your travel designer",
+  chapterLabel: "Chapter",
+
+  // Phase 4 — Voyage (ticket-stub)
+  yourItinerary: "Your itinerary",
+  ticketStubDay: "Day",
+
+  // Phase 4 — Pulse (scarcity + countdown)
+  spotsLeft: "spots left",
+  viewersNow: "people viewing",
+  dealExpiresIn: "Deal expires in",
+  lastChance: "Last chance",
+  hoursUnit: "h",
+  minutesUnit: "m",
+  secondsUnit: "s",
+  bookNowDeal: "Book now — limited spots",
+  guaranteedLowestPrice: "Guaranteed lowest price",
+  seatsRemaining: "seats remaining",
+  bookedRecently: "Booked",
+  hoursAgoSuffix: "hrs ago",
+
+  // Phase 4 — Sakina (mutawif + spiritual)
+  mutawifLabel: "Mutawif / Guide",
+  spiritualJourney: "Your spiritual journey",
+  umrahPackage: "Umrah Package",
+  holyDestination: "Holy Sites",
+  groupDepartures: "Group departures",
+  prayerTimesTitle: "Prayer times",
+  fajr: "Fajr",
+  dhuhr: "Dhuhr",
+  asr: "Asr",
+  maghrib: "Maghrib",
+  isha: "Isha",
+
+  // Phase 4 — Petal (room treatments)
+  roomTreatmentsTitle: "Choose your experience",
+  roomTreatmentsSub: "Select the room or package that suits you best",
+  couplesTreatmentLabel: "For two · all-in",
+  upgradeLabel: "Upgrade",
+  popularChoice: "Popular choice",
+
+  // Phase 4 — Compass (stats + difficulty)
+  altitudeLabel: "Max altitude",
+  distanceLabel: "Distance",
+  difficultyLabel: "Difficulty",
+  fitnessLabel: "Fitness level",
+  difficultyEasy: "Easy",
+  difficultyModerate: "Moderate",
+  difficultyStrenuous: "Strenuous",
+  difficultyExtreme: "Extreme",
+  trekStatsTitle: "Trek at a glance",
+  metersUnit: "m",
+  kmUnit: "km",
+  packingListTitle: "What to pack",
 };
 
 const ar: typeof en = {
@@ -2003,9 +2079,26 @@ const ar: typeof en = {
   saveAsTemplateSave: "حفظ",
   saveAsTemplateCancel: "إلغاء",
 
+  // Builder — template selection step
+  builderTemplateStepTitle: "اختر قالباً",
+  builderTemplateStepSub: "اختر التصميم المناسب لباقتك. يمكنك تغييره في أي وقت من المنشئ.",
+  builderTemplateComingSoon: "قريباً",
+  builderTemplateSelected: "مختار",
+  builderTemplateChoose: "اختر",
+  builderTemplateContinue: "متابعة",
+
   // Packages page
   confirmDuplicate: "تكرار هذه الباقة؟",
   duplicateTooltip: "تكرار",
+  copyLink: "نسخ الرابط",
+  filterAll: "الكل",
+  filterLive: "مباشر",
+  filterDraft: "مسودة",
+  filterTopPerformers: "الأفضل أداءً",
+  statsActivePackages: "الباقات النشطة",
+  statsViewsThirtyDay: "المشاهدات · 30 يوم",
+  statsLeadsThirtyDay: "عملاء واتساب · 30 يوم",
+  statsAvgConversion: "متوسط التحويل",
 
   // PresetPicker
   yourSavedTemplates: "قوالبك المحفوظة",
@@ -2014,6 +2107,65 @@ const ar: typeof en = {
 
   // CardActions
   duplicatePackageTooltip: "تكرار الباقة",
+
+  // Phase 4 — Aurora (agent band)
+  travelDesignerLabel: "مصمم الرحلة",
+  yearsExpSuffix: "سنة خبرة",
+  repliesInLabel: "يرد خلال",
+  meetYourDesigner: "تعرف على مصمم رحلتك",
+  chapterLabel: "الفصل",
+
+  // Phase 4 — Voyage (ticket-stub)
+  yourItinerary: "برنامجك اليومي",
+  ticketStubDay: "اليوم",
+
+  // Phase 4 — Pulse (scarcity + countdown)
+  spotsLeft: "مقعد متبقٍ",
+  viewersNow: "شخص يشاهد الآن",
+  dealExpiresIn: "العرض ينتهي خلال",
+  lastChance: "فرصة أخيرة",
+  hoursUnit: "س",
+  minutesUnit: "د",
+  secondsUnit: "ث",
+  bookNowDeal: "احجز الآن — مقاعد محدودة",
+  guaranteedLowestPrice: "أقل سعر مضمون",
+  seatsRemaining: "مقاعد متبقية",
+  bookedRecently: "تم الحجز",
+  hoursAgoSuffix: "ساعة مضت",
+
+  // Phase 4 — Sakina (mutawif + spiritual)
+  mutawifLabel: "المطوف / المرشد",
+  spiritualJourney: "رحلتك الروحية",
+  umrahPackage: "باقة عمرة",
+  holyDestination: "الأماكن المقدسة",
+  groupDepartures: "مواعيد المجموعات",
+  prayerTimesTitle: "أوقات الصلاة",
+  fajr: "الفجر",
+  dhuhr: "الظهر",
+  asr: "العصر",
+  maghrib: "المغرب",
+  isha: "العشاء",
+
+  // Phase 4 — Petal (room treatments)
+  roomTreatmentsTitle: "اختر تجربتك",
+  roomTreatmentsSub: "اختر الغرفة أو الباقة المناسبة لك",
+  couplesTreatmentLabel: "للاثنين · شامل",
+  upgradeLabel: "ترقية",
+  popularChoice: "الأكثر طلباً",
+
+  // Phase 4 — Compass (stats + difficulty)
+  altitudeLabel: "أقصى ارتفاع",
+  distanceLabel: "المسافة",
+  difficultyLabel: "مستوى الصعوبة",
+  fitnessLabel: "المستوى البدني",
+  difficultyEasy: "سهلة",
+  difficultyModerate: "متوسطة",
+  difficultyStrenuous: "صعبة",
+  difficultyExtreme: "شديدة الصعوبة",
+  trekStatsTitle: "نظرة عامة على المسار",
+  metersUnit: "م",
+  kmUnit: "كم",
+  packingListTitle: "ما يجب إحضاره",
 };
 
 export const T: Record<Lang, typeof en> = { en, ar };

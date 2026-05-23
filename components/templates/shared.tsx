@@ -3,7 +3,7 @@
 import React from "react";
 import Icon from "@/components/Icon";
 import { T } from "@/lib/translations";
-import type { TPackage, TAgency, TReview, TemplateTokens, Lang } from "./types";
+import type { TPackage, TAgency, TReview, TemplateTokens, Lang, TAgent, TDeparture } from "./types";
 
 // ─── Desktop responsive hook ────────────────────────────────────────────────
 
@@ -607,15 +607,7 @@ export function SharedFooter({ agency, tokens }: { agency: TAgency; tokens: Temp
 
 // ─── Dashboard card primitives ──────────────────────────────────────────────
 
-function scoreFromConv(conv: number) {
-  if (conv >= 5) return 95;
-  if (conv >= 3) return 85;
-  if (conv >= 2) return 75;
-  if (conv >= 1) return 60;
-  if (conv > 0) return 45;
-  return 30;
-}
-
+/** @deprecated Use BaseCard directly */
 export function CardStatRow({ views, clicks, conv, scoreColor, t }: {
   views: number; clicks: number; conv: number; scoreColor: string;
   t: typeof T["en"];
@@ -638,6 +630,7 @@ export function CardStatRow({ views, clicks, conv, scoreColor, t }: {
   );
 }
 
+/** @deprecated Use BaseCard directly */
 export function CardActions({ lang, onView, onEdit, onDelete, onToggleActive, onDuplicate, isActive, isPublished }: {
   lang: Lang; onView: () => void; onEdit: () => void;
   onDelete: () => void; onToggleActive: () => void;
@@ -671,47 +664,175 @@ export function CardActions({ lang, onView, onEdit, onDelete, onToggleActive, on
   );
 }
 
-// BaseCard — used by all template card variants with their visual customizations
-export function BaseCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, onDuplicate, imageBorderRadius = 0, headingFont = "inherit", cardBg = "rgba(255,255,255,0.025)", accentColor }: {
+// BaseCard — white card with 4px template stripe, image, metrics, actions
+export function BaseCard({
+  pkg, agency, lang,
+  onView, onEdit, onDelete, onToggleActive, onDuplicate, onCopyLink,
+  stripeColor, templateName, templateDark,
+  // kept for backwards compat with existing template Card components (Phase 4 will replace them)
+  imageBorderRadius: _ir, headingFont: _hf, cardBg: _cb, accentColor: _ac,
+}: {
   pkg: import("./types").TListPackage;
   agency: TAgency; lang: Lang;
   onView: () => void; onEdit: () => void;
   onDelete: () => void; onToggleActive: () => void;
   onDuplicate?: () => void;
+  onCopyLink?: () => void;
+  stripeColor?: string;
+  templateName?: string;
+  templateDark?: boolean;
+  /** @deprecated ignored in new design */
   imageBorderRadius?: number;
+  /** @deprecated ignored in new design */
   headingFont?: string;
+  /** @deprecated ignored in new design */
   cardBg?: string;
+  /** @deprecated ignored in new design */
   accentColor?: string;
 }) {
   const t = T[lang];
-  const brand = accentColor || "#1f5f8e";
   const thumbUrl = pkg.coverImage || pkg.images?.[0];
   const clicks = (pkg.whatsappClicks || 0) + (pkg.messengerClicks || 0);
-  const conv = (pkg.views || 0) > 0 ? (clicks / pkg.views) * 100 : 0;
-  const score = scoreFromConv(conv);
-  const scoreColor = score >= 80 ? "#2dd4a0" : score >= 65 ? "#e8c97b" : "#f5a623";
+  const conv = (pkg.views || 0) > 0 ? (clicks / (pkg.views || 1)) * 100 : 0;
   const isPublished = Boolean(pkg.agencySlug);
   const isActive = pkg.isActive !== false;
-  const badgeBg = !isPublished ? "rgba(255,255,255,0.18)" : isActive ? "rgba(45,212,160,0.88)" : "rgba(180,90,30,0.82)";
-  const badgeColor = !isPublished ? "#fff" : "#0a1426";
-  const badgeLabel = !isPublished ? t.packageStatusDraft : isActive ? `● ${t.live}` : `○ ${t.packageStatusInactive}`;
+  const stripe = stripeColor || "#1f5f8e";
+  const isOff = !isPublished || !isActive;
+
+  const statusDotColor = !isPublished ? "#f3a847" : isActive ? "#2dd4a0" : "#888";
+  const statusLabel = !isPublished ? t.packageStatusDraft : isActive ? t.live : t.packageStatusInactive;
+
+  const isRtl = lang === "ar";
 
   return (
-    <div style={{ background: cardBg, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, overflow: "hidden" }}>
-      <div style={{ height: 160, position: "relative", background: thumbUrl ? `url("${thumbUrl}") center/cover` : brand, borderRadius: `${imageBorderRadius}px ${imageBorderRadius}px 0 0`, display: "flex", alignItems: "center", justifyContent: "center", backgroundSize: "cover", backgroundPosition: "center" }}>
-        {!thumbUrl && <Icon name="map" size={28} color="rgba(255,255,255,0.5)" />}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6))", borderRadius: `${imageBorderRadius}px ${imageBorderRadius}px 0 0` }} />
-        <div style={{ position: "absolute", top: 10, left: 10, padding: "3px 10px", borderRadius: 99, background: badgeBg, backdropFilter: "blur(8px)", color: badgeColor, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".4px" }}>{badgeLabel}</div>
-        <div style={{ position: "absolute", top: 10, right: 10, padding: "4px 10px", borderRadius: 99, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)", color: "#fff", fontSize: 10.5, fontWeight: 700 }}>
-          Score <b style={{ color: scoreColor, marginLeft: 4 }}>{score}</b>
+    <div style={{
+      background: "#fff",
+      border: "1px solid rgba(0,0,0,0.08)",
+      borderRadius: 14,
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      opacity: isOff ? 0.6 : 1,
+      transition: "opacity 0.2s",
+    }}>
+      {/* 4px template-color stripe */}
+      <div style={{ height: 4, background: stripe, flexShrink: 0 }} />
+
+      {/* Image area */}
+      <div style={{ position: "relative", aspectRatio: "16/10", background: "#f0ece5", overflow: "hidden", flexShrink: 0 }}>
+        {thumbUrl
+          ? <img src={thumbUrl} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="map" size={28} color="rgba(0,0,0,0.2)" /></div>
+        }
+        {/* Overlay tags */}
+        <div style={{ position: "absolute", top: 10, left: isRtl ? undefined : 10, right: isRtl ? 10 : undefined, display: "flex", alignItems: "flex-start", gap: 6 }}>
+          {templateName && (
+            <span style={{
+              background: "rgba(255,255,255,0.94)", backdropFilter: "blur(8px)",
+              fontFamily: "var(--font-jetbrains-mono, monospace)", fontSize: 9.5,
+              textTransform: "uppercase", letterSpacing: "0.5px",
+              padding: "4px 7px", borderRadius: 4,
+              display: "inline-flex", alignItems: "center", gap: 5,
+              fontWeight: 600, color: "#1a1f2c",
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: stripe, border: templateDark ? "1px solid rgba(0,0,0,0.5)" : "none", flexShrink: 0 }} />
+              {templateName}
+            </span>
+          )}
         </div>
-        <div style={{ position: "absolute", left: 12, right: 12, bottom: 10 }}>
-          <div style={{ fontSize: 19, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px", lineHeight: 1.1, fontFamily: headingFont }}>{pkg.destination}</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>{pkg.price}</div>
+        <div style={{ position: "absolute", top: 10, right: isRtl ? undefined : 10, left: isRtl ? 10 : undefined }}>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)",
+            color: "#fff", fontSize: 10, fontWeight: 600,
+            padding: "4px 8px", borderRadius: 4, letterSpacing: "0.2px",
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: statusDotColor, flexShrink: 0 }} />
+            {statusLabel}
+          </span>
         </div>
       </div>
-      <CardStatRow views={pkg.views || 0} clicks={clicks} conv={conv} scoreColor={scoreColor} t={t} />
-      <CardActions lang={lang} onView={onView} onEdit={onEdit} onDelete={onDelete} onToggleActive={onToggleActive} onDuplicate={onDuplicate} isActive={isActive} isPublished={isPublished} />
+
+      {/* Body */}
+      <div style={{ padding: "14px 16px 10px", flex: 1, display: "flex", flexDirection: "column" }}>
+        {/* Dest + price */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+          <div style={{ fontSize: 11, color: "rgba(0,0,0,0.42)", fontWeight: 500, letterSpacing: "0.4px", textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {pkg.destination}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.3px", color: "#0d1b2e", flexShrink: 0 }}>
+            {pkg.price}
+          </div>
+        </div>
+        {/* Title */}
+        <div style={{
+          fontSize: 14, fontWeight: 600, marginTop: 4, lineHeight: 1.32,
+          letterSpacing: "-0.2px", color: "#0d1b2e",
+          overflow: "hidden", display: "-webkit-box",
+          WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+        }}>
+          {pkg.title || pkg.destination}
+        </div>
+        {/* Metrics */}
+        <div style={{ marginTop: 11, paddingTop: 10, borderTop: "1px solid rgba(0,0,0,0.06)", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
+          {[
+            { v: (pkg.views || 0).toLocaleString(), l: t.statViews, hi: false },
+            { v: String(clicks), l: t.statLeads, hi: false },
+            { v: conv > 0 ? conv.toFixed(1) + "%" : "—", l: t.statConversion, hi: conv >= 2 },
+          ].map(({ v, l, hi }) => (
+            <div key={l}>
+              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", lineHeight: 1, color: hi ? "#16654a" : "#0d1b2e" }}>{v}</div>
+              <div style={{ fontSize: 9.5, color: "rgba(0,0,0,0.38)", marginTop: 4, letterSpacing: "0.4px", textTransform: "uppercase", fontWeight: 600, fontFamily: "var(--font-jetbrains-mono, monospace)" }}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Actions bar */}
+      <div style={{ display: "flex", alignItems: "center", padding: "9px 12px", borderTop: "1px solid rgba(0,0,0,0.06)", background: "#faf9f5", gap: 2 }}>
+        <button onClick={onEdit} style={{ background: "transparent", border: "none", fontSize: 12, color: "#0d1b2e", fontWeight: 600, padding: "5px 8px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit" }}>
+          {t.apply}
+        </button>
+        <button onClick={onView} style={{ background: "transparent", border: "none", fontSize: 12, color: "rgba(0,0,0,0.4)", fontWeight: 500, padding: "5px 8px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit" }}>
+          {t.preview}
+        </button>
+        {onCopyLink && (
+          <button onClick={onCopyLink} style={{ background: "transparent", border: "none", fontSize: 12, color: "rgba(0,0,0,0.4)", fontWeight: 500, padding: "5px 8px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit" }}>
+            {t.copyLink}
+          </button>
+        )}
+        {onDuplicate && (
+          <button onClick={onDuplicate} title={t.duplicatePackageTooltip} style={{ background: "transparent", border: "none", padding: "5px 6px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center" }}>
+            <Icon name="copy" size={13} color="rgba(0,0,0,0.3)" />
+          </button>
+        )}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
+          {isPublished && (
+            <button
+              onClick={onToggleActive}
+              title={isActive ? t.markInactive : t.markActive}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 2px", display: "flex", alignItems: "center" }}
+            >
+              <span style={{
+                display: "inline-block", width: 32, height: 18,
+                background: isActive ? "#0d1b2e" : "rgba(0,0,0,0.18)",
+                borderRadius: 999, position: "relative", transition: "background 0.2s",
+              }}>
+                <span style={{
+                  position: "absolute", top: 2,
+                  left: isActive ? 16 : 2,
+                  width: 14, height: 14,
+                  background: "#fff", borderRadius: "50%",
+                  transition: "left 0.2s",
+                }} />
+              </span>
+            </button>
+          )}
+          <button onClick={onDelete} title={t.deletePackage} style={{ background: "transparent", border: "none", padding: "5px 4px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center" }}>
+            <Icon name="trash" size={13} color="rgba(180,50,50,0.55)" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2122,6 +2243,363 @@ export function DynamicSectionsDesktop({ pkg, tokens, lang, onWhatsApp, skip }: 
         }
       })}
     </>
+  );
+}
+
+// ─── Design-system CRO primitives ───────────────────────────────────────────
+// Shared across ALL redesigned templates. Each template passes its own
+// color/font tokens — the components have no opinion about aesthetics.
+
+// ── Stars ────────────────────────────────────────────────────────────────────
+
+export function Stars({ value = 5, size = 12, color = "currentColor" }: {
+  value?: number; size?: number; color?: string;
+}) {
+  return (
+    <span style={{ display: "inline-flex", gap: 1, color }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <svg key={i} width={size} height={size} viewBox="0 0 24 24"
+          fill={i <= Math.round(value) ? "currentColor" : "none"}
+          stroke="currentColor" strokeWidth={1.6}>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+// ── ScarcityBar ───────────────────────────────────────────────────────────────
+
+export function ScarcityBar({ spotsRemaining, totalSpots, viewersNow, recentBookings, accentColor, mutedColor, style }: {
+  spotsRemaining: number;
+  totalSpots: number;
+  viewersNow?: number;
+  recentBookings?: { count: number; hoursAgo: number };
+  accentColor: string;
+  mutedColor: string;
+  style?: React.CSSProperties;
+}) {
+  const pct = Math.round(((totalSpots - spotsRemaining) / totalSpots) * 100);
+  const alertColor = "#b03a2e";
+  const isLow = spotsRemaining <= 3;
+
+  return (
+    <div style={{ ...style }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: "50%",
+            background: isLow ? alertColor : accentColor,
+            flexShrink: 0,
+            animation: isLow ? "tpl-blink 1.4s infinite" : undefined,
+          }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: isLow ? alertColor : accentColor }}>
+            Only <b>{spotsRemaining}</b> of {totalSpots} spots left
+          </span>
+        </div>
+        {(viewersNow || recentBookings) && (
+          <span style={{ fontSize: 11, color: mutedColor }}>
+            {viewersNow ? `${viewersNow} viewing` : ""}
+            {viewersNow && recentBookings ? " · " : ""}
+            {recentBookings ? `last booked ${recentBookings.hoursAgo}h ago` : ""}
+          </span>
+        )}
+      </div>
+      <div style={{ height: 4, borderRadius: 99, background: `${accentColor}20`, overflow: "hidden" }}>
+        <div style={{
+          height: "100%", borderRadius: 99,
+          background: isLow ? alertColor : accentColor,
+          width: `${pct}%`,
+          transition: "width 0.6s ease",
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// ── SocialProofTicker ─────────────────────────────────────────────────────────
+
+export function SocialProofTicker({ messages, bg, textColor, dotColor, style }: {
+  messages: string[];
+  bg: string;
+  textColor: string;
+  dotColor: string;
+  style?: React.CSSProperties;
+}) {
+  const [idx, setIdx] = React.useState(0);
+  const [visible, setVisible] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!messages.length) return;
+    const id = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIdx(i => (i + 1) % messages.length);
+        setVisible(true);
+      }, 220);
+    }, 3200);
+    return () => clearInterval(id);
+  }, [messages.length]);
+
+  if (!messages.length) return null;
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 9,
+      background: bg, padding: "9px 14px",
+      ...style,
+    }}>
+      <span style={{
+        width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+        background: dotColor,
+        animation: "tpl-pulse-dot 1.8s infinite",
+      }} />
+      <span style={{
+        fontSize: 12, fontWeight: 500, color: textColor,
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(5px)",
+        transition: "opacity 0.22s ease, transform 0.22s ease",
+        display: "block",
+      }}>
+        {messages[idx]}
+      </span>
+    </div>
+  );
+}
+
+// ── TrustStrip ────────────────────────────────────────────────────────────────
+
+export type TrustItem = {
+  icon: React.ReactNode;
+  title: string;
+  sub?: string;
+};
+
+export function TrustStrip({ items, ink, mutedColor, borderColor, iconAccent, layout = "grid", style }: {
+  items: TrustItem[];
+  ink: string;
+  mutedColor: string;
+  borderColor: string;
+  iconAccent: string;
+  layout?: "grid" | "row";
+  style?: React.CSSProperties;
+}) {
+  const isRow = layout === "row";
+  return (
+    <div style={{
+      display: isRow ? "flex" : "grid",
+      gridTemplateColumns: isRow ? undefined : "1fr 1fr",
+      gap: isRow ? 32 : "12px 16px",
+      padding: isRow ? "22px 40px" : "20px",
+      borderTop: `1px solid ${borderColor}`,
+      borderBottom: `1px solid ${borderColor}`,
+      ...style,
+    }}>
+      {items.map((item, i) => (
+        <div key={i} style={{ display: "flex", alignItems: isRow ? "flex-start" : "center", gap: isRow ? 12 : 8 }}>
+          <div style={{
+            width: isRow ? 28 : 22, height: isRow ? 28 : 22,
+            borderRadius: "50%", border: `1px solid ${borderColor}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: iconAccent, flexShrink: 0,
+          }}>
+            {item.icon}
+          </div>
+          <div>
+            <div style={{ fontSize: isRow ? 13 : 11.5, fontWeight: 600, color: ink }}>{item.title}</div>
+            {item.sub && isRow && <div style={{ fontSize: 11, color: mutedColor, marginTop: 3 }}>{item.sub}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── DepartureSelector ─────────────────────────────────────────────────────────
+
+export function DepartureSelector({ departures, accentColor, ink, mutedColor, borderColor, paperColor, style }: {
+  departures: TDeparture[];
+  accentColor: string;
+  ink: string;
+  mutedColor: string;
+  borderColor: string;
+  paperColor: string;
+  style?: React.CSSProperties;
+}) {
+  const [sel, setSel] = React.useState(0);
+  if (!departures.length) return null;
+  const isLow = (d: TDeparture) => d.spots <= 3;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, ...style }}>
+      {departures.map((d, i) => {
+        const active = sel === i;
+        return (
+          <button
+            key={i}
+            onClick={() => setSel(i)}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+              padding: "13px 16px",
+              background: active ? `${accentColor}12` : paperColor,
+              border: `1.5px solid ${active ? accentColor : borderColor}`,
+              borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+              transition: "all 0.15s",
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 700, color: ink, letterSpacing: "-0.2px" }}>{d.date}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: isLow(d) ? "#b03a2e" : mutedColor }}>
+                {isLow(d) ? `Only ${d.spots} left` : `${d.spots} spots`}
+              </span>
+              {d.price && (
+                <span style={{ fontSize: 14, fontWeight: 800, color: active ? accentColor : ink, letterSpacing: "-0.3px" }}>
+                  {d.price}
+                  {d.deal && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "#e2492a", background: "#fff1ec", padding: "2px 5px", borderRadius: 4 }}>deal</span>}
+                </span>
+              )}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── AgentBand (mobile) ────────────────────────────────────────────────────────
+
+export function AgentBand({ agent, agencyName, ctaLabel, onWhatsApp, lang, style }: {
+  agent: TAgent;
+  agencyName: string;
+  ctaLabel: string;
+  onWhatsApp: () => void;
+  lang: Lang;
+  style?: React.CSSProperties;
+}) {
+  const isRtl = lang === "ar";
+  return (
+    <section style={{
+      background: "#1a1f2c", color: "#fff",
+      padding: "48px 20px",
+      direction: isRtl ? "rtl" : "ltr",
+      ...style,
+    }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 18, flexWrap: "wrap" }}>
+        {agent.avatar && (
+          <img
+            src={agent.avatar} alt={agent.name}
+            style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "2px solid rgba(255,255,255,0.12)" }}
+          />
+        )}
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "1.2px", textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginBottom: 6 }}>
+            {agencyName}
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.4px", lineHeight: 1.1, marginBottom: 4 }}>{agent.name}</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginBottom: 14 }}>
+            {agent.role}{agent.years ? ` · ${agent.years} yrs` : ""}
+          </div>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 11, color: "rgba(255,255,255,0.6)",
+            background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+            padding: "5px 10px", borderRadius: 99,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2dd4a0", animation: "tpl-pulse-dot 1.8s infinite" }} />
+            Online{agent.repliesIn ? ` · replies in <${agent.repliesIn}` : ""}
+          </span>
+        </div>
+      </div>
+      <button onClick={onWhatsApp} style={{
+        marginTop: 24, width: "100%",
+        background: "#25d366", color: "#fff",
+        border: "none", borderRadius: 12, padding: "14px",
+        fontSize: 15, fontWeight: 700, cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        fontFamily: "inherit",
+      }}>
+        <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.5 3.5C18.2 1.2 15.2 0 12 0 5.4 0 .1 5.3.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.4-1.7c1.7.9 3.7 1.4 5.6 1.4 6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.2-3.4-8.3zM12 21.8c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.7 1 1-3.6-.2-.4c-.9-1.5-1.4-3.3-1.4-5 0-5.5 4.5-9.9 9.9-9.9 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.4 2.9 7-.1 5.4-4.5 9.5-10.2 9.5z" />
+        </svg>
+        {ctaLabel}
+      </button>
+    </section>
+  );
+}
+
+// ── AgentBandDesktop ──────────────────────────────────────────────────────────
+
+export function AgentBandDesktop({ agent, agencyName, quote, ctaLabel, secondaryCta, onWhatsApp, lang, style }: {
+  agent: TAgent;
+  agencyName: string;
+  quote?: string;
+  ctaLabel: string;
+  secondaryCta?: string;
+  onWhatsApp: () => void;
+  lang: Lang;
+  style?: React.CSSProperties;
+}) {
+  const isRtl = lang === "ar";
+  return (
+    <section style={{
+      background: "#1a1f2c", color: "#fff",
+      padding: "72px 80px",
+      direction: isRtl ? "rtl" : "ltr",
+      ...style,
+    }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: agent.avatar ? "260px 1fr" : "1fr", gap: 64, alignItems: "center" }}>
+        {agent.avatar && (
+          <img src={agent.avatar} alt={agent.name}
+            style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover", borderRadius: 16, border: "1px solid rgba(255,255,255,0.1)" }}
+          />
+        )}
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "1.4px", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", marginBottom: 16 }}>
+            {agencyName}
+          </div>
+          <div style={{ fontSize: 44, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1.05, marginBottom: 8 }}>{agent.name}</div>
+          <div style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", marginBottom: 24 }}>
+            {agent.role}{agent.years ? ` · ${agent.years} years` : ""}
+          </div>
+          {quote && (
+            <p style={{ fontSize: 17, fontStyle: "italic", color: "rgba(255,255,255,0.75)", lineHeight: 1.6, margin: "0 0 28px", maxWidth: 520 } as React.CSSProperties}>
+              &ldquo;{quote}&rdquo;
+            </p>
+          )}
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 11.5, color: "rgba(255,255,255,0.6)",
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            padding: "6px 12px", borderRadius: 99,
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#2dd4a0", animation: "tpl-pulse-dot 1.8s infinite" }} />
+            Online{agent.repliesIn ? ` · replies in <${agent.repliesIn}` : ""}
+          </span>
+          <div style={{ marginTop: 28, display: "flex", gap: 12 }}>
+            <button onClick={onWhatsApp} style={{
+              background: "#25d366", color: "#fff", border: "none", borderRadius: 12,
+              padding: "14px 24px", fontSize: 15, fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 8, fontFamily: "inherit",
+            }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.5 3.5C18.2 1.2 15.2 0 12 0 5.4 0 .1 5.3.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.4-1.7c1.7.9 3.7 1.4 5.6 1.4 6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.2-3.4-8.3zM12 21.8c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.7 1 1-3.6-.2-.4c-.9-1.5-1.4-3.3-1.4-5 0-5.5 4.5-9.9 9.9-9.9 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.4 2.9 7-.1 5.4-4.5 9.5-10.2 9.5z" />
+              </svg>
+              {ctaLabel}
+            </button>
+            {secondaryCta && (
+              <button style={{
+                background: "transparent", color: "#fff",
+                border: "1px solid rgba(255,255,255,0.25)", borderRadius: 12,
+                padding: "13px 20px", fontSize: 14, fontWeight: 500,
+                cursor: "pointer", fontFamily: "inherit",
+              }}>
+                {secondaryCta}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

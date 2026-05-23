@@ -40,6 +40,17 @@ export async function POST(req: Request) {
       language,
       reviews,
       sections,
+      templateId,
+      // template extras
+      agent,
+      difficulty,
+      maxAltitude,
+      distanceKm,
+      spotsRemaining,
+      viewersNow,
+      priceWas,
+      saving,
+      departures,
     } = body;
 
     // -----------------------------
@@ -94,6 +105,18 @@ export async function POST(req: Request) {
       language:         language === "ar" ? "ar" : "en",
       reviews:          Array.isArray(reviews)      ? reviews      : [],
       sections:         Array.isArray(sections)     ? sections     : [],
+      templateId:       templateId                  || "",
+
+      // template extras
+      agent:            agent              ?? null,
+      difficulty:       difficulty         || null,
+      maxAltitude:      maxAltitude        ?? null,
+      distanceKm:       distanceKm         ?? null,
+      spotsRemaining:   spotsRemaining     ?? null,
+      viewersNow:       viewersNow         ?? null,
+      priceWas:         priceWas           || null,
+      saving:           saving             || null,
+      departures:       Array.isArray(departures)   ? departures   : [],
 
       agencySlug,
 

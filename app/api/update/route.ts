@@ -61,6 +61,19 @@ export async function POST(req: Request) {
       language:         fields.language === "ar" ? "ar" : "en",
       reviews:          Array.isArray(fields.reviews)   ? fields.reviews   : [],
       sections:         Array.isArray(fields.sections)  ? fields.sections  : [],
+      templateId:       fields.templateId               || "",
+
+      // template extras
+      agent:            fields.agent              ?? null,
+      difficulty:       fields.difficulty         || null,
+      maxAltitude:      fields.maxAltitude        ?? null,
+      distanceKm:       fields.distanceKm         ?? null,
+      spotsRemaining:   fields.spotsRemaining     ?? null,
+      viewersNow:       fields.viewersNow         ?? null,
+      priceWas:         fields.priceWas           || null,
+      saving:           fields.saving             || null,
+      departures:       Array.isArray(fields.departures) ? fields.departures : [],
+
       updatedAt:        Date.now(),
     });
 

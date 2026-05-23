@@ -19,19 +19,22 @@ import { CoreFieldsEditor } from "@/components/builder/CoreFieldsEditor";
 import { SectionList } from "@/components/builder/SectionList";
 import { PresetPicker } from "@/components/builder/PresetPicker";
 import { MiniPreview } from "@/components/builder/MiniPreview";
+import { TemplateExtrasEditor, DEFAULT_EXTRAS } from "@/components/builder/TemplateExtrasEditor";
+import type { TemplateExtras } from "@/components/builder/TemplateExtrasEditor";
+import { TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/components/templates";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
 const DRAFT_KEY = "builderDraft_v2";
 
 // ─── API bridge ───────────────────────────────────────────────────────────────
-// Maps the new core+sections model back to the flat shape the existing
-// /api/generate and /api/update routes expect.
 
 function buildApiPayload(
   core: CoreForm,
   sections: AnySectionInstance[],
+  extras: TemplateExtras,
   userId: string,
+  templateId: string,
   extraId?: string
 ) {
   const get = <T,>(type: AnySectionInstance["type"]): T | undefined =>
@@ -46,9 +49,25 @@ function buildApiPayload(
   const gallery = get<{ images: ArrStr }>("gallery");
   const video = get<{ videoUrl: string }>("video");
 
+  // Template-specific extras
+  const agent = extras.agentName
+    ? {
+        name: extras.agentName,
+        role: extras.agentRole || "",
+        ...(extras.agentAvatar    ? { avatar:    extras.agentAvatar }                       : {}),
+        ...(extras.agentYears     ? { years:     Number(extras.agentYears) }                : {}),
+        ...(extras.agentRepliesIn ? { repliesIn: extras.agentRepliesIn }                    : {}),
+      }
+    : null;
+
+  const departures = extras.firstDepartureDate
+    ? [{ date: extras.firstDepartureDate, spots: extras.departureSpots ? Number(extras.departureSpots) : 0 }]
+    : null;
+
   return {
     ...(extraId ? { id: extraId } : {}),
     userId,
+    templateId,
     // core
     destination:     core.destination,
     price:           core.price,
@@ -69,14 +88,172 @@ function buildApiPayload(
     hotelDescription: hotel?.description ?? "",
     images:          gallery?.images ?? [],
     videoUrl:        video?.videoUrl ?? "",
-    // forward full sections array for Phase 6 readiness
-    sections:        sections,
+    // forward full sections array
+    sections,
+    // template extras
+    ...(agent      ? { agent }                                 : { agent: null }),
+    ...(extras.difficulty  ? { difficulty:     extras.difficulty }              : {}),
+    ...(extras.maxAltitude ? { maxAltitude:    Number(extras.maxAltitude) }     : {}),
+    ...(extras.distanceKm  ? { distanceKm:     Number(extras.distanceKm) }      : {}),
+    ...(extras.spotsRemaining ? { spotsRemaining: Number(extras.spotsRemaining) } : {}),
+    ...(extras.viewersNow  ? { viewersNow:     Number(extras.viewersNow) }      : {}),
+    ...(extras.priceWas    ? { priceWas:       extras.priceWas }                : {}),
+    ...(extras.saving      ? { saving:         extras.saving }                  : {}),
+    ...(departures         ? { departures }                                     : {}),
   };
 }
 
-// ─── Builder UI tabs ──────────────────────────────────────────────────────────
+// ─── Builder UI phases ────────────────────────────────────────────────────────
 
+type UiPhase = "template" | "preset" | "build";
 type Tab = "core" | "sections";
+
+// ─── Template selection step ──────────────────────────────────────────────────
+
+function TemplateStep({
+  selectedId,
+  onSelect,
+  onContinue,
+  lang,
+}: {
+  selectedId: string;
+  onSelect: (id: string) => void;
+  onContinue: () => void;
+  lang: "en" | "ar";
+}) {
+  const t = T[lang];
+  const isRtl = lang === "ar";
+  const isMobile = useIsMobile();
+
+  return (
+    <div dir={isRtl ? "rtl" : "ltr"} style={{ maxWidth: 880, margin: "0 auto" }}>
+      {/* Header */}
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{
+          fontSize: isMobile ? 22 : 26, fontWeight: 700,
+          letterSpacing: "-0.4px", marginBottom: 8,
+        }}>
+          {t.builderTemplateStepTitle}
+        </h2>
+        <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>
+          {t.builderTemplateStepSub}
+        </p>
+      </div>
+
+      {/* Template grid */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
+        gap: 12,
+        marginBottom: 32,
+      }}>
+        {TEMPLATES.map(tpl => {
+          const isSelected = tpl.id === selectedId;
+          const name = isRtl ? tpl.nameAr : tpl.name;
+          const target = isRtl ? tpl.targetAr : tpl.target;
+
+          return (
+            <div
+              key={tpl.id}
+              onClick={() => tpl.available && onSelect(tpl.id)}
+              style={{
+                borderRadius: 12,
+                border: `1.5px solid ${isSelected ? tpl.templateColor : "rgba(255,255,255,0.08)"}`,
+                overflow: "hidden",
+                cursor: tpl.available ? "pointer" : "default",
+                transition: "border-color .15s, transform .15s",
+                background: isSelected ? `${tpl.templateColor}0d` : "rgba(255,255,255,0.02)",
+                opacity: tpl.available ? 1 : 0.5,
+              }}
+            >
+              {/* Template colour swatch / thumbnail */}
+              <div style={{
+                height: 4,
+                background: tpl.templateColor,
+              }} />
+              <div style={{
+                height: 72,
+                background: tpl.previewBg,
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                {/* Simple decorative element using template brand colour */}
+                <div style={{
+                  width: 36, height: 36, borderRadius: "50%",
+                  background: `${tpl.templateColor}22`,
+                  border: `1.5px solid ${tpl.templateColor}55`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: tpl.templateColor }} />
+                </div>
+
+                {/* Coming-soon badge */}
+                {!tpl.available && (
+                  <div style={{
+                    position: "absolute", top: 7, right: isRtl ? undefined : 7, left: isRtl ? 7 : undefined,
+                    fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 3,
+                    background: "rgba(0,0,0,0.45)", color: "rgba(255,255,255,0.7)",
+                    letterSpacing: "0.3px", textTransform: "uppercase",
+                  }}>
+                    {t.builderTemplateComingSoon}
+                  </div>
+                )}
+
+                {/* Selected checkmark */}
+                {isSelected && tpl.available && (
+                  <div style={{
+                    position: "absolute", top: 7, right: isRtl ? undefined : 7, left: isRtl ? 7 : undefined,
+                    width: 18, height: 18, borderRadius: "50%",
+                    background: tpl.templateColor,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              {/* Label */}
+              <div style={{ padding: "10px 12px" }}>
+                <div style={{
+                  fontSize: 13, fontWeight: 700, color: "#fdfcf9",
+                  marginBottom: 2,
+                }}>
+                  {name}
+                </div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.38)" }}>
+                  {target}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Continue button */}
+      <div style={{ display: "flex", justifyContent: isRtl ? "flex-start" : "flex-end" }}>
+        <button
+          onClick={onContinue}
+          style={{
+            background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
+            color: "#0d1b2e", border: "none", borderRadius: 10,
+            padding: "11px 28px", fontSize: 13.5, fontWeight: 700,
+            fontFamily: "inherit", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 8,
+          }}
+        >
+          {t.builderTemplateContinue}
+          <Icon name="arrow_right" size={14} color="#0d1b2e" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main builder ─────────────────────────────────────────────────────────────
 
 function BuilderPageInner() {
   const router = useRouter();
@@ -92,9 +269,11 @@ function BuilderPageInner() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("core");
-  const [uiPhase, setUiPhase] = useState<"preset" | "build">(isEditMode ? "build" : "preset");
+  const [uiPhase, setUiPhase] = useState<UiPhase>(isEditMode ? "build" : "template");
+  const [selectedTemplateId, setSelectedTemplateId] = useState(DEFAULT_TEMPLATE_ID);
   const [core, setCore] = useState<CoreForm>({ ...DEFAULT_CORE_FORM });
   const [sections, setSections] = useState<AnySectionInstance[]>([]);
+  const [extras, setExtras] = useState<TemplateExtras>({ ...DEFAULT_EXTRAS });
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
   const [packageId, setPackageId] = useState<string | null>(null);
@@ -127,7 +306,7 @@ function BuilderPageInner() {
         }
         posthog.capture("builder_opened", { mode: "new" });
 
-        // Restore draft if it exists
+        // Restore draft (includes templateId + extras)
         if (typeof window !== "undefined") {
           const raw = localStorage.getItem(DRAFT_KEY);
           if (raw) {
@@ -135,6 +314,8 @@ function BuilderPageInner() {
               const draft = JSON.parse(raw);
               if (draft.core) setCore(draft.core);
               if (Array.isArray(draft.sections)) setSections(draft.sections);
+              if (draft.templateId) setSelectedTemplateId(draft.templateId);
+              if (draft.extras) setExtras({ ...DEFAULT_EXTRAS, ...draft.extras });
               setUiPhase("build");
             } catch {}
           }
@@ -156,6 +337,26 @@ function BuilderPageInner() {
             whatsapp:     d.whatsapp     || "",
             messenger:    d.messenger    || "",
             coverImage:   d.coverImage   || "",
+          });
+
+          if (d.templateId) setSelectedTemplateId(d.templateId);
+
+          // Reconstruct template extras from flat Firestore fields
+          setExtras({
+            agentName:           d.agent?.name        || "",
+            agentRole:           d.agent?.role        || "",
+            agentAvatar:         d.agent?.avatar      || "",
+            agentYears:          d.agent?.years       ? String(d.agent.years) : "",
+            agentRepliesIn:      d.agent?.repliesIn   || "",
+            difficulty:          d.difficulty         || "",
+            maxAltitude:         d.maxAltitude        ? String(d.maxAltitude) : "",
+            distanceKm:          d.distanceKm         ? String(d.distanceKm)  : "",
+            firstDepartureDate:  d.departures?.[0]?.date  || "",
+            departureSpots:      d.departures?.[0]?.spots ? String(d.departures[0].spots) : "",
+            spotsRemaining:      d.spotsRemaining     ? String(d.spotsRemaining) : "",
+            viewersNow:          d.viewersNow         ? String(d.viewersNow)  : "",
+            priceWas:            d.priceWas           || "",
+            saving:              d.saving             || "",
           });
 
           if (Array.isArray(d.sections) && d.sections.length > 0) {
@@ -193,17 +394,17 @@ function BuilderPageInner() {
     return () => unsub();
   }, [router, editId]);
 
-  // ── Autosave draft ───────────────────────────────────────────────────────────
+  // ── Autosave draft (includes templateId) ────────────────────────────────────
 
   useEffect(() => {
-    if (isEditMode || authLoading || uiPhase === "preset") return;
+    if (isEditMode || authLoading || uiPhase !== "build") return;
     setDraftStatus("saving");
     const timer = setTimeout(() => {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ core, sections }));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ core, sections, templateId: selectedTemplateId, extras }));
       setDraftStatus("saved");
     }, 1500);
     return () => clearTimeout(timer);
-  }, [core, sections, isEditMode, authLoading, uiPhase]);
+  }, [core, sections, selectedTemplateId, extras, isEditMode, authLoading, uiPhase]);
 
   // ── Submit ───────────────────────────────────────────────────────────────────
 
@@ -215,7 +416,7 @@ function BuilderPageInner() {
     setError(null);
     setGenerating(true);
     try {
-      const payload = buildApiPayload(core, sections, user.uid, isEditMode ? editId ?? undefined : undefined);
+      const payload = buildApiPayload(core, sections, extras, user.uid, selectedTemplateId, isEditMode ? editId ?? undefined : undefined);
 
       if (isEditMode && editId) {
         const res = await fetch("/api/update", {
@@ -226,7 +427,7 @@ function BuilderPageInner() {
         const json = await res.json();
         if (!res.ok) { setError(json.error || "Something went wrong."); return; }
         if (json.agencySlug) setAgencySlug(json.agencySlug);
-        posthog.capture("package_updated", { destination: core.destination, language: core.language });
+        posthog.capture("package_updated", { destination: core.destination, language: core.language, templateId: selectedTemplateId });
       } else {
         const res = await fetch("/api/generate", {
           method: "POST",
@@ -239,7 +440,7 @@ function BuilderPageInner() {
         setPackageId(json.id);
         if (json.agencySlug) setAgencySlug(json.agencySlug);
         localStorage.removeItem(DRAFT_KEY);
-        posthog.capture("package_published", { destination: core.destination, language: core.language, nights: core.nights });
+        posthog.capture("package_published", { destination: core.destination, language: core.language, nights: core.nights, templateId: selectedTemplateId });
       }
       setDone(true);
     } catch (err: any) {
@@ -332,6 +533,23 @@ function BuilderPageInner() {
     );
   }
 
+  // ── Template step ────────────────────────────────────────────────────────────
+
+  if (uiPhase === "template") {
+    return (
+      <AppLayout>
+        <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "24px 16px 48px" : "48px 48px" }}>
+          <TemplateStep
+            selectedId={selectedTemplateId}
+            onSelect={setSelectedTemplateId}
+            onContinue={() => setUiPhase("preset")}
+            lang={lang}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+
   // ── Preset picker ────────────────────────────────────────────────────────────
 
   if (uiPhase === "preset") {
@@ -354,6 +572,8 @@ function BuilderPageInner() {
 
   // ── Build view ───────────────────────────────────────────────────────────────
 
+  const selectedTpl = TEMPLATES.find(t => t.id === selectedTemplateId);
+
   return (
     <AppLayout>
       <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "20px 16px 80px" : "32px 48px 60px" }}>
@@ -373,7 +593,7 @@ function BuilderPageInner() {
             </p>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {!isEditMode && draftStatus !== "idle" && (
               <div style={{ fontSize: 12, color: draftStatus === "saved" ? "rgba(45,212,160,0.7)" : "rgba(255,255,255,0.35)", display: "flex", alignItems: "center", gap: 5 }}>
                 {draftStatus === "saving"
@@ -381,6 +601,24 @@ function BuilderPageInner() {
                   : <><Icon name="check" size={11} color="rgba(45,212,160,0.7)" strokeWidth={2.5} /> {l ? "تم حفظ المسودة" : "Draft saved"}</>}
               </div>
             )}
+
+            {/* Active template pill */}
+            {selectedTpl && (
+              <button
+                onClick={() => setUiPhase("template")}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 7,
+                  fontSize: 12, color: "rgba(255,255,255,0.6)",
+                  background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: selectedTpl.templateColor, flexShrink: 0 }} />
+                {l ? selectedTpl.nameAr : selectedTpl.name}
+                <Icon name="edit" size={10} color="rgba(255,255,255,0.35)" />
+              </button>
+            )}
+
             {sections.length > 0 && (
               <button
                 onClick={() => { setSaveAsOpen(true); setSaveName(""); setSaveAsStatus("idle"); }}
@@ -395,7 +633,7 @@ function BuilderPageInner() {
                 onClick={() => setUiPhase("preset")}
                 style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit" }}
               >
-                {l ? "تغيير النموذج" : "Change template"}
+                {l ? "تغيير النموذج المبدئي" : "Change preset"}
               </button>
             )}
           </div>
@@ -442,29 +680,23 @@ function BuilderPageInner() {
 
         {/* Tab bar */}
         <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "4px 5px", marginBottom: 24, gap: 4 }}>
-          {(["core", "sections"] as Tab[]).map((t) => {
-            const active = tab === t;
-            const tabLabel = t === "core"
+          {(["core", "sections"] as Tab[]).map((tabKey) => {
+            const active = tab === tabKey;
+            const tabLabel = tabKey === "core"
               ? (l ? "المعلومات الأساسية" : "Core info")
               : (l ? "الأقسام" : "Sections");
-            const count = t === "sections" ? sections.length : undefined;
+            const count = tabKey === "sections" ? sections.length : undefined;
             return (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={tabKey}
+                onClick={() => setTab(tabKey)}
                 style={{
-                  padding: "8px 16px",
-                  borderRadius: 99,
-                  border: "none",
+                  padding: "8px 16px", borderRadius: 99, border: "none",
                   background: active ? "rgba(255,255,255,0.1)" : "transparent",
                   color: active ? "#fff" : "rgba(255,255,255,0.4)",
-                  fontSize: 13,
-                  fontWeight: active ? 600 : 400,
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
+                  fontSize: 13, fontWeight: active ? 600 : 400,
+                  fontFamily: "inherit", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 7,
                   transition: "all 0.15s",
                 }}
               >
@@ -483,12 +715,21 @@ function BuilderPageInner() {
         <div style={{ display: "flex", gap: 32, alignItems: "flex-start" }}>
           <div className="fade-in" key={tab} style={{ flex: 1, maxWidth: isMobile ? "100%" : 580 }}>
             {tab === "core" && (
-              <CoreFieldsEditor
-                core={core}
-                onChange={setCore}
-                userId={user?.uid ?? ""}
-                lang={lang}
-              />
+              <>
+                <CoreFieldsEditor
+                  core={core}
+                  onChange={setCore}
+                  userId={user?.uid ?? ""}
+                  lang={lang}
+                />
+                <TemplateExtrasEditor
+                  templateId={selectedTemplateId}
+                  extras={extras}
+                  onChange={setExtras}
+                  userId={user?.uid ?? ""}
+                  lang={lang}
+                />
+              </>
             )}
             {tab === "sections" && (
               <SectionList
@@ -521,16 +762,10 @@ function BuilderPageInner() {
               style={{
                 background: generating ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
                 color: generating ? "rgba(255,255,255,0.4)" : "#0d1b2e",
-                border: "none",
-                borderRadius: 10,
-                padding: "11px 28px",
-                fontSize: 13,
-                fontWeight: 700,
-                fontFamily: "inherit",
+                border: "none", borderRadius: 10, padding: "11px 28px",
+                fontSize: 13, fontWeight: 700, fontFamily: "inherit",
                 cursor: generating ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
+                display: "flex", alignItems: "center", gap: 8,
               }}
             >
               {generating
@@ -545,16 +780,10 @@ function BuilderPageInner() {
               style={{
                 background: generating ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
                 color: generating ? "rgba(255,255,255,0.4)" : "#0d1b2e",
-                border: "none",
-                borderRadius: 10,
-                padding: "11px 28px",
-                fontSize: 13,
-                fontWeight: 700,
-                fontFamily: "inherit",
+                border: "none", borderRadius: 10, padding: "11px 28px",
+                fontSize: 13, fontWeight: 700, fontFamily: "inherit",
                 cursor: generating ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
+                display: "flex", alignItems: "center", gap: 8,
               }}
             >
               {generating

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  /* ── App shell tokens ───────────────────────────────── */
   --navy: #0d1b2e;
   --navy-mid: #162540;
   --navy-light: #1e3455;
@@ -22,6 +23,112 @@
   --radius: 14px;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  /* ── Font variables (loaded via next/font/google) ────── */
+  /* --font-dm-sans, --font-dm-serif, --font-cormorant,
+     --font-instrument-serif, --font-archivo-black,
+     --font-jetbrains-mono, --font-inter-tight            */
+
+  /* ── Aurora — editorial luxury ──────────────────────── */
+  --au-bg: #efeae1;
+  --au-paper: #faf6ee;
+  --au-ink: #1a1f2c;
+  --au-ink-2: #2a2f3a;
+  --au-mut: rgba(26, 31, 44, 0.6);
+  --au-line: rgba(26, 31, 44, 0.12);
+  --au-brand: #8a6a3a;
+  --au-brand-2: #b8945c;
+  --au-stamp: #b03a2e;
+
+  /* ── Voyage — festival / graphic ─────────────────────── */
+  --vy-bg: #0a0b0c;
+  --vy-fg: #f5f3ed;
+  --vy-mut: rgba(245, 243, 237, 0.55);
+  --vy-line: rgba(245, 243, 237, 0.1);
+  --vy-acid: #d6f43d;
+  --vy-pink: #ff3e6e;
+  --vy-blue: #4d6bff;
+  --vy-cream: #f5f3ed;
+
+  /* ── Pulse — last-minute deals ───────────────────────── */
+  --pl-bg: #faf8f3;
+  --pl-paper: #ffffff;
+  --pl-ink: #0c1118;
+  --pl-mut: rgba(12, 17, 24, 0.6);
+  --pl-line: rgba(12, 17, 24, 0.1);
+  --pl-deal: #e2492a;
+  --pl-deal-bg: #fff1ec;
+  --pl-trust: #16654a;
+  --pl-warn: #b8860b;
+
+  /* ── Sakina — Umrah / religious ──────────────────────── */
+  --sk-bg: #f6f3ea;
+  --sk-paper: #fcfaf3;
+  --sk-ink: #1b2a25;
+  --sk-ink-2: #2d4039;
+  --sk-mut: rgba(27, 42, 37, 0.6);
+  --sk-line: rgba(27, 42, 37, 0.1);
+  --sk-accent: #1a5d4a;
+  --sk-accent-2: #c4b07b;
+
+  /* ── Petal — honeymoon / couples ─────────────────────── */
+  --pt-bg: #fbf2ec;
+  --pt-paper: #fff8f3;
+  --pt-ink: #3a1c20;
+  --pt-ink-2: #5a2e34;
+  --pt-mut: rgba(58, 28, 32, 0.6);
+  --pt-line: rgba(58, 28, 32, 0.1);
+  --pt-accent: #c8576f;
+  --pt-accent-2: #e6c995;
+
+  /* ── Compass — adventure / trekking ──────────────────── */
+  --cm-bg: #f0eee6;
+  --cm-paper: #fafaf3;
+  --cm-ink: #1a1c12;
+  --cm-ink-2: #2c3022;
+  --cm-mut: rgba(26, 28, 18, 0.6);
+  --cm-line: rgba(26, 28, 18, 0.1);
+  --cm-accent: #b85c1f;
+  --cm-accent-2: #6e7b4c;
+
+  /* ── Atlas — premium curated (TODO template) ─────────── */
+  --at-bg: #f3f1ec;
+  --at-paper: #fafaf3;
+  --at-ink: #1c2218;
+  --at-mut: rgba(28, 34, 24, 0.55);
+  --at-line: rgba(28, 34, 24, 0.08);
+  --at-accent: #3d5a40;
+  --at-accent-2: #a4946b;
+
+  /* ── Tribe — group tours (TODO template) ─────────────── */
+  --tb-bg: #f9f3e8;
+  --tb-paper: #fef9ed;
+  --tb-ink: #2b1f12;
+  --tb-mut: rgba(43, 31, 18, 0.6);
+  --tb-line: rgba(43, 31, 18, 0.1);
+  --tb-accent: #c8862e;
+  --tb-accent-2: #7b6342;
+
+  /* ── Smart — budget / transparent (TODO template) ────── */
+  --sm-bg: #fdfcf9;
+  --sm-paper: #ffffff;
+  --sm-ink: #0c1118;
+  --sm-mut: rgba(12, 17, 24, 0.6);
+  --sm-line: rgba(12, 17, 24, 0.08);
+  --sm-accent: #5b6cff;
+  --sm-accent-2: #16654a;
+
+  /* ── Family — family vacations (TODO template) ────────── */
+  --fm-bg: #fefaf2;
+  --fm-paper: #fffcf5;
+  --fm-ink: #2b1f12;
+  --fm-mut: rgba(43, 31, 18, 0.6);
+  --fm-line: rgba(43, 31, 18, 0.1);
+  --fm-accent: #f3a847;
+  --fm-accent-2: #3d5a8c;
+
+  /* ── WhatsApp ─────────────────────────────────────────── */
+  --wa: #25d366;
 }
 
 *,
@@ -63,6 +170,24 @@ body[data-lang="ar"] {
 }
 
 /* ── Animations ──────────────────────────────────── */
+
+/* Pulsing dot — used by ScarcityBar and live indicators */
+@keyframes tpl-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.75); }
+}
+
+/* Slow blink — scarcity alert dot */
+@keyframes tpl-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* Ticker slide-up — SocialProofTicker transition */
+@keyframes tpl-ticker-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 @keyframes fadeUp {
   from {
