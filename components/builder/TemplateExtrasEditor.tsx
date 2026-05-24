@@ -193,19 +193,8 @@ export function TemplateExtrasEditor({
                   <TextInput value={extras.spotsRemaining} onChange={v => set("spotsRemaining", v)} placeholder="e.g. 4" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <FieldLabel>{l ? "المشاهدون الآن" : "Viewers now"}</FieldLabel>
-                  <TextInput value={extras.viewersNow} onChange={v => set("viewersNow", v)} placeholder="e.g. 12" />
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 12 }}>
-                <div style={{ flex: 1 }}>
                   <FieldLabel>{l ? "السعر الأصلي" : "Was price"}</FieldLabel>
                   <TextInput value={extras.priceWas} onChange={v => set("priceWas", v)} placeholder="e.g. €1,499" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <FieldLabel>{l ? "التوفير" : "Saving"}</FieldLabel>
-                  <TextInput value={extras.saving} onChange={v => set("saving", v)} placeholder="e.g. Save €200" />
                 </div>
               </div>
 
@@ -222,8 +211,8 @@ export function TemplateExtrasEditor({
 
               <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: "rgba(226,73,42,0.08)", border: "1px solid rgba(226,73,42,0.2)", fontSize: 12, color: "rgba(255,255,255,0.45)", lineHeight: 1.55 }}>
                 {l
-                  ? "⏱ يُحسب العد التنازلي تلقائياً من تاريخ أول رحلة بصيغة YYYY-MM-DD."
-                  : "⏱ Countdown timer calculates automatically from the departure date (YYYY-MM-DD format)."}
+                  ? "⏱ يُحسب العد التنازلي تلقائياً من أول تاريخ رحلة. ويُحسب التوفير تلقائياً من السعر الأصلي مطروحاً منه السعر الحالي. المشاهدون الحاليون يُولَّدون تلقائياً."
+                  : "⏱ Countdown uses the first departure date. Saving is auto-calculated from Was price − current price. Viewer count is auto-generated."}
               </div>
             </>
           )}

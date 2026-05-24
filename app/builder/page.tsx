@@ -22,6 +22,7 @@ import { MiniPreview } from "@/components/builder/MiniPreview";
 import { TemplateExtrasEditor, DEFAULT_EXTRAS } from "@/components/builder/TemplateExtrasEditor";
 import type { TemplateExtras } from "@/components/builder/TemplateExtrasEditor";
 import { TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/components/templates";
+import TemplateSelector from "@/components/TemplateSelector";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
@@ -140,97 +141,9 @@ function TemplateStep({
         </p>
       </div>
 
-      {/* Template grid */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
-        gap: 12,
-        marginBottom: 32,
-      }}>
-        {TEMPLATES.map(tpl => {
-          const isSelected = tpl.id === selectedId;
-          const name = isRtl ? tpl.nameAr : tpl.name;
-          const target = isRtl ? tpl.targetAr : tpl.target;
-
-          return (
-            <div
-              key={tpl.id}
-              onClick={() => tpl.available && onSelect(tpl.id)}
-              style={{
-                borderRadius: 12,
-                border: `1.5px solid ${isSelected ? tpl.templateColor : "rgba(255,255,255,0.08)"}`,
-                overflow: "hidden",
-                cursor: tpl.available ? "pointer" : "default",
-                transition: "border-color .15s, transform .15s",
-                background: isSelected ? `${tpl.templateColor}0d` : "rgba(255,255,255,0.02)",
-                opacity: tpl.available ? 1 : 0.5,
-              }}
-            >
-              {/* Template colour swatch / thumbnail */}
-              <div style={{
-                height: 4,
-                background: tpl.templateColor,
-              }} />
-              <div style={{
-                height: 72,
-                background: tpl.previewBg,
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-                {/* Simple decorative element using template brand colour */}
-                <div style={{
-                  width: 36, height: 36, borderRadius: "50%",
-                  background: `${tpl.templateColor}22`,
-                  border: `1.5px solid ${tpl.templateColor}55`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: tpl.templateColor }} />
-                </div>
-
-                {/* Coming-soon badge */}
-                {!tpl.available && (
-                  <div style={{
-                    position: "absolute", top: 7, right: isRtl ? undefined : 7, left: isRtl ? 7 : undefined,
-                    fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 3,
-                    background: "rgba(0,0,0,0.45)", color: "rgba(255,255,255,0.7)",
-                    letterSpacing: "0.3px", textTransform: "uppercase",
-                  }}>
-                    {t.builderTemplateComingSoon}
-                  </div>
-                )}
-
-                {/* Selected checkmark */}
-                {isSelected && tpl.available && (
-                  <div style={{
-                    position: "absolute", top: 7, right: isRtl ? undefined : 7, left: isRtl ? 7 : undefined,
-                    width: 18, height: 18, borderRadius: "50%",
-                    background: tpl.templateColor,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-
-              {/* Label */}
-              <div style={{ padding: "10px 12px" }}>
-                <div style={{
-                  fontSize: 13, fontWeight: 700, color: "#fdfcf9",
-                  marginBottom: 2,
-                }}>
-                  {name}
-                </div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.38)" }}>
-                  {target}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* Template grid — rich previews from TemplateSelector */}
+      <div style={{ marginBottom: 32 }}>
+        <TemplateSelector activeTemplateId={selectedId} lang={lang} onSelect={(id) => { const tpl = TEMPLATES.find(t => t.id === id); if (tpl?.available) onSelect(id); }} />
       </div>
 
       {/* Continue button */}
@@ -469,7 +382,9 @@ function BuilderPageInner() {
 
   const finalPackageId = packageId || editId;
   const shareUrl = finalPackageId && agencySlug
-    ? `https://${agencySlug}.packmetrix.com/${finalPackageId}`
+    ? process.env.NODE_ENV === "development"
+      ? `http://localhost:3000/${agencySlug}/${finalPackageId}`
+      : `https://${agencySlug}.packmetrix.com/${finalPackageId}`
     : "";
 
   const handleCopy = () => {
@@ -542,7 +457,7 @@ function BuilderPageInner() {
           <TemplateStep
             selectedId={selectedTemplateId}
             onSelect={setSelectedTemplateId}
-            onContinue={() => setUiPhase("preset")}
+            onContinue={() => setUiPhase(isEditMode ? "build" : "preset")}
             lang={lang}
           />
         </div>

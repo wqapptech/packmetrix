@@ -33,7 +33,18 @@ export type TItineraryDay = {
   location?: { lat: number; lng: number; label: string };
 };
 
-export type TPricingTier = { label: string; price: string };
+export type TPricingTier = {
+  label: string;
+  price: string;
+  /** Original / was-price shown struck-through (Pulse) */
+  was?: string;
+  /** Perks shown as a checklist inside the tier card (Pulse, Atlas) */
+  perks?: string[];
+  /** Marks this tier as the most popular — shown with a "Most booked" badge */
+  pop?: boolean;
+  /** Human-readable saving for this specific tier, e.g. "Save $800" (Pulse) */
+  save?: string;
+};
 export type TAirport     = {
   name: string; price: string; date?: string;
   arrivingAirport?: string; flyingTime?: string; arrivingTime?: string;
@@ -128,6 +139,10 @@ export type TPackage = {
 
   /** The person behind the package: travel designer, mutawif, trip lead, etc. */
   agent?: TAgent;
+
+  // ── Sakina-specific fields ────────────────────────────────────────────────
+  /** Daily prayer times for the destination — displayed in the Sakina template */
+  prayerTimes?: { fajr?: string; dhuhr?: string; asr?: string; maghrib?: string; isha?: string };
 
   // ── Compass-specific fields ───────────────────────────────────────────────
   /** Maximum altitude reached on the trek, in metres */
