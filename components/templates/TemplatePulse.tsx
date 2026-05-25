@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { T } from "@/lib/translations";
 import { BaseCard, useIsDesktop } from "./shared";
 import type { TPageProps, TCardProps, TGalleryItem, TPackage, TAirport } from "./types";
@@ -540,8 +540,11 @@ function PulseSection({
     }
 
     /* ── departure_dates ────────────────────────────────────────────────── */
+    case "departures":
     case "departure_dates": {
-      const dates = (d.dates as { date: string; returnDate: string; price: string; spots: string }[] | undefined) ?? [];
+      const dates = (d.entries as { date: string; returnDate?: string; price?: string; spots?: string | number }[] | undefined)
+        ?? (d.dates as { date: string; returnDate: string; price: string; spots: string }[] | undefined)
+        ?? [];
       if (!dates.length) return null;
       return (
         <div id="pl-departures" style={wrap}>
@@ -929,6 +932,86 @@ function PulseSection({
       );
     }
 
+    /* ── people ─────────────────────────────────────────────────────────── */
+    case "people": {
+      const people = (d.people as Array<{ id?: string; name: string; role?: string; bio?: string; photo?: string; languages?: string[]; years?: number; repliesIn?: string }> | undefined) ?? [];
+      if (!people.length) return null;
+      return (
+        <div id="pl-people" style={wrap}>
+          <SH label={t.sectionGuideTitle} title={t.sectionGuideTitle} />
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 12 }}>
+            {people.map((person, i) => (
+              <Card key={person.id ?? i} style={{ padding: 18 }}>
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+                  {person.photo ? (
+                    <img src={person.photo} alt={person.name} style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 64, height: 64, borderRadius: "50%", background: PL.dealBg, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22, fontWeight: 700, color: PL.deal }}>
+                      {person.name.charAt(0)}
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>{person.name}</div>
+                    {person.role && <div style={{ fontSize: 11, fontWeight: 600, color: PL.mut, textTransform: "uppercase" as const, letterSpacing: 0.4, marginTop: 2 }}>{person.role}</div>}
+                    {person.bio && <p style={{ fontSize: 13, color: PL.mut, lineHeight: 1.55, margin: "8px 0 0" }}>{person.bio}</p>}
+                    {!!person.languages?.length && (
+                      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginTop: 10 }}>
+                        {person.languages.map((lang, j) => (
+                          <div key={j} style={{ background: PL.bg, border: `1px solid ${PL.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11.5, fontWeight: 500 }}>{lang}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── media ──────────────────────────────────────────────────────────── */
+    case "media": {
+      const images  = (d.images as string[] | undefined) ?? [];
+      const videoUrl = (d.videoUrl as string | undefined)?.trim();
+      const mapImage = d.mapImage as string | undefined;
+      const mapCaption = d.mapCaption as string | undefined;
+      if (!images.length && !videoUrl && !mapImage) return null;
+      const isYT    = videoUrl ? (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) : false;
+      const isVimeo = videoUrl ? videoUrl.includes("vimeo.com") : false;
+      return (
+        <div id="pl-media" style={wrap}>
+          {images.length > 0 && (
+            <>
+              <SH label={t.gallery} title={t.gallery} />
+              <div style={{ display: "grid", gridTemplateColumns: desktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: desktop ? undefined : "130px 130px", gap: 4, marginBottom: (videoUrl || mapImage) ? 24 : 0 }}>
+                {(desktop ? images : images.slice(0, 3)).map((src, i) => (
+                  <div key={i} onClick={() => onImageClick?.(images.map(s => ({ src: s })), i)} style={{ overflow: "hidden", borderRadius: 8, gridRow: !desktop && i === 0 ? "span 2" : undefined, cursor: onImageClick ? "pointer" : "default", aspectRatio: desktop ? "4/3" : undefined }}>
+                    <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {videoUrl && (
+            <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "16/9", border: `1px solid ${PL.line}`, background: "#000", marginBottom: mapImage ? 24 : 0 }}>
+              {(isYT || isVimeo) ? (
+                <iframe src={toEmbedUrl(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
+              ) : (
+                <video src={videoUrl} controls playsInline style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+              )}
+            </div>
+          )}
+          {mapImage && (
+            <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${PL.line}` }}>
+              <img src={mapImage} alt={mapCaption ?? ""} style={{ width: "100%", display: "block", maxHeight: desktop ? 400 : 240, objectFit: "cover" }} />
+              {mapCaption && <div style={{ padding: "10px 14px", background: PL.paper, fontSize: 12.5, color: PL.mut }}>{mapCaption}</div>}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     default:
       return null;
   }
@@ -1208,7 +1291,8 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
   const depSectionDates = (depSection?.data?.dates as { date: string; spots: string }[] | undefined) ?? [];
   const firstDepDate = pkg.departures?.[0]?.date || depSectionDates[0]?.date;
 
-  const target    = departureTarget(firstDepDate);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const target    = useMemo(() => departureTarget(firstDepDate), [firstDepDate]);
   const cd        = useCountdown(target);
   const ticker    = useTicker(pkg.socialProofTicker, 2600);
   const nights    = pkg.nights ? Number(pkg.nights) : null;
@@ -1708,7 +1792,8 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
   const depSectionDates = (depSection?.data?.dates as { date: string; spots: string }[] | undefined) ?? [];
   const firstDepDate = pkg.departures?.[0]?.date || depSectionDates[0]?.date;
 
-  const target    = departureTarget(firstDepDate);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const target    = useMemo(() => departureTarget(firstDepDate), [firstDepDate]);
   const cd        = useCountdown(target);
   const ticker    = useTicker(pkg.socialProofTicker, 2800);
   const nights    = pkg.nights ? Number(pkg.nights) : null;

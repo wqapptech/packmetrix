@@ -1,0 +1,1861 @@
+/* ============================================================================
+   AURORA — Luxury Boutique · Editorial / Aman / Condé Nast Traveler
+   Adapted from design bundle: .frame--mobile selectors → .au--mobile
+   ============================================================================ */
+
+@keyframes au-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes au-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(45,212,160,0.6); }
+  70% { box-shadow: 0 0 0 6px rgba(45,212,160,0); }
+  100% { box-shadow: 0 0 0 0 rgba(45,212,160,0); }
+}
+
+.au {
+  --bg: var(--au-bg);
+  --paper: var(--au-paper);
+  --ink: var(--au-ink);
+  --ink-2: var(--au-ink-2);
+  --mut: var(--au-mut);
+  --line: var(--au-line);
+  --brand: var(--au-brand);
+  --brand-2: var(--au-brand-2);
+  --stamp: var(--au-stamp);
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter Tight", sans-serif;
+}
+
+.au * { box-sizing: border-box; }
+.au .serif { font-family: "Instrument Serif", "Cormorant Garamond", serif; }
+.au .mono  { font-family: "JetBrains Mono", monospace; }
+.au .ital  { font-style: italic; }
+
+/* ─── Eyebrow ─────────────────────────────────────────────────────────── */
+.au-eb {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--brand);
+  font-weight: 500;
+}
+.au-eb::before {
+  content: ""; width: 18px; height: 1px; background: currentColor;
+}
+.au-eb--light { color: rgba(255,255,255,0.9); }
+
+/* ─── Top nav (mobile) ────────────────────────────────────────────────── */
+.au-m-nav {
+  position: sticky; top: 0; z-index: 20;
+  height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  background: rgba(239,234,225,0.9);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.au-m-nav__brand {
+  display: flex; align-items: center; gap: 8px;
+}
+.au-m-nav__mark {
+  width: 26px; height: 26px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: "Instrument Serif", serif;
+  font-style: italic;
+  font-size: 13px;
+}
+.au-m-nav__name { font-size: 12.5px; font-weight: 700; letter-spacing: -0.2px; }
+.au-m-nav__sub { font-family: "JetBrains Mono", monospace; font-size: 9px; color: var(--mut); letter-spacing: 0.6px; text-transform: uppercase; }
+.au-m-nav__cta {
+  background: transparent;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  font-size: 11px; font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+/* ─── Hero (mobile) ───────────────────────────────────────────────────── */
+.au-m-hero {
+  position: relative;
+  height: 560px;
+  overflow: hidden;
+  background: var(--ink);
+}
+.au-m-hero__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.au-m-hero__veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.75) 100%);
+}
+.au-m-hero__top {
+  position: absolute; top: 20px; left: 20px; right: 20px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  color: #fff;
+}
+.au-m-hero__stamp {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+  text-align: right;
+}
+.au-m-hero__rating {
+  display: flex; align-items: center; gap: 5px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.95);
+}
+.au-m-hero__bottom {
+  position: absolute; bottom: 90px; left: 20px; right: 20px;
+  color: #fff;
+}
+.au-m-hero__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 34px;
+  line-height: 1.05;
+  letter-spacing: -0.6px;
+  font-weight: 400;
+  margin: 10px 0 0;
+  text-wrap: balance;
+}
+.au-m-hero__title em { font-style: italic; }
+
+/* ─── Offset booking card (mobile) ─────────────────────────────────────── */
+.au-m-booking {
+  margin: -56px 16px 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+  position: relative;
+  z-index: 5;
+  box-shadow: 0 18px 44px -20px rgba(26,31,44,0.22);
+}
+.au-m-booking__top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px;
+}
+.au-m-booking__price-lab { font-family: "JetBrains Mono", monospace; font-size: 9.5px; color: var(--mut); letter-spacing: 1px; text-transform: uppercase; }
+.au-m-booking__price {
+  font-family: "Instrument Serif", serif;
+  font-size: 40px; line-height: 1;
+  letter-spacing: -1px; margin-top: 4px;
+  font-weight: 400;
+}
+.au-m-booking__sub { font-size: 11px; color: var(--mut); margin-top: 4px; }
+.au-m-booking__nights {
+  text-align: right; padding-top: 4px;
+}
+.au-m-booking__nights b { font-family: "Instrument Serif", serif; font-size: 22px; font-weight: 400; letter-spacing: -0.4px; }
+.au-m-booking__nights-l { font-size: 10.5px; color: var(--mut); margin-top: 2px; letter-spacing: 0.4px; }
+.au-m-booking__scarcity {
+  display: flex; align-items: center; gap: 8px;
+  margin: 14px 0;
+  padding: 9px 11px;
+  background: rgba(176,58,46,0.06);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--stamp);
+}
+.au-m-booking__scarcity i { font-style: italic; }
+.au-m-booking__scarcity b { font-weight: 600; }
+.au-m-booking__scarcity .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--stamp); animation: au-blink 1.4s infinite; }
+.au-m-booking__cta {
+  display: flex; gap: 8px;
+}
+.au-cta-wa {
+  flex: 1;
+  background: var(--wa);
+  color: #fff;
+  border: none; border-radius: 10px;
+  padding: 14px 14px;
+  font-weight: 700; font-size: 14px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.au-cta-out {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-weight: 600; font-size: 13px;
+  cursor: pointer;
+}
+
+/* ─── Trust strip (mobile) ─────────────────────────────────────────────── */
+.au-trust {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+  padding: 22px 22px;
+  margin: 0 18px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-top: 28px;
+}
+.au-trust__cell {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.au-trust__icon {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: grid; place-items: center;
+  background: var(--paper);
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+/* ─── Section title pattern ───────────────────────────────────────────── */
+.au-section {
+  padding: 48px 20px 8px;
+}
+.au-section--paper { background: var(--paper); }
+.au-section__head {
+  margin-bottom: 24px;
+}
+.au-section__num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--mut);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.au-section__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 32px;
+  line-height: 1.05;
+  letter-spacing: -0.6px;
+  font-weight: 400;
+  margin: 0;
+  text-wrap: balance;
+}
+.au-section__title em { font-style: italic; color: var(--mut); }
+
+/* ─── Editorial body paragraph ────────────────────────────────────────── */
+.au-prose {
+  font-family: "Instrument Serif", serif;
+  font-size: 22px;
+  line-height: 1.4;
+  font-weight: 400;
+  letter-spacing: -0.2px;
+  text-wrap: pretty;
+  color: var(--ink);
+  margin: 0;
+}
+.au-prose--small {
+  font-size: 18px;
+}
+
+/* ─── Story chapter (itinerary as narrative) ──────────────────────────── */
+.au-story {
+  margin: 0 0 26px;
+  padding: 0 20px;
+}
+.au-story__img {
+  width: 100%; height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 18px;
+  background: var(--ink);
+}
+.au-story__img img { width: 100%; height: 100%; object-fit: cover; }
+.au-story__head {
+  display: flex; align-items: baseline; gap: 14px;
+  margin-bottom: 10px;
+}
+.au-story__day {
+  font-family: "Instrument Serif", serif;
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -1px;
+  color: var(--brand);
+}
+.au-story__chap {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  color: var(--mut);
+}
+.au-story__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+  font-weight: 400;
+  margin: 0 0 8px;
+}
+.au-story__desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--mut);
+  text-wrap: pretty;
+  margin: 0;
+}
+
+/* ─── Triptych gallery (mobile) ───────────────────────────────────────── */
+.au-gal-m {
+  padding: 16px 20px 40px;
+}
+.au-gal-m__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 140px 140px 140px;
+  gap: 6px;
+}
+.au-gal-m__cell {
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--ink);
+}
+.au-gal-m__cell img { width: 100%; height: 100%; object-fit: cover; }
+.au-gal-m__cell:nth-child(1) {
+  grid-row: span 2;
+  grid-column: 1;
+}
+
+/* ─── Departures (mobile) ─────────────────────────────────────────────── */
+.au-deps {
+  padding: 8px 20px 24px;
+}
+.au-deps__list {
+  display: flex; flex-direction: column;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.au-deps__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.au-deps__date {
+  font-family: "Instrument Serif", serif;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: -0.4px;
+  font-weight: 400;
+}
+.au-deps__date b { color: var(--brand); }
+.au-deps__sub {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--mut);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.au-deps__spots {
+  font-size: 11px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.au-deps__spots.low { color: var(--stamp); font-weight: 600; }
+.au-deps__price {
+  font-family: "Instrument Serif", serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: -0.3px;
+}
+
+/* ─── Tiers (anchor pricing) ──────────────────────────────────────────── */
+.au-tiers {
+  padding: 8px 20px 40px;
+  display: flex; flex-direction: column;
+  gap: 10px;
+}
+.au-tier {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  position: relative;
+}
+.au-tier--pop {
+  border-color: var(--ink);
+  box-shadow: 0 12px 30px -16px rgba(26,31,44,0.18);
+}
+.au-tier__badge {
+  position: absolute;
+  top: -10px; left: 18px;
+  background: var(--ink);
+  color: #fff;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.au-tier__top {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 10px;
+}
+.au-tier__label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--mut);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.au-tier__price {
+  font-family: "Instrument Serif", serif;
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  font-weight: 400;
+}
+.au-tier__perks {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.au-tier__perks li { display: flex; align-items: center; gap: 8px; }
+.au-tier__perks svg { color: var(--brand); flex-shrink: 0; }
+
+/* ─── Agent block ─────────────────────────────────────────────────────── */
+.au-agent {
+  padding: 32px 20px;
+  background: var(--ink);
+  color: #fff;
+  margin: 32px 0 0;
+  border-radius: 0;
+}
+.au-agent__inner { display: flex; gap: 16px; align-items: center; }
+.au-agent__avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.15);
+}
+.au-agent__name { font-family: "Instrument Serif", serif; font-size: 22px; line-height: 1.1; letter-spacing: -0.3px; }
+.au-agent__role { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; letter-spacing: 0.2px; }
+.au-agent__line {
+  margin-top: 18px;
+  font-family: "Instrument Serif", serif;
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.4;
+  color: rgba(255,255,255,0.92);
+  text-wrap: pretty;
+}
+.au-agent__pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 14px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  background: rgba(255,255,255,0.1);
+  padding: 5px 9px;
+  border-radius: 4px;
+}
+.au-agent__pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #2dd4a0;
+  box-shadow: 0 0 0 0 rgba(45,212,160,0.8);
+  animation: au-pulse 1.8s ease-out infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ─── Reviews ─────────────────────────────────────────────────────────── */
+.au-reviews {
+  padding: 48px 20px 40px;
+}
+.au-rev-summary {
+  display: flex; align-items: baseline; gap: 18px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 22px; margin-bottom: 24px;
+}
+.au-rev-summary__big {
+  font-family: "Instrument Serif", serif;
+  font-size: 56px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+.au-rev-summary__sub { font-size: 12px; color: var(--mut); }
+.au-rev-summary__sub b { color: var(--ink); font-weight: 600; }
+.au-rev {
+  border-top: 1px solid var(--line);
+  padding: 22px 0;
+}
+.au-rev:first-child { border-top: none; padding-top: 0; }
+.au-rev__pull {
+  font-family: "Instrument Serif", serif;
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 400;
+  letter-spacing: -0.2px;
+  margin: 0 0 14px;
+  text-wrap: pretty;
+}
+.au-rev__quote { display: inline-block; font-size: 60px; line-height: 0.4; color: var(--brand); margin-right: 4px; opacity: 0.7; vertical-align: -0.2em; }
+.au-rev__by {
+  display: flex; gap: 10px; align-items: center;
+  font-size: 12px;
+  color: var(--mut);
+}
+.au-rev__by b { color: var(--ink); font-weight: 600; }
+
+/* ─── Includes / Excludes (split) ─────────────────────────────────────── */
+.au-incl {
+  padding: 8px 20px 40px;
+  display: grid; grid-template-columns: 1fr; gap: 24px;
+}
+.au-incl__col h4 {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--mut);
+  font-weight: 500;
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.au-incl__list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.au-incl__list li {
+  display: flex; gap: 10px; align-items: flex-start;
+  line-height: 1.45;
+}
+.au-incl__list svg { flex-shrink: 0; margin-top: 2px; }
+.au-incl__list--in svg { color: var(--brand); }
+.au-incl__list--out svg { color: var(--mut); }
+.au-incl__list--out li { color: var(--mut); }
+
+/* ─── Footer / final CTA (mobile) ─────────────────────────────────────── */
+.au-final {
+  padding: 60px 20px 90px;
+  background: var(--paper);
+  text-align: center;
+}
+.au-final__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 36px;
+  line-height: 1.05;
+  letter-spacing: -0.8px;
+  margin: 0 0 16px;
+  font-weight: 400;
+  text-wrap: balance;
+}
+.au-final__title em { font-style: italic; color: var(--mut); }
+.au-final__sub { font-size: 14px; color: var(--mut); margin: 0 0 24px; line-height: 1.5; }
+
+/* ─── Sticky CTA (mobile) ─────────────────────────────────────────────── */
+.au-sticky {
+  position: sticky;
+  bottom: 0;
+  left: 0; right: 0;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  z-index: 30;
+  box-shadow: 0 -8px 24px -10px rgba(0,0,0,0.08);
+}
+.au-sticky__price {
+  font-family: "Instrument Serif", serif;
+  font-size: 22px; font-weight: 400; letter-spacing: -0.4px;
+  line-height: 1;
+}
+.au-sticky__sub {
+  font-size: 10px; color: var(--mut); margin-top: 4px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: "JetBrains Mono", monospace; letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.au-sticky__sub .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--stamp); animation: au-blink 1.4s infinite; }
+.au-sticky__cta { margin-left: auto; }
+
+
+/* ============================================================================
+   AURORA — Desktop
+   ============================================================================ */
+
+.au-d-nav {
+  position: sticky; top: 0; z-index: 20;
+  height: 68px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px;
+  background: rgba(239,234,225,0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.au-d-nav__brand { display: flex; align-items: center; gap: 12px; }
+.au-d-nav__mark { width: 32px; height: 32px; }
+.au-d-nav__name { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+.au-d-nav__sub { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--mut); letter-spacing: 0.6px; text-transform: uppercase; margin-top: 2px; }
+.au-d-nav__links { display: flex; align-items: center; gap: 28px; }
+.au-d-nav__link {
+  font-size: 13px; font-weight: 500;
+  color: var(--mut);
+  text-decoration: none; cursor: pointer;
+  transition: color 0.15s;
+}
+.au-d-nav__link:hover { color: var(--ink); }
+.au-d-nav__price { font-family: "Instrument Serif", serif; font-size: 18px; letter-spacing: -0.3px; }
+.au-d-nav__price b { color: var(--brand); }
+
+/* Hero — desktop */
+.au-d-hero {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  min-height: 580px;
+  position: relative;
+}
+.au-d-hero__text {
+  padding: 64px 64px 48px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  position: relative;
+}
+.au-d-hero__topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--mut);
+}
+.au-d-hero__topbar .rating { display: flex; align-items: center; gap: 6px; color: var(--ink); font-weight: 500; }
+.au-d-hero__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 52px;
+  line-height: 1.12;
+  letter-spacing: -1.2px;
+  font-weight: 400;
+  margin: 18px 0 36px;
+  max-width: 460px;
+}
+.au-d-hero__title em { font-style: italic; }
+.au-d-hero__desc {
+  margin-top: 22px;
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: var(--mut);
+  max-width: 480px;
+  text-wrap: pretty;
+}
+.au-d-hero__cta-row {
+  display: flex; align-items: center; gap: 32px;
+  margin-top: 32px;
+}
+.au-d-hero__price-block .lab { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--mut); letter-spacing: 1.2px; text-transform: uppercase; }
+.au-d-hero__price-block .price { font-family: "Instrument Serif", serif; font-size: 56px; line-height: 1; letter-spacing: -1.5px; font-weight: 400; margin-top: 4px; }
+.au-d-hero__price-block .sub { font-size: 11.5px; color: var(--mut); margin-top: 6px; }
+.au-d-hero__buttons { display: flex; gap: 10px; }
+.au-d-hero__bottom {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+  margin-top: 40px;
+}
+.au-d-hero__bottom > div { padding-right: 22px; }
+.au-d-hero__bottom .v { font-family: "Instrument Serif", serif; font-size: 22px; font-weight: 400; letter-spacing: -0.4px; }
+.au-d-hero__bottom .l { font-size: 11px; color: var(--mut); margin-top: 4px; letter-spacing: 0.2px; }
+.au-d-hero__img {
+  position: relative; overflow: hidden; background: var(--ink);
+}
+.au-d-hero__img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.au-d-hero__img-caption {
+  position: absolute; bottom: 16px; left: 16px;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.9);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  padding: 5px 9px;
+  border-radius: 4px;
+}
+
+/* Scarcity ribbon under hero */
+.au-d-ribbon {
+  background: var(--ink);
+  color: rgba(255,255,255,0.9);
+  padding: 14px 48px;
+  display: flex; align-items: center; gap: 28px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.4px;
+}
+.au-d-ribbon__group { display: flex; align-items: center; gap: 8px; }
+.au-d-ribbon__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--stamp); animation: au-blink 1.4s infinite; }
+.au-d-ribbon b { color: #fff; }
+.au-d-ribbon__spacer { flex: 1; }
+
+/* Editorial intro band (desktop) */
+.au-d-intro {
+  padding: 84px 64px 60px;
+  display: grid;
+  grid-template-columns: 1fr 2.4fr;
+  gap: 56px;
+}
+.au-d-intro__num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--mut);
+  letter-spacing: 1px;
+}
+.au-d-intro__sub {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--mut);
+  letter-spacing: 1px;
+  margin-top: 12px;
+  text-transform: uppercase;
+}
+.au-d-intro__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 44px;
+  letter-spacing: -1px;
+  font-weight: 400;
+  margin: 14px 0 0;
+  line-height: 1.05;
+}
+.au-d-intro__title em { font-style: italic; color: var(--mut); }
+.au-d-intro__prose {
+  font-family: "Instrument Serif", serif;
+  font-size: 26px;
+  line-height: 1.45;
+  font-weight: 400;
+  letter-spacing: -0.3px;
+  text-wrap: pretty;
+}
+.au-d-intro__prose .dropcap {
+  font-size: 76px;
+  float: left;
+  font-style: italic;
+  line-height: 0.85;
+  margin: 6px 14px 0 0;
+  color: var(--brand);
+}
+
+/* Trust strip (desktop) */
+.au-d-trust {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 22px 64px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+.au-d-trust__cell { display: flex; align-items: center; gap: 12px; }
+.au-d-trust__cell svg { color: var(--brand); }
+.au-d-trust__cell .t { font-size: 13.5px; font-weight: 600; letter-spacing: -0.1px; }
+.au-d-trust__cell .s { font-size: 11px; color: var(--mut); margin-top: 2px; }
+
+/* Story chapters (desktop) */
+.au-d-story-section { padding: 84px 64px 32px; }
+.au-d-story-section__head { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: flex-end; margin-bottom: 56px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.au-d-story-section__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -1.5px;
+  font-weight: 400;
+  margin: 0;
+}
+.au-d-story-section__title em { font-style: italic; color: var(--mut); }
+.au-d-story-section__lede {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--mut);
+  max-width: 460px;
+  text-wrap: pretty;
+  margin-left: auto;
+}
+
+.au-d-story {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  padding: 60px 0;
+  border-top: 1px solid var(--line);
+}
+.au-d-story:first-of-type { border-top: none; padding-top: 0; }
+.au-d-story--flip { grid-template-columns: 1fr 1fr; }
+.au-d-story--flip .au-d-story__media { order: 2; }
+.au-d-story__media {
+  height: 420px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--ink);
+}
+.au-d-story__media img { width: 100%; height: 100%; object-fit: cover; }
+.au-d-story__body { padding: 0 20px; }
+.au-d-story__day {
+  font-family: "Instrument Serif", serif;
+  font-size: 88px;
+  line-height: 1;
+  letter-spacing: -3px;
+  color: var(--brand);
+  font-weight: 400;
+}
+.au-d-story__chap {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--mut);
+  margin-top: 6px;
+}
+.au-d-story__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 36px;
+  line-height: 1.1;
+  letter-spacing: -0.6px;
+  margin: 16px 0 12px;
+  font-weight: 400;
+  text-wrap: balance;
+}
+.au-d-story__desc {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--mut);
+  text-wrap: pretty;
+}
+
+/* Gallery (desktop) */
+.au-d-gallery {
+  padding: 0 64px 84px;
+}
+.au-d-gallery__head { padding: 0; margin-bottom: 28px; }
+.au-d-gallery__grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-rows: 240px 240px 240px;
+  gap: 12px;
+}
+.au-d-gallery__cell {
+  overflow: hidden;
+  border-radius: 6px;
+  position: relative;
+}
+.au-d-gallery__cell img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.au-d-gallery__cell:hover img { transform: scale(1.04); }
+.au-d-gallery__cap {
+  position: absolute; bottom: 8px; left: 8px;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.9);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.6px;
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+.au-d-gallery__cell:nth-child(1) { grid-row: span 2; grid-column: 1; }
+.au-d-gallery__cell:nth-child(4) { grid-row: span 2; grid-column: 2; }
+
+/* Departures + tiers (desktop, side by side) */
+.au-d-book {
+  padding: 0 64px 84px;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 56px;
+  align-items: start;
+}
+.au-d-book__col h3 {
+  font-family: "Instrument Serif", serif;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.6px;
+  font-weight: 400;
+  margin: 0 0 24px;
+}
+.au-d-book__col h3 em { font-style: italic; color: var(--mut); }
+.au-d-deps {
+  display: flex; flex-direction: column;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.au-d-dep {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.au-d-dep:hover { background: rgba(0,0,0,0.02); }
+.au-d-dep__date { font-family: "Instrument Serif", serif; font-size: 24px; letter-spacing: -0.4px; }
+.au-d-dep__date b { color: var(--brand); }
+.au-d-dep__spots { font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+.au-d-dep__spots.low { color: var(--stamp); font-weight: 600; }
+.au-d-dep__price { font-family: "Instrument Serif", serif; font-size: 22px; letter-spacing: -0.3px; }
+.au-d-dep__arrow { color: var(--mut); }
+
+.au-d-tiers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.au-d-tier {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px 20px;
+  position: relative;
+  display: flex; flex-direction: column;
+}
+.au-d-tier--pop {
+  border-color: var(--ink);
+  box-shadow: 0 18px 40px -20px rgba(26,31,44,0.18);
+  background: #fff;
+}
+.au-d-tier__badge {
+  position: absolute; top: -10px; left: 20px;
+  background: var(--ink); color: #fff;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.au-d-tier__label { font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--mut); letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+.au-d-tier__price { font-family: "Instrument Serif", serif; font-size: 36px; letter-spacing: -1px; font-weight: 400; margin: 8px 0 4px; }
+.au-d-tier__from { font-size: 10.5px; color: var(--mut); }
+.au-d-tier__perks { list-style: none; padding: 18px 0 0; margin: 14px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink-2); flex: 1; }
+.au-d-tier__perks li { display: flex; align-items: flex-start; gap: 8px; line-height: 1.45; }
+.au-d-tier__perks svg { color: var(--brand); flex-shrink: 0; margin-top: 3px; }
+
+/* Reviews band (desktop) */
+.au-d-reviews {
+  padding: 84px 64px;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.au-d-reviews__top {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 56px;
+  align-items: end;
+  margin-bottom: 56px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.au-d-reviews__big { font-family: "Instrument Serif", serif; font-size: 120px; line-height: 0.9; letter-spacing: -4px; font-weight: 400; }
+.au-d-reviews__big-sub { font-size: 12px; color: var(--mut); margin-top: 8px; font-family: "JetBrains Mono", monospace; letter-spacing: 0.6px; text-transform: uppercase; }
+.au-d-reviews__big-sub b { color: var(--ink); }
+.au-d-reviews__sub {
+  font-family: "Instrument Serif", serif;
+  font-size: 24px; line-height: 1.4;
+  font-weight: 400;
+  letter-spacing: -0.2px;
+  text-wrap: pretty;
+}
+.au-d-reviews__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 36px;
+}
+.au-d-rev {
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+}
+.au-d-rev__pull {
+  font-family: "Instrument Serif", serif;
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.4;
+  letter-spacing: -0.2px;
+  margin: 0 0 22px;
+  text-wrap: pretty;
+}
+.au-d-rev__pull::before { content: "\201C"; font-size: 56px; color: var(--brand); float: left; line-height: 0.6; margin-right: 6px; margin-top: 10px; opacity: 0.6; }
+.au-d-rev__by { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--mut); }
+.au-d-rev__by b { color: var(--ink); font-weight: 600; }
+
+/* Includes (desktop split) */
+.au-d-incl {
+  padding: 84px 64px;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 56px;
+}
+.au-d-incl__title {
+  font-family: "Instrument Serif", serif; font-size: 44px; letter-spacing: -1px; line-height: 1.05; font-weight: 400; margin: 0;
+}
+.au-d-incl__title em { font-style: italic; color: var(--mut); }
+.au-d-incl__cols { display: grid; grid-template-columns: 1.5fr 1fr; gap: 48px; }
+.au-d-incl__cols h4 {
+  font-family: "JetBrains Mono", monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--mut); font-weight: 500;
+  margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line);
+}
+.au-d-incl__cols ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; font-size: 14.5px; color: var(--ink-2); }
+.au-d-incl__cols ul li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.45; }
+.au-d-incl__cols ul li svg { flex-shrink: 0; margin-top: 2px; }
+.au-d-incl__cols ul.in svg { color: var(--brand); }
+.au-d-incl__cols ul.out svg { color: var(--mut); }
+.au-d-incl__cols ul.out li { color: var(--mut); }
+
+/* Agent/Designer band */
+.au-d-designer {
+  background: var(--ink);
+  color: #fff;
+  padding: 84px 64px;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 64px;
+  align-items: center;
+}
+.au-d-designer__portrait {
+  width: 100%;
+  aspect-ratio: 4/5;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.au-d-designer__portrait img { width: 100%; height: 100%; object-fit: cover; }
+.au-d-designer__eb { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+.au-d-designer__name {
+  font-family: "Instrument Serif", serif;
+  font-size: 56px; line-height: 1; letter-spacing: -1.2px;
+  margin: 14px 0 0; font-weight: 400;
+}
+.au-d-designer__role { font-size: 14px; color: rgba(255,255,255,0.55); margin-top: 8px; letter-spacing: 0.2px; }
+.au-d-designer__line {
+  margin-top: 28px;
+  font-family: "Instrument Serif", serif;
+  font-style: italic;
+  font-size: 24px; line-height: 1.4;
+  color: #fff;
+  text-wrap: pretty;
+  max-width: 560px;
+}
+.au-d-designer__row {
+  display: flex; gap: 14px; margin-top: 28px;
+}
+.au-d-designer__pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,0.1);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-family: "JetBrains Mono", monospace; font-size: 10.5px; letter-spacing: 0.4px;
+}
+.au-d-designer__cta-row { display: flex; gap: 12px; margin-top: 32px; }
+.au-d-designer__cta-wa {
+  background: var(--wa); color: #fff;
+  border: none; border-radius: 999px;
+  padding: 14px 24px;
+  font-weight: 700; font-size: 14px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.au-d-designer__cta-out {
+  background: transparent; color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 999px;
+  padding: 13px 22px;
+  font-weight: 500; font-size: 13.5px;
+  cursor: pointer;
+}
+
+/* Footer (desktop) */
+.au-d-foot {
+  padding: 30px 48px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  color: var(--mut);
+  border-top: 1px solid var(--line);
+}
+.au-d-foot b { color: var(--ink); }
+
+
+/* ============================================================================
+   AURORA — V2 SECTIONS
+   ============================================================================ */
+
+.au-v2 {
+  padding: 84px 64px;
+  background: var(--au-bg);
+  position: relative;
+}
+.au-v2 + .au-v2 { border-top: 1px solid var(--line); }
+.au-v2--paper { background: var(--paper); }
+
+.au-v2__head {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 56px;
+  align-items: end;
+  margin-bottom: 48px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.au-v2__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 52px;
+  line-height: 1;
+  letter-spacing: -1.4px;
+  font-weight: 400;
+  margin: 18px 0 0;
+}
+.au-v2__title em { font-style: italic; color: var(--mut); }
+.au-v2__lede {
+  font-size: 16px; line-height: 1.65; color: var(--mut);
+  max-width: 460px; text-wrap: pretty; margin: 0;
+  margin-inline-start: auto;
+}
+
+/* ─── Highlights ───────────────────────────────────────────────────────── */
+.au-v2-hl__head { margin-bottom: 56px; padding-bottom: 0; border-bottom: 0; }
+.au-v2-hl__grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.au-v2-hl__card {
+  padding: 36px 32px 36px 0;
+  border-right: 1px solid var(--line);
+}
+.au-v2-hl__card:last-child { border-right: 0; padding-right: 0; }
+.au-v2-hl__card:not(:first-child) { padding-left: 32px; }
+.au-v2-hl__num {
+  font-family: "Instrument Serif", serif;
+  font-size: 64px; line-height: 1;
+  letter-spacing: -2px;
+  color: var(--brand);
+  font-weight: 400;
+  margin-bottom: 20px;
+}
+.au-v2-hl__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 28px; line-height: 1.15;
+  letter-spacing: -0.5px;
+  font-weight: 400;
+  margin: 0 0 14px;
+  text-wrap: balance;
+}
+.au-v2-hl__body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--mut);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* ─── Hotels ───────────────────────────────────────────────────────────── */
+.au-v2-htl__grid {
+  display: grid;
+  gap: 40px;
+}
+.au-v2-htl__grid[data-count="1"] { grid-template-columns: 1fr; }
+.au-v2-htl__grid[data-count="2"] { grid-template-columns: 1fr 1fr; }
+.au-v2-htl__grid[data-count="3"] { grid-template-columns: 1fr 1fr; }
+.au-v2-htl__grid[data-count="3"] .au-v2-htl__card:first-child { grid-column: span 2; }
+
+.au-v2-htl__card { display: flex; flex-direction: column; }
+.au-v2-htl__grid[data-count="1"] .au-v2-htl__card {
+  display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center;
+}
+.au-v2-htl__img {
+  position: relative;
+  aspect-ratio: 4/3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--ink);
+}
+.au-v2-htl__img img { width: 100%; height: 100%; object-fit: cover; }
+.au-v2-htl__nights {
+  position: absolute; top: 14px; right: 14px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(6px);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px; letter-spacing: 0.6px;
+  padding: 4px 9px;
+  border-radius: 4px;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+.au-v2-htl__body { padding: 18px 0 0; }
+.au-v2-htl__grid[data-count="1"] .au-v2-htl__body { padding: 0; }
+.au-v2-htl__top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.au-v2-htl__loc {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--mut);
+  margin-bottom: 6px;
+}
+.au-v2-htl__name {
+  font-family: "Instrument Serif", serif;
+  font-size: 30px;
+  letter-spacing: -0.6px;
+  font-weight: 400;
+  line-height: 1.05;
+  margin: 0;
+}
+.au-v2-htl__note {
+  font-family: "Instrument Serif", serif;
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.45;
+  letter-spacing: -0.2px;
+  color: var(--mut);
+  margin: 0 0 16px;
+  text-wrap: pretty;
+}
+.au-v2-htl__fac {
+  list-style: none; padding: 14px 0 0; margin: 14px 0 0;
+  border-top: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.au-v2-htl__fac li::after {
+  content: "·"; margin-inline-start: 14px;
+  color: var(--mut);
+}
+.au-v2-htl__fac li:last-child::after { content: ""; margin: 0; }
+
+/* ─── Media ────────────────────────────────────────────────────────────── */
+.au-v2-med__row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+.au-v2-med__video, .au-v2-med__map {
+  position: relative; margin: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--ink);
+  aspect-ratio: 16/10;
+}
+.au-v2-med__video img, .au-v2-med__map img { width: 100%; height: 100%; object-fit: cover; }
+.au-v2-med__play {
+  position: absolute; inset: 0; margin: auto;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.92);
+  border: none;
+  display: grid; place-items: center;
+  color: var(--ink);
+  cursor: pointer;
+}
+.au-v2-med__caption {
+  position: absolute; bottom: 12px; left: 12px;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  color: rgba(255,255,255,0.9);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.au-v2-med__caption--map {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 12px;
+  text-transform: none; letter-spacing: 0;
+  font-size: 11.5px;
+  max-width: 80%;
+}
+
+/* ─── Meals + visa chips (inside inclusions section) ───────────────────── */
+.au-v2-mv {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 24px 0 32px;
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.au-v2-mv__chip {
+  display: flex; flex-direction: column;
+}
+.au-v2-mv__chip .au-eb { margin-bottom: 10px; }
+.au-v2-mv__chip-body h4 {
+  font-family: "Instrument Serif", serif;
+  font-size: 22px;
+  letter-spacing: -0.3px;
+  font-weight: 400;
+  margin: 0 0 6px;
+}
+.au-v2-mv__chip-body p {
+  font-size: 14px; line-height: 1.55;
+  color: var(--mut); margin: 0;
+  text-wrap: pretty;
+}
+.au--mobile .au-v2-mv { grid-template-columns: 1fr; gap: 18px; }
+
+/* ─── Extras ───────────────────────────────────────────────────────────── */
+.au-v2-ex__list {
+  display: flex; flex-direction: column;
+}
+.au-v2-ex__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 32px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.au-v2-ex__row:first-child { border-top: 1px solid var(--line); }
+.au-v2-ex__name {
+  font-family: "Instrument Serif", serif;
+  font-size: 26px;
+  letter-spacing: -0.4px;
+  font-weight: 400;
+  margin: 0 0 6px;
+  line-height: 1.1;
+}
+.au-v2-ex__desc {
+  font-size: 14px; line-height: 1.55;
+  color: var(--mut); margin: 0;
+  max-width: 640px; text-wrap: pretty;
+}
+.au-v2-ex__price {
+  font-family: "Instrument Serif", serif;
+  font-size: 26px;
+  letter-spacing: -0.4px;
+  color: var(--brand);
+  white-space: nowrap;
+}
+
+/* ─── Transfers ───────────────────────────────────────────────────────── */
+.au-v2-tx__list {
+  list-style: none; padding: 0; margin: 0;
+  border-top: 1px solid var(--line);
+}
+.au-v2-tx__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 28px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.au-v2-tx__num {
+  font-family: "Instrument Serif", serif;
+  font-size: 38px;
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: -1px;
+  color: var(--brand);
+  min-width: 56px;
+}
+.au-v2-tx__leg {
+  font-family: "Instrument Serif", serif;
+  font-size: 22px;
+  letter-spacing: -0.3px;
+  font-weight: 400;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.au-v2-tx__meta {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.8px;
+  color: var(--mut);
+  text-transform: uppercase;
+}
+.au-v2-tx__note {
+  font-size: 13.5px;
+  color: var(--mut);
+  line-height: 1.5;
+  margin-top: 6px;
+  text-wrap: pretty;
+  max-width: 540px;
+  font-style: italic;
+}
+.au-v2-tx__pill {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--mut);
+  padding: 6px 11px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+/* ─── Pricing ──────────────────────────────────────────────────────────── */
+.au-v2-pr__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+}
+.au-v2-pr__h {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--mut);
+  font-weight: 500;
+  margin: 0 0 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.au-v2-pr__ladder {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column;
+}
+.au-v2-pr__step {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: start;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+.au-v2-pr__step:last-child { border-bottom: 0; }
+.au-v2-pr__amount {
+  font-family: "Instrument Serif", serif;
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: var(--brand);
+  grid-row: span 2;
+  align-self: center;
+}
+.au-v2-pr__when {
+  font-family: "Instrument Serif", serif;
+  font-size: 19px;
+  letter-spacing: -0.3px;
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+.au-v2-pr__desc {
+  font-size: 13px;
+  color: var(--mut);
+  line-height: 1.55;
+}
+.au-v2-pr__cancel { list-style: none; padding: 0; margin: 0; }
+.au-v2-pr__cancel li {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.au-v2-pr__cancel li:last-child { border-bottom: 0; }
+.au-v2-pr__window {
+  font-family: "Instrument Serif", serif;
+  font-size: 19px;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.au-v2-pr__refund {
+  font-size: 13.5px;
+  color: var(--mut);
+  line-height: 1.55;
+}
+.au-v2-pr__note {
+  margin-top: 24px;
+  font-size: 13.5px;
+  color: var(--mut);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* ─── FAQ ──────────────────────────────────────────────────────────────── */
+.au-v2-faq__list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 56px;
+  margin: 0;
+}
+.au-v2-faq__q {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  margin-top: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.au-v2-faq__qm {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.8px;
+  color: var(--mut);
+  align-self: flex-start;
+  padding-top: 8px;
+}
+.au-v2-faq__qt {
+  font-family: "Instrument Serif", serif;
+  font-style: italic;
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+  font-weight: 400;
+}
+.au-v2-faq__a {
+  margin: 8px 0 0;
+  padding-inline-start: calc(10.5px + 2ch + 18px);
+  font-size: 14.5px;
+  color: var(--ink-2);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* ─── Important notes ──────────────────────────────────────────────────── */
+.au-v2-no__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.au-v2-no__card {
+  padding: 24px;
+  background: var(--paper);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  display: flex; flex-direction: column;
+}
+.au-v2-no__card--warn .au-v2-no__tag {
+  color: var(--stamp);
+  border-color: var(--stamp);
+}
+.au-v2-no__tag {
+  display: inline-flex;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--mut);
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  border-radius: 4px;
+  align-self: flex-start;
+  margin-bottom: 14px;
+}
+.au-v2-no__title {
+  font-family: "Instrument Serif", serif;
+  font-size: 22px;
+  letter-spacing: -0.3px;
+  font-weight: 400;
+  line-height: 1.2;
+  margin: 0 0 10px;
+}
+.au-v2-no__body {
+  font-size: 13.5px; line-height: 1.6;
+  color: var(--mut);
+  margin: 0; text-wrap: pretty;
+}
+
+/* ─── People ───────────────────────────────────────────────────────────── */
+.au-v2-pp__row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 48px;
+}
+.au-v2-pp__lead {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+.au-v2-pp__lead-img {
+  width: 100%; aspect-ratio: 4/5;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.au-v2-pp__lead-role {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--mut);
+  text-transform: uppercase;
+}
+.au-v2-pp__lead-name {
+  font-family: "Instrument Serif", serif;
+  font-size: 36px;
+  letter-spacing: -0.6px;
+  font-weight: 400;
+  margin: 8px 0 14px;
+  line-height: 1;
+}
+.au-v2-pp__lead-bio {
+  font-family: "Instrument Serif", serif;
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: -0.2px;
+  color: var(--ink-2);
+  text-wrap: pretty;
+  margin: 0 0 18px;
+}
+.au-v2-pp__lead-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.au-v2-pp__pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-2);
+}
+.au-v2-pp__pill--g { color: #176942; border-color: rgba(45,160,90,0.4); background: rgba(45,160,90,0.05); }
+.au-v2-pp__lead-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.au-v2-pp__guides {
+  border-inline-start: 1px solid var(--line);
+  padding-inline-start: 32px;
+  display: flex; flex-direction: column; gap: 24px;
+}
+.au-v2-pp__guides .au-eb { margin-bottom: 6px; }
+.au-v2-pp__guide {
+  display: grid; grid-template-columns: 56px 1fr;
+  gap: 14px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.au-v2-pp__guide:last-child { border-bottom: 0; padding-bottom: 0; }
+.au-v2-pp__guide img {
+  width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+}
+.au-v2-pp__guide h4 {
+  font-family: "Instrument Serif", serif;
+  font-size: 18px; letter-spacing: -0.3px; font-weight: 400;
+  margin: 0 0 2px;
+}
+.au-v2-pp__guide-role {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--mut);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.au-v2-pp__guide p {
+  font-size: 13px; line-height: 1.55;
+  color: var(--mut); margin: 0;
+  text-wrap: pretty;
+}
+.au-v2-pp__guide-meta {
+  margin-top: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--mut);
+  letter-spacing: 0.6px;
+}
+
+/* ─── About agency ─────────────────────────────────────────────────────── */
+.au-v2-ag {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+.au-v2-ag__story {
+  font-family: "Instrument Serif", serif;
+  font-size: 22px;
+  line-height: 1.5;
+  letter-spacing: -0.2px;
+  margin: 22px 0 28px;
+  text-wrap: pretty;
+}
+.au-v2-ag__stats {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.au-v2-ag__stats .v {
+  font-family: "Instrument Serif", serif;
+  font-size: 48px;
+  letter-spacing: -1.4px;
+  line-height: 1;
+}
+.au-v2-ag__stats .l {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--mut);
+  margin-top: 8px;
+}
+.au-v2-ag__last {
+  display: flex; align-items: center; gap: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  color: var(--mut);
+  margin-top: 22px;
+}
+.au-v2-ag__photo {
+  width: 100%; aspect-ratio: 4/3;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.au-v2-ag__photo img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ─── Custom (editor's note) ───────────────────────────────────────────── */
+.au-v2-cu {
+  background: var(--paper);
+  padding: 64px;
+}
+.au-v2-cu__block {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-block: 12px;
+  text-align: center;
+}
+.au-v2-cu__block .au-eb { display: inline-flex; }
+.au-v2-cu__h {
+  font-family: "Instrument Serif", serif;
+  font-size: 36px;
+  letter-spacing: -0.6px;
+  font-style: italic;
+  font-weight: 400;
+  margin: 14px 0 18px;
+  line-height: 1.15;
+}
+.au-v2-cu__p {
+  font-family: "Instrument Serif", serif;
+  font-size: 20px;
+  line-height: 1.55;
+  letter-spacing: -0.2px;
+  color: var(--ink-2);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* ─── Final CTA ────────────────────────────────────────────────────────── */
+.au-v2-cta {
+  background: var(--ink);
+  color: #fff;
+  text-align: center;
+  padding: 96px 64px;
+}
+.au-v2-cta__h {
+  font-family: "Instrument Serif", serif;
+  font-size: 72px;
+  letter-spacing: -2px;
+  font-weight: 400;
+  margin: 0 0 18px;
+}
+.au-v2-cta__h em { font-style: italic; color: var(--brand); }
+.au-v2-cta__p {
+  font-family: "Instrument Serif", serif;
+  font-size: 22px;
+  line-height: 1.45;
+  letter-spacing: -0.2px;
+  max-width: 640px;
+  margin: 0 auto 36px;
+  color: rgba(255,255,255,0.78);
+  text-wrap: pretty;
+}
+.au-v2-cta__row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.au-v2-cta__row .au-cta-out { color: #fff; border-color: rgba(255,255,255,0.5); }
+
+
+/* ============================================================================
+   AURORA — Mobile overrides
+   .au--mobile is added by TemplateAurora.tsx when !isDesktop
+   ============================================================================ */
+
+.au--mobile .au-v2 { padding: 48px 20px; }
+.au--mobile .au-v2__head {
+  grid-template-columns: 1fr; gap: 14px; margin-bottom: 28px;
+  padding-bottom: 18px;
+}
+.au--mobile .au-v2__title { font-size: 36px; letter-spacing: -1px; }
+.au--mobile .au-v2__lede { font-size: 14px; margin-inline-start: 0; max-width: none; }
+
+.au--mobile .au-v2-hl__grid { grid-template-columns: 1fr; }
+.au--mobile .au-v2-hl__card {
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 28px 0;
+}
+.au--mobile .au-v2-hl__card:not(:first-child) { padding-left: 0; }
+.au--mobile .au-v2-hl__card:last-child { border-bottom: 0; }
+.au--mobile .au-v2-hl__num { font-size: 48px; margin-bottom: 14px; }
+.au--mobile .au-v2-hl__title { font-size: 22px; }
+.au--mobile .au-v2-hl__body { font-size: 14px; }
+
+.au--mobile .au-v2-htl__grid,
+.au--mobile .au-v2-htl__grid[data-count="1"],
+.au--mobile .au-v2-htl__grid[data-count="2"],
+.au--mobile .au-v2-htl__grid[data-count="3"] { grid-template-columns: 1fr; gap: 28px; }
+.au--mobile .au-v2-htl__grid[data-count="3"] .au-v2-htl__card:first-child { grid-column: 1; }
+.au--mobile .au-v2-htl__grid[data-count="1"] .au-v2-htl__card { display: block; }
+.au--mobile .au-v2-htl__name { font-size: 22px; }
+.au--mobile .au-v2-htl__note { font-size: 15px; }
+
+.au--mobile .au-v2-med__row { grid-template-columns: 1fr; }
+
+.au--mobile .au-v2-ex__row { grid-template-columns: 1fr; gap: 6px; padding: 18px 0; }
+.au--mobile .au-v2-ex__name { font-size: 20px; }
+.au--mobile .au-v2-ex__price { font-size: 20px; }
+
+.au--mobile .au-v2-tx__row { grid-template-columns: auto 1fr; gap: 14px; padding: 16px 0; }
+.au--mobile .au-v2-tx__pill { grid-column: 2 / 3; justify-self: start; margin-top: 8px; }
+.au--mobile .au-v2-tx__num { font-size: 28px; min-width: 44px; }
+.au--mobile .au-v2-tx__leg { font-size: 17px; }
+
+.au--mobile .au-v2-pr__grid { grid-template-columns: 1fr; gap: 32px; }
+.au--mobile .au-v2-pr__step { grid-template-columns: 70px 1fr; gap: 14px; }
+.au--mobile .au-v2-pr__amount { font-size: 26px; }
+
+.au--mobile .au-v2-faq__list { grid-template-columns: 1fr; gap: 14px; }
+.au--mobile .au-v2-faq__qt { font-size: 18px; }
+.au--mobile .au-v2-faq__a { font-size: 13.5px; padding-inline-start: 0; }
+
+.au--mobile .au-v2-no__grid { grid-template-columns: 1fr; gap: 14px; }
+.au--mobile .au-v2-no__title { font-size: 18px; }
+.au--mobile .au-v2-no__body { font-size: 13px; }
+
+.au--mobile .au-v2-pp__row { grid-template-columns: 1fr; gap: 28px; }
+.au--mobile .au-v2-pp__lead { grid-template-columns: 1fr; }
+.au--mobile .au-v2-pp__lead-img { aspect-ratio: 4/3; }
+.au--mobile .au-v2-pp__lead-name { font-size: 28px; }
+.au--mobile .au-v2-pp__lead-bio { font-size: 16px; }
+.au--mobile .au-v2-pp__guides { border-inline-start: 0; padding-inline-start: 0; padding-top: 24px; border-top: 1px solid var(--line); }
+
+.au--mobile .au-v2-ag { grid-template-columns: 1fr; gap: 28px; }
+.au--mobile .au-v2-ag__story { font-size: 17px; }
+.au--mobile .au-v2-ag__stats { grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.au--mobile .au-v2-ag__stats .v { font-size: 32px; }
+
+.au--mobile .au-v2-cu { padding: 48px 20px; }
+.au--mobile .au-v2-cu__h { font-size: 26px; }
+.au--mobile .au-v2-cu__p { font-size: 16px; }
+
+.au--mobile .au-v2-cta { padding: 56px 24px; }
+.au--mobile .au-v2-cta__h { font-size: 44px; }
+.au--mobile .au-v2-cta__p { font-size: 17px; }

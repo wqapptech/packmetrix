@@ -10,8 +10,8 @@ import Icon from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
-import { DEFAULT_TEMPLATE_ID } from "@/components/templates/index";
 import { canUseCustomDomain } from "@/lib/limits";
+import { SAND, SUCCESS } from "@/lib/tokens";
 
 type DomainRecord = { type: string; name: string; value: string };
 type DomainStatus = "pending_dns" | "verifying" | "ssl_provisioning" | "active" | "failed" | "";
@@ -19,10 +19,6 @@ type DomainStatus = "pending_dns" | "verifying" | "ssl_provisioning" | "active" 
 function isApexDomain(hostname: string): boolean {
   return hostname.split(".").length === 2;
 }
-
-const SAND = "#e8c97b";
-const SUCCESS = "#2dd4a0";
-
 
 // ─── Shared field components ─────────────────────────────────────────────────
 
@@ -97,8 +93,6 @@ export default function BrandingPage() {
   const [enableReviews, setEnableReviews] = useState(false);
   const [showReviews, setShowReviews] = useState(true);
 
-  const [activeTemplate, setActiveTemplate] = useState(DEFAULT_TEMPLATE_ID);
-
   const [plan, setPlan] = useState<string>("");
   const [agencySlug, setAgencySlug] = useState<string>("");
   const [customDomain, setCustomDomain] = useState<string>("");
@@ -134,7 +128,6 @@ export default function BrandingPage() {
         setEmail(d.email || "");
         setPhone(d.phone || "");
         setLogoUrl(d.logoUrl || "");
-        if (d.activeTemplate) setActiveTemplate(d.activeTemplate);
         setEnableReviews(d.enableReviews === true);
         setShowReviews(d.showReviews !== false); // default true
         setPlan(d.plan || "");
@@ -178,7 +171,7 @@ export default function BrandingPage() {
   const handleSave = async () => {
     if (!uid) return;
     setSaving(true);
-    await updateDoc(doc(db, "users", uid), { name, tagline, email, phone, logoUrl, activeTemplate, enableReviews, showReviews });
+    await updateDoc(doc(db, "users", uid), { name, tagline, email, phone, logoUrl, enableReviews, showReviews });
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);

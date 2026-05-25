@@ -40,6 +40,11 @@ export type FieldDef = {
   max?: number;
   // conditional visibility
   showIf?: (data: Record<string, unknown>) => boolean;
+  /**
+   * When true, this field stores a LocalizedString {en, ar} instead of a
+   * plain string. The builder Phase-2 editor will render dual inputs.
+   */
+  localized?: boolean;
 };
 
 // ─── Section taxonomy ─────────────────────────────────────────────────────────
@@ -47,10 +52,7 @@ export type FieldDef = {
 export type SectionCategory = "content" | "logistics" | "media" | "social" | "legal";
 
 // ─── Registry entry ───────────────────────────────────────────────────────────
-// `type` is widened to `string` here so this file has no dependency on the
-// SectionTypeKey union (which lives in registry.ts and is derived from the
-// actual registry entries). Consuming code that needs the narrow key should use
-// SectionTypeKey imported from registry.ts or types.ts.
+
 export type SectionTypeDef = {
   type: string;
   label: string;
@@ -65,4 +67,10 @@ export type SectionTypeDef = {
   defaultData: Record<string, unknown>;
   /** One-line summary shown on the collapsed section header */
   summaryText?: (data: Record<string, unknown>, lang: "en" | "ar") => string;
+  /**
+   * Marks this section type as a v1 legacy type that has been superseded.
+   * Legacy types still render for existing packages but are not offered
+   * when adding new sections.
+   */
+  legacy?: boolean;
 };

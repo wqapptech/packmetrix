@@ -19,8 +19,6 @@ import { CoreFieldsEditor } from "@/components/builder/CoreFieldsEditor";
 import { SectionList } from "@/components/builder/SectionList";
 import { PresetPicker } from "@/components/builder/PresetPicker";
 import { MiniPreview } from "@/components/builder/MiniPreview";
-import { TemplateExtrasEditor, DEFAULT_EXTRAS } from "@/components/builder/TemplateExtrasEditor";
-import type { TemplateExtras } from "@/components/builder/TemplateExtrasEditor";
 import { TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/components/templates";
 import TemplateSelector from "@/components/TemplateSelector";
 
@@ -30,77 +28,324 @@ const DRAFT_KEY = "builderDraft_v2";
 
 // ─── API bridge ───────────────────────────────────────────────────────────────
 
+/**
+ * Converts legacy section types to their v2 equivalents in the builder's
+ * in-memory state. Called once when loading a package for editing so that
+ * any subsequent save writes clean v2 data — no manual migration required
+ * for packages touched via the builder.
+ *
+ * Conversions:
+ *   gallery + video + map     → media
+ *   flights + departure_dates → departures
+ *   payment_plan              → folded into pricing (or new pricing)
+ *   booking_terms             → folded into pricing.termsContent
+ *   guide                     → people
+ */
+function upgradeLegacySections(sections: AnySectionInstance[]): AnySectionInstance[] {
+  type Raw = Record<string, unknown>;
+
+  const LEGACY = new Set(["gallery", "video", "map", "flights", "departure_dates", "payment_plan", "booking_terms", "guide"]);
+
+  // Buckets for legacy types
+  const galleries    = sections.filter((s) => s.type === "gallery");
+  const videos       = sections.filter((s) => s.type === "video");
+  const maps         = sections.filter((s) => s.type === "map");
+  const flightSegs   = sections.filter((s) => s.type === "flights");
+  const ddSegs       = sections.filter((s) => s.type === "departure_dates");
+  const ppSegs       = sections.filter((s) => s.type === "payment_plan");
+  const btSegs       = sections.filter((s) => s.type === "booking_terms");
+  const guideSegs    = sections.filter((s) => s.type === "guide");
+
+  // Pass through all non-legacy sections
+  const kept: AnySectionInstance[] = sections.filter((s) => !LEGACY.has(s.type));
+
+  const safeMin = (...nums: number[]) => nums.length ? Math.min(...nums) : 0;
+
+  // 1. gallery + video + map → media (skip if media already exists)
+  const hasMedia = kept.some((s) => s.type === "media");
+  if (!hasMedia && (galleries.length || videos.length || maps.length)) {
+    const gallery = galleries[0]?.data as Raw | undefined;
+    const video   = videos[0]?.data   as Raw | undefined;
+    const map     = maps[0]?.data     as Raw | undefined;
+    kept.push({
+      id:    `media_upgraded_${Date.now()}`,
+      type:  "media",
+      order: safeMin(
+        ...galleries.map((s) => s.order),
+        ...videos.map((s) => s.order),
+        ...maps.map((s) => s.order),
+      ),
+      data: {
+        images:     (gallery?.images   as string[]) ?? [],
+        videoUrl:   (video?.videoUrl   as string)   ?? "",
+        mapImage:   (map?.image        as string)   ?? "",
+        mapCaption: (map?.caption      as string)   ?? "",
+      },
+    } as AnySectionInstance);
+  }
+
+  // 2. flights + departure_dates → departures (skip if departures already exists)
+  const hasDepartures = kept.some((s) => s.type === "departures");
+  if (!hasDepartures && (flightSegs.length || ddSegs.length)) {
+    const entries: Raw[] = [];
+    for (const s of flightSegs) {
+      for (const d of ((s.data as Raw).departures as Raw[] | undefined) ?? []) {
+        entries.push({
+          date:            d.date            ?? "",
+          returnDate:      "",
+          spots:           0,
+          price:           d.price           ?? "",
+          origin:          d.name            ?? "",
+          arrivingAirport: d.arrivingAirport ?? "",
+          flyingTime:      d.flyingTime      ?? "",
+          arrivingTime:    d.arrivingTime    ?? "",
+          deal:            false,
+        });
+      }
+    }
+    for (const s of ddSegs) {
+      for (const d of ((s.data as Raw).dates as Raw[] | undefined) ?? []) {
+        entries.push({
+          date:       d.date       ?? "",
+          returnDate: d.returnDate ?? "",
+          spots:      Number(d.spots) || 0,
+          price:      d.price     ?? "",
+          origin:     "",
+          deal:       false,
+        });
+      }
+    }
+    kept.push({
+      id:    `departures_upgraded_${Date.now()}`,
+      type:  "departures",
+      order: safeMin(...flightSegs.map((s) => s.order), ...ddSegs.map((s) => s.order)),
+      data:  { entries },
+    } as AnySectionInstance);
+  }
+
+  // 3. payment_plan → fold into existing pricing, or create pricing from it
+  if (ppSegs.length) {
+    const pp        = ppSegs[0].data as Raw;
+    const pricingIdx = kept.findIndex((s) => s.type === "pricing");
+    if (pricingIdx >= 0) {
+      kept[pricingIdx] = {
+        ...kept[pricingIdx],
+        data: { ...kept[pricingIdx].data, paymentContent: pp.content ?? "", paymentSteps: pp.steps ?? [] },
+      } as AnySectionInstance;
+    } else {
+      kept.push({
+        id:    `pricing_from_pp_${Date.now()}`,
+        type:  "pricing",
+        order: ppSegs[0].order,
+        data:  { tiers: [], cancellation: "", paymentContent: pp.content ?? "", paymentSteps: pp.steps ?? [], termsContent: "" },
+      } as AnySectionInstance);
+    }
+  }
+
+  // 4. booking_terms → fold into pricing.termsContent
+  if (btSegs.length) {
+    const bt        = btSegs[0].data as Raw;
+    const pricingIdx = kept.findIndex((s) => s.type === "pricing");
+    if (pricingIdx >= 0) {
+      kept[pricingIdx] = {
+        ...kept[pricingIdx],
+        data: { ...kept[pricingIdx].data, termsContent: bt.content ?? "" },
+      } as AnySectionInstance;
+    } else {
+      kept.push({
+        id:    `pricing_from_bt_${Date.now()}`,
+        type:  "pricing",
+        order: btSegs[0].order,
+        data:  { tiers: [], cancellation: "", paymentContent: "", paymentSteps: [], termsContent: bt.content ?? "" },
+      } as AnySectionInstance);
+    }
+  }
+
+  // 5. guide → people (skip if people already exists)
+  const hasPeople = kept.some((s) => s.type === "people");
+  if (!hasPeople && guideSegs.length) {
+    const g = guideSegs[0].data as Raw;
+    kept.push({
+      id:    `people_from_guide_${Date.now()}`,
+      type:  "people",
+      order: guideSegs[0].order,
+      data: {
+        people: [{
+          id:        "guide_upgraded",
+          role:      "guide",
+          name:      g.name      ?? "",
+          bio:       g.bio       ?? "",
+          photo:     g.photo     ?? "",
+          languages: g.languages ?? [],
+          years:     0,
+          repliesIn: "",
+        }],
+      },
+    } as AnySectionInstance);
+  }
+
+  kept.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  return kept;
+}
+
+/**
+ * Supplements a sections array with people / trek_profile / scarcity sections
+ * derived from legacy Firestore flat fields (agent, difficulty, priceWas…).
+ * Only creates a section if the type is not already present.
+ * Called after upgradeLegacySections() so section→section conversions happen first.
+ */
+function supplementFromFlatFields(
+  sections: AnySectionInstance[],
+  d: Record<string, unknown>
+): AnySectionInstance[] {
+  const result = [...sections];
+
+  const agent = d.agent as Record<string, unknown> | undefined;
+  if (agent?.name && !result.some((s) => s.type === "people")) {
+    result.push({
+      id:    `people_from_flat_${Date.now()}`,
+      type:  "people",
+      order: result.length,
+      data: {
+        people: [{
+          id:        "agent_legacy",
+          role:      agent.role      ?? "agent",
+          name:      agent.name,
+          bio:       "",
+          photo:     agent.avatar    ?? "",
+          languages: [],
+          years:     typeof agent.years === "number" ? agent.years : 0,
+          repliesIn: agent.repliesIn ?? "",
+        }],
+      },
+    } as AnySectionInstance);
+  }
+
+  if ((d.difficulty || d.maxAltitude || d.distanceKm) && !result.some((s) => s.type === "trek_profile")) {
+    result.push({
+      id:    `trek_from_flat_${Date.now()}`,
+      type:  "trek_profile",
+      order: result.length,
+      data: {
+        difficulty:  d.difficulty  ?? "",
+        maxAltitude: typeof d.maxAltitude === "number" ? d.maxAltitude : 0,
+        distanceKm:  typeof d.distanceKm  === "number" ? d.distanceKm  : 0,
+        fitnessNote: typeof d.fitnessNote === "string"  ? d.fitnessNote : "",
+      },
+    } as AnySectionInstance);
+  }
+
+  if ((d.priceWas || d.spotsRemaining) && !result.some((s) => s.type === "scarcity")) {
+    result.push({
+      id:    `scarcity_from_flat_${Date.now()}`,
+      type:  "scarcity",
+      order: result.length,
+      data: {
+        wasPrice:       d.priceWas       ?? "",
+        spotsRemaining: typeof d.spotsRemaining === "number" ? d.spotsRemaining : 0,
+        totalSpots:     typeof d.totalSpots      === "number" ? d.totalSpots      : 0,
+        firstDepartureDate: "",
+      },
+    } as AnySectionInstance);
+  }
+
+  return result;
+}
+
 function buildApiPayload(
   core: CoreForm,
   sections: AnySectionInstance[],
-  extras: TemplateExtras,
   userId: string,
   templateId: string,
   extraId?: string
 ) {
+  type ArrStr = string[];
+
   const get = <T,>(type: AnySectionInstance["type"]): T | undefined =>
     sections.find((s) => s.type === type)?.data as T | undefined;
 
-  type ArrStr = string[];
-  const inclusions = get<{ includes: ArrStr; excludes: ArrStr }>("inclusions");
-  const flights = get<{ departures: Record<string, unknown>[] }>("flights");
-  const itinerary = get<{ days: Record<string, unknown>[] }>("itinerary");
-  const pricing = get<{ tiers: { label: string; price: string }[]; cancellation: string }>("pricing");
-  const hotel = get<{ description: string }>("hotel");
-  const gallery = get<{ images: ArrStr }>("gallery");
-  const video = get<{ videoUrl: string }>("video");
+  const inclusions  = get<{ includes: ArrStr; excludes: ArrStr }>("inclusions");
+  const itinerary   = get<{ days: Record<string, unknown>[] }>("itinerary");
+  const pricing     = get<{ tiers: { label: string; price: string }[]; cancellation: string }>("pricing");
+  const hotels      = sections.filter((s) => s.type === "hotel");
+  const mediaSec    = get<{ images?: ArrStr; videoUrl?: string }>("media");
+  const peopleSec   = get<{ people: Array<Record<string, unknown>> }>("people");
+  const trekSec     = get<{ difficulty: string; maxAltitude: number; distanceKm: number }>("trek_profile");
+  const scarcitySec = get<{ wasPrice: string; spotsRemaining: number; totalSpots: number }>("scarcity");
+  const depSec      = get<{ entries: Array<Record<string, unknown>> }>("departures");
 
-  // Template-specific extras
-  const agent = extras.agentName
-    ? {
-        name: extras.agentName,
-        role: extras.agentRole || "",
-        ...(extras.agentAvatar    ? { avatar:    extras.agentAvatar }                       : {}),
-        ...(extras.agentYears     ? { years:     Number(extras.agentYears) }                : {}),
-        ...(extras.agentRepliesIn ? { repliesIn: extras.agentRepliesIn }                    : {}),
-      }
-    : null;
+  const hotelDescription = hotels.length > 0
+    ? String((hotels[0].data as Record<string, unknown>).description ?? "")
+    : "";
 
-  const departures = extras.firstDepartureDate
-    ? [{ date: extras.firstDepartureDate, spots: extras.departureSpots ? Number(extras.departureSpots) : 0 }]
-    : null;
+  // Derive legacy agent flat field from people section for template backward compat
+  const firstPerson = peopleSec?.people?.[0];
+  const agent = firstPerson ? {
+    name:      String(firstPerson.name      ?? ""),
+    role:      String(firstPerson.role      ?? "agent"),
+    ...(firstPerson.photo     ? { avatar:    String(firstPerson.photo) }     : {}),
+    ...(firstPerson.years     ? { years:     Number(firstPerson.years) }     : {}),
+    ...(firstPerson.repliesIn ? { repliesIn: String(firstPerson.repliesIn) } : {}),
+  } : null;
+
+  // Derive legacy departures flat field
+  const legacyDepartures = (depSec?.entries ?? [])
+    .filter((e) => e.date)
+    .map((e) => ({
+      date:  String(e.date  ?? ""),
+      spots: Number(e.spots) || 0,
+      ...(e.price ? { price: String(e.price) } : {}),
+    }));
+
+  // Derive legacy airports flat field from departures entries that have an origin
+  const airports = (depSec?.entries ?? [])
+    .filter((e) => e.origin)
+    .map((e) => ({
+      name:            String(e.origin           ?? ""),
+      price:           String(e.price            ?? ""),
+      ...(e.date            ? { date:            String(e.date) }            : {}),
+      ...(e.arrivingAirport ? { arrivingAirport: String(e.arrivingAirport) } : {}),
+      ...(e.flyingTime      ? { flyingTime:      String(e.flyingTime) }      : {}),
+      ...(e.arrivingTime    ? { arrivingTime:    String(e.arrivingTime) }    : {}),
+    }));
 
   return {
     ...(extraId ? { id: extraId } : {}),
     userId,
     templateId,
-    // core
+    // v2 core — stored as LocalizedString
+    title:           { en: core.titleEn, ar: core.titleAr },
+    description:     { en: core.descriptionEn, ar: core.descriptionAr },
     destination:     core.destination,
     price:           core.price,
+    currency:        core.currency || undefined,
     nights:          core.nights,
-    title:           core.title,
-    description:     core.description,
-    language:        core.language,
+    primaryLanguage: core.primaryLanguage,
+    language:        core.primaryLanguage,
     whatsapp:        core.whatsapp,
     messenger:       core.messenger,
     coverImage:      core.coverImage,
-    // sections mapped to flat fields
-    includes:        inclusions?.includes ?? [],
-    excludes:        inclusions?.excludes ?? [],
-    airports:        flights?.departures ?? [],
-    itinerary:       itinerary?.days ?? [],
-    pricingTiers:    pricing?.tiers ?? [],
+    // flat fields for template backward compat (derived from v2 sections)
+    includes:        inclusions?.includes  ?? [],
+    excludes:        inclusions?.excludes  ?? [],
+    itinerary:       itinerary?.days       ?? [],
+    pricingTiers:    pricing?.tiers        ?? [],
     cancellation:    pricing?.cancellation ?? "",
-    hotelDescription: hotel?.description ?? "",
-    images:          gallery?.images ?? [],
-    videoUrl:        video?.videoUrl ?? "",
-    // forward full sections array
+    hotelDescription,
+    images:          mediaSec?.images      ?? [],
+    videoUrl:        mediaSec?.videoUrl    ?? "",
+    airports,
+    // v2 canonical sections[] — single source of truth
     sections,
-    // template extras
-    ...(agent      ? { agent }                                 : { agent: null }),
-    ...(extras.difficulty  ? { difficulty:     extras.difficulty }              : {}),
-    ...(extras.maxAltitude ? { maxAltitude:    Number(extras.maxAltitude) }     : {}),
-    ...(extras.distanceKm  ? { distanceKm:     Number(extras.distanceKm) }      : {}),
-    ...(extras.spotsRemaining ? { spotsRemaining: Number(extras.spotsRemaining) } : {}),
-    ...(extras.viewersNow  ? { viewersNow:     Number(extras.viewersNow) }      : {}),
-    ...(extras.priceWas    ? { priceWas:       extras.priceWas }                : {}),
-    ...(extras.saving      ? { saving:         extras.saving }                  : {}),
-    ...(departures         ? { departures }                                     : {}),
+    // legacy flat fields for templates that read TPackage directly
+    ...(agent       ? { agent }                                              : { agent: null }),
+    ...(trekSec     ? { difficulty:     trekSec.difficulty,
+                        maxAltitude:    trekSec.maxAltitude,
+                        distanceKm:     trekSec.distanceKm }                : {}),
+    ...(scarcitySec ? { priceWas:       scarcitySec.wasPrice,
+                        spotsRemaining: scarcitySec.spotsRemaining,
+                        totalSpots:     scarcitySec.totalSpots }            : {}),
+    ...(legacyDepartures.length ? { departures: legacyDepartures }         : {}),
   };
 }
 
@@ -186,7 +431,6 @@ function BuilderPageInner() {
   const [selectedTemplateId, setSelectedTemplateId] = useState(DEFAULT_TEMPLATE_ID);
   const [core, setCore] = useState<CoreForm>({ ...DEFAULT_CORE_FORM });
   const [sections, setSections] = useState<AnySectionInstance[]>([]);
-  const [extras, setExtras] = useState<TemplateExtras>({ ...DEFAULT_EXTRAS });
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
   const [packageId, setPackageId] = useState<string | null>(null);
@@ -226,9 +470,17 @@ function BuilderPageInner() {
             try {
               const draft = JSON.parse(raw);
               if (draft.core) setCore(draft.core);
-              if (Array.isArray(draft.sections)) setSections(draft.sections);
               if (draft.templateId) setSelectedTemplateId(draft.templateId);
-              if (draft.extras) setExtras({ ...DEFAULT_EXTRAS, ...draft.extras });
+              // Convert old Phase-1 extras (if present) into sections so no draft data is lost
+              const base: AnySectionInstance[] = Array.isArray(draft.sections) ? draft.sections : [];
+              const e = draft.extras ?? {};
+              const fakeFlat: Record<string, unknown> = {
+                agent: e.agentName ? { name: e.agentName, role: e.agentRole, avatar: e.agentAvatar, years: e.agentYears ? Number(e.agentYears) : 0, repliesIn: e.agentRepliesIn } : undefined,
+                difficulty: e.difficulty, maxAltitude: e.maxAltitude ? Number(e.maxAltitude) : undefined,
+                distanceKm: e.distanceKm ? Number(e.distanceKm) : undefined,
+                priceWas: e.priceWas, spotsRemaining: e.spotsRemaining ? Number(e.spotsRemaining) : undefined,
+              };
+              setSections(supplementFromFlatFields(upgradeLegacySections(base), fakeFlat));
               setUiPhase("build");
             } catch {}
           }
@@ -240,40 +492,35 @@ function BuilderPageInner() {
         if (pkgSnap.exists() && pkgSnap.data()?.userId === u.uid) {
           const d = pkgSnap.data();
 
+          // Resolve v2 LocalizedString or legacy plain string for title/description
+          const rawTitle = d.title;
+          const rawDesc  = d.description;
+          const titleEn  = rawTitle && typeof rawTitle === "object" ? (rawTitle.en || "") : (rawTitle || "");
+          const titleAr  = rawTitle && typeof rawTitle === "object" ? (rawTitle.ar || "") : "";
+          const descEn   = rawDesc  && typeof rawDesc  === "object" ? (rawDesc.en  || "") : (rawDesc  || "");
+          const descAr   = rawDesc  && typeof rawDesc  === "object" ? (rawDesc.ar  || "") : "";
+          const primaryLanguage = (d.primaryLanguage || d.language) === "ar" ? "ar" as const : "en" as const;
+
           setCore({
-            destination:  d.destination  || "",
-            price:        d.price        || "",
-            nights:       d.nights ? String(d.nights) : "5",
-            title:        d.title        || "",
-            description:  d.description  || "",
-            language:     d.language === "ar" ? "ar" : "en",
-            whatsapp:     d.whatsapp     || "",
-            messenger:    d.messenger    || "",
-            coverImage:   d.coverImage   || "",
+            titleEn,
+            titleAr,
+            destination:     d.destination  || "",
+            price:           d.price        || "",
+            currency:        d.currency     || "",
+            nights:          d.nights ? String(d.nights) : "5",
+            descriptionEn:   descEn,
+            descriptionAr:   descAr,
+            primaryLanguage,
+            whatsapp:        d.whatsapp     || "",
+            messenger:       d.messenger    || "",
+            coverImage:      d.coverImage   || "",
           });
 
           if (d.templateId) setSelectedTemplateId(d.templateId);
 
-          // Reconstruct template extras from flat Firestore fields
-          setExtras({
-            agentName:           d.agent?.name        || "",
-            agentRole:           d.agent?.role        || "",
-            agentAvatar:         d.agent?.avatar      || "",
-            agentYears:          d.agent?.years       ? String(d.agent.years) : "",
-            agentRepliesIn:      d.agent?.repliesIn   || "",
-            difficulty:          d.difficulty         || "",
-            maxAltitude:         d.maxAltitude        ? String(d.maxAltitude) : "",
-            distanceKm:          d.distanceKm         ? String(d.distanceKm)  : "",
-            firstDepartureDate:  d.departures?.[0]?.date  || "",
-            departureSpots:      d.departures?.[0]?.spots ? String(d.departures[0].spots) : "",
-            spotsRemaining:      d.spotsRemaining     ? String(d.spotsRemaining) : "",
-            viewersNow:          d.viewersNow         ? String(d.viewersNow)  : "",
-            priceWas:            d.priceWas           || "",
-            saving:              d.saving             || "",
-          });
-
           if (Array.isArray(d.sections) && d.sections.length > 0) {
-            setSections(d.sections as AnySectionInstance[]);
+            // Upgrade legacy section types, then supplement from any remaining flat fields
+            setSections(supplementFromFlatFields(upgradeLegacySections(d.sections as AnySectionInstance[]), d));
           } else {
             // Old package format — reconstruct sections from flat fields
             const rebuilt: AnySectionInstance[] = [];
@@ -290,7 +537,8 @@ function BuilderPageInner() {
             if (Array.isArray(d.images) && d.images.length) push("gallery", { images: d.images });
             if (d.videoUrl) push("video", { videoUrl: d.videoUrl });
 
-            setSections(rebuilt);
+            // Upgrade legacy section types + supplement with flat-field people/trek/scarcity
+            setSections(supplementFromFlatFields(upgradeLegacySections(rebuilt), d));
           }
 
           setPackageId(editId);
@@ -313,11 +561,11 @@ function BuilderPageInner() {
     if (isEditMode || authLoading || uiPhase !== "build") return;
     setDraftStatus("saving");
     const timer = setTimeout(() => {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ core, sections, templateId: selectedTemplateId, extras }));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ core, sections, templateId: selectedTemplateId }));
       setDraftStatus("saved");
     }, 1500);
     return () => clearTimeout(timer);
-  }, [core, sections, selectedTemplateId, extras, isEditMode, authLoading, uiPhase]);
+  }, [core, sections, selectedTemplateId, isEditMode, authLoading, uiPhase]);
 
   // ── Submit ───────────────────────────────────────────────────────────────────
 
@@ -329,7 +577,7 @@ function BuilderPageInner() {
     setError(null);
     setGenerating(true);
     try {
-      const payload = buildApiPayload(core, sections, extras, user.uid, selectedTemplateId, isEditMode ? editId ?? undefined : undefined);
+      const payload = buildApiPayload(core, sections, user.uid, selectedTemplateId, isEditMode ? editId ?? undefined : undefined);
 
       if (isEditMode && editId) {
         const res = await fetch("/api/update", {
@@ -340,7 +588,7 @@ function BuilderPageInner() {
         const json = await res.json();
         if (!res.ok) { setError(json.error || "Something went wrong."); return; }
         if (json.agencySlug) setAgencySlug(json.agencySlug);
-        posthog.capture("package_updated", { destination: core.destination, language: core.language, templateId: selectedTemplateId });
+        posthog.capture("package_updated", { destination: core.destination, language: core.primaryLanguage, templateId: selectedTemplateId });
       } else {
         const res = await fetch("/api/generate", {
           method: "POST",
@@ -353,7 +601,7 @@ function BuilderPageInner() {
         setPackageId(json.id);
         if (json.agencySlug) setAgencySlug(json.agencySlug);
         localStorage.removeItem(DRAFT_KEY);
-        posthog.capture("package_published", { destination: core.destination, language: core.language, nights: core.nights, templateId: selectedTemplateId });
+        posthog.capture("package_published", { destination: core.destination, language: core.primaryLanguage, nights: core.nights, templateId: selectedTemplateId });
       }
       setDone(true);
     } catch (err: any) {
@@ -637,13 +885,6 @@ function BuilderPageInner() {
                   userId={user?.uid ?? ""}
                   lang={lang}
                 />
-                <TemplateExtrasEditor
-                  templateId={selectedTemplateId}
-                  extras={extras}
-                  onChange={setExtras}
-                  userId={user?.uid ?? ""}
-                  lang={lang}
-                />
               </>
             )}
             {tab === "sections" && (
@@ -652,13 +893,14 @@ function BuilderPageInner() {
                 onChange={setSections}
                 userId={user?.uid ?? ""}
                 lang={lang}
+                templateId={selectedTemplateId}
               />
             )}
           </div>
 
           {!isMobile && (
             <div style={{ width: 260, flexShrink: 0 }}>
-              <MiniPreview core={core} sections={sections} lang={lang} />
+              <MiniPreview core={core} sections={sections} lang={lang} templateId={selectedTemplateId} />
             </div>
           )}
         </div>

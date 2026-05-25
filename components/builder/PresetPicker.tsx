@@ -144,10 +144,10 @@ export function PresetPicker({
     if (extracted?.destination)       coreOverrides.destination = extracted.destination;
     if (extracted?.price)             coreOverrides.price       = extracted.price;
     if (extracted?.nights)            coreOverrides.nights      = extracted.nights;
-    if (extracted?.title)             coreOverrides.title       = extracted.title;
-    if (extracted?.description)       coreOverrides.description = extracted.description;
+    if (extracted?.title)       coreOverrides.titleEn       = extracted.title;
+    if (extracted?.description) coreOverrides.descriptionEn = extracted.description;
     if (extracted?.language === "ar" || extracted?.language === "en") {
-      coreOverrides.language = extracted.language;
+      coreOverrides.primaryLanguage = extracted.language;
     }
 
     onApply(coreOverrides, sections);

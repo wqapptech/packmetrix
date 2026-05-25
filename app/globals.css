@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./aurora.css";
 
 :root {
   /* ── App shell tokens ───────────────────────────────── */
@@ -129,6 +130,15 @@
 
   /* ── WhatsApp ─────────────────────────────────────────── */
   --wa: #25d366;
+
+  /* ── Packages dashboard (light context within dark shell) ── */
+  --dash-bg:    #fafaf7;
+  --dash-head:  #ffffff;
+  --dash-paper: #fbfaf6;
+  --dash-fg:    #1c1a17;
+  --dash-mut:   rgba(28, 26, 23, 0.55);
+  --dash-line:  rgba(28, 26, 23, 0.10);
+  --dash-ink:   #0e1219;
 }
 
 *,

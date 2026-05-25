@@ -128,6 +128,7 @@ export default function PackagePage() {
       pkg={pkg}
       agency={effectiveAgency}
       lang={lang}
+      templateId={pkg.templateId}
       onWhatsApp={openWA}
       onMessenger={openMessenger}
     />

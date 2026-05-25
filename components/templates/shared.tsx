@@ -4,6 +4,7 @@ import React from "react";
 import Icon from "@/components/Icon";
 import { T } from "@/lib/translations";
 import type { TPackage, TAgency, TReview, TemplateTokens, Lang, TAgent, TDeparture } from "./types";
+import { locStr } from "./types";
 
 // ─── Desktop responsive hook ────────────────────────────────────────────────
 
@@ -771,7 +772,7 @@ export function BaseCard({
           overflow: "hidden", display: "-webkit-box",
           WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
         }}>
-          {pkg.title || pkg.destination}
+          {locStr(pkg.title, lang) || pkg.destination}
         </div>
         {/* Metrics */}
         <div style={{ marginTop: 11, paddingTop: 10, borderTop: "1px solid rgba(0,0,0,0.06)", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
@@ -2184,6 +2185,16 @@ export function DynamicSections({ pkg, tokens, lang, onWhatsApp, skip }: {
           case "payment_plan":    return <SharedPaymentPlan      key={s.id} content={s.data.content} steps={s.data.steps} tokens={tokens} lang={lang} />;
           case "map":             return <SharedMap              key={s.id} image={s.data.image} caption={s.data.caption} tokens={tokens} lang={lang} />;
           case "video":           return <SharedVideo            key={s.id} videoUrl={s.data.videoUrl} tokens={tokens} lang={lang} />;
+          case "media":           return (
+            <React.Fragment key={s.id}>
+              {Array.isArray(s.data.images) && (s.data.images as string[]).length > 0 &&
+                <SharedGallery pkg={{ ...pkg, images: s.data.images as string[], videoUrl: "" }} tokens={tokens} lang={lang} />}
+              {!!(s.data.videoUrl) &&
+                <SharedVideo videoUrl={s.data.videoUrl as string} tokens={tokens} lang={lang} />}
+              {!!(s.data.mapImage) &&
+                <SharedMap image={s.data.mapImage as string} caption={s.data.mapCaption as string | undefined} tokens={tokens} lang={lang} />}
+            </React.Fragment>
+          );
           default:                return null;
         }
       })}
@@ -2239,6 +2250,16 @@ export function DynamicSectionsDesktop({ pkg, tokens, lang, onWhatsApp, skip }: 
           case "payment_plan":    return <SharedPaymentPlanDesktop   key={s.id} content={s.data.content} steps={s.data.steps} tokens={tokens} lang={lang} />;
           case "map":             return <SharedMapDesktop           key={s.id} image={s.data.image} caption={s.data.caption} tokens={tokens} lang={lang} />;
           case "video":           return <SharedVideoDesktop         key={s.id} videoUrl={s.data.videoUrl} tokens={tokens} lang={lang} />;
+          case "media":           return (
+            <React.Fragment key={s.id}>
+              {Array.isArray(s.data.images) && (s.data.images as string[]).length > 0 &&
+                <SharedGalleryDesktop pkg={{ ...pkg, images: s.data.images as string[], videoUrl: "" }} tokens={tokens} lang={lang} />}
+              {!!(s.data.videoUrl) &&
+                <SharedVideoDesktop videoUrl={s.data.videoUrl as string} tokens={tokens} lang={lang} />}
+              {!!(s.data.mapImage) &&
+                <SharedMapDesktop image={s.data.mapImage as string} caption={s.data.mapCaption as string | undefined} tokens={tokens} lang={lang} />}
+            </React.Fragment>
+          );
           default:                return null;
         }
       })}

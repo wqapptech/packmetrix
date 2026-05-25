@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Icon from "@/components/Icon";
 import type { CoreForm } from "@/lib/sections/types";
-import { SAND } from "./constants";
+import { SAND, tabBtn } from "./constants";
 import { FieldLabel, TextInput, TextArea } from "./primitives";
+import { PexelsPhotoSearch } from "./PexelsPhotoSearch";
 
 export function CoreFieldsEditor({
   core,
@@ -23,32 +25,23 @@ export function CoreFieldsEditor({
 
   return (
     <div>
-      {/* Language picker */}
-      <FieldLabel>{l ? "لغة الصفحة" : "Landing page language"}</FieldLabel>
+      {/* Primary language picker */}
+      <FieldLabel>{l ? "اللغة الأساسية للباقة" : "Primary package language"}</FieldLabel>
       <div style={{ display: "flex", gap: 10, marginBottom: 4 }}>
         {(["en", "ar"] as const).map((lng) => (
           <button
             key={lng}
-            onClick={() => set("language", lng)}
+            onClick={() => set("primaryLanguage", lng)}
             style={{
-              flex: 1,
-              padding: "10px 16px",
-              borderRadius: 10,
-              border: core.language === lng
+              flex: 1, padding: "10px 16px", borderRadius: 10,
+              border: core.primaryLanguage === lng
                 ? `1.5px solid ${SAND}`
                 : "1px solid rgba(255,255,255,0.1)",
-              background: core.language === lng
-                ? `${SAND}18`
-                : "rgba(255,255,255,0.03)",
-              color: core.language === lng ? SAND : "rgba(255,255,255,0.5)",
-              fontSize: 13,
-              fontWeight: core.language === lng ? 700 : 400,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
+              background: core.primaryLanguage === lng ? `${SAND}18` : "rgba(255,255,255,0.03)",
+              color: core.primaryLanguage === lng ? SAND : "rgba(255,255,255,0.5)",
+              fontSize: 13, fontWeight: core.primaryLanguage === lng ? 700 : 400,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               transition: "all 0.15s",
             }}
           >
@@ -60,7 +53,7 @@ export function CoreFieldsEditor({
           </button>
         ))}
       </div>
-      {core.language === "ar" && (
+      {core.primaryLanguage === "ar" && (
         <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 8, background: "rgba(232,201,123,0.06)", border: "1px solid rgba(232,201,123,0.18)", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
           {l ? "سيُعرض محتوى الصفحة من اليمين إلى اليسار" : "The landing page will be displayed right-to-left."}
         </div>
@@ -83,6 +76,14 @@ export function CoreFieldsEditor({
           />
         </div>
         <div style={{ flex: 1 }}>
+          <FieldLabel>{l ? "العملة" : "Currency"}</FieldLabel>
+          <TextInput
+            value={core.currency}
+            onChange={(v) => set("currency", v)}
+            placeholder="EUR, SAR, USD…"
+          />
+        </div>
+        <div style={{ flex: 1 }}>
           <FieldLabel>{l ? "عدد الليالي" : "Nights"}</FieldLabel>
           <TextInput
             value={core.nights}
@@ -92,24 +93,57 @@ export function CoreFieldsEditor({
         </div>
       </div>
 
-      <FieldLabel>{l ? "عنوان الباقة" : "Package title"}</FieldLabel>
-      <TextInput
-        value={core.title}
-        onChange={(v) => set("title", v)}
-        placeholder={l ? "مثال: باقة العمرة المميزة ٢٠٢٥" : "e.g. Premium Umrah Package 2025"}
-      />
-
-      <FieldLabel>{l ? "وصف قصير" : "Short description"}</FieldLabel>
-      <TextArea
-        value={core.description}
-        onChange={(v) => set("description", v as string)}
-        placeholder={l ? "وصف موجز يُعرض في أعلى الصفحة…" : "A short teaser shown at the top of the page…"}
-        rows={3}
-      />
-
-      <div style={{ marginTop: 4, marginBottom: 18, padding: "12px 14px", borderRadius: 10, background: "rgba(232,201,123,0.05)", border: "1px solid rgba(232,201,123,0.18)", fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.55 }}>
+      {/* Bilingual title */}
+      <div style={{ marginTop: 4, marginBottom: 4, padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", fontSize: 11.5, color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
         <span style={{ color: SAND }}>✦ </span>
-        {l ? "اجعل العنوان جذاباً — يظهر في أعلى الصفحة والروابط المشتركة." : "Make the title compelling — it appears at the top of the page and in shared links."}
+        {l
+          ? "أدخل عنوان الباقة بالإنجليزية والعربية لدعم جميع العملاء."
+          : "Enter the package title in both languages to serve all travellers."}
+      </div>
+
+      <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <FieldLabel>{l ? "العنوان — إنجليزي" : "Title — English"}</FieldLabel>
+          <TextInput
+            value={core.titleEn}
+            onChange={(v) => set("titleEn", v)}
+            placeholder="e.g. Premium Umrah Package 2026"
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <FieldLabel>{l ? "العنوان — عربي" : "Title — Arabic"}</FieldLabel>
+          <div dir="rtl">
+            <TextInput
+              value={core.titleAr}
+              onChange={(v) => set("titleAr", v)}
+              placeholder="مثال: باقة العمرة المميزة ٢٠٢٦"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Bilingual description */}
+      <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <FieldLabel>{l ? "الوصف — إنجليزي" : "Description — English"}</FieldLabel>
+          <TextArea
+            value={core.descriptionEn}
+            onChange={(v) => set("descriptionEn", v as string)}
+            placeholder="A short teaser shown at the top of the page…"
+            rows={3}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <FieldLabel>{l ? "الوصف — عربي" : "Description — Arabic"}</FieldLabel>
+          <div dir="rtl">
+            <TextArea
+              value={core.descriptionAr}
+              onChange={(v) => set("descriptionAr", v as string)}
+              placeholder="وصف موجز يُعرض في أعلى الصفحة…"
+              rows={3}
+            />
+          </div>
+        </div>
       </div>
 
       <FieldLabel>{l ? "رقم واتساب" : "WhatsApp number"}</FieldLabel>
@@ -122,16 +156,10 @@ export function CoreFieldsEditor({
           onChange={(e) => set("whatsapp", e.target.value)}
           placeholder="+1 234 567 8900"
           style={{
-            width: "100%",
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 10,
-            padding: "10px 14px 10px 40px",
-            color: "var(--white)",
-            fontSize: 13,
-            fontFamily: "inherit",
-            outline: "none",
-            transition: "border-color 0.2s",
+            width: "100%", background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+            padding: "10px 14px 10px 40px", color: "var(--white)",
+            fontSize: 13, fontFamily: "inherit", outline: "none", transition: "border-color 0.2s",
           }}
           onFocus={(e) => (e.target.style.borderColor = `${SAND}60`)}
           onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
@@ -148,33 +176,22 @@ export function CoreFieldsEditor({
           onChange={(e) => set("messenger", e.target.value)}
           placeholder="https://m.me/yourpage"
           style={{
-            width: "100%",
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 10,
-            padding: "10px 14px 10px 40px",
-            color: "var(--white)",
-            fontSize: 13,
-            fontFamily: "inherit",
-            outline: "none",
-            transition: "border-color 0.2s",
+            width: "100%", background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+            padding: "10px 14px 10px 40px", color: "var(--white)",
+            fontSize: 13, fontFamily: "inherit", outline: "none", transition: "border-color 0.2s",
           }}
           onFocus={(e) => (e.target.style.borderColor = `${SAND}60`)}
           onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
         />
       </div>
 
-      {/* Cover image */}
       <CoverImageField value={core.coverImage} onChange={(v) => set("coverImage", v)} userId={userId} lang={lang} />
     </div>
   );
 }
 
 // ─── Inline cover-image picker ─────────────────────────────────────────────────
-
-import { useState } from "react";
-import { tabBtn } from "./constants";
-import { PexelsPhotoSearch } from "./PexelsPhotoSearch";
 
 const COVER_RATIO = 16 / 9;
 const SUCCESS = "#2dd4a0";

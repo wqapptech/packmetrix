@@ -98,9 +98,9 @@ export const TEMPLATES: TemplateDefinition[] = [
     targetAr: "تجارب راقية ومنتقاة",
     Page: TemplateAtlasPage,
     Card: TemplateAtlasCard,
-    previewBg: "#f5f3ee",
-    templateColor: "#3d5a40",
-    available: false, // TODO: not yet designed
+    previewBg: "#f7f0e6",
+    templateColor: "#5f1c2a", // --at-burgundy from atlas.css
+    available: true,
   },
   {
     id: "tribe",
@@ -110,9 +110,9 @@ export const TEMPLATES: TemplateDefinition[] = [
     targetAr: "رحلات جماعية",
     Page: TemplateTribePage,
     Card: TemplateTribeCard,
-    previewBg: "#faf6ef",
-    templateColor: "#c8862e",
-    available: false, // TODO: not yet designed
+    previewBg: "#f3ebdf",
+    templateColor: "#d96e3e", // --tr-clay from tribe.css
+    available: true,
   },
   {
     id: "smart",
@@ -122,9 +122,9 @@ export const TEMPLATES: TemplateDefinition[] = [
     targetAr: "اقتصادي · شفاف",
     Page: TemplateSmartPage,
     Card: TemplateSmartCard,
-    previewBg: "#fdfcf9",
-    templateColor: "#5b6cff",
-    available: false, // TODO: not yet designed
+    previewBg: "#ffffff",
+    templateColor: "#e5b53d", // --sm-yellow from smart.css
+    available: true,
   },
   {
     id: "family",
@@ -134,9 +134,9 @@ export const TEMPLATES: TemplateDefinition[] = [
     targetAr: "عطلات عائلية",
     Page: TemplateFamilyPage,
     Card: TemplateFamilyCard,
-    previewBg: "#fefaf2",
-    templateColor: "#f3a847",
-    available: false, // TODO: not yet designed
+    previewBg: "#fef9f0",
+    templateColor: "#3a6b4a", // --fm-green from family.css
+    available: true,
   },
 ];
 
@@ -146,5 +146,5 @@ export const TEMPLATE_MAP: Record<string, TemplateDefinition> = Object.fromEntri
 
 export const DEFAULT_TEMPLATE_ID = "aurora";
 
-/** Only the 6 fully designed templates that agents can select */
+/** All 10 templates — all are now available. */
 export const AVAILABLE_TEMPLATES = TEMPLATES.filter(t => t.available);

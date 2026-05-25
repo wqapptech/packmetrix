@@ -1,5 +1,6 @@
 "use client";
 
+import "../packages.css";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -12,11 +13,10 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import posthog from "posthog-js";
 import { hasFullAccess } from "@/lib/trial";
-import { BaseCard } from "@/components/templates/shared";
+import { PackageCard } from "@/components/packages/PackageCard";
 import { TEMPLATE_MAP } from "@/components/templates";
-import type { TAgency } from "@/components/templates/types";
+import type { TAgency, LocStr } from "@/components/templates/types";
 
-const SAND = "#e8c97b";
 const AGENCY_BASE =
   process.env.NEXT_PUBLIC_AGENCY_URL ??
   (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://agency.packmetrix.com");
@@ -33,7 +33,7 @@ type Package = {
   images?: string[];
   agencySlug?: string;
   isActive?: boolean;
-  title?: string;
+  title?: LocStr;
   templateId?: string;
 };
 
@@ -68,11 +68,7 @@ export default function PackagesPage() {
       const name = data.name || "";
       setAgencySlug(slugify(name) || "agency");
       setCanCreate(hasFullAccess(data.plan, data.trialEndsAt));
-      setAgency({
-        name,
-        tagline: data.tagline || "",
-        logoUrl: data.logoUrl || "",
-      });
+      setAgency({ name, tagline: data.tagline || "", logoUrl: data.logoUrl || "" });
       setAuthLoading(false);
 
       const pkgSnap = await getDocs(query(collection(db, "packages"), where("userId", "==", user.uid)));
@@ -94,6 +90,7 @@ export default function PackagesPage() {
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const activeCount = packages.filter(p => p.agencySlug && p.isActive !== false).length;
+  const draftCount  = packages.filter(p => !p.agencySlug).length;
   const totalViews  = packages.reduce((s, p) => s + (p.views || 0), 0);
   const totalLeads  = packages.reduce((s, p) => s + (p.whatsappClicks || 0) + (p.messengerClicks || 0), 0);
   const avgConv     = totalViews > 0 ? (totalLeads / totalViews) * 100 : 0;
@@ -101,7 +98,7 @@ export default function PackagesPage() {
   // ── Filter ─────────────────────────────────────────────────────────────────
   const filteredPkgs = (() => {
     switch (filter) {
-      case "live": return packages.filter(p => p.agencySlug && p.isActive !== false);
+      case "live":  return packages.filter(p => p.agencySlug && p.isActive !== false);
       case "draft": return packages.filter(p => !p.agencySlug);
       case "top": {
         const withConv = packages
@@ -115,180 +112,146 @@ export default function PackagesPage() {
     }
   })();
 
+  const countLabel = packages.length > 0
+    ? `${activeCount} ${lang === "ar" ? "نشط" : "active"} · ${draftCount} ${lang === "ar" ? "مسودة" : "draft"}`
+    : "";
+
   return (
     <AppLayout>
-      <div dir={dir} style={{ padding: isMobile ? "16px 16px 40px" : "24px 28px 60px", maxWidth: 1280 }}>
+      <div dir={dir} style={{ padding: isMobile ? "16px" : "24px", maxWidth: 1280 }}>
+        <div className="dash">
 
-        {/* Stats strip */}
-        {!loading && packages.length > 0 && (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 14,
-            overflow: "hidden",
-            marginBottom: 20,
-          }}>
-            {[
-              { v: String(activeCount), l: t.statsActivePackages },
-              { v: totalViews.toLocaleString(), l: t.statsViewsThirtyDay },
-              { v: totalLeads.toLocaleString(), l: t.statsLeadsThirtyDay },
-              { v: avgConv > 0 ? avgConv.toFixed(2) + "%" : "—", l: t.statsAvgConversion },
-            ].map((s, i) => (
-              <div key={i} style={{ padding: "18px 20px", borderRight: i < 3 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
-                <div style={{
-                  fontFamily: "var(--font-instrument-serif, serif)",
-                  fontSize: 30, lineHeight: 1, letterSpacing: "-0.5px",
-                  color: "#fdfcf9",
-                }}>
-                  {s.v}
-                </div>
-                <div style={{
-                  fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 6,
-                  letterSpacing: "0.5px", textTransform: "uppercase", fontWeight: 600,
-                  fontFamily: "var(--font-jetbrains-mono, monospace)",
-                }}>
-                  {s.l}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Filter bar + New package button */}
-        <div style={{
-          display: "flex", justifyContent: "space-between",
-          alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap",
-        }}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {([
-              ["all",   t.filterAll],
-              ["live",  t.filterLive],
-              ["draft", t.filterDraft],
-              ["top",   t.filterTopPerformers],
-            ] as [FilterTab, string][]).map(([tab, label]) => (
+          {/* Header — title + filters + CTA all in one row (spec: dash__head) */}
+          <div className="dash__head">
+            <div className="dash__title">
+              {t.yourPackages}
+              {countLabel && <small>{countLabel}</small>}
+            </div>
+            <div className="dash__filters">
+              {([
+                ["all",   t.filterAll],
+                ["live",  t.filterLive],
+                ["draft", t.filterDraft],
+                ["top",   t.filterTopPerformers],
+              ] as [FilterTab, string][]).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  onClick={() => setFilter(tab)}
+                  className={"dash__filter" + (filter === tab ? " dash__filter--active" : "")}
+                >
+                  {label}
+                </button>
+              ))}
               <button
-                key={tab}
-                onClick={() => setFilter(tab)}
-                style={{
-                  fontSize: 12, padding: "6px 14px",
-                  border: `1px solid ${filter === tab ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)"}`,
-                  borderRadius: 999,
-                  background: filter === tab ? "rgba(255,255,255,0.1)" : "transparent",
-                  color: filter === tab ? "#fdfcf9" : "rgba(255,255,255,0.45)",
-                  cursor: "pointer", fontWeight: filter === tab ? 600 : 400,
-                  fontFamily: "inherit", transition: "all 0.15s",
-                }}
+                onClick={() => canCreate ? router.push("/builder") : router.push("/paywall")}
+                className="dash__filter dash__filter--cta"
               >
-                {label}
+                + {t.newPackageBtn}
               </button>
-            ))}
+            </div>
           </div>
-          <button
-            onClick={() => canCreate ? router.push("/builder") : router.push("/paywall")}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "9px 16px", borderRadius: 9,
-              background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-              color: "#0a1426", fontWeight: 700, fontSize: 12.5,
-              border: "none", cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-            }}
-          >
-            <Icon name="plus" size={14} color="#0a1426" strokeWidth={2.5} /> {t.newPackageBtn}
-          </button>
-        </div>
 
-        {/* Content */}
-        {loading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300 }}>
-            <span className="spinner" />
-          </div>
-        ) : packages.length === 0 ? (
-          <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center",
-            justifyContent: "center", height: 320, gap: 16,
-            background: "rgba(255,255,255,0.025)",
-            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16,
-          }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: `${SAND}18`, border: `1px solid ${SAND}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Icon name="archive" size={22} color={SAND} />
+          {/* Stats row — shown once data is loaded and packages exist */}
+          {!loading && packages.length > 0 && (
+            <div className="dash__stats">
+              {[
+                { v: String(activeCount),                           l: t.statsActivePackages },
+                { v: totalViews.toLocaleString(),                   l: t.statsViewsThirtyDay },
+                { v: totalLeads.toLocaleString(),                   l: t.statsLeadsThirtyDay },
+                { v: avgConv > 0 ? avgConv.toFixed(2) + "%" : "—", l: t.statsAvgConversion  },
+              ].map((s, i) => (
+                <div key={i} className="dash__stat">
+                  <div className="v">{s.v}</div>
+                  <div className="l">{s.l}</div>
+                </div>
+              ))}
             </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t.noPackages}</div>
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{t.createFirst}</div>
+          )}
+
+          {/* Content */}
+          {loading ? (
+            <div className="dash__loading">
+              <span className="spinner" style={{ borderTopColor: "var(--dash-ink)", borderColor: "var(--dash-line)" }} />
             </div>
-            <button
-              onClick={() => canCreate ? router.push("/builder") : router.push("/paywall")}
-              style={{ padding: "10px 20px", borderRadius: 9, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: "#0a1426", fontWeight: 700, fontSize: 13, border: "none", cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8 }}
-            >
-              <Icon name="plus" size={14} color="#0a1426" strokeWidth={2.5} /> {t.newPackageBtn}
-            </button>
-          </div>
-        ) : filteredPkgs.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(255,255,255,0.35)", fontSize: 14 }}>
-            {t.noPackages}
-          </div>
-        ) : (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
-            gap: 16,
-          }}>
-            {filteredPkgs.map(pkg => {
-              const tpl = pkg.templateId ? TEMPLATE_MAP[pkg.templateId] : undefined;
-              return (
-                <BaseCard
-                  key={pkg.id}
-                  pkg={pkg}
-                  agency={agency}
-                  lang={lang}
-                  stripeColor={tpl?.templateColor}
-                  templateName={tpl ? (lang === "ar" ? tpl.nameAr : tpl.name) : undefined}
-                  templateDark={tpl?.dark}
-                  onView={() => window.open(`${AGENCY_BASE}/${pkg.agencySlug || agencySlug}/${pkg.id}`, "_blank", "noopener,noreferrer")}
-                  onEdit={() => router.push(`/builder?id=${pkg.id}`)}
-                  onCopyLink={pkg.agencySlug
-                    ? () => navigator.clipboard?.writeText(`${AGENCY_BASE}/${pkg.agencySlug}/${pkg.id}`)
-                    : undefined
-                  }
-                  onDelete={async () => {
-                    if (!confirm(t.confirmDeletePackage)) return;
-                    posthog.capture("package_deleted", { destination: pkg.destination, views: pkg.views });
-                    await deleteDoc(doc(db, "packages", pkg.id));
-                    setPackages(prev => prev.filter(p => p.id !== pkg.id));
-                  }}
-                  onToggleActive={async () => {
-                    const next = pkg.isActive === false ? true : false;
-                    posthog.capture("package_toggled_active", { destination: pkg.destination, is_active: next });
-                    await updateDoc(doc(db, "packages", pkg.id), { isActive: next });
-                    setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, isActive: next } : p));
-                  }}
-                  onDuplicate={async () => {
-                    if (!confirm(t.confirmDuplicate)) return;
-                    const res = await fetch("/api/duplicate", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ packageId: pkg.id, userId }),
-                    });
-                    if (!res.ok) return;
-                    const { id, agencySlug: slug } = await res.json();
-                    setPackages(prev => [{
-                      ...pkg,
-                      id,
-                      agencySlug: slug,
-                      isActive: false,
-                      views: 0,
-                      whatsappClicks: 0,
-                      messengerClicks: 0,
-                      createdAt: Date.now(),
-                    }, ...prev]);
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
+          ) : packages.length === 0 ? (
+            <div className="dash__empty">
+              <div className="dash__empty-icon">
+                <Icon name="archive" size={20} color="var(--dash-mut)" />
+              </div>
+              <div>
+                <div className="dash__empty-title">{t.noPackages}</div>
+                <div className="dash__empty-sub">{t.createFirst}</div>
+              </div>
+              <button
+                onClick={() => canCreate ? router.push("/builder") : router.push("/paywall")}
+                className="dash__filter dash__filter--cta"
+                style={{ padding: "10px 20px", borderRadius: 9, fontSize: 13 }}
+              >
+                + {t.newPackageBtn}
+              </button>
+            </div>
+          ) : filteredPkgs.length === 0 ? (
+            <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--dash-mut)", fontSize: 14 }}>
+              {t.noPackages}
+            </div>
+          ) : (
+            <div className="dash__grid">
+              {filteredPkgs.map(pkg => {
+                const tpl = pkg.templateId ? TEMPLATE_MAP[pkg.templateId] : undefined;
+                return (
+                  <PackageCard
+                    key={pkg.id}
+                    pkg={pkg}
+                    agency={agency}
+                    lang={lang}
+                    stripeColor={tpl?.templateColor}
+                    templateName={tpl ? (lang === "ar" ? tpl.nameAr : tpl.name) : undefined}
+                    templateDark={tpl?.dark}
+                    onView={() => window.open(`${AGENCY_BASE}/${pkg.agencySlug || agencySlug}/${pkg.id}`, "_blank", "noopener,noreferrer")}
+                    onEdit={() => router.push(`/builder?id=${pkg.id}`)}
+                    onCopyLink={pkg.agencySlug
+                      ? () => navigator.clipboard?.writeText(`${AGENCY_BASE}/${pkg.agencySlug}/${pkg.id}`)
+                      : undefined
+                    }
+                    onDelete={async () => {
+                      if (!confirm(t.confirmDeletePackage)) return;
+                      posthog.capture("package_deleted", { destination: pkg.destination, views: pkg.views });
+                      await deleteDoc(doc(db, "packages", pkg.id));
+                      setPackages(prev => prev.filter(p => p.id !== pkg.id));
+                    }}
+                    onToggleActive={async () => {
+                      const next = pkg.isActive === false ? true : false;
+                      posthog.capture("package_toggled_active", { destination: pkg.destination, is_active: next });
+                      await updateDoc(doc(db, "packages", pkg.id), { isActive: next });
+                      setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, isActive: next } : p));
+                    }}
+                    onDuplicate={async () => {
+                      if (!confirm(t.confirmDuplicate)) return;
+                      const res = await fetch("/api/duplicate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ packageId: pkg.id, userId }),
+                      });
+                      if (!res.ok) return;
+                      const { id, agencySlug: slug } = await res.json();
+                      setPackages(prev => [{
+                        ...pkg,
+                        id,
+                        agencySlug: slug,
+                        isActive: false,
+                        views: 0,
+                        whatsappClicks: 0,
+                        messengerClicks: 0,
+                        createdAt: Date.now(),
+                      }, ...prev]);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+        </div>
       </div>
     </AppLayout>
   );

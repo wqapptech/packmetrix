@@ -126,7 +126,7 @@ const REGISTRY = [
     description: "Hotel name, star rating, and what to expect",
     descriptionAr: "اسم الفندق وتصنيفه النجمي وما يمكن توقعه",
     category: "content",
-    multiple: false,
+    multiple: true,
     fields: [
       {
         key: "description",
@@ -378,6 +378,7 @@ const REGISTRY = [
 
   {
     type: "guide" as const,
+    legacy: true,
     label: "Tour Guide",
     labelAr: "المرشد السياحي",
     icon: "users",
@@ -501,6 +502,7 @@ const REGISTRY = [
 
   {
     type: "schedule" as const,
+    legacy: true,
     label: "Daily Schedule",
     labelAr: "الجدول اليومي",
     icon: "calendar",
@@ -558,6 +560,7 @@ const REGISTRY = [
 
   {
     type: "flights" as const,
+    legacy: true,
     label: "Flights & Departures",
     labelAr: "الرحلات الجوية والمغادرة",
     icon: "globe",
@@ -691,6 +694,57 @@ const REGISTRY = [
         placeholder: "e.g. Free cancellation up to 30 days before departure",
         placeholderAr: "مثال: إلغاء مجاني حتى ٣٠ يوماً قبل المغادرة",
       },
+      {
+        key: "paymentContent",
+        label: "Payment overview (optional)",
+        labelAr: "نظرة عامة على الدفع (اختياري)",
+        type: "textarea",
+        placeholder: "e.g. 30% deposit on booking, remainder 30 days before departure…",
+        placeholderAr: "مثال: ٣٠٪ عربون عند الحجز، والباقي ٣٠ يوماً قبل المغادرة…",
+      },
+      {
+        key: "paymentSteps",
+        label: "Payment steps (optional)",
+        labelAr: "خطوات الدفع (اختياري)",
+        type: "repeater",
+        itemLabel: "Step",
+        itemLabelAr: "خطوة",
+        itemFields: [
+          {
+            key: "label",
+            label: "Label",
+            labelAr: "التسمية",
+            type: "text",
+            placeholder: "e.g. Deposit",
+            placeholderAr: "مثال: العربون",
+            required: true,
+          },
+          {
+            key: "amount",
+            label: "Amount",
+            labelAr: "المبلغ",
+            type: "text",
+            placeholder: "e.g. 30% or €300",
+            placeholderAr: "مثال: ٣٠٪ أو ٣٠٠ يورو",
+          },
+          {
+            key: "dueDate",
+            label: "Due date",
+            labelAr: "تاريخ الاستحقاق",
+            type: "text",
+            placeholder: "e.g. At booking",
+            placeholderAr: "مثال: عند الحجز",
+          },
+        ],
+      },
+      {
+        key: "termsContent",
+        label: "Booking terms & conditions (optional)",
+        labelAr: "شروط وأحكام الحجز (اختياري)",
+        type: "textarea",
+        placeholder: "Full terms and conditions, legal notices, conduct requirements…",
+        placeholderAr: "الشروط والأحكام الكاملة والإشعارات القانونية ومتطلبات السلوك…",
+      },
     ],
     defaultData: {
       tiers: [
@@ -700,6 +754,9 @@ const REGISTRY = [
         { label: "Infant (under 2 years)", price: "" },
       ],
       cancellation: "Free cancellation up to 30 days before departure",
+      paymentContent: "",
+      paymentSteps: [],
+      termsContent: "",
     },
     summaryText: (data, lang) => {
       const tiers = arr(data.tiers) as Array<Record<string, unknown>>;
@@ -711,6 +768,7 @@ const REGISTRY = [
 
   {
     type: "booking_terms" as const,
+    legacy: true,
     label: "Booking Terms",
     labelAr: "شروط الحجز",
     icon: "lock",
@@ -823,6 +881,7 @@ const REGISTRY = [
 
   {
     type: "departure_dates" as const,
+    legacy: true,
     label: "Departure Dates",
     labelAr: "مواعيد المغادرة",
     icon: "calendar",
@@ -886,6 +945,7 @@ const REGISTRY = [
 
   {
     type: "payment_plan" as const,
+    legacy: true,
     label: "Payment Plan",
     labelAr: "خطة الدفع",
     icon: "credit_card",
@@ -952,6 +1012,7 @@ const REGISTRY = [
 
   {
     type: "gallery" as const,
+    legacy: true,
     label: "Photo Gallery",
     labelAr: "معرض الصور",
     icon: "image",
@@ -980,6 +1041,7 @@ const REGISTRY = [
 
   {
     type: "video" as const,
+    legacy: true,
     label: "Video",
     labelAr: "فيديو",
     icon: "video",
@@ -1011,6 +1073,7 @@ const REGISTRY = [
 
   {
     type: "map" as const,
+    legacy: true,
     label: "Map / Route",
     labelAr: "الخريطة / المسار",
     icon: "map",
@@ -1106,6 +1169,378 @@ const REGISTRY = [
         : `${count} review${count !== 1 ? "s" : ""}`;
     },
   },
+
+  // ─── v2 section types ─────────────────────────────────────────────────────
+
+  {
+    type: "people" as const,
+    label: "People",
+    labelAr: "الأشخاص",
+    icon: "users",
+    description: "Travel designer, guide, mutawif, or trip lead — the person behind this package",
+    descriptionAr: "مصمم الرحلة أو المرشد أو المطوف — الشخص الذي يقف وراء هذه الباقة",
+    category: "content",
+    multiple: false,
+    fields: [
+      {
+        key: "people",
+        label: "People",
+        labelAr: "الأشخاص",
+        type: "repeater",
+        itemLabel: "Person",
+        itemLabelAr: "شخص",
+        itemFields: [
+          {
+            key: "role",
+            label: "Role",
+            labelAr: "الدور",
+            type: "select",
+            options: [
+              { value: "agent",     label: "Travel designer / agent", labelAr: "مصمم رحلات / وكيل" },
+              { value: "guide",     label: "Tour guide",              labelAr: "مرشد سياحي" },
+              { value: "mutawif",   label: "Mutawif",                 labelAr: "مطوف" },
+              { value: "curator",   label: "Curator",                 labelAr: "منسق" },
+              { value: "trip_lead", label: "Trip lead",               labelAr: "قائد الرحلة" },
+            ],
+          },
+          {
+            key: "name",
+            label: "Name",
+            labelAr: "الاسم",
+            type: "text",
+            placeholder: "e.g. Khalid Al-Omri",
+            placeholderAr: "مثال: خالد العمري",
+            required: true,
+          },
+          {
+            key: "bio",
+            label: "Bio",
+            labelAr: "نبذة",
+            type: "textarea",
+            placeholder: "Short introduction…",
+            placeholderAr: "مقدمة قصيرة…",
+          },
+          {
+            key: "photo",
+            label: "Photo",
+            labelAr: "الصورة",
+            type: "image",
+          },
+          {
+            key: "languages",
+            label: "Languages spoken",
+            labelAr: "اللغات المتحدث بها",
+            type: "tagList",
+            placeholder: "e.g. Arabic",
+            placeholderAr: "مثال: العربية",
+            helpText: "Press Enter after each language",
+            helpTextAr: "اضغط Enter بعد كل لغة",
+          },
+          {
+            key: "years",
+            label: "Years of experience",
+            labelAr: "سنوات الخبرة",
+            type: "number",
+            min: 0,
+          },
+          {
+            key: "repliesIn",
+            label: "Replies in (e.g. \"30 min\")",
+            labelAr: "يرد في (مثال: \"30 دقيقة\")",
+            type: "text",
+            placeholder: "e.g. 30 min",
+            placeholderAr: "مثال: ٣٠ دقيقة",
+          },
+        ],
+      },
+    ],
+    defaultData: {
+      people: [
+        { id: "", role: "agent", name: "", bio: "", photo: "", languages: [], years: 0, repliesIn: "" },
+      ],
+    },
+    summaryText: (data, lang) => {
+      const people = Array.isArray(data.people) ? data.people as Array<Record<string, unknown>> : [];
+      const first = people[0];
+      if (!first) return lang === "ar" ? "لا يوجد بعد" : "None yet";
+      const name = typeof first.name === "string" ? first.name : "";
+      return name || (lang === "ar" ? "شخص" : "Person");
+    },
+  },
+
+  {
+    type: "trek_profile" as const,
+    label: "Trek Profile",
+    labelAr: "ملف الرحلة الجبلية",
+    icon: "map",
+    description: "Difficulty, altitude, distance — foregrounded by Compass template",
+    descriptionAr: "الصعوبة والارتفاع والمسافة — مميَّز في قالب Compass",
+    category: "content",
+    multiple: false,
+    fields: [
+      {
+        key: "difficulty",
+        label: "Difficulty",
+        labelAr: "مستوى الصعوبة",
+        type: "select",
+        options: [
+          { value: "",           label: "— Not set —",  labelAr: "— غير محدد —" },
+          { value: "easy",       label: "Easy",          labelAr: "سهل" },
+          { value: "moderate",   label: "Moderate",      labelAr: "متوسط" },
+          { value: "strenuous",  label: "Strenuous",     labelAr: "شاق" },
+          { value: "extreme",    label: "Extreme",       labelAr: "متطرف" },
+        ],
+      },
+      {
+        key: "maxAltitude",
+        label: "Max altitude (m)",
+        labelAr: "أقصى ارتفاع (م)",
+        type: "number",
+        min: 0,
+      },
+      {
+        key: "distanceKm",
+        label: "Total distance (km)",
+        labelAr: "المسافة الكلية (كم)",
+        type: "number",
+        min: 0,
+      },
+      {
+        key: "fitnessNote",
+        label: "Fitness note",
+        labelAr: "ملاحظة اللياقة",
+        type: "textarea",
+        placeholder: "e.g. Good fitness required — 6–8 hours walking per day",
+        placeholderAr: "مثال: لياقة جيدة مطلوبة — ٦–٨ ساعات مشي يومياً",
+      },
+    ],
+    defaultData: { difficulty: "", maxAltitude: 0, distanceKm: 0, fitnessNote: "" },
+    summaryText: (data, lang) => {
+      const d = str(data.difficulty);
+      if (!d) return lang === "ar" ? "لم يُحدد بعد" : "Not set yet";
+      const map: Record<string, { en: string; ar: string }> = {
+        easy:      { en: "Easy",      ar: "سهل" },
+        moderate:  { en: "Moderate",  ar: "متوسط" },
+        strenuous: { en: "Strenuous", ar: "شاق" },
+        extreme:   { en: "Extreme",   ar: "متطرف" },
+      };
+      return map[d]?.[lang] ?? d;
+    },
+  },
+
+  {
+    type: "scarcity" as const,
+    label: "Scarcity & Urgency",
+    labelAr: "الندرة والإلحاح",
+    icon: "sparkle",
+    description: "Was-price, spots remaining, departure date — foregrounded by Pulse",
+    descriptionAr: "السعر الأصلي، الأماكن المتبقية، تاريخ المغادرة — مميَّز في قالب Pulse",
+    category: "logistics",
+    multiple: false,
+    fields: [
+      {
+        key: "wasPrice",
+        label: "Was price (original)",
+        labelAr: "السعر الأصلي",
+        type: "text",
+        placeholder: "e.g. €1,499",
+        placeholderAr: "مثال: ١٤٩٩ يورو",
+        helpText: "The saving amount is auto-calculated at render — do not store it separately.",
+        helpTextAr: "مبلغ التوفير يُحسب تلقائياً عند العرض — لا تخزّنه بشكل منفصل.",
+      },
+      {
+        key: "spotsRemaining",
+        label: "Spots remaining",
+        labelAr: "الأماكن المتبقية",
+        type: "number",
+        min: 0,
+      },
+      {
+        key: "totalSpots",
+        label: "Total spots (capacity)",
+        labelAr: "إجمالي الأماكن (السعة)",
+        type: "number",
+        min: 0,
+      },
+      {
+        key: "firstDepartureDate",
+        label: "First departure date (for countdown)",
+        labelAr: "تاريخ أول رحلة (للعداد التنازلي)",
+        type: "text",
+        placeholder: "e.g. 2026-06-15",
+        placeholderAr: "مثال: ٢٠٢٦-٠٦-١٥",
+      },
+    ],
+    defaultData: { wasPrice: "", spotsRemaining: 0, totalSpots: 0, firstDepartureDate: "" },
+    summaryText: (data, lang) => {
+      const spots = typeof data.spotsRemaining === "number" ? data.spotsRemaining : 0;
+      const was = str(data.wasPrice);
+      if (spots > 0) return lang === "ar" ? `${spots} أماكن متبقية` : `${spots} spot${spots !== 1 ? "s" : ""} left`;
+      if (was) return lang === "ar" ? `كان ${was}` : `Was ${was}`;
+      return lang === "ar" ? "لم يُحدد بعد" : "Not set yet";
+    },
+  },
+
+  {
+    type: "media" as const,
+    label: "Media",
+    labelAr: "الوسائط",
+    icon: "image",
+    description: "Photos, video, and map — all media in one place",
+    descriptionAr: "الصور والفيديو والخريطة — كل الوسائط في مكان واحد",
+    category: "media",
+    multiple: false,
+    fields: [
+      {
+        key: "images",
+        label: "Photos",
+        labelAr: "الصور",
+        type: "imageList",
+        helpText: "Upload or search Pexels. Drag to reorder.",
+        helpTextAr: "ارفع أو ابحث في Pexels. اسحب لإعادة الترتيب.",
+      },
+      {
+        key: "videoUrl",
+        label: "Video",
+        labelAr: "الفيديو",
+        type: "video",
+        helpText: "Upload a video file or search Pexels videos",
+        helpTextAr: "ارفع ملف فيديو أو ابحث في Pexels",
+      },
+      {
+        key: "mapImage",
+        label: "Map / route image",
+        labelAr: "صورة الخريطة / المسار",
+        type: "image",
+        helpText: "Upload a map, route overview, or area image",
+        helpTextAr: "ارفع خريطة أو صورة نظرة عامة على المسار",
+      },
+      {
+        key: "mapCaption",
+        label: "Map caption",
+        labelAr: "وصف الخريطة",
+        type: "text",
+        placeholder: "e.g. Your route through Morocco",
+        placeholderAr: "مثال: مسارك عبر المغرب",
+      },
+    ],
+    defaultData: { images: [], videoUrl: "", mapImage: "", mapCaption: "" },
+    summaryText: (data, lang) => {
+      const imgCount = arr(data.images).length;
+      const hasVideo = !!str(data.videoUrl);
+      const hasMap = !!str(data.mapImage);
+      const parts: string[] = [];
+      if (imgCount > 0) parts.push(lang === "ar" ? `${imgCount} صورة` : `${imgCount} photo${imgCount !== 1 ? "s" : ""}`);
+      if (hasVideo) parts.push(lang === "ar" ? "فيديو" : "video");
+      if (hasMap) parts.push(lang === "ar" ? "خريطة" : "map");
+      return parts.length > 0 ? parts.join(" · ") : (lang === "ar" ? "لا يوجد محتوى بعد" : "No media yet");
+    },
+  },
+
+  {
+    type: "departures" as const,
+    label: "Departures",
+    labelAr: "مواعيد المغادرة",
+    icon: "globe",
+    description: "Departure dates, airports, availability, and per-departure pricing",
+    descriptionAr: "تواريخ المغادرة والمطارات والتوفر والأسعار لكل رحلة",
+    category: "logistics",
+    multiple: false,
+    fields: [
+      {
+        key: "entries",
+        label: "Departures",
+        labelAr: "رحلات المغادرة",
+        type: "repeater",
+        itemLabel: "Departure",
+        itemLabelAr: "رحلة",
+        itemFields: [
+          {
+            key: "date",
+            label: "Departure date",
+            labelAr: "تاريخ المغادرة",
+            type: "text",
+            placeholder: "e.g. 15 March 2026",
+            placeholderAr: "مثال: ١٥ مارس ٢٠٢٦",
+            required: true,
+          },
+          {
+            key: "returnDate",
+            label: "Return date",
+            labelAr: "تاريخ العودة",
+            type: "text",
+            placeholder: "e.g. 22 March 2026",
+            placeholderAr: "مثال: ٢٢ مارس ٢٠٢٦",
+          },
+          {
+            key: "spots",
+            label: "Spots available",
+            labelAr: "الأماكن المتاحة",
+            type: "number",
+            min: 0,
+          },
+          {
+            key: "price",
+            label: "Price (optional override)",
+            labelAr: "السعر (تجاوز اختياري)",
+            type: "text",
+            placeholder: "e.g. €899",
+            placeholderAr: "مثال: ٨٩٩ يورو",
+          },
+          {
+            key: "origin",
+            label: "Departure airport / city",
+            labelAr: "مطار أو مدينة المغادرة",
+            type: "text",
+            placeholder: "e.g. Amsterdam (AMS)",
+            placeholderAr: "مثال: أمستردام (AMS)",
+          },
+          {
+            key: "arrivingAirport",
+            label: "Arrival airport / city",
+            labelAr: "مطار أو مدينة الوصول",
+            type: "text",
+            placeholder: "e.g. Jeddah (JED)",
+            placeholderAr: "مثال: جدة (JED)",
+          },
+          {
+            key: "flyingTime",
+            label: "Departure time",
+            labelAr: "وقت الإقلاع",
+            type: "text",
+            placeholder: "e.g. 08:30",
+            placeholderAr: "مثال: ٠٨:٣٠",
+          },
+          {
+            key: "arrivingTime",
+            label: "Arrival time",
+            labelAr: "وقت الوصول",
+            type: "text",
+            placeholder: "e.g. 14:45",
+            placeholderAr: "مثال: ١٤:٤٥",
+          },
+          {
+            key: "deal",
+            label: "Special deal",
+            labelAr: "عرض خاص",
+            type: "select",
+            options: [
+              { value: "false", label: "No",                               labelAr: "لا" },
+              { value: "true",  label: "Yes — charter under-sell / deal",  labelAr: "نعم — عرض خاص" },
+            ],
+          },
+        ],
+      },
+    ],
+    defaultData: { entries: [] },
+    summaryText: (data, lang) => {
+      const count = arr(data.entries).length;
+      return lang === "ar"
+        ? `${count} موعد`
+        : `${count} departure${count !== 1 ? "s" : ""}`;
+    },
+  },
+
 ] satisfies SectionTypeDef[];
 
 export type SectionTypeKey = (typeof REGISTRY)[number]["type"];

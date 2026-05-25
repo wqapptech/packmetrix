@@ -7,29 +7,721 @@ import {
   Eyebrow,
   AgencyBar,
   StickyCTA,
-  SharedCTABanner,
-  SharedFooter,
   BaseCard,
   useIsDesktop,
   DesktopNav,
   DContainer,
   DesktopFooter,
-  SharedCTABannerDesktop,
-  ReviewsSection,
-  ReviewsSectionDesktop,
-  DynamicSections,
-  DynamicSectionsDesktop,
-  TrustStrip,
 } from "./shared";
-import type { TPageProps, TCardProps, TemplateTokens } from "./types";
+import type { TPageProps, TCardProps } from "./types";
 
 const SAGE   = "#1a5d4a";
+const GOLD   = "#b09142";
 const BONE   = "#f7f4ed";
 const INK    = "#0d1b2e";
 const MUTED  = "rgba(13,27,46,0.55)";
 const SMUTED = "rgba(13,27,46,0.35)";
 const BORDER = "rgba(13,27,46,0.08)";
 const SERIF  = "var(--font-cormorant, serif)";
+
+// ─── Section data helpers ─────────────────────────────────────────────────────
+
+type SkSecData = Record<string, unknown>;
+
+function skFindSec(pkg: TPageProps["pkg"], type: string): SkSecData | undefined {
+  return pkg.sections?.find((s) => s.type === type)?.data as SkSecData | undefined;
+}
+function skSecArr(data: SkSecData | undefined, key: string): SkSecData[] {
+  if (!data) return [];
+  const v = data[key];
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is SkSecData => x != null && typeof x === "object");
+}
+function skSecStr(data: SkSecData | undefined, key: string): string {
+  if (!data) return "";
+  const v = data[key];
+  return typeof v === "string" ? v : "";
+}
+function skSecNum(data: SkSecData | undefined, key: string): number | undefined {
+  if (!data) return undefined;
+  const v = data[key];
+  return typeof v === "number" ? v : undefined;
+}
+function skItemStr(item: SkSecData | string, ...keys: string[]): string {
+  if (typeof item === "string") return item;
+  for (const k of keys) {
+    const v = (item as SkSecData)[k];
+    if (typeof v === "string" && v) return v;
+  }
+  return "";
+}
+
+// ─── Sakina section components ────────────────────────────────────────────────
+
+function SkFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "faq");
+  const items = skSecArr(data, "items");
+  if (!items.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section style={{ padding: pad, background: BONE }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>Common questions</div>
+        <div style={{ width: 32, height: 1, background: GOLD, marginBottom: 20 }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {items.map((f, i) => {
+            const q = skItemStr(f, "q", "question");
+            const a = skItemStr(f, "a", "answer");
+            return (
+              <div key={i} style={{ borderBottom: `1px solid ${BORDER}`, padding: "18px 0" }}>
+                <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 19 : 17, fontStyle: "italic", color: INK, lineHeight: 1.3, marginBottom: 8 }}>{q}</div>
+                <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.7, paddingLeft: 16, borderLeft: `2px solid ${GOLD}` }}>{a}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SkImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "important_notes");
+  const notes = skSecArr(data, "notes");
+  const items = notes.length ? notes : skSecArr(data, "items");
+  if (!items.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section style={{ padding: pad, background: "#fff" }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>
+          Important notes
+        </div>
+        <div style={{ width: 32, height: 1, background: GOLD, marginBottom: 20 }} />
+        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2, 1fr)" : "1fr", gap: 12 }}>
+          {items.map((n, i) => {
+            const severity = skItemStr(n, "severity");
+            const title = skItemStr(n, "title", "text");
+            const body = skItemStr(n, "body");
+            const isWarn = severity === "warn";
+            return (
+              <div key={i} style={{
+                background: BONE,
+                borderLeft: `3px solid ${isWarn ? GOLD : `rgba(13,27,46,0.15)`}`,
+                borderRadius: "0 8px 8px 0",
+                padding: "16px 18px",
+              }}>
+                {isWarn && (
+                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: GOLD, marginBottom: 6 }}>Required</div>
+                )}
+                <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 18 : 16, fontStyle: isWarn ? "normal" : "italic", fontWeight: 600, color: INK, lineHeight: 1.3, marginBottom: body ? 6 : 0 }}>{title}</div>
+                {body && <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.65 }}>{body}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SkAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "about_agency");
+  if (!data && !agency.tagline) return null;
+  const story = skItemStr(data || {}, "story", "content");
+  const foundedRaw = (data as SkSecData | undefined)?.founded;
+  const founded = typeof foundedRaw === "number" ? foundedRaw : undefined;
+  const teamSize = skSecStr(data, "teamSize");
+  const teamPhoto = skSecStr(data, "teamPhoto") || skSecStr(data, "image");
+  const currentYear = new Date().getFullYear();
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section style={{ padding: pad, background: SAGE }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        {isDesktop && teamPhoto ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.5)", marginBottom: 12 }}>About {agency.name}</div>
+              {story && <p style={{ fontFamily: SERIF, fontSize: 17, color: "rgba(255,255,255,0.88)", lineHeight: 1.75, margin: "0 0 24px" }}>{story}</p>}
+              {(founded || teamSize) && (
+                <div style={{ display: "flex", gap: 32, borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 20 }}>
+                  {founded && (
+                    <div>
+                      <div style={{ fontFamily: SERIF, fontSize: 36, color: GOLD, lineHeight: 1 }}>{currentYear - founded}+</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 4, letterSpacing: "1px", textTransform: "uppercase" as const }}>Years serving pilgrims</div>
+                    </div>
+                  )}
+                  {teamSize && (
+                    <div>
+                      <div style={{ fontFamily: SERIF, fontSize: 36, color: GOLD, lineHeight: 1 }}>{teamSize}</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 4, letterSpacing: "1px", textTransform: "uppercase" as const }}>Team members</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div style={{ height: 380, borderRadius: 12, overflow: "hidden" }}>
+              <img src={teamPhoto} alt={`${agency.name} team`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.5)", marginBottom: 12 }}>About {agency.name}</div>
+            {teamPhoto && (
+              <div style={{ height: 200, borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
+                <img src={teamPhoto} alt={`${agency.name} team`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+            )}
+            {story && <p style={{ fontFamily: SERIF, fontSize: 16, fontStyle: "italic", color: "rgba(255,255,255,0.85)", lineHeight: 1.75, margin: "0 0 20px" }}>{story}</p>}
+            {(founded || teamSize) && (
+              <div style={{ display: "flex", gap: 0, borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 16 }}>
+                {founded && (
+                  <div style={{ flex: 1, textAlign: "center" as const, borderRight: "1px solid rgba(255,255,255,0.15)", padding: "8px 0" }}>
+                    <div style={{ fontFamily: SERIF, fontSize: 28, color: GOLD, lineHeight: 1 }}>{currentYear - founded}+</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "1px" }}>Years</div>
+                  </div>
+                )}
+                {teamSize && (
+                  <div style={{ flex: 1, textAlign: "center" as const, padding: "8px 0" }}>
+                    <div style={{ fontFamily: SERIF, fontSize: 28, color: GOLD, lineHeight: 1 }}>{teamSize}</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "1px" }}>Team</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Shared section head ─────────────────────────────────────────────────────
+
+function SkSecHead({ label, isDesktop }: { label: string; isDesktop: boolean }) {
+  return (
+    <div style={{ marginBottom: isDesktop ? 28 : 20 }}>
+      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>{label}</div>
+      <div style={{ width: 32, height: 1, background: GOLD }} />
+    </div>
+  );
+}
+
+// ─── Highlights ───────────────────────────────────────────────────────────────
+
+function SkHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "highlights");
+  const items = skSecArr(data, "items").map(i => skItemStr(i, "text")).filter(Boolean);
+  if (!items.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="sk-highlights" style={{ padding: pad, background: BONE }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label="Highlights" isDesktop={isDesktop} />
+        <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10 }}>
+          {items.map((item, i) => (
+            <div key={i} style={{ background: `${SAGE}10`, border: `1px solid ${SAGE}30`, borderRadius: 100, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: SAGE }}>{item}</div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Itinerary ────────────────────────────────────────────────────────────────
+
+function SkItinerarySection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "itinerary");
+  const days = skSecArr(data, "days").length ? skSecArr(data, "days") : (pkg.itinerary ?? []).map(d => ({ day: d.day, title: d.title, desc: d.desc, chapter: d.chapter }));
+  if (!days.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="itinerary" style={{ padding: pad, background: "#fff", scrollMarginTop: 88 }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label={`Day by day · ${days.length} days`} isDesktop={isDesktop} />
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
+          {days.map((d, i) => {
+            const day   = typeof d.day === "number" ? d.day : Number(d.day) || (i + 1);
+            const title = skItemStr(d, "title");
+            const desc  = skItemStr(d, "desc", "description");
+            const chap  = skItemStr(d, "chapter");
+            return (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: isDesktop ? "80px 1fr" : "60px 1fr", gap: 20, alignItems: "start", borderBottom: i < days.length - 1 ? `1px solid ${BORDER}` : "none", padding: "22px 0" }}>
+                <div style={{ background: `${SAGE}10`, border: `1px solid ${SAGE}25`, borderRadius: 12, padding: "12px 8px", textAlign: "center" as const }}>
+                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 24 : 20, fontWeight: 400, color: SAGE, lineHeight: 1 }}>{day}</div>
+                  {chap && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: MUTED, marginTop: 4 }}>{chap}</div>}
+                </div>
+                <div style={{ paddingTop: 4 }}>
+                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 20 : 17, fontWeight: 600, color: INK, lineHeight: 1.25, marginBottom: 8 }}>{title}</div>
+                  {desc && <div style={{ fontSize: isDesktop ? 14 : 13, color: MUTED, lineHeight: 1.7 }}>{desc}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Hotel ────────────────────────────────────────────────────────────────────
+
+function SkHotelSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "hotel");
+  const desc = skSecStr(data, "description") || pkg.hotelDescription || "";
+  const image = skSecStr(data, "image");
+  if (!desc) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="sk-hotel" style={{ padding: pad, background: BONE }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label="Accommodation" isDesktop={isDesktop} />
+        <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
+          {image && <img src={image} alt="Hotel" style={{ width: "100%", height: isDesktop ? 260 : 180, objectFit: "cover", display: "block" }} />}
+          <div style={{ padding: isDesktop ? "24px 28px" : "18px 18px" }}>
+            <p style={{ fontFamily: SERIF, fontSize: isDesktop ? 17 : 15, fontStyle: "italic", color: INK, lineHeight: 1.75, margin: 0 }}>{desc}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Inclusions ───────────────────────────────────────────────────────────────
+
+function SkInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "inclusions");
+  const includes = (data?.includes as string[] | undefined) ?? pkg.includes ?? [];
+  const excludes = (data?.excludes as string[] | undefined) ?? pkg.excludes ?? [];
+  const advantages = (data?.advantages as string[] | undefined) ?? pkg.advantages ?? [];
+  if (!includes.length && !excludes.length && !advantages.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  const cols = isDesktop ? "repeat(3,1fr)" : "1fr";
+  return (
+    <section id="included" style={{ padding: pad, background: "#fff", scrollMarginTop: 88 }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label="Included in your package" isDesktop={isDesktop} />
+        {includes.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, marginBottom: excludes.length ? 20 : 0 }}>
+            {includes.map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={SAGE} strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 2 }}><polyline points="20 6 9 17 4 12"/></svg>
+                <span style={{ fontSize: 13.5, lineHeight: 1.5, color: INK }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {advantages.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, marginBottom: excludes.length ? 20 : 0 }}>
+            {advantages.map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 2 }}><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                <span style={{ fontSize: 13.5, lineHeight: 1.5, color: INK }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {excludes.length > 0 && (
+          <div style={{ marginTop: includes.length ? 16 : 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Not included</div>
+            {excludes.map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, color: MUTED, marginBottom: 8 }}>
+                <span style={{ color: "rgba(13,27,46,0.3)", fontWeight: 700 }}>—</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Media ────────────────────────────────────────────────────────────────────
+
+function skToEmbed(url: string): string {
+  const yt = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}?rel=0&modestbranding=1`;
+  const vi = url.match(/vimeo\.com\/(\d+)/);
+  if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
+  return url;
+}
+
+function SkMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "media");
+  const images    = (data?.images as string[] | undefined) ?? pkg.images ?? [];
+  const videoUrl  = (data?.videoUrl as string | undefined ?? pkg.videoUrl ?? "").trim();
+  const mapImage  = (data?.mapImage as string | undefined) ?? "";
+  const mapCaption = (data?.mapCaption as string | undefined) ?? "";
+  if (!images.length && !videoUrl && !mapImage) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
+  return (
+    <section id="sk-media" style={{ padding: pad, background: BONE }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        {images.length > 0 && (
+          <>
+            <SkSecHead label="Gallery" isDesktop={isDesktop} />
+            <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: isDesktop ? undefined : "130px 130px", gap: 6, marginBottom: (videoUrl || mapImage) ? 32 : 0 }}>
+              {(isDesktop ? images : images.slice(0, 3)).map((src, i) => (
+                <div key={i} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: isDesktop ? "4/3" : undefined, gridRow: !isDesktop && i === 0 ? "span 2" : undefined }}>
+                  <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {videoUrl && (
+          <div style={{ borderRadius: 14, overflow: "hidden", aspectRatio: "16/9", border: `1px solid ${BORDER}`, marginBottom: mapImage ? 20 : 0 }}>
+            {isEmbed ? (
+              <iframe src={skToEmbed(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
+            ) : (
+              <video src={videoUrl} controls playsInline style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+            )}
+          </div>
+        )}
+        {mapImage && (
+          <div style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${BORDER}` }}>
+            <img src={mapImage} alt={mapCaption} style={{ width: "100%", maxHeight: isDesktop ? 380 : 220, objectFit: "cover", display: "block" }} />
+            {mapCaption && <div style={{ padding: "10px 14px", background: "#fff", fontSize: 12.5, color: MUTED }}>{mapCaption}</div>}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Transfers ────────────────────────────────────────────────────────────────
+
+function SkTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "transfers");
+  const items = skSecArr(data, "items");
+  if (!items.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="sk-transfers" style={{ padding: pad, background: "#fff" }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label="Transfers" isDesktop={isDesktop} />
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
+          {items.map((item, i) => {
+            const from = skItemStr(item, "from");
+            const to   = skItemStr(item, "to");
+            const type = skItemStr(item, "type", "transportType");
+            const note = skItemStr(item, "note", "details");
+            return (
+              <div key={i} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 12 }}>
+                <div>
+                  {(from || to) && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 16 : 14, fontWeight: 600, color: INK, marginBottom: 4 }}>{from}{from && to ? " → " : ""}{to}</div>}
+                  {type && <div style={{ fontSize: 12, color: SAGE, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.6px", marginBottom: note ? 4 : 0 }}>{type}</div>}
+                  {note && <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>{note}</div>}
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SAGE} strokeWidth="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h5l3 3v5h-8V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Pricing ─────────────────────────────────────────────────────────────────
+
+function SkPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; onWhatsApp: () => void; lang: TPageProps["lang"] }) {
+  const t = T[lang];
+  const data = skFindSec(pkg, "pricing");
+  const tiers = skSecArr(data, "tiers").length ? skSecArr(data, "tiers") : (pkg.pricingTiers ?? []).map(t2 => ({ label: t2.label, price: t2.price, was: t2.was, perks: t2.perks, pop: t2.pop }));
+  if (!tiers.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="pricing" style={{ padding: pad, background: BONE, scrollMarginTop: 88 }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label="Pricing" isDesktop={isDesktop} />
+        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 14 }}>
+          {tiers.map((tier, i) => {
+            const pop   = !!tier.pop;
+            const label = skItemStr(tier, "label");
+            const price = skItemStr(tier, "price");
+            const was   = skItemStr(tier, "was");
+            const perks = (tier.perks as string[] | undefined) ?? [];
+            return (
+              <div key={i} style={{ background: pop ? SAGE : "#fff", color: pop ? "#fff" : INK, border: `1.5px solid ${pop ? SAGE : BORDER}`, borderRadius: 18, padding: "22px 22px", display: "flex", flexDirection: "column" as const, gap: 6 }}>
+                {pop && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.65)", marginBottom: 4 }}>Most popular</div>}
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: pop ? "rgba(255,255,255,0.8)" : MUTED, letterSpacing: "-0.1px" }}>{label}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 36 : 32, fontWeight: 400, color: pop ? "#fff" : SAGE, lineHeight: 1 }}>{price}</div>
+                  {was && <div style={{ fontSize: 13, textDecoration: "line-through", color: pop ? "rgba(255,255,255,0.45)" : MUTED }}>{was}</div>}
+                </div>
+                <div style={{ fontSize: 11.5, color: pop ? "rgba(255,255,255,0.6)" : MUTED, marginBottom: 4 }}>{t.perPerson}</div>
+                {perks.length > 0 && (
+                  <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0", display: "flex", flexDirection: "column" as const, gap: 8 }}>
+                    {perks.map((p, j) => (
+                      <li key={j} style={{ display: "flex", gap: 8, fontSize: 13, color: pop ? "rgba(255,255,255,0.85)" : MUTED }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={pop ? "rgba(255,255,255,0.7)" : SAGE} strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 1 }}><polyline points="20 6 9 17 4 12"/></svg>
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <button onClick={onWhatsApp} style={{ marginTop: 16, background: pop ? "rgba(255,255,255,0.18)" : `${SAGE}15`, border: `1px solid ${pop ? "rgba(255,255,255,0.25)" : `${SAGE}30`}`, borderRadius: 100, padding: "11px 0", fontSize: 13, fontWeight: 700, color: pop ? "#fff" : SAGE, fontFamily: "inherit", cursor: "pointer", width: "100%" }}>
+                  {t.whatsAppTheOffice}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Departures ───────────────────────────────────────────────────────────────
+
+function SkDeparturesSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; onWhatsApp: () => void; lang: TPageProps["lang"] }) {
+  const data = skFindSec(pkg, "departures") ?? skFindSec(pkg, "departure_dates");
+  const entries = skSecArr(data, "entries").length ? skSecArr(data, "entries") : skSecArr(data, "dates");
+  const legacyDeps = pkg.departures ?? [];
+  if (!entries.length && !legacyDeps.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="sk-departures" style={{ padding: pad, background: "#fff" }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label="Departure dates" isDesktop={isDesktop} />
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
+          {(entries.length ? entries.map(e => ({ date: skItemStr(e, "date"), returnDate: skItemStr(e, "returnDate"), spots: skItemStr(e, "spots"), price: skItemStr(e, "price") })) : legacyDeps.map(d => ({ date: d.date, returnDate: "", spots: String(d.spots ?? ""), price: d.price ?? "" }))).map((dep, i) => (
+            <button key={i} onClick={onWhatsApp} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit", width: "100%" }}>
+              <div>
+                <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 17 : 15, fontWeight: 600, color: INK }}>{dep.date}</div>
+                {dep.returnDate && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>Returns: {dep.returnDate}</div>}
+                {dep.spots && <div style={{ fontSize: 12, color: SAGE, marginTop: 2, fontWeight: 600 }}>{dep.spots} spots available</div>}
+              </div>
+              {dep.price && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 22 : 18, color: SAGE, fontWeight: 400 }}>{dep.price}</div>}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Extras ───────────────────────────────────────────────────────────────────
+
+function SkExtrasSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "extras");
+  const items = skSecArr(data, "items");
+  if (!items.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="sk-extras" style={{ padding: pad, background: BONE }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label="Optional extras" isDesktop={isDesktop} />
+        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 10 }}>
+          {items.map((item, i) => {
+            const name  = skItemStr(item, "name", "title");
+            const price = skItemStr(item, "price");
+            const desc  = skItemStr(item, "description", "desc");
+            return (
+              <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: INK, marginBottom: desc ? 4 : 0 }}>{name}</div>
+                  {desc && <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.55 }}>{desc}</div>}
+                </div>
+                {price && <div style={{ fontFamily: SERIF, fontSize: 16, color: SAGE, fontWeight: 400, flexShrink: 0 }}>{price}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Custom section ───────────────────────────────────────────────────────────
+
+function SkCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+  const data = skFindSec(pkg, "custom");
+  const heading = skSecStr(data, "heading");
+  const content = skSecStr(data, "content");
+  const image   = skSecStr(data, "image");
+  if (!heading && !content) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="sk-custom" style={{ padding: pad, background: "#fff" }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        {heading && <SkSecHead label={heading} isDesktop={isDesktop} />}
+        {image && <img src={image} alt={heading} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, marginBottom: 18, display: "block" }} />}
+        {content && <p style={{ fontFamily: SERIF, fontSize: isDesktop ? 17 : 15, fontStyle: "italic", color: MUTED, lineHeight: 1.75, margin: 0 }}>{content}</p>}
+      </div>
+    </section>
+  );
+}
+
+// ─── People ───────────────────────────────────────────────────────────────────
+
+function SkPeopleSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; onWhatsApp: () => void; lang: TPageProps["lang"] }) {
+  const t = T[lang];
+  const data = skFindSec(pkg, "people");
+  const people = skSecArr(data, "people");
+  if (!people.length) return null;
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="sk-people" style={{ padding: pad, background: `${SAGE}0a` }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label={t.mutawifLabel} isDesktop={isDesktop} />
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 16 }}>
+          {people.map((person, i) => {
+            const name   = skItemStr(person, "name");
+            const role   = skItemStr(person, "role");
+            const bio    = skItemStr(person, "bio");
+            const photo  = skItemStr(person, "photo");
+            const langs  = (person.languages as string[] | undefined) ?? [];
+            const years  = person.years as number | undefined;
+            return (
+              <div key={i} style={{ background: "#fff", border: `1px solid ${SAGE}20`, borderRadius: 16, padding: isDesktop ? "24px 28px" : "18px 18px", display: "flex", gap: 18, alignItems: "flex-start" }}>
+                {photo
+                  ? <img src={photo} alt={name} style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: `2px solid ${SAGE}20` }} />
+                  : <div style={{ width: 72, height: 72, borderRadius: "50%", background: `${SAGE}12`, border: `1px solid ${SAGE}30`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 28, color: SAGE, flexShrink: 0 }}>{name?.[0] ?? "م"}</div>
+                }
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: SAGE, marginBottom: 4 }}>{role || t.mutawifLabel}</div>
+                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 22 : 18, fontWeight: 600, color: INK, lineHeight: 1.1, marginBottom: 6 }}>{name}</div>
+                  {years && <div style={{ fontSize: 12.5, color: MUTED, marginBottom: bio ? 8 : 0 }}>{years} {t.yearsExpSuffix}</div>}
+                  {bio && <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.65, margin: "0 0 12px" }}>{bio}</p>}
+                  {langs.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
+                      {langs.map((l, j) => (
+                        <div key={j} style={{ background: `${SAGE}0c`, border: `1px solid ${SAGE}20`, borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: SAGE }}>{l}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+function SkReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
+  const reviews   = pkg.reviews ?? [];
+  const canSubmit = agency.enableReviews !== false;
+  const showList  = agency.showReviews !== false && reviews.length > 0;
+  if (!showList && !canSubmit) return null;
+
+  const [name,   setName]   = React.useState("");
+  const [text,   setText]   = React.useState("");
+  const [rating, setRating] = React.useState(0);
+  const [hover,  setHover]  = React.useState(0);
+  const [status, setStatus] = React.useState<"idle"|"sending"|"ok"|"err">("idle");
+
+  const handleSubmit = async () => {
+    if (!name.trim() || !text.trim() || !rating || !pkg.id) return;
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/submit-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ packageId: pkg.id, name: name.trim(), text: text.trim(), rating }) });
+      setStatus(res.ok ? "ok" : "err");
+    } catch { setStatus("err"); }
+  };
+
+  const pad = isDesktop ? "64px 80px" : "28px 24px";
+  return (
+    <section id="sk-reviews" style={{ padding: pad, background: "#fff" }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <SkSecHead label={showList ? `${reviews.length} verified reviews` : t.writeReviewTitle} isDesktop={isDesktop} />
+        {showList && (
+          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 16, marginBottom: canSubmit ? 32 : 0 }}>
+            {reviews.map((r, i) => (
+              <div key={i} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "18px 20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: INK }}>{r.name}</div>
+                    {r.country && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{r.country}</div>}
+                  </div>
+                  <div style={{ display: "flex", gap: 2 }}>{[1,2,3,4,5].map(n => <span key={n} style={{ color: n <= r.rating ? GOLD : "rgba(13,27,46,0.15)", fontSize: 14 }}>★</span>)}</div>
+                </div>
+                <p style={{ fontFamily: SERIF, fontSize: 14, fontStyle: "italic", color: MUTED, lineHeight: 1.7, margin: 0 }}>{r.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {canSubmit && status !== "ok" && (
+          <div style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: isDesktop ? "28px 32px" : "20px 20px" }}>
+            <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 20 : 17, fontWeight: 600, color: INK, marginBottom: 16 }}>{t.writeReviewTitle}</div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+              {[1,2,3,4,5].map(n => (
+                <button key={n} onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => setRating(n)} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", fontSize: 24, color: n <= (hover || rating) ? GOLD : "rgba(13,27,46,0.2)", lineHeight: 1 }}>★</button>
+              ))}
+            </div>
+            <input placeholder={t.reviewYourName} value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "12px 14px", fontSize: 14, fontFamily: "inherit", background: "#fff", color: INK, marginBottom: 10, boxSizing: "border-box" as const }} />
+            <textarea placeholder={t.reviewPlaceholder} value={text} onChange={e => setText(e.target.value)} rows={3} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "12px 14px", fontSize: 14, fontFamily: "inherit", background: "#fff", color: INK, marginBottom: 14, resize: "none" as const, boxSizing: "border-box" as const }} />
+            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: SAGE, color: "#fff", border: "none", borderRadius: 100, padding: "13px 28px", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>{status === "sending" ? "Sending…" : t.submitReviewBtn}</button>
+            {status === "err" && <div style={{ fontSize: 13, color: "#c0392b", marginTop: 10 }}>Something went wrong. Try again.</div>}
+          </div>
+        )}
+        {status === "ok" && <div style={{ background: `${SAGE}12`, border: `1px solid ${SAGE}30`, borderRadius: 14, padding: "20px 24px", fontSize: 14, color: SAGE, fontWeight: 600 }}>{t.reviewSubmitSuccess}</div>}
+      </div>
+    </section>
+  );
+}
+
+// ─── Trust strip (desktop) ────────────────────────────────────────────────────
+
+function SkTrustStrip({ items, style }: { items: { icon: React.ReactNode; title: string; sub?: string }[]; style?: React.CSSProperties }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length}, 1fr)`, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, ...style }}>
+      {items.map((item, i) => (
+        <div key={i} style={{ padding: "18px 20px", borderRight: i < items.length - 1 ? `1px solid ${BORDER}` : "none", display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <span style={{ color: SAGE, display: "flex", marginTop: 2 }}>{item.icon}</span>
+          <div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: INK }}>{item.title}</div>
+            {item.sub && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{item.sub}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── CTA banner ───────────────────────────────────────────────────────────────
+
+function SkCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; onWhatsApp: () => void; onMessenger: () => void; lang: TPageProps["lang"] }) {
+  const t = T[lang];
+  const nights = pkg.nights ? Number(pkg.nights) : null;
+  return (
+    <section style={{ background: BONE, padding: isDesktop ? "48px 80px" : "24px 18px" }}>
+      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined, background: `${SAGE}0a`, border: `1px solid ${SAGE}25`, borderRadius: 18, padding: isDesktop ? "36px 40px" : "24px 22px", display: "flex", flexDirection: isDesktop ? "row" as const : "column" as const, alignItems: isDesktop ? "center" : "flex-start", gap: 20, justifyContent: "space-between" }}>
+        <div>
+          <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 28 : 22, fontWeight: 600, color: INK, marginBottom: 6 }}>{t.readyToExplore}</div>
+          <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 36 : 30, color: SAGE, lineHeight: 1, marginBottom: 4 }}>{pkg.price}</div>
+          <div style={{ fontSize: 12, color: MUTED }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
+          <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />
+          {pkg.messenger && (
+            <button onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 100, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>Messenger</button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Mobile footer ────────────────────────────────────────────────────────────
+
+function SkMobileFooter({ agency, lang }: { agency: TPageProps["agency"]; lang: TPageProps["lang"] }) {
+  return (
+    <div style={{ padding: "28px 18px", background: BONE, borderTop: `1px solid ${BORDER}`, textAlign: "center" as const }}>
+      {agency.logoUrl && <img src={agency.logoUrl} alt={agency.name} style={{ height: 32, objectFit: "contain", marginBottom: 10, display: "block", margin: "0 auto 10px" }} />}
+      <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: INK, marginBottom: 4 }}>{agency.name}</div>
+      {agency.tagline && <div style={{ fontSize: 12, color: MUTED }}>{agency.tagline}</div>}
+    </div>
+  );
+}
 
 // ─── Prayer times card ────────────────────────────────────────────────────────
 
@@ -88,7 +780,7 @@ function buildSakinaTrustItems(t: typeof T["en"]) {
 
 // ─── MutawifBand (mid-page light) ────────────────────────────────────────────
 
-function MutawifBand({ pkg, tokens, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; tokens: TemplateTokens; lang: TPageProps["lang"]; onWhatsApp: () => void }) {
+function MutawifBand({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"]; onWhatsApp: () => void }) {
   const t = T[lang];
   const agent = pkg.agent;
   if (!agent) return null;
@@ -260,10 +952,6 @@ function LogisticsStrip({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: TPageProp
 
 export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
   const t = T[lang];
-  const tokens: TemplateTokens = {
-    bg: BONE, ink: INK, muted: MUTED, superMuted: SMUTED, border: BORDER, brand: SAGE, serif: SERIF,
-  };
-
   const nights     = pkg.nights ? Number(pkg.nights) : null;
   const coverImage = pkg.coverImage || "";
   const title      = pkg.title || pkg.destination;
@@ -318,12 +1006,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         </DContainer>
 
         {/* Trust strip */}
-        <TrustStrip
-          items={trustItems}
-          ink={INK} mutedColor={MUTED} borderColor={BORDER} iconAccent={SAGE}
-          layout="row"
-          style={{ padding: "20px 80px" }}
-        />
+        <SkTrustStrip items={trustItems} style={{ padding: "0 80px" }} />
 
         {/* Logistics 5-col */}
         {logisticsItems.length > 0 && (
@@ -368,13 +1051,26 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
           </div>
         </DContainer>
 
-        <DynamicSectionsDesktop pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-        <ReviewsSectionDesktop pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
+        <SkHighlightsSection pkg={pkg} isDesktop={true} />
+        <SkItinerarySection pkg={pkg} isDesktop={true} />
+        <SkHotelSection pkg={pkg} isDesktop={true} />
+        <SkInclusionsSection pkg={pkg} isDesktop={true} />
+        <SkMediaSection pkg={pkg} isDesktop={true} />
+        <SkTransfersSection pkg={pkg} isDesktop={true} />
+        <SkPricingSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
+        <SkDeparturesSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
+        <SkExtrasSection pkg={pkg} isDesktop={true} />
+        <SkCustomSection pkg={pkg} isDesktop={true} />
+        <SkImportantNotesSection pkg={pkg} isDesktop={true} />
+        <SkFaqSection pkg={pkg} isDesktop={true} />
+        <SkReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
+        <SkPeopleSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
+        <SkAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} />
 
-        {/* Mutawif dark closing panel */}
+        {/* Mutawif dark closing panel (legacy agent field) */}
         <MutawifClosingPanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
 
-        <SharedCTABannerDesktop pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
+        <SkCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
         <DesktopFooter agency={agency} brand={SAGE} />
       </div>
     );
@@ -444,7 +1140,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
       {/* Mutawif band */}
       <div style={{ marginTop: 20 }}>
-        <MutawifBand pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
+        <MutawifBand pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
       </div>
 
       {/* Departure group dates */}
@@ -467,17 +1163,27 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         </section>
       )}
 
-      <DynamicSections pkg={pkg} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} />
-      <ReviewsSection pkg={pkg} tokens={tokens} lang={lang} agency={agency} />
+      <SkHighlightsSection pkg={pkg} isDesktop={false} />
+      <SkItinerarySection pkg={pkg} isDesktop={false} />
+      <SkHotelSection pkg={pkg} isDesktop={false} />
+      <SkInclusionsSection pkg={pkg} isDesktop={false} />
+      <SkMediaSection pkg={pkg} isDesktop={false} />
+      <SkTransfersSection pkg={pkg} isDesktop={false} />
+      <SkPricingSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
+      <SkDeparturesSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
+      <SkExtrasSection pkg={pkg} isDesktop={false} />
+      <SkCustomSection pkg={pkg} isDesktop={false} />
+      <SkImportantNotesSection pkg={pkg} isDesktop={false} />
+      <SkFaqSection pkg={pkg} isDesktop={false} />
+      <SkReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
+      <SkPeopleSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
+      <SkAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} />
 
-      {/* Mutawif dark closing panel */}
+      {/* Mutawif dark closing panel (legacy agent field) */}
       <MutawifClosingPanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
 
-      <div style={{ padding: "0 18px 28px" }}>
-        <SharedCTABanner pkg={pkg} agency={agency} tokens={tokens} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
-      </div>
-
-      <SharedFooter agency={agency} tokens={tokens} />
+      <SkCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
+      <SkMobileFooter agency={agency} lang={lang} />
       <StickyCTA price={pkg.price} nights={nights} label={t.whatsAppTheOffice} onWhatsApp={onWhatsApp} lang={lang} />
     </div>
   );

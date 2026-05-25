@@ -9,13 +9,12 @@ export type {
   AnySectionInstance,
   PresetSection,
   PresetDef,
-  // per-section data shapes
+  // stable per-section data shapes
   ItineraryDay,
   ItineraryData,
-  Departure,
-  FlightsData,
   InclusionsData,
   PricingTier,
+  PaymentStep,
   PricingData,
   HotelData,
   GalleryData,
@@ -27,6 +26,29 @@ export type {
   FaqData,
   BookingTermsData,
   CustomData,
+  ExtrasItem,
+  ExtrasData,
+  MealsData,
+  ImportantNotesItem,
+  ImportantNotesData,
+  AboutAgencyData,
+  TransfersData,
+  VisaData,
+  // v2 section data shapes
+  PeopleData,
+  PersonEntry,
+  TrekProfileData,
+  ScarcityData,
+  MediaData,
+  DepartureEntry,
+  DeparturesData,
+  // legacy section data shapes (kept for backward compat rendering)
+  GuideData,
+  FlightsData,
+  DepartureDatesData,
+  PaymentPlanData,
+  ScheduleData,
+  MapData,
 } from "./types";
 
 export { SECTION_TYPE_KEYS, DEFAULT_CORE_FORM } from "./types";

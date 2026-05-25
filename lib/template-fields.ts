@@ -1,9 +1,97 @@
 /**
- * Per-template field hints — used by the builder to surface the most
- * relevant input fields for a given template. Templates are opinionated
- * lenses over the universal TPackage data model; this config tells the
- * builder which fields to highlight for each lens.
+ * Per-template section priority config — data-driven map used by the builder
+ * to foreground the most relevant sections for a given template at the top of
+ * the sections list. Every section remains editable for any package; this only
+ * affects emphasis and ordering in the builder UI.
+ *
+ * Source of truth: design bundle chat2.md art directions.
  */
+
+export type SectionPriority = {
+  /** v2 section type key */
+  type: string;
+  /** Builder UI label override (falls back to registry label) */
+  label?: string;
+  labelAr?: string;
+};
+
+/**
+ * Foregrounded sections per template, in display order.
+ * Builder Phase 2 will surface these at the top of the section list when the
+ * corresponding template is active.
+ */
+export const TEMPLATE_SECTION_PRIORITY: Record<string, SectionPriority[]> = {
+  aurora: [
+    { type: "people",     label: "Travel designer",     labelAr: "مصمم الرحلة" },
+    { type: "itinerary",  label: "Day-by-day itinerary", labelAr: "البرنامج اليومي" },
+    { type: "media",      label: "Photo gallery",        labelAr: "معرض الصور" },
+    { type: "departures", label: "Departure dates",      labelAr: "مواعيد المغادرة" },
+    { type: "reviews",    label: "Reviews",              labelAr: "التقييمات" },
+  ],
+  voyage: [
+    { type: "highlights", label: "Highlights",       labelAr: "أبرز المميزات" },
+    { type: "media",      label: "Photo gallery",    labelAr: "معرض الصور" },
+    { type: "itinerary",  label: "Itinerary",        labelAr: "البرنامج اليومي" },
+    { type: "people",     label: "Trip lead",        labelAr: "قائد الرحلة" },
+    { type: "departures", label: "Departure dates",  labelAr: "مواعيد المغادرة" },
+  ],
+  pulse: [
+    { type: "scarcity",   label: "Scarcity & urgency",  labelAr: "الندرة والإلحاح" },
+    { type: "pricing",    label: "Pricing",             labelAr: "الأسعار" },
+    { type: "departures", label: "Departure dates",     labelAr: "مواعيد المغادرة" },
+    { type: "reviews",    label: "Reviews",             labelAr: "التقييمات" },
+  ],
+  sakina: [
+    { type: "people",         label: "Mutawif / guide",  labelAr: "المطوف / المرشد" },
+    { type: "itinerary",      label: "Itinerary",        labelAr: "برنامج الرحلة" },
+    { type: "important_notes", label: "Important notes", labelAr: "ملاحظات مهمة" },
+    { type: "departures",     label: "Departure dates",  labelAr: "مواعيد المغادرة" },
+    { type: "about_agency",   label: "About the agency", labelAr: "عن الوكالة" },
+  ],
+  petal: [
+    { type: "media",      label: "Photo gallery",    labelAr: "معرض الصور" },
+    { type: "hotel",      label: "Accommodation",    labelAr: "الإقامة" },
+    { type: "highlights", label: "Highlights",       labelAr: "أبرز المميزات" },
+    { type: "extras",     label: "Optional extras",  labelAr: "الإضافات الاختيارية" },
+    { type: "departures", label: "Departure dates",  labelAr: "مواعيد المغادرة" },
+  ],
+  compass: [
+    { type: "trek_profile", label: "Trek profile",       labelAr: "ملف الرحلة الجبلية" },
+    { type: "itinerary",    label: "Daily stages",       labelAr: "المراحل اليومية" },
+    { type: "important_notes", label: "Important notes", labelAr: "ملاحظات مهمة" },
+    { type: "departures",   label: "Departure dates",    labelAr: "مواعيد المغادرة" },
+  ],
+  atlas: [
+    { type: "people",       label: "Curator",          labelAr: "المنسق" },
+    { type: "hotel",        label: "Accommodation",    labelAr: "الإقامة" },
+    { type: "media",        label: "Photo gallery",    labelAr: "معرض الصور" },
+    { type: "about_agency", label: "About the agency", labelAr: "عن الوكالة" },
+    { type: "custom",       label: "Custom section",   labelAr: "قسم مخصص" },
+  ],
+  tribe: [
+    { type: "people",       label: "Trip lead",         labelAr: "قائد الرحلة" },
+    { type: "reviews",      label: "Reviews",           labelAr: "التقييمات" },
+    { type: "about_agency", label: "About the agency",  labelAr: "عن الوكالة" },
+    { type: "custom",       label: "Crew / chat",       labelAr: "الفريق / دردشة" },
+    { type: "departures",   label: "Departure dates",   labelAr: "مواعيد المغادرة" },
+  ],
+  smart: [
+    { type: "pricing",      label: "Cost breakdown",   labelAr: "تفاصيل التكلفة" },
+    { type: "inclusions",   label: "Inclusions",       labelAr: "ما يشمل" },
+    { type: "faq",          label: "FAQ",              labelAr: "الأسئلة الشائعة" },
+    { type: "custom",       label: "What this trip doesn't have", labelAr: "ما لا تشمله الرحلة" },
+    { type: "departures",   label: "Departure dates",  labelAr: "مواعيد المغادرة" },
+  ],
+  family: [
+    { type: "itinerary",      label: "Itinerary",        labelAr: "البرنامج اليومي" },
+    { type: "transfers",      label: "Transfers",        labelAr: "التنقلات" },
+    { type: "important_notes", label: "Important notes", labelAr: "ملاحظات مهمة" },
+    { type: "custom",         label: "Custom section",   labelAr: "قسم مخصص" },
+    { type: "departures",     label: "Departure dates",  labelAr: "مواعيد المغادرة" },
+  ],
+};
+
+// ─── Legacy field hints (kept for any existing code that imports FieldHint) ───
 
 export type FieldHint = {
   field: string;
@@ -12,67 +100,7 @@ export type FieldHint = {
 };
 
 /**
- * Fields each template emphasises. Not exhaustive — every field is always
- * accessible; this list drives "suggested for this template" UI hints only.
+ * @deprecated Use TEMPLATE_SECTION_PRIORITY instead.
+ * Flat field names are superseded by v2 section types.
  */
-export const TEMPLATE_FIELD_CONFIG: Record<string, FieldHint[]> = {
-  aurora: [
-    { field: "agent",      label: "Travel designer",     labelAr: "مصمم الرحلة"         },
-    { field: "gallery",    label: "Photo gallery",        labelAr: "معرض الصور"          },
-    { field: "itinerary",  label: "Day-by-day itinerary", labelAr: "البرنامج اليومي"     },
-    { field: "departures", label: "Departure dates",      labelAr: "مواعيد المغادرة"     },
-    { field: "rating",     label: "Rating",               labelAr: "التقييم"             },
-  ],
-  voyage: [
-    { field: "agent",              label: "Trip lead",        labelAr: "قائد الرحلة"              },
-    { field: "gallery",            label: "Photo gallery",    labelAr: "معرض الصور"               },
-    { field: "spotsRemaining",     label: "Spots remaining",  labelAr: "الأماكن المتبقية"         },
-    { field: "departures",         label: "Departure dates",  labelAr: "مواعيد المغادرة"          },
-    { field: "socialProofTicker",  label: "Social proof",     labelAr: "إثبات اجتماعي"            },
-  ],
-  pulse: [
-    { field: "priceWas",       label: "Original price",   labelAr: "السعر الأصلي"          },
-    { field: "saving",         label: "Saving amount",    labelAr: "قيمة التوفير"          },
-    { field: "spotsRemaining", label: "Spots remaining",  labelAr: "الأماكن المتبقية"      },
-    { field: "departures",     label: "Departure dates",  labelAr: "مواعيد المغادرة"       },
-    { field: "viewersNow",     label: "Live viewers",     labelAr: "المشاهدون المباشرون"   },
-  ],
-  sakina: [
-    { field: "agent",          label: "Mutawif / guide",  labelAr: "المطوف / المرشد"       },
-    { field: "itinerary",      label: "Itinerary",        labelAr: "برنامج الرحلة"         },
-    { field: "departures",     label: "Departure dates",  labelAr: "مواعيد المغادرة"       },
-    { field: "spotsRemaining", label: "Spots remaining",  labelAr: "الأماكن المتبقية"      },
-    { field: "rating",         label: "Rating",           labelAr: "التقييم"               },
-  ],
-  petal: [
-    { field: "agent",        label: "Travel designer",  labelAr: "مصمم الرحلة"          },
-    { field: "gallery",      label: "Photo gallery",    labelAr: "معرض الصور"            },
-    { field: "pricingTiers", label: "Room options",     labelAr: "خيارات الغرف"          },
-    { field: "departures",   label: "Departure dates",  labelAr: "مواعيد المغادرة"       },
-    { field: "rating",       label: "Rating",           labelAr: "التقييم"               },
-  ],
-  compass: [
-    { field: "difficulty",   label: "Difficulty level", labelAr: "مستوى الصعوبة"         },
-    { field: "maxAltitude",  label: "Max altitude (m)", labelAr: "الارتفاع الأقصى (م)"   },
-    { field: "distanceKm",   label: "Distance (km)",    labelAr: "المسافة (كم)"           },
-    { field: "itinerary",    label: "Daily stages",     labelAr: "المراحل اليومية"        },
-    { field: "fitnessNote",  label: "Fitness note",     labelAr: "ملاحظة اللياقة"         },
-  ],
-
-  // TODO templates — minimal hints for future builder integration
-  atlas: [
-    { field: "agent",   label: "Curator",       labelAr: "المنسق"        },
-    { field: "gallery", label: "Photo gallery", labelAr: "معرض الصور"    },
-  ],
-  tribe: [
-    { field: "spotsRemaining", label: "Spots remaining", labelAr: "الأماكن المتبقية" },
-    { field: "agent",          label: "Trip lead",       labelAr: "قائد الرحلة"      },
-  ],
-  smart: [
-    { field: "pricingTiers", label: "Cost breakdown", labelAr: "تفاصيل التكلفة" },
-  ],
-  family: [
-    { field: "pricingTiers",   label: "Room options",    labelAr: "خيارات الغرف"      },
-    { field: "spotsRemaining", label: "Spots remaining", labelAr: "الأماكن المتبقية"  },
-  ],
-};
+export const TEMPLATE_FIELD_CONFIG: Record<string, FieldHint[]> = {};

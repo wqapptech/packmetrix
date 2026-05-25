@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import { SECTION_REGISTRY } from "@/lib/sections/registry";
 import type { AnySectionInstance, SectionTypeKey } from "@/lib/sections/types";
+import { TEMPLATE_SECTION_PRIORITY } from "@/lib/template-fields";
+import { TEMPLATES } from "@/components/templates";
 import { SectionCard } from "./SectionCard";
 import { AddSectionMenu } from "./AddSectionMenu";
 import { SAND } from "./constants";
@@ -13,16 +15,30 @@ export function SectionList({
   onChange,
   userId,
   lang,
+  templateId,
 }: {
   sections: AnySectionInstance[];
   onChange: (sections: AnySectionInstance[]) => void;
   userId: string;
   lang: "en" | "ar";
+  templateId?: string;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const dragIdx = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
   const l = lang === "ar";
+
+  // Compute which foregrounded sections for the active template are still missing
+  const tpl = templateId ? TEMPLATES.find((t) => t.id === templateId) : undefined;
+  const suggestions = (() => {
+    if (!templateId) return [];
+    const priority = TEMPLATE_SECTION_PRIORITY[templateId] ?? [];
+    return priority.filter(
+      (p) =>
+        p.type in SECTION_REGISTRY &&
+        !sections.some((s) => s.type === p.type)
+    );
+  })();
 
   const updateSection = (id: string, data: Record<string, unknown>) =>
     onChange(sections.map((s) => (s.id === id ? { ...s, data } : s)));
@@ -68,6 +84,46 @@ export function SectionList({
 
   return (
     <div>
+      {/* Template suggestion strip — shows missing foregrounded sections */}
+      {suggestions.length > 0 && (
+        <div style={{
+          marginBottom: 14,
+          padding: "10px 14px 12px",
+          borderRadius: 10,
+          background: tpl ? `${tpl.templateColor}0d` : "rgba(232,201,123,0.05)",
+          border: `1px dashed ${tpl ? `${tpl.templateColor}40` : "rgba(232,201,123,0.2)"}`,
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: tpl ? tpl.templateColor : SAND, marginBottom: 8, opacity: 0.8 }}>
+            {l
+              ? `مقترح لـ ${tpl ? (l ? tpl.nameAr : tpl.name) : templateId}`
+              : `Suggested for ${tpl?.name ?? templateId}`}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
+            {suggestions.map((p) => {
+              const label = l && p.labelAr ? p.labelAr : p.label ?? SECTION_REGISTRY[p.type as SectionTypeKey]?.label ?? p.type;
+              return (
+                <button
+                  key={p.type}
+                  onClick={() => addSection(p.type as SectionTypeKey)}
+                  style={{
+                    fontSize: 12, fontFamily: "inherit", cursor: "pointer",
+                    padding: "4px 10px", borderRadius: 7,
+                    background: tpl ? `${tpl.templateColor}18` : "rgba(232,201,123,0.08)",
+                    border: `1px solid ${tpl ? `${tpl.templateColor}30` : "rgba(232,201,123,0.2)"}`,
+                    color: tpl ? tpl.templateColor : SAND,
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    transition: "background 0.15s",
+                  }}
+                >
+                  <Icon name="plus" size={11} color={tpl?.templateColor ?? SAND} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {sections.length === 0 && (
         <div style={{
           padding: "28px 20px",

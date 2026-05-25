@@ -1,16 +1,17 @@
 "use client";
 
 import type { AnySectionInstance, CoreForm } from "@/lib/sections/types";
+import { TEMPLATES } from "@/components/templates";
 
 const SAND = "#e8c97b";
 const SUCCESS = "#2dd4a0";
 
 function score(core: CoreForm, sections: AnySectionInstance[]): number {
   let s = 0;
-  if (core.destination) s += 10;
-  if (core.price)       s += 10;
-  if (core.title)       s += 10;
-  if (core.description) s += 10;
+  if (core.destination)  s += 10;
+  if (core.price)        s += 10;
+  if (core.titleEn || core.titleAr)             s += 10;
+  if (core.descriptionEn || core.descriptionAr) s += 10;
   if (core.whatsapp)    s += 15;
   if (core.coverImage)  s += 20;
 
@@ -32,12 +33,15 @@ export function MiniPreview({
   core,
   sections,
   lang,
+  templateId,
 }: {
   core: CoreForm;
   sections: AnySectionInstance[];
   lang: "en" | "ar";
+  templateId?: string;
 }) {
   const l = lang === "ar";
+  const tpl = templateId ? TEMPLATES.find((t) => t.id === templateId) : undefined;
   const heroUrl = core.coverImage;
   const sc = score(core, sections);
   const scoreColor = sc >= 80 ? SUCCESS : sc >= 50 ? SAND : "#f5a623";
@@ -103,16 +107,17 @@ export function MiniPreview({
               {core.nights || "—"} {l ? "ليلة" : "nights"} · {core.price || "—"}
             </div>
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16, lineHeight: 1.1 }}>
-              {core.title || core.destination || (l ? "وجهتك" : "Your destination")}
+              {(l ? core.titleAr || core.titleEn : core.titleEn || core.titleAr) || core.destination || (l ? "وجهتك" : "Your destination")}
             </div>
           </div>
         </div>
 
         {/* Body */}
         <div style={{ padding: "10px 12px", background: "#fdfcf9", height: "58%", overflow: "hidden" }}>
-          {core.description && (
+          {(core.descriptionEn || core.descriptionAr) && (
             <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 10, lineHeight: 1.3, marginBottom: 7, color: "#0d1b2e" }}>
-              {core.description.slice(0, 60)}{core.description.length > 60 ? "…" : ""}
+              {((l ? core.descriptionAr || core.descriptionEn : core.descriptionEn || core.descriptionAr) || "").slice(0, 60)}
+              {((l ? core.descriptionAr || core.descriptionEn : core.descriptionEn || core.descriptionAr) || "").length > 60 ? "…" : ""}
             </div>
           )}
           <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 3, marginBottom: 8 }}>
@@ -133,8 +138,18 @@ export function MiniPreview({
         </div>
       </div>
 
+      {/* Template badge */}
+      {tpl && (
+        <div style={{ marginTop: 10, padding: "6px 10px", background: `${tpl.templateColor}12`, border: `1px solid ${tpl.templateColor}30`, borderRadius: 8, display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: tpl.templateColor, flexShrink: 0 }} />
+          <span style={{ fontSize: 10.5, color: tpl.templateColor, fontWeight: 600 }}>
+            {l ? tpl.nameAr : tpl.name}
+          </span>
+        </div>
+      )}
+
       {/* Score */}
-      <div style={{ marginTop: 10, padding: "8px 10px", background: "rgba(232,201,123,0.07)", border: "1px solid rgba(232,201,123,0.2)", borderRadius: 9, fontSize: 10.5, color: "rgba(255,255,255,0.65)", display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ marginTop: tpl ? 6 : 10, padding: "8px 10px", background: "rgba(232,201,123,0.07)", border: "1px solid rgba(232,201,123,0.2)", borderRadius: 9, fontSize: 10.5, color: "rgba(255,255,255,0.65)", display: "flex", gap: 8, alignItems: "center" }}>
         <span style={{ color: SAND }}>✦</span>
         <span>
           <b style={{ color: scoreColor }}>{scoreLabel} {sc}/100</b>

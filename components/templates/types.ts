@@ -2,6 +2,27 @@ import type { Lang } from "@/lib/translations";
 
 export type { Lang };
 
+// ─── Localization ─────────────────────────────────────────────────────────────
+
+/** Bilingual content string stored in Firestore for all authored text fields. */
+export type LocalizedString = { en: string; ar: string };
+
+/**
+ * Union of a plain string (legacy packages) and LocalizedString (v2 packages).
+ * Use `locStr()` to resolve to a display string — never access `.en`/`.ar` directly.
+ */
+export type LocStr = LocalizedString | string;
+
+/**
+ * Resolve a LocStr to a plain display string.
+ * Falls back across languages when one side is empty.
+ */
+export function locStr(v: LocStr | undefined, lang: "en" | "ar"): string {
+  if (!v) return "";
+  if (typeof v === "string") return v;
+  return v[lang] || v.en || v.ar || "";
+}
+
 // ─── Core sub-types ─────────────────────────────────────────────────────────
 
 export type TReview = {
@@ -12,7 +33,7 @@ export type TReview = {
   avatarUrl?: string;
   createdAt?: number;
   country?: string;
-  /** "couple" | "solo" | "family" | "group" — used by Petal to filter couple reviews */
+  /** "couple" | "solo" | "family" | "group" — used by Petal to filter */
   partyType?: string;
 };
 
@@ -21,9 +42,9 @@ export type TItineraryDay = {
   day: number;
   title: string;
   desc: string;
-  /** Narrative chapter name, e.g. "Slowness" (used by Aurora, Voyage) */
+  /** Narrative chapter name, e.g. "Slowness" (Aurora, Voyage) */
   chapter?: string;
-  /** Hero photo for this day (used by Aurora, Voyage, Compass, Atlas) */
+  /** Hero photo for this day (Aurora, Voyage, Compass, Atlas) */
   img?: string;
   /** Altitude in metres at end of day (Compass) */
   alt?: number;
@@ -38,19 +59,28 @@ export type TPricingTier = {
   price: string;
   /** Original / was-price shown struck-through (Pulse) */
   was?: string;
-  /** Perks shown as a checklist inside the tier card (Pulse, Atlas) */
+  /** Perks shown as a checklist inside the tier card */
   perks?: string[];
-  /** Marks this tier as the most popular — shown with a "Most booked" badge */
+  /** Marks this tier as the most popular */
   pop?: boolean;
-  /** Human-readable saving for this specific tier, e.g. "Save $800" (Pulse) */
+  /**
+   * Human-readable saving for this specific tier, e.g. "Save $800".
+   * @deprecated Compute at render from `was - price`. Never store.
+   */
   save?: string;
 };
-export type TAirport     = {
-  name: string; price: string; date?: string;
-  arrivingAirport?: string; flyingTime?: string; arrivingTime?: string;
+
+export type TAirport = {
+  name: string;
+  price: string;
+  date?: string;
+  arrivingAirport?: string;
+  flyingTime?: string;
+  arrivingTime?: string;
 };
 
-/** Named person behind the agency/package (travel designer, mutawif, trip lead…) */
+/** Named person behind the agency/package (travel designer, mutawif, trip lead…)
+ * @deprecated Migrate to the `people` section. Kept for template backward compat. */
 export type TAgent = {
   name: string;
   role: string;
@@ -73,8 +103,61 @@ export type TDeparture = {
 export type TGalleryItem = {
   src: string;
   caption?: string;
-  /** "room" | "experience" | "destination" — for future category filtering */
   category?: "room" | "experience" | "destination";
+};
+
+// ─── v2 Tier-1 additions ──────────────────────────────────────────────────────
+
+/** v2 unified contact entry (replaces flat whatsapp / messenger fields). */
+export type TContact = {
+  type: "whatsapp" | "messenger" | "phone" | "email";
+  value: string;
+  label?: string;
+};
+
+// ─── v2 Tier-3 Attributes ─────────────────────────────────────────────────────
+
+export type TrekDifficulty = "easy" | "moderate" | "strenuous" | "extreme";
+
+/**
+ * Trek / adventure profile — stored as a `trek_profile` section.
+ * Foregrounded by the Compass template.
+ */
+export type TTrekProfile = {
+  difficulty?: TrekDifficulty;
+  maxAltitude?: number;
+  distanceKm?: number;
+  fitnessNote?: string;
+};
+
+/**
+ * Scarcity signals — stored as a `scarcity` section.
+ * Foregrounded by the Pulse template.
+ *
+ * IMPORTANT: `saving` is NEVER stored — always derived at render as wasPrice − price.
+ * IMPORTANT: `viewersNow` is NEVER stored — runtime-simulated by the template.
+ */
+export type TScarcity = {
+  wasPrice?: string;
+  spotsRemaining?: number;
+  totalSpots?: number;
+  firstDepartureDate?: string;
+};
+
+// ─── v2 People (merges guide + agent) ─────────────────────────────────────────
+
+export type PersonRole = "guide" | "agent" | "mutawif" | "curator" | "trip_lead";
+
+/** A person behind the package — stored in the `people` section. */
+export type TPerson = {
+  id: string;
+  role: PersonRole;
+  name: string;
+  bio?: string;
+  photo?: string;
+  languages?: string[];
+  years?: number;
+  repliesIn?: string;
 };
 
 // ─── Main package type ───────────────────────────────────────────────────────
@@ -82,11 +165,72 @@ export type TGalleryItem = {
 export type TPackage = {
   id: string;
   userId?: string;
+
+  // ── Tier 1: Core fields ────────────────────────────────────────────────────
+
   destination: string;
   price: string;
   nights?: string | number;
+
+  /**
+   * Package title.
+   * v2: stored as LocalizedString { en, ar } in Firestore.
+   * Legacy: stored as plain string.
+   * normalizePkg() always resolves to a plain string before passing to templates.
+   */
   title?: string;
+
+  /**
+   * Short description.
+   * v2: stored as LocalizedString { en, ar } in Firestore.
+   * Legacy: stored as plain string.
+   * normalizePkg() resolves to string.
+   */
   description: string;
+
+  /** ISO-4217 currency code, e.g. "EUR", "SAR", "USD". New in v2. */
+  currency?: string;
+
+  /** Package lifecycle status. v2 replaces the legacy isActive boolean. */
+  status?: "draft" | "active" | "sold_out";
+
+  /** @deprecated Use `status` instead. */
+  isActive?: boolean;
+
+  /** Primary authored language — drives RTL rendering and fallback resolution. */
+  primaryLanguage?: "en" | "ar";
+
+  /** @deprecated Renamed to primaryLanguage. */
+  language?: string;
+
+  coverImage?: string;
+
+  /** v2 unified contacts list — replaces flat whatsapp / messenger. */
+  contacts?: TContact[];
+
+  /** @deprecated Use contacts[]. */
+  whatsapp?: string;
+  /** @deprecated Use contacts[]. */
+  messenger?: string;
+
+  // ── Template selection ────────────────────────────────────────────────────
+  templateId?: string;
+
+  // ── Tier 2: Sections (canonical storage) ──────────────────────────────────
+  sections?: Array<{ id: string; type: string; order: number; data: Record<string, unknown> }>;
+
+  // ── Tier 3: Attributes (stored as typed section entries) ──────────────────
+
+  /** Trek / adventure profile. Foregrounded by Compass. */
+  trekProfile?: TTrekProfile;
+
+  /** Scarcity signals. Foregrounded by Pulse. saving/viewersNow NEVER stored. */
+  scarcity?: TScarcity;
+
+  /** People behind the package (guide, agent, mutawif, curator…). */
+  people?: TPerson[];
+
+  // ── Flat fields hydrated by normalizePkg() from sections[] ────────────────
   includes?: string[];
   excludes?: string[];
   advantages?: string[];
@@ -95,64 +239,66 @@ export type TPackage = {
   itinerary?: TItineraryDay[];
   pricingTiers?: TPricingTier[];
   cancellation?: string;
-  whatsapp?: string;
-  messenger?: string;
-  coverImage?: string;
-  /** Legacy flat image array — new code should prefer gallery */
+
+  /** @deprecated Use sections.media.images. */
   images?: string[];
+
   videoUrl?: string;
-  language?: string;
-  isActive?: boolean;
   reviews?: TReview[];
-  // sections-based architecture (Phase 5+)
-  sections?: Array<{ id: string; type: string; order: number; data: Record<string, unknown> }>;
-
-  // ── New fields (all optional — every template renders gracefully without them) ──
-
-  /** Rich gallery with captions; promoted from images[] */
   gallery?: TGalleryItem[];
 
-  /** Spots still available on the next departure */
   spotsRemaining?: number;
-  /** Total capacity for the package */
   totalSpots?: number;
-
-  /** All upcoming departures with availability and pricing */
   departures?: TDeparture[];
 
-  /** Aggregate star rating (1–5), stored to avoid re-computing from reviews */
+  /** Aggregate star rating (1–5). */
   rating?: number;
-  /** Total review count across all history, not just on-package reviews */
+  /** Total review count across history. */
   reviewCount?: number;
-
-  /** Recent booking signal — powers "last booked X hours ago" */
+  /** Recent booking signal — "last booked X hours ago" */
   recentBookings?: { count: number; hoursAgo: number };
-  /** Live viewer count — capped server-side (e.g. 6–25) for honest scarcity */
-  viewersNow?: number;
-  /** Cycling social proof messages (Pulse, Voyage) — auto-generated server-side */
+
+  /** Cycling social proof messages — auto-generated server-side. */
   socialProofTicker?: string[];
 
-  /** Original / was-price for deal packages (Pulse, Family) */
-  priceWas?: string;
-  /** Human-readable saving amount, e.g. "Save $790" */
+  /**
+   * Derived saving amount, e.g. "Save €300".
+   * NEVER stored to Firestore — computed at render from (wasPrice - price).
+   * normalizePkg() populates this from scarcity.wasPrice when present.
+   */
   saving?: string;
 
-  /** The person behind the package: travel designer, mutawif, trip lead, etc. */
+  /**
+   * Concurrent viewer count — Pulse template urgency signal.
+   * NEVER stored to Firestore — runtime-simulated by the template.
+   * normalizePkg() sets a seeded random value for SSR consistency.
+   */
+  viewersNow?: number;
+
+  /**
+   * Original was-price — used by Pulse to signal a deal.
+   * @deprecated Migrate to the `scarcity` section. Kept for template backward compat.
+   */
+  priceWas?: string;
+
+  /**
+   * The person behind the package.
+   * @deprecated Migrate to the `people` section. Kept for template backward compat.
+   */
   agent?: TAgent;
 
-  // ── Sakina-specific fields ────────────────────────────────────────────────
-  /** Daily prayer times for the destination — displayed in the Sakina template */
-  prayerTimes?: { fajr?: string; dhuhr?: string; asr?: string; maghrib?: string; isha?: string };
-
-  // ── Compass-specific fields ───────────────────────────────────────────────
-  /** Maximum altitude reached on the trek, in metres */
+  // ── Legacy Compass flat fields (replaced by trek_profile section) ─────────
+  /** @deprecated Use trekProfile.maxAltitude */
   maxAltitude?: number;
-  /** Total trekking distance in km */
+  /** @deprecated Use trekProfile.distanceKm */
   distanceKm?: number;
-  /** Honest difficulty classification */
+  /** @deprecated Use trekProfile.difficulty */
   difficulty?: "easy" | "moderate" | "strenuous" | "extreme";
-  /** Free-text fitness requirement note shown with the difficulty bar */
+  /** @deprecated Use trekProfile.fitnessNote */
   fitnessNote?: string;
+
+  // ── Legacy Sakina field ────────────────────────────────────────────────────
+  prayerTimes?: { fajr?: string; dhuhr?: string; asr?: string; maghrib?: string; isha?: string };
 };
 
 // ─── Agency type ─────────────────────────────────────────────────────────────
@@ -191,8 +337,8 @@ export type TListPackage = {
   images?: string[];
   agencySlug?: string;
   isActive?: boolean;
-  title?: string;
-  /** Template used by this package — drives the stripe color on admin cards */
+  status?: "draft" | "active" | "sold_out";
+  title?: LocStr;
   templateId?: string;
 };
 
@@ -217,11 +363,11 @@ export type TemplateDefinition = {
   Card: React.ComponentType<TCardProps>;
   previewBg: string;
   dark?: boolean;
-  /** Brand accent color used for the stripe in admin cards and template selector */
+  /** Brand accent color — sourced from the template's CSS file. */
   templateColor: string;
   /**
    * Whether this template is fully designed and selectable.
-   * false = placeholder / TODO — shown in selector but not selectable.
+   * All 10 templates are now available.
    */
   available: boolean;
 };
