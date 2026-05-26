@@ -9,6 +9,7 @@ import { TEMPLATES } from "@/components/templates";
 import { SectionCard } from "./SectionCard";
 import { AddSectionMenu } from "./AddSectionMenu";
 import { SAND } from "./constants";
+import { DA_GOLD, DA_GOLD_SOFT, DA_INK3, DA_RULE } from "@/lib/tokens";
 
 export function SectionList({
   sections,
@@ -90,7 +91,7 @@ export function SectionList({
           marginBottom: 14,
           padding: "10px 14px 12px",
           borderRadius: 10,
-          background: tpl ? `${tpl.templateColor}0d` : "rgba(232,201,123,0.05)",
+          background: tpl ? `${tpl.templateColor}0d` : DA_GOLD_SOFT,
           border: `1px dashed ${tpl ? `${tpl.templateColor}40` : "rgba(232,201,123,0.2)"}`,
         }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: tpl ? tpl.templateColor : SAND, marginBottom: 8, opacity: 0.8 }}>
@@ -108,7 +109,7 @@ export function SectionList({
                   style={{
                     fontSize: 12, fontFamily: "inherit", cursor: "pointer",
                     padding: "4px 10px", borderRadius: 7,
-                    background: tpl ? `${tpl.templateColor}18` : "rgba(232,201,123,0.08)",
+                    background: tpl ? `${tpl.templateColor}18` : DA_GOLD_SOFT,
                     border: `1px solid ${tpl ? `${tpl.templateColor}30` : "rgba(232,201,123,0.2)"}`,
                     color: tpl ? tpl.templateColor : SAND,
                     display: "inline-flex", alignItems: "center", gap: 5,
@@ -128,9 +129,9 @@ export function SectionList({
         <div style={{
           padding: "28px 20px",
           borderRadius: 14,
-          border: "1.5px dashed rgba(255,255,255,0.08)",
+          border: `1.5px dashed ${DA_RULE}`,
           textAlign: "center",
-          color: "rgba(255,255,255,0.3)",
+          color: DA_INK3,
           fontSize: 13,
           marginBottom: 14,
         }}>
@@ -169,8 +170,8 @@ export function SectionList({
           marginTop: sections.length > 0 ? 4 : 0,
           padding: "12px 16px",
           borderRadius: 12,
-          border: `1.5px dashed rgba(232,201,123,0.25)`,
-          background: "rgba(232,201,123,0.03)",
+          border: `1.5px dashed ${DA_GOLD}`,
+          background: DA_GOLD_SOFT,
           color: SAND,
           fontSize: 13,
           fontWeight: 600,
@@ -183,12 +184,12 @@ export function SectionList({
           transition: "border-color 0.15s, background 0.15s",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = `${SAND}60`;
-          e.currentTarget.style.background = `${SAND}08`;
+          e.currentTarget.style.borderColor = DA_GOLD;
+          e.currentTarget.style.background = DA_GOLD_SOFT;
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = `rgba(232,201,123,0.25)`;
-          e.currentTarget.style.background = "rgba(232,201,123,0.03)";
+          e.currentTarget.style.borderColor = DA_GOLD;
+          e.currentTarget.style.background = DA_GOLD_SOFT;
         }}
       >
         <Icon name="plus" size={14} color={SAND} />

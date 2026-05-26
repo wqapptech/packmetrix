@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { T } from "@/lib/translations";
+import { T, localizeTierLabel } from "@/lib/translations";
 import { BaseCard, useIsDesktop } from "./shared";
-import type { TPageProps, TCardProps, TGalleryItem, TPackage, TAirport } from "./types";
+import type { TPageProps, TCardProps, TGalleryItem, TPackage, TAirport, TReview } from "./types";
+import { useActiveViewers } from "@/hooks/useActiveViewers";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PULSE — Last-minute deals · Conversion machine
@@ -331,11 +332,12 @@ function SecHead({ eb, title }: { eb: string; title: string }) {
 type TierT = (typeof T)["en"];
 
 function TierCard({
-  tier, isRtl, t,
+  tier, isRtl, t, lang,
 }: {
   tier: { label: string; price: string; was?: string; perks?: string[]; pop?: boolean; save?: string };
   isRtl: boolean;
   t: TierT;
+  lang: "en" | "ar";
 }) {
   return (
     <div style={{
@@ -355,7 +357,7 @@ function TierCard({
         </div>
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>{tier.label}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>{localizeTierLabel(tier.label, lang)}</div>
         {tier.save && (
           <div style={{ background: PL.dealBg, color: PL.deal, fontSize: 11, fontWeight: 800, padding: "3px 7px", borderRadius: 4, whiteSpace: "nowrap" }}>
             {tier.save}
@@ -397,6 +399,7 @@ type TranslationT = (typeof T)["en"];
 function PulseSection({
   s, t, isRtl, onWhatsApp, desktop, onImageClick,
 }: { s: SectionT; t: TranslationT; isRtl: boolean; onWhatsApp: () => void; desktop: boolean; onImageClick?: (images: LBImage[], idx: number) => void }) {
+  const lang = isRtl ? "ar" as const : "en" as const;
   const d = s.data;
 
   function SH({ label, title }: { label: string; title?: string }) {
@@ -606,7 +609,7 @@ function PulseSection({
             <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gridTemplateRows: "180px 180px", gap: 6 }}>
               {lbImages.slice(0, 5).map((img, i) => (
                 <div key={i} onClick={() => onImageClick?.(lbImages, i)} style={{ overflow: "hidden", borderRadius: 8, gridRow: i === 0 ? "span 2" : undefined, ...clickable(i) }}>
-                  <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s", display: "block" }} />
+                  <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
                 </div>
               ))}
             </div>
@@ -619,7 +622,7 @@ function PulseSection({
           <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gridTemplateRows: "130px 130px", gap: 4 }}>
             {lbImages.slice(0, 3).map((img, i) => (
               <div key={i} onClick={() => onImageClick?.(lbImages, i)} style={{ overflow: "hidden", borderRadius: 8, gridRow: i === 0 ? "span 2" : undefined, ...clickable(i) }}>
-                <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
               </div>
             ))}
           </div>
@@ -635,7 +638,7 @@ function PulseSection({
         <div id="pl-pricing" style={wrap}>
           <SH label={t.navPricing} title={t.navPricing} />
           <div style={{ display: desktop ? "grid" : "flex", gridTemplateColumns: desktop ? "repeat(3,1fr)" : undefined, flexDirection: desktop ? undefined : "column" as const, gap: 10 }}>
-            {tiers.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} />)}
+            {tiers.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} lang={lang} />)}
           </div>
         </div>
       );
@@ -987,7 +990,7 @@ function PulseSection({
               <div style={{ display: "grid", gridTemplateColumns: desktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: desktop ? undefined : "130px 130px", gap: 4, marginBottom: (videoUrl || mapImage) ? 24 : 0 }}>
                 {(desktop ? images : images.slice(0, 3)).map((src, i) => (
                   <div key={i} onClick={() => onImageClick?.(images.map(s => ({ src: s })), i)} style={{ overflow: "hidden", borderRadius: 8, gridRow: !desktop && i === 0 ? "span 2" : undefined, cursor: onImageClick ? "pointer" : "default", aspectRatio: desktop ? "4/3" : undefined }}>
-                    <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
                   </div>
                 ))}
               </div>
@@ -1045,15 +1048,16 @@ function PulseReviews({
   isRtl: boolean;
   desktop?: boolean;
 }) {
-  const hasReviews = !!(pkg.reviews?.length);
   const canSubmit  = agency.enableReviews !== false;
-  if (!hasReviews && !canSubmit) return null;
+  const canShow    = agency.showReviews !== false;
+  if (!canShow && !canSubmit) return null;
 
   const [name,    setName]    = useState("");
   const [text,    setText]    = useState("");
   const [rating,  setRating]  = useState(0);
   const [hover,   setHover]   = useState(0);
   const [status,  setStatus]  = useState<"idle" | "sending" | "ok" | "err">("idle");
+  const [newReviews, setNewReviews] = useState<TReview[]>([]);
 
   const handleSubmit = async () => {
     if (!name.trim() || !text.trim() || !rating || !pkg.id) return;
@@ -1064,7 +1068,12 @@ function PulseReviews({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ packageId: pkg.id, name: name.trim(), text: text.trim(), rating }),
       });
-      setStatus(res.ok ? "ok" : "err");
+      if (res.ok) {
+        setNewReviews(prev => [...prev, { id: crypto.randomUUID(), name: name.trim(), text: text.trim(), rating, createdAt: Date.now() }]);
+        setStatus("ok");
+      } else {
+        setStatus("err");
+      }
     } catch {
       setStatus("err");
     }
@@ -1072,7 +1081,8 @@ function PulseReviews({
 
   const wrap = desktop ? { marginBottom: 40 } : { padding: "32px 14px 28px" };
 
-  const reviews = pkg.reviews ?? [];
+  const reviews = [...(pkg.reviews ?? []), ...newReviews];
+  const hasReviews = canShow && reviews.length > 0;
 
   return (
     <div id="pl-reviews" style={wrap}>
@@ -1278,9 +1288,8 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
   const isRtl = lang === "ar";
   const dir = isRtl ? "rtl" : "ltr";
 
-  // Auto-generate viewer count (SSR-safe: starts 0, randomizes on mount)
-  const [autoViewers, setAutoViewers] = useState<number | null>(null);
-  useEffect(() => { setAutoViewers(8 + Math.floor(Math.random() * 17)); }, []);
+  // Real-time viewer count via Firestore presence
+  const liveViewers = useActiveViewers(pkg.id);
 
   // Lightbox state
   const [lightbox, setLightbox] = useState<{ images: LBImage[]; idx: number } | null>(null);
@@ -1313,8 +1322,8 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
   const showUrgencyDeps = !!(pkg.departures?.length && !depSection);
   const hasTiers  = !!(pkg.pricingTiers?.length);
   const hasAgent  = !!(pkg.agent);
-  // Effective viewers: manual override OR auto-generated
-  const effectiveViewers = pkg.viewersNow !== undefined ? pkg.viewersNow : autoViewers;
+  // Manual override takes precedence; otherwise use real Firestore presence count
+  const effectiveViewers = pkg.viewersNow !== undefined ? pkg.viewersNow : liveViewers;
 
   const cdLabels: [string, string, string, string] = [t.daysLabel, t.hoursLabelShort, t.minLabel, t.secLabel];
   const firstDate = firstDepDate?.split(" ").slice(0, 2).join(" ") ?? "";
@@ -1468,7 +1477,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <BlinkDot color={PL.deal} size={7} />
               <span>
-                {t.onlyLabel} <b>{pkg.spotsRemaining} of {pkg.totalSpots}</b>{" "}
+                {t.onlyLabel} <b>{pkg.spotsRemaining} {t.spotsOf} {pkg.totalSpots}</b>{" "}
                 {t.spotLeftOf}{firstDate ? ` ${firstDate}` : ""}
               </span>
             </div>
@@ -1618,7 +1627,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
             <div id="pl-pricing" style={{ padding: "32px 14px 28px" }}>
               <SecHead eb={t.navPricing} title={t.navPricing} />
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {pkg.pricingTiers!.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} />)}
+                {pkg.pricingTiers!.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} lang={lang} />)}
               </div>
             </div>
           )}
@@ -1779,9 +1788,8 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
   const isRtl = lang === "ar";
   const dir = isRtl ? "rtl" : "ltr";
 
-  // Auto-generate viewer count (SSR-safe)
-  const [autoViewers, setAutoViewers] = useState<number | null>(null);
-  useEffect(() => { setAutoViewers(8 + Math.floor(Math.random() * 17)); }, []);
+  // Real-time viewer count via Firestore presence
+  const liveViewers = useActiveViewers(pkg.id);
 
   // Lightbox state
   const [lightbox, setLightbox] = useState<{ images: LBImage[]; idx: number } | null>(null);
@@ -1812,7 +1820,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
   const showUrgencyDeps = !!(pkg.departures?.length && !depSection);
   const hasTiers  = !!(pkg.pricingTiers?.length);
   const hasAgent  = !!(pkg.agent);
-  const effectiveViewers = pkg.viewersNow !== undefined ? pkg.viewersNow : autoViewers;
+  const effectiveViewers = pkg.viewersNow !== undefined ? pkg.viewersNow : liveViewers;
 
   const filled = hasScar
     ? Math.round(((pkg.totalSpots! - pkg.spotsRemaining!) / pkg.totalSpots!) * 100)
@@ -2009,7 +2017,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <BlinkDot color={PL.deal} size={6} />
                 <span>
-                  {t.onlyLabel} <b style={{ color: PL.deal }}>{pkg.spotsRemaining} of {pkg.totalSpots}</b> {t.spotsLeft}
+                  {t.onlyLabel} <b style={{ color: PL.deal }}>{pkg.spotsRemaining} {t.spotsOf} {pkg.totalSpots}</b> {t.spotsLeft}
                 </span>
               </div>
               <div style={{ height: 4, background: PL.line, borderRadius: 999, marginTop: 10, overflow: "hidden" }}>
@@ -2047,7 +2055,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
                 display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
                 fontFamily: SANS,
               }}>
-                {Ico.messenger(14)} Messenger
+                {Ico.messenger(14)} {t.vyMessenger}
               </button>
             )}
           </div>
@@ -2154,7 +2162,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
                 <section id="pl-pricing">
                   <DSHead title={t.navPricing} />
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-                    {pkg.pricingTiers!.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} />)}
+                    {pkg.pricingTiers!.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} lang={lang} />)}
                   </div>
                 </section>
               )}
@@ -2265,7 +2273,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
                   borderRadius: 10, padding: "14px 20px", fontWeight: 600, fontSize: 13.5,
                   cursor: "pointer", fontFamily: SANS, display: "inline-flex", alignItems: "center", gap: 8,
                 }}>
-                  {Ico.messenger(14)} Messenger
+                  {Ico.messenger(14)} {t.vyMessenger}
                 </button>
               )}
             </div>

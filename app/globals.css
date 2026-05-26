@@ -139,6 +139,24 @@
   --dash-mut:   rgba(28, 26, 23, 0.55);
   --dash-line:  rgba(28, 26, 23, 0.10);
   --dash-ink:   #0e1219;
+
+  /* ── Dashboard shell — TOKEN_A Warm Editorial ── */
+  --da-bg:          #f4f0e8;
+  --da-surface:     #fbf8f0;
+  --da-surface2:    #ffffff;
+  --da-ink1:        #1a1611;
+  --da-ink2:        #5e564a;
+  --da-ink3:        #968d7c;
+  --da-rule:        #e6dcc6;
+  --da-rule2:       #d8ccb0;
+  --da-gold:        #b08a3e;
+  --da-gold-deep:   #8b6b2a;
+  --da-gold-soft:   #f1e4be;
+  --da-green:       #4d8a5e;
+  --da-green-soft:  #e0eede;
+  --da-danger:      #c0533a;
+  --da-danger-soft: #f4ddd1;
+  --da-dark:        #1a1410;
 }
 
 *,
@@ -245,6 +263,23 @@ body[data-lang="ar"] {
   }
 }
 
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pm-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
 .fade-up {
   animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -271,6 +306,18 @@ body[data-lang="ar"] {
   height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-top-color: var(--sand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.spinner-warm {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(26, 22, 17, 0.12);
+  border-top-color: var(--da-gold);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   display: inline-block;

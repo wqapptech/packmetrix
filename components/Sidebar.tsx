@@ -5,89 +5,37 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { isTrialActive, trialDaysLeft } from "@/lib/trial";
 import { auth, db } from "@/lib/firebase";
 import Icon from "./Icon";
 import { useLang } from "@/hooks/useLang";
 import { T } from "@/lib/translations";
+import {
+  DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT,
+} from "@/lib/tokens";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
 
 type NavItem = {
-  href?: string;
+  href: string;
   icon: IconName;
-  label: string;
-  pro?: boolean;
-  external?: boolean;
+  labelKey: keyof typeof T["en"];
 };
 
 const NAV_MAIN: NavItem[] = [
-  { href: "/dashboard",  icon: "chart",   label: "Dashboard" },
-  { href: "/builder",    icon: "package", label: "Builder" },
-  { href: "/packages",   icon: "archive", label: "Packages" },
-  { href: "/leads",      icon: "users",   label: "Leads" },
+  { href: "/dashboard", icon: "chart",       labelKey: "navDashboard" },
+  { href: "/builder",   icon: "package",     labelKey: "navBuilder" },
+  { href: "/packages",  icon: "archive",     labelKey: "navPackages" },
+  { href: "/leads",     icon: "users",       labelKey: "navLeads" },
 ];
 
 const NAV_SETTINGS: NavItem[] = [
-  { href: "/profile",  icon: "globe",        label: "Branding" },
-  { href: "/paywall",  icon: "credit_card",  label: "Billing" },
+  { href: "/profile",  icon: "globe",        labelKey: "navBranding" },
+  { href: "/paywall",  icon: "credit_card",  labelKey: "navBilling" },
 ];
 
-const SAND = "#e8c97b";
-const GATED = ["/builder", "/dashboard", "/leads", "/profile", "/paywall"];
-
-function NavLink({ item, active, locked }: { item: NavItem; active: boolean; locked: boolean }) {
-  const style = {
-    display: "flex", alignItems: "center", gap: 11,
-    padding: "9px 12px", borderRadius: 9,
-    background: active ? `${SAND}1f` : "transparent",
-    color: active ? SAND : item.pro ? "rgba(255,255,255,0.3)" : locked ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.55)",
-    fontSize: 13.5, fontWeight: active ? 600 : 500,
-    textDecoration: "none", transition: "all .15s",
-    cursor: item.pro || !item.href ? "default" : "pointer",
-    border: "none",
-    fontFamily: "inherit", width: "100%", textAlign: "left" as const,
-  };
-
-  const inner = (
-    <>
-      <Icon
-        name={item.icon}
-        size={15}
-        color={active ? SAND : item.pro ? "rgba(255,255,255,0.2)" : locked ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.4)"}
-        strokeWidth={active ? 2.2 : 1.8}
-      />
-      <span style={{ flex: 1 }}>{item.label}</span>
-      {item.pro && (
-        <span style={{
-          fontSize: 9, fontWeight: 800, letterSpacing: "0.5px",
-          background: `${SAND}25`, color: SAND,
-          borderRadius: 4, padding: "2px 5px",
-        }}>PRO</span>
-      )}
-      {locked && !item.pro && (
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" />
-          <path d="M7 11V7a5 5 0 0110 0v4" />
-        </svg>
-      )}
-    </>
-  );
-
-  if (item.pro || !item.href) {
-    return <div style={style}>{inner}</div>;
-  }
-
-  return (
-    <Link
-      href={locked ? "/login" : item.href}
-      target={item.external ? "_blank" : undefined}
-      style={style}
-    >
-      {inner}
-    </Link>
-  );
-}
+const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 
 export default function Sidebar({
   isMobile = false,
@@ -102,28 +50,29 @@ export default function Sidebar({
   const router = useRouter();
   const lang = useLang();
   const t = T[lang];
+  const isAr = lang === "ar";
 
-  const [user, setUser] = useState<{ email: string; initials: string; uid: string; plan: string; trialEndsAt?: number } | null>(null);
-
-  const labelMap: Record<string, string> = {
-    "Dashboard": t.navDashboard,
-    "Builder":   t.navBuilder,
-    "Packages":  t.navPackages,
-    "Leads":     t.navLeads,
-    "Templates": "Templates",
-    "Branding":  t.navBranding,
-    "Billing":   t.navBilling,
-  };
+  const [user, setUser] = useState<{
+    email: string;
+    initials: string;
+    uid: string;
+    plan: string;
+    agencyName: string;
+  } | null>(null);
+  const [logoutHovered, setLogoutHovered] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
-        const parts = (u.displayName || u.email || "").split(/[\s@]/);
-        const initials = parts.slice(0, 2).map(p => p[0]?.toUpperCase() || "").join("") || "AG";
         const snap = await getDoc(doc(db, "users", u.uid));
-        const plan = (snap.data()?.plan as string) || "free";
-        const trialEndsAt = snap.data()?.trialEndsAt as number | undefined;
-        setUser({ email: u.email || "", initials, uid: u.uid, plan, trialEndsAt });
+        const data = snap.data() || {};
+        const agencyName = (data.name as string) || "";
+        const plan = (data.plan as string) || "free";
+        const source = agencyName || u.displayName || u.email || "";
+        const parts = source.split(/[\s@]/);
+        const initials =
+          parts.slice(0, 2).map((p: string) => p[0]?.toUpperCase() || "").join("") || "AG";
+        setUser({ email: u.email || "", initials, uid: u.uid, plan, agencyName });
       } else {
         setUser(null);
       }
@@ -136,140 +85,315 @@ export default function Sidebar({
     router.push("/");
   };
 
-  const isActive = (href?: string) => {
-    if (!href) return false;
+  const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/home";
     return pathname === href || (href !== "/" && pathname.startsWith(href));
   };
 
-  const isLocked = (href?: string) => href ? GATED.includes(href) && !user : false;
+  const planLabel = (plan: string) => {
+    if (plan === "founding") return isAr ? "عضو مؤسس" : "Founding member";
+    if (plan === "paid" || plan === "pro") return isAr ? "مشترك" : "Subscribed";
+    return isAr ? "تجربة مجانية" : "Free trial";
+  };
+
+  const renderItem = (item: NavItem) => {
+    const active = isActive(item.href);
+    const label = t[item.labelKey] as string;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={isMobile ? onClose : undefined}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 11,
+          padding: "9px 11px",
+          borderRadius: 8,
+          background: active ? DA_INK1 : "transparent",
+          color: active ? DA_BG : DA_INK1,
+          fontFamily: SANS,
+          fontSize: 13.5,
+          fontWeight: active ? 500 : 400,
+          textDecoration: "none",
+          transition: "background 0.12s",
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ display: "flex", flexShrink: 0 }}>
+          <Icon
+            name={item.icon}
+            size={15}
+            color={active ? DA_GOLD : DA_INK3}
+            strokeWidth={active ? 2 : 1.8}
+          />
+        </span>
+        <span style={{ flex: 1 }}>{label}</span>
+      </Link>
+    );
+  };
 
   return (
-    <>
-    <aside style={{
-      width: 230, minWidth: 230, height: "100vh",
-      background: "rgba(7,14,26,0.97)",
-      borderRight: "1px solid rgba(255,255,255,0.08)",
-      display: "flex", flexDirection: "column",
-      padding: "22px 0", flexShrink: 0,
-      ...(isMobile ? {
-        position: "fixed" as const,
-        left: 0, top: 0, zIndex: 99,
-        transform: isOpen ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.26s cubic-bezier(0.22, 1, 0.36, 1)",
-      } : {}),
-    }}>
+    <aside
+      dir={isAr ? "rtl" : "ltr"}
+      style={{
+        width: 240,
+        minWidth: 240,
+        height: "100vh",
+        background: DA_SURFACE2,
+        borderInlineEnd: `1px solid ${DA_RULE}`,
+        display: "flex",
+        flexDirection: "column",
+        padding: "20px 0",
+        flexShrink: 0,
+        ...(isMobile
+          ? {
+              position: "fixed" as const,
+              insetInlineStart: 0,
+              top: 0,
+              zIndex: 99,
+              transform: isOpen
+                ? "translateX(0)"
+                : isAr
+                ? "translateX(100%)"
+                : "translateX(-100%)",
+              transition: "transform 0.26s cubic-bezier(0.22, 1, 0.36, 1)",
+              boxShadow: isOpen ? "4px 0 32px rgba(26,22,17,0.1)" : "none",
+            }
+          : {}),
+      }}
+    >
       {/* Logo */}
-      <div style={{ padding: "0 20px 24px", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{
-          width: 32, height: 32,
-          flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <img src="/logo.svg" alt="Packmetrix" style={{ width: 32, height: 32, objectFit: "contain" }} />
+      <div
+        style={{
+          padding: "0 16px 20px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            flexShrink: 0,
+            background: DA_INK1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+          }}
+        >
+          <img
+            src="/logo.svg"
+            alt=""
+            style={{
+              width: 18,
+              height: 18,
+              objectFit: "contain",
+              filter:
+                "brightness(0) saturate(100%) invert(72%) sepia(35%) saturate(600%) hue-rotate(5deg) brightness(95%)",
+            }}
+          />
         </div>
-        <span style={{ fontWeight: 700, fontSize: 15.5, letterSpacing: "-0.3px", color: "#fdfcf9", flex: 1 }}>
-          Pack<em style={{ color: SAND, fontStyle: "normal", fontWeight: 600 }}>metrix</em>
+        <span
+          style={{
+            fontFamily: DISPLAY,
+            fontSize: 19,
+            fontWeight: 400,
+            color: DA_INK1,
+            letterSpacing: -0.3,
+            flex: 1,
+          }}
+        >
+          Packmetrix
         </span>
         {isMobile && (
           <button
             onClick={onClose}
             style={{
-              background: "none", border: "none", cursor: "pointer", padding: 4,
-              color: "rgba(255,255,255,0.4)", display: "flex", alignItems: "center",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+              color: DA_INK3,
+              display: "flex",
             }}
           >
-            <Icon name="x" size={18} color="rgba(255,255,255,0.4)" />
+            <Icon name="x" size={18} color={DA_INK3} />
           </button>
         )}
       </div>
 
       {/* Main nav */}
-      <nav style={{ flex: 1, padding: "0 12px", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }} onClick={isMobile ? onClose : undefined}>
-        {NAV_MAIN.map((item) => (
-          <NavLink
-            key={item.label}
-            item={{ ...item, label: labelMap[item.label] ?? item.label }}
-            active={isActive(item.href)}
-            locked={isLocked(item.href)}
-          />
-        ))}
+      <nav
+        style={{
+          flex: 1,
+          padding: "0 10px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          overflowY: "auto",
+        }}
+        onClick={isMobile ? onClose : undefined}
+      >
+        {NAV_MAIN.map(renderItem)}
 
-        {/* Settings section */}
-        <div style={{
-          fontSize: 10, textTransform: "uppercase", letterSpacing: ".7px",
-          color: "rgba(255,255,255,0.25)", padding: "14px 14px 6px", fontWeight: 700,
-        }}>{t.sectionSettings}</div>
-        {NAV_SETTINGS.map((item) => (
-          <NavLink
-            key={item.label}
-            item={{ ...item, label: labelMap[item.label] ?? item.label }}
-            active={isActive(item.href)}
-            locked={isLocked(item.href)}
-          />
-        ))}
+        {/* Settings label */}
+        <div
+          style={{
+            fontSize: 10.5,
+            fontFamily: SANS,
+            fontWeight: 600,
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            color: DA_INK3,
+            padding: "18px 11px 7px",
+          }}
+        >
+          {t.sectionSettings}
+        </div>
 
+        {NAV_SETTINGS.map(renderItem)}
       </nav>
 
-      {/* Footer */}
-      <div style={{ padding: "0 12px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 12 }}>
+      {/* User footer */}
+      <div
+        style={{
+          padding: "12px 10px 0",
+          borderTop: `1px solid ${DA_RULE}`,
+        }}
+      >
         {user ? (
-          <div>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "8px 10px", borderRadius: 10, marginBottom: 6,
-              cursor: "pointer",
-            }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+          <>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: 10,
+                borderRadius: 10,
+                background: DA_SURFACE,
+                border: `1px solid ${DA_RULE}`,
+                marginBottom: 6,
+              }}
             >
-              <div style={{
-                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                background: "linear-gradient(135deg, #1f5f8e, #0e3a5c)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 12, fontWeight: 700, color: "#fff",
-              }}>{user.initials}</div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user.email}
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  background: "linear-gradient(135deg, #3a78c4, #5a8acc)",
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: SANS,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                }}
+              >
+                {user.initials}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontFamily: SANS,
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    color: DA_INK1,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {user.agencyName || user.email}
                 </div>
-                {user.plan === "free" && isTrialActive(user.trialEndsAt) ? (
-                  <div style={{ fontSize: 10.5, color: SAND }}>
-                    Trial · {trialDaysLeft(user.trialEndsAt)}d left
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 10.5, color: user.plan === "free" ? "rgba(255,255,255,0.4)" : SAND, textTransform: "capitalize" }}>
-                    {user.plan === "free" ? "Trial expired" : user.plan}
-                  </div>
-                )}
+                <div
+                  style={{
+                    fontFamily: SANS,
+                    fontSize: 10.5,
+                    color: DA_INK3,
+                  }}
+                >
+                  {planLabel(user.plan)}
+                </div>
               </div>
             </div>
-            <button onClick={handleLogout} style={{
-              width: "100%", padding: "8px 10px", borderRadius: 8,
-              background: "none", border: "1px solid rgba(255,255,255,0.07)",
-              color: "rgba(255,255,255,0.3)", fontSize: 12, fontFamily: "inherit",
-              cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-            }}>
-              <Icon name="logout" size={12} color="rgba(255,255,255,0.25)" /> {t.signOut}
+            <button
+              onClick={handleLogout}
+              onMouseEnter={() => setLogoutHovered(true)}
+              onMouseLeave={() => setLogoutHovered(false)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                background: logoutHovered ? DA_SURFACE : "none",
+                border: `1px solid ${logoutHovered ? DA_RULE2 : "transparent"}`,
+                color: DA_INK3,
+                fontSize: 12,
+                fontFamily: SANS,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                transition: "all 0.12s",
+              }}
+            >
+              <Icon name="logout" size={12} color={DA_INK3} />
+              {t.signOut}
             </button>
-          </div>
+          </>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "4px 0" }}>
-            <Link href="/signup" style={{
-              display: "block", width: "100%", padding: "9px", textAlign: "center",
-              background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-              borderRadius: 9, color: "#0d1b2e", fontSize: 12, fontWeight: 700,
-              textDecoration: "none",
-            }}>{t.signUpFree}</Link>
-            <Link href="/login" style={{
-              display: "block", width: "100%", padding: "8px", textAlign: "center",
-              background: "none", border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 9, color: "rgba(255,255,255,0.4)",
-              fontSize: 12, textDecoration: "none",
-            }}>{t.logIn}</Link>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              padding: "4px 0",
+            }}
+          >
+            <Link
+              href="/signup"
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "9px",
+                textAlign: "center",
+                background: DA_GOLD,
+                borderRadius: 9,
+                color: "#fff",
+                fontSize: 12,
+                fontWeight: 700,
+                textDecoration: "none",
+                fontFamily: SANS,
+              }}
+            >
+              {t.signUpFree}
+            </Link>
+            <Link
+              href="/login"
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "8px",
+                textAlign: "center",
+                background: "none",
+                border: `1px solid ${DA_RULE2}`,
+                borderRadius: 9,
+                color: DA_INK2,
+                fontSize: 12,
+                textDecoration: "none",
+                fontFamily: SANS,
+              }}
+            >
+              {t.logIn}
+            </Link>
           </div>
         )}
       </div>
     </aside>
-    </>
   );
 }

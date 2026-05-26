@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import {
+  DA_BG, DA_SURFACE, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_GOLD,
+} from "@/lib/tokens";
 import { SAND } from "./constants";
 
 // ─── FieldLabel ───────────────────────────────────────────────────────────────
@@ -15,9 +18,9 @@ export function FieldLabel({
   return (
     <div
       style={{
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 600,
-        color: "rgba(255,255,255,0.45)",
+        color: DA_INK3,
         letterSpacing: "0.5px",
         textTransform: "uppercase",
         marginBottom: 6,
@@ -29,7 +32,7 @@ export function FieldLabel({
     >
       {children}
       {required && (
-        <span style={{ color: SAND, fontSize: 10, lineHeight: 1 }}>*</span>
+        <span style={{ color: DA_GOLD, fontSize: 10, lineHeight: 1 }}>*</span>
       )}
     </div>
   );
@@ -39,22 +42,22 @@ export function FieldLabel({
 
 const INPUT_BASE: React.CSSProperties = {
   width: "100%",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  background: DA_SURFACE,
+  border: `1px solid ${DA_RULE}`,
   borderRadius: 10,
   padding: "10px 14px",
-  color: "var(--white)",
+  color: DA_INK1,
   fontSize: 13,
   fontFamily: "inherit",
   outline: "none",
   transition: "border-color 0.2s",
 };
 
-function onFocusSand(e: React.FocusEvent<HTMLElement>) {
-  (e.target as HTMLElement).style.borderColor = `${SAND}60`;
+function onFocusGold(e: React.FocusEvent<HTMLElement>) {
+  (e.target as HTMLElement).style.borderColor = DA_GOLD;
 }
 function onBlurNormal(e: React.FocusEvent<HTMLElement>) {
-  (e.target as HTMLElement).style.borderColor = "rgba(255,255,255,0.1)";
+  (e.target as HTMLElement).style.borderColor = DA_RULE;
 }
 
 export function TextInput({
@@ -72,7 +75,7 @@ export function TextInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       style={INPUT_BASE}
-      onFocus={onFocusSand}
+      onFocus={onFocusGold}
       onBlur={onBlurNormal}
     />
   );
@@ -96,7 +99,7 @@ export function TextArea({
       placeholder={placeholder}
       rows={rows}
       style={{ ...INPUT_BASE, resize: "vertical", lineHeight: 1.6 }}
-      onFocus={onFocusSand}
+      onFocus={onFocusGold}
       onBlur={onBlurNormal}
     />
   );
@@ -117,17 +120,45 @@ export function NumberInput({
   max?: number;
   placeholder?: string;
 }) {
+  const [raw, setRaw] = useState(value === 0 ? "" : String(value));
+
+  // Sync from parent only when external value actually changes
+  const prevRef = useRef(value);
+  useEffect(() => {
+    if (value !== prevRef.current) {
+      prevRef.current = value;
+      setRaw(value === 0 ? "" : String(value));
+    }
+  }, [value]);
+
   return (
     <input
-      type="number"
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      min={min}
-      max={max}
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={raw}
       placeholder={placeholder}
+      onChange={(e) => {
+        const s = e.target.value.replace(/[^0-9]/g, "");
+        setRaw(s);
+        if (s !== "") {
+          const n = Number(s);
+          if (min !== undefined && n < min) return;
+          if (max !== undefined && n > max) return;
+          prevRef.current = n;
+          onChange(n);
+        }
+      }}
+      onBlur={() => {
+        if (raw === "") {
+          const fallback = min ?? 0;
+          prevRef.current = fallback;
+          setRaw(fallback === 0 ? "" : String(fallback));
+          onChange(fallback);
+        }
+      }}
       style={{ ...INPUT_BASE, width: "auto", minWidth: 80 }}
-      onFocus={onFocusSand}
-      onBlur={onBlurNormal}
+      onFocus={onFocusGold}
     />
   );
 }
@@ -155,7 +186,7 @@ export function SelectInput({
         appearance: "none",
         WebkitAppearance: "none",
       }}
-      onFocus={onFocusSand}
+      onFocus={onFocusGold}
       onBlur={onBlurNormal}
     >
       {options.map((opt) => (
@@ -205,12 +236,12 @@ export function TagInput({
             <span
               key={i}
               style={{
-                background: "rgba(255,255,255,0.07)",
-                border: "1px solid rgba(255,255,255,0.14)",
+                background: DA_BG,
+                border: `1px solid ${DA_RULE}`,
                 borderRadius: 99,
                 padding: "5px 11px",
                 fontSize: 12,
-                color: "rgba(255,255,255,0.8)",
+                color: DA_INK2,
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
@@ -223,7 +254,7 @@ export function TagInput({
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "rgba(255,255,255,0.35)",
+                  color: DA_INK3,
                   padding: 0,
                   fontSize: 14,
                   lineHeight: 1,
@@ -250,26 +281,26 @@ export function TagInput({
           placeholder={placeholder}
           style={{
             flex: 1,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            background: DA_SURFACE,
+            border: `1px solid ${DA_RULE}`,
             borderRadius: 10,
             padding: "8px 12px",
-            color: "var(--white)",
+            color: DA_INK1,
             fontSize: 12,
             fontFamily: "inherit",
             outline: "none",
           }}
-          onFocus={onFocusSand}
+          onFocus={onFocusGold}
           onBlur={onBlurNormal}
         />
         <button
           onClick={commit}
           style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.12)",
+            background: DA_SURFACE,
+            border: `1px solid ${DA_RULE}`,
             borderRadius: 10,
             padding: "8px 14px",
-            color: "rgba(255,255,255,0.5)",
+            color: DA_INK3,
             fontSize: 12,
             fontFamily: "inherit",
             cursor: "pointer",

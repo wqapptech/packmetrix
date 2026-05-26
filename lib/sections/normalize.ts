@@ -309,7 +309,7 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
   if (pricingSec) {
     if (Array.isArray(pricingSec.tiers)) {
       normalized.pricingTiers = (pricingSec.tiers as SectionData[]).map((t) => ({
-        label: str(t.label),
+        label: resolveLocStr(t.label, resolvedLang),
         price: str(t.price),
       })) as TPricingTier[];
     }
@@ -345,10 +345,15 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
     if (videoSec) normalized.videoUrl = str(videoSec.videoUrl);
   }
 
-  // reviews
+  // reviews — merge agency-authored section reviews with customer-submitted flat reviews.
+  // Critical: an empty section (reviews: []) must NOT overwrite pkg.reviews that holds
+  // reviews submitted via the /api/submit-review endpoint.
   const reviewsSec = getSection(sections, "reviews");
-  if (reviewsSec && Array.isArray(reviewsSec.reviews)) {
-    normalized.reviews = (reviewsSec.reviews as SectionData[]).map((r) => ({
+  const secReviewItems = (reviewsSec && Array.isArray(reviewsSec.reviews))
+    ? (reviewsSec.reviews as SectionData[])
+    : [];
+  if (secReviewItems.length > 0) {
+    const sectionReviews = secReviewItems.map((r) => ({
       id:        str(r.id) || `r_${Math.random().toString(36).slice(2)}`,
       name:      str(r.name),
       text:      str(r.text),
@@ -357,7 +362,14 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
       country:   str(r.country) || undefined,
       partyType: str(r.partyType) || undefined,
     })) as TReview[];
+    // Append customer-submitted reviews (flat field) not already in the section list
+    const sectionIds = new Set(sectionReviews.map((r) => r.id));
+    const flatReviews = Array.isArray(pkg.reviews)
+      ? (pkg.reviews as TReview[]).filter((r) => r.id && !sectionIds.has(r.id))
+      : [];
+    normalized.reviews = [...sectionReviews, ...flatReviews];
   }
+  // When secReviewItems is empty, pkg.reviews from the initial spread is preserved.
 
   // Departures (v2) → departures flat field
   const departures = extractDepartures(sections, pkg);
@@ -404,15 +416,6 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
       const sym = normalized.price.match(/[€$£¥₹]/)?.[0] ?? "";
       normalized.saving = `Save ${sym}${diff.toLocaleString()}`;
     }
-  }
-
-  // Simulate `viewersNow` at render (NEVER stored).
-  if (normalized.viewersNow == null) {
-    // Deterministic within a session using pkg.id as seed — keeps SSR/CSR consistent.
-    const seed = normalized.id
-      ? normalized.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
-      : Date.now();
-    normalized.viewersNow = 6 + (seed % 20); // 6–25
   }
 
   return normalized;

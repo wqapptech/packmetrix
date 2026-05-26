@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { T } from "@/lib/translations";
+import { T, localizeTierLabel } from "@/lib/translations";
 import {
   WAButton,
   AgencyBar,
@@ -100,7 +100,7 @@ function RoomTreatments({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lan
                     {t.popularChoice}
                   </div>
                 )}
-                <div style={{ fontSize: 12.5, color: isFeature ? "rgba(255,255,255,0.75)" : MUTED, marginBottom: 8 }}>{tier.label}</div>
+                <div style={{ fontSize: 12.5, color: isFeature ? "rgba(255,255,255,0.75)" : MUTED, marginBottom: 8 }}>{localizeTierLabel(tier.label, lang)}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, letterSpacing: "-0.8px", lineHeight: 1, color: isFeature ? "#fff" : ROSE, marginBottom: 4 }}>{tier.price}</div>
                 <div style={{ fontSize: 11, color: isFeature ? "rgba(255,255,255,0.55)" : SMUTED, marginBottom: 16 }}>
                   {t.couplesTreatmentLabel}
@@ -156,7 +156,7 @@ function RoomTreatmentsDesktop({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg
                     {t.popularChoice}
                   </div>
                 )}
-                <div style={{ fontSize: 13, color: isFeature ? "rgba(255,255,255,0.7)" : MUTED, marginBottom: 10 }}>{tier.label}</div>
+                <div style={{ fontSize: 13, color: isFeature ? "rgba(255,255,255,0.7)" : MUTED, marginBottom: 10 }}>{localizeTierLabel(tier.label, lang)}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 44, fontWeight: 400, letterSpacing: "-1px", lineHeight: 1, color: isFeature ? "#fff" : ROSE, marginBottom: 4 }}>{tier.price}</div>
                 <div style={{ fontSize: 11.5, color: isFeature ? "rgba(255,255,255,0.55)" : SMUTED, marginBottom: 22 }}>{t.couplesTreatmentLabel}</div>
                 <button onClick={onWhatsApp} style={{
@@ -331,7 +331,8 @@ function ptItemStr(item: PtSecData | string, ...keys: string[]): string {
 
 // ─── Petal section components ─────────────────────────────────────────────────
 
-function PtHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = ptFindSec(pkg, "highlights");
   const items = ptSecArr(data, "items");
   if (!items.length) return null;
@@ -340,10 +341,10 @@ function PtHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
     <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          Three moments we keep returning to
+          {t.ptHighlightsEyebrow}
         </div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
-          The week, <em style={{ fontStyle: "normal", color: ROSE }}>as we'd describe it</em>
+          {t.ptHighlightsHeading}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr 1fr" : "1fr", gap: isDesktop ? 32 : 28 }}>
           {items.map((it, i) => {
@@ -362,7 +363,8 @@ function PtHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   );
 }
 
-function PtHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtHotelsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = ptFindSec(pkg, "hotels");
   const hotelsSec = ptSecArr(data, "hotels").length ? ptSecArr(data, "hotels") : ptSecArr(data, "items");
   if (!hotelsSec.length && !pkg.hotelDescription?.trim()) return null;
@@ -371,7 +373,7 @@ function PtHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
     return (
       <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
         <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-          <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>Where you stay</div>
+          <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptWhereYouStay}</div>
           <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 20 : 16, lineHeight: 1.55, color: MUTED, margin: 0 }}>{pkg.hotelDescription}</p>
         </div>
       </section>
@@ -385,7 +387,7 @@ function PtHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
     <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          {hotelsSec.length === 1 ? "Where you stay" : "Your two properties"}
+          {hotelsSec.length === 1 ? t.ptWhereYouStay : t.ptYourTwoProperties}
         </div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 30, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
           {ptItemStr(featured, "name")}
@@ -416,7 +418,7 @@ function PtHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
                 <div style={{ padding: isDesktop ? "32px 36px" : "20px 22px" }}>
                   {location && (
                     <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 6 }}>
-                      {location}{nightsStr ? ` · ${nightsStr} nights` : ""}
+                      {location}{nightsStr ? ` · ${nightsStr} ${t.ptNightsLabel}` : ""}
                     </div>
                   )}
                   <h3 style={{ fontFamily: SERIF, fontSize: isDesktop ? 30 : 22, fontStyle: "italic", fontWeight: 500, letterSpacing: "-0.5px", margin: 0, lineHeight: 1.1, color: INK }}>{name}</h3>
@@ -443,7 +445,8 @@ function PtHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   );
 }
 
-function PtDeparturesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = ptFindSec(pkg, "departures");
   const deps = ptSecArr(data, "departures").length
     ? ptSecArr(data, "departures")
@@ -454,10 +457,10 @@ function PtDeparturesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
     <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          Upcoming windows
+          {t.ptUpcomingWindows}
         </div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
-          Three departures, <em style={{ fontStyle: "normal", color: ROSE }}>by season</em>
+          {t.ptDeparturesHeading}
         </div>
         <div style={{ display: "flex", flexDirection: "column" as const }}>
           {deps.map((d, i) => {
@@ -478,7 +481,7 @@ function PtDeparturesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
                 <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 26 : 22, fontWeight: 500, letterSpacing: "-0.4px", color: INK }}>{date}</div>
                 {spots != null && (
                   <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.6px", textTransform: "uppercase" as const, color: isLow ? GOLD : MUTED, fontWeight: isLow ? 600 : 400 }}>
-                    {isLow ? `Only ${spots} villa left` : `${spots} couples`}
+                    {isLow ? `${t.ptOnlyVillaLeft} ${spots} ${t.ptVillaLeft}` : `${spots} ${t.ptCouplesLabel}`}
                   </div>
                 )}
                 {price && <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 22 : 18, color: INK }}>{price}</div>}
@@ -491,7 +494,8 @@ function PtDeparturesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   );
 }
 
-function PtFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = ptFindSec(pkg, "faq");
   const items = ptSecArr(data, "items");
   if (!items.length) return null;
@@ -500,10 +504,10 @@ function PtFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: b
     <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          Common questions
+          {t.ptFaqEyebrow}
         </div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
-          Most <em style={{ fontStyle: "normal", color: ROSE }}>honeymoons</em> ask
+          {t.ptFaqHeading}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: isDesktop ? "28px 56px" : 18 }}>
           {items.map((f, i) => {
@@ -530,7 +534,8 @@ function PtFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: b
   );
 }
 
-function PtImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = ptFindSec(pkg, "important_notes");
   const notes = ptSecArr(data, "notes");
   const items = notes.length ? notes : ptSecArr(data, "items");
@@ -540,10 +545,10 @@ function PtImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; i
     <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          Things we'd tell a friend
+          {t.ptNotesEyebrow}
         </div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
-          Notes, <em style={{ fontStyle: "normal", color: ROSE }}>before you arrive</em>
+          {t.ptNotesHeading}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr", gap: 20 }}>
           {items.map((n, i) => {
@@ -568,7 +573,8 @@ function PtImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; i
   );
 }
 
-function PtAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean }) {
+function PtAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = ptFindSec(pkg, "about_agency");
   if (!data && !agency.tagline) return null;
   const story = ptItemStr(data || {}, "story", "content");
@@ -584,10 +590,10 @@ function PtAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 56, alignItems: "center" }}>
             <div>
               <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-                {agency.name}{founded ? ` · since ${founded}` : ""}
+                {agency.name}{founded ? ` · ${t.ptSinceLabel} ${founded}` : ""}
               </div>
               <div style={{ fontFamily: SERIF, fontSize: 40, lineHeight: 1.1, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 4px", color: INK }}>
-                A small studio. <em style={{ fontStyle: "normal", color: ROSE }}>Honeymoons only.</em>
+                {t.ptStudioHeading} <em style={{ fontStyle: "normal", color: ROSE }}>{t.ptHoneymoonOnly}</em>
               </div>
               {(story || agency.tagline) && (
                 <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 20, lineHeight: 1.55, letterSpacing: "-0.2px", color: MUTED, margin: "22px 0 18px" }}>
@@ -609,10 +615,10 @@ function PtAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg
         ) : (
           <>
             <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-              {agency.name}{founded ? ` · since ${founded}` : ""}
+              {agency.name}{founded ? ` · ${t.ptSinceLabel} ${founded}` : ""}
             </div>
             <div style={{ fontFamily: SERIF, fontSize: 30, lineHeight: 1.1, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.5px", margin: "0 0 4px", color: INK }}>
-              A small studio. <em style={{ fontStyle: "normal", color: ROSE }}>Honeymoons only.</em>
+              {t.ptStudioHeading} <em style={{ fontStyle: "normal", color: ROSE }}>{t.ptHoneymoonOnly}</em>
             </div>
             {teamPhoto && (
               <div style={{ width: "100%", aspectRatio: "4/3", overflow: "hidden", margin: "18px 0" }}>
@@ -636,7 +642,8 @@ function PtAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg
 
 // ─── Itinerary ────────────────────────────────────────────────────────────────
 
-function PtItinerarySection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtItinerarySection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = ptFindSec(pkg, "itinerary");
   const days = ptSecArr(data, "days").length ? ptSecArr(data, "days") : (pkg.itinerary ?? []).map(d => ({ day: d.day, title: d.title, desc: d.desc, chapter: d.chapter, img: d.img }));
   if (!days.length) return null;
@@ -644,9 +651,9 @@ function PtItinerarySection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
   return (
     <section id="itinerary" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>Day by day</div>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptDayByDay}</div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
-          {days.length} days, <em style={{ fontStyle: "normal", color: ROSE }}>as we see it</em>
+          {days.length} {t.ptDaysAsWeSeeIt}
         </div>
         <div style={{ display: "flex", flexDirection: "column" as const }}>
           {days.map((d, i) => {
@@ -682,7 +689,8 @@ function PtItinerarySection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
 
 // ─── Inclusions (section-based) ───────────────────────────────────────────────
 
-function PtInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data     = ptFindSec(pkg, "inclusions");
   const includes = (data?.includes as string[] | undefined) ?? [];
   const excludes = (data?.excludes as string[] | undefined) ?? [];
@@ -691,7 +699,7 @@ function PtInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   return (
     <section id="pt-inclusions" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>Included in full</div>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptIncludedInFull}</div>
         {includes.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: isDesktop ? "0 48px" : "0" }}>
             {includes.map((item, i) => (
@@ -704,7 +712,7 @@ function PtInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
         )}
         {excludes.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Not included</div>
+            <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.ptNotIncluded}</div>
             {excludes.map((item, i) => (
               <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, color: MUTED, marginBottom: 8 }}>
                 <span style={{ color: ROSE_SOFT, fontWeight: 700 }}>—</span>
@@ -729,9 +737,9 @@ function PtPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
   return (
     <section id="pricing" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>Investment</div>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptInvestment}</div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
-          What you get, <em style={{ fontStyle: "normal", color: ROSE }}>as a couple</em>
+          {t.ptWhatYouGet} <em style={{ fontStyle: "normal", color: ROSE }}>{t.ptAsACouple}</em>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: isDesktop ? 32 : 20 }}>
           {tiers.map((tier, i) => {
@@ -772,7 +780,8 @@ function PtPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
 
 // ─── Transfers ────────────────────────────────────────────────────────────────
 
-function PtTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = ptFindSec(pkg, "transfers");
   const items = ptSecArr(data, "items");
   if (!items.length) return null;
@@ -780,7 +789,7 @@ function PtTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
   return (
     <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>Getting there</div>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptGettingThere}</div>
         <div style={{ display: "flex", flexDirection: "column" as const }}>
           {items.map((item, i) => {
             const from = ptItemStr(item, "from");
@@ -805,7 +814,8 @@ function PtTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
 
 // ─── Extras ───────────────────────────────────────────────────────────────────
 
-function PtExtrasSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = ptFindSec(pkg, "extras");
   const items = ptSecArr(data, "items");
   if (!items.length) return null;
@@ -813,9 +823,9 @@ function PtExtrasSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   return (
     <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>Add-ons</div>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptAddOns}</div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 30, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
-          Little <em style={{ fontStyle: "normal", color: ROSE }}>extras</em>
+          {t.ptLittleExtras} <em style={{ fontStyle: "normal", color: ROSE }}>{t.ptExtrasHeading}</em>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 0 }}>
           {items.map((item, i) => {
@@ -863,7 +873,7 @@ function PtMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: isDesktop ? undefined : "130px 130px", gap: 6, marginBottom: (videoUrl || mapImage) ? 32 : 0 }}>
             {(isDesktop ? images : images.slice(0, 3)).map((src, i) => (
               <div key={i} style={{ overflow: "hidden", gridRow: !isDesktop && i === 0 ? "span 2" : undefined, aspectRatio: isDesktop ? "4/3" : undefined }}>
-                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
               </div>
             ))}
           </div>
@@ -890,7 +900,8 @@ function PtMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
 
 // ─── People ───────────────────────────────────────────────────────────────────
 
-function PtPeopleSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function PtPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data   = ptFindSec(pkg, "people");
   const people = ptSecArr(data, "people");
   if (!people.length) return null;
@@ -898,7 +909,7 @@ function PtPeopleSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   return (
     <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>Your designers</div>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptYourDesigners}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: isDesktop ? 48 : 28 }}>
           {people.map((person, i) => {
             const name   = ptItemStr(person, "name");
@@ -975,7 +986,7 @@ function PtReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
     <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          {showList ? `${reviews.length} experiences` : t.writeReviewTitle}
+          {showList ? `${reviews.length} ${t.ptExperiences}` : t.writeReviewTitle}
         </div>
         {showList && (
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: isDesktop ? "0 48px" : 0, marginBottom: canSubmit ? 40 : 0 }}>
@@ -1003,8 +1014,8 @@ function PtReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
             </div>
             <input placeholder={t.reviewYourName} value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", border: "none", borderBottom: `1px solid ${BORDER}`, background: "transparent", padding: "10px 0", fontSize: 14, fontFamily: "inherit", color: INK, marginBottom: 14, boxSizing: "border-box" as const }} />
             <textarea placeholder={t.reviewPlaceholder} value={text} onChange={e => setText(e.target.value)} rows={3} style={{ width: "100%", border: "none", borderBottom: `1px solid ${BORDER}`, background: "transparent", padding: "10px 0", fontSize: 14, fontFamily: "inherit", color: INK, marginBottom: 18, resize: "none" as const, boxSizing: "border-box" as const }} />
-            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: ROSE, color: "#fff", border: "none", padding: "12px 28px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>{status === "sending" ? "Sending…" : t.submitReviewBtn}</button>
-            {status === "err" && <div style={{ fontSize: 13, color: "#c0392b", marginTop: 10 }}>Something went wrong. Try again.</div>}
+            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: ROSE, color: "#fff", border: "none", padding: "12px 28px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>{status === "sending" ? t.ptSending : t.submitReviewBtn}</button>
+            {status === "err" && <div style={{ fontSize: 13, color: "#c0392b", marginTop: 10 }}>{t.reviewSubmitError}</div>}
           </div>
         )}
         {status === "ok" && <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 24, fontFamily: SERIF, fontSize: 16, fontStyle: "italic", color: ROSE }}>{t.reviewSubmitSuccess}</div>}
@@ -1041,13 +1052,13 @@ function PtCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
     <section style={{ padding: pad, background: ROSE, color: "#fff" }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined, display: "flex", flexDirection: isDesktop ? "row" as const : "column" as const, justifyContent: "space-between", alignItems: isDesktop ? "center" : "flex-start", gap: 24 }}>
         <div>
-          <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.65)", marginBottom: 10 }}>Reserve your dates</div>
+          <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.65)", marginBottom: 10 }}>{t.ptReserveDates}</div>
           <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 34, fontStyle: "italic", lineHeight: 1.05, letterSpacing: "-0.6px", color: "#fff" }}>{pkg.price}</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
           <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
-          {pkg.messenger && <button onClick={onMessenger} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", padding: "14px 22px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>Messenger</button>}
+          {pkg.messenger && <button onClick={onMessenger} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", padding: "14px 22px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>{t.vyMessenger}</button>}
         </div>
       </div>
     </section>
@@ -1133,22 +1144,22 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
           </DContainer>
         )}
 
-        <PtHighlightsSection pkg={pkg} isDesktop={true} />
-        <PtHotelsSection pkg={pkg} isDesktop={true} />
-        <PtItinerarySection pkg={pkg} isDesktop={true} />
+        <PtHighlightsSection pkg={pkg} isDesktop={true} lang={lang} />
+        <PtHotelsSection pkg={pkg} isDesktop={true} lang={lang} />
+        <PtItinerarySection pkg={pkg} isDesktop={true} lang={lang} />
         <RoomTreatmentsDesktop pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
-        <PtInclusionsSection pkg={pkg} isDesktop={true} />
+        <PtInclusionsSection pkg={pkg} isDesktop={true} lang={lang} />
         <PtMediaSection pkg={pkg} isDesktop={true} />
-        <PtTransfersSection pkg={pkg} isDesktop={true} />
+        <PtTransfersSection pkg={pkg} isDesktop={true} lang={lang} />
         <PtPricingSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
-        <PtDeparturesSection pkg={pkg} isDesktop={true} />
-        <PtExtrasSection pkg={pkg} isDesktop={true} />
+        <PtDeparturesSection pkg={pkg} isDesktop={true} lang={lang} />
+        <PtExtrasSection pkg={pkg} isDesktop={true} lang={lang} />
         <PtCustomSection pkg={pkg} isDesktop={true} />
-        <PtPeopleSection pkg={pkg} isDesktop={true} />
-        <PtFaqSection pkg={pkg} isDesktop={true} />
-        <PtImportantNotesSection pkg={pkg} isDesktop={true} />
+        <PtPeopleSection pkg={pkg} isDesktop={true} lang={lang} />
+        <PtFaqSection pkg={pkg} isDesktop={true} lang={lang} />
+        <PtImportantNotesSection pkg={pkg} isDesktop={true} lang={lang} />
         <PtReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
-        <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} />
+        <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <PetalDesignerPanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
         <PtCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
         <DesktopFooter agency={agency} brand={ROSE} />
@@ -1214,22 +1225,22 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         </div>
       )}
 
-      <PtHighlightsSection pkg={pkg} isDesktop={false} />
-      <PtHotelsSection pkg={pkg} isDesktop={false} />
-      <PtItinerarySection pkg={pkg} isDesktop={false} />
+      <PtHighlightsSection pkg={pkg} isDesktop={false} lang={lang} />
+      <PtHotelsSection pkg={pkg} isDesktop={false} lang={lang} />
+      <PtItinerarySection pkg={pkg} isDesktop={false} lang={lang} />
       <RoomTreatments pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
-      <PtInclusionsSection pkg={pkg} isDesktop={false} />
+      <PtInclusionsSection pkg={pkg} isDesktop={false} lang={lang} />
       <PtMediaSection pkg={pkg} isDesktop={false} />
-      <PtTransfersSection pkg={pkg} isDesktop={false} />
+      <PtTransfersSection pkg={pkg} isDesktop={false} lang={lang} />
       <PtPricingSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
-      <PtDeparturesSection pkg={pkg} isDesktop={false} />
-      <PtExtrasSection pkg={pkg} isDesktop={false} />
+      <PtDeparturesSection pkg={pkg} isDesktop={false} lang={lang} />
+      <PtExtrasSection pkg={pkg} isDesktop={false} lang={lang} />
       <PtCustomSection pkg={pkg} isDesktop={false} />
-      <PtPeopleSection pkg={pkg} isDesktop={false} />
-      <PtFaqSection pkg={pkg} isDesktop={false} />
-      <PtImportantNotesSection pkg={pkg} isDesktop={false} />
+      <PtPeopleSection pkg={pkg} isDesktop={false} lang={lang} />
+      <PtFaqSection pkg={pkg} isDesktop={false} lang={lang} />
+      <PtImportantNotesSection pkg={pkg} isDesktop={false} lang={lang} />
       <PtReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
-      <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} />
+      <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
       <PetalDesignerPanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
       <PtCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
       <PtMobileFooter agency={agency} />

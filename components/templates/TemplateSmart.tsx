@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { T } from "@/lib/translations";
+import { T, localizeTierLabel } from "@/lib/translations";
 import {
   WAButton,
   Eyebrow,
@@ -201,7 +201,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
     case "highlights": {
       const items = smSecStrArr(s as ReturnType<typeof smFindSec>, "items");
       if (!items.length) return null;
-      const title = isRtl ? "أبرز المميزات" : "Highlights";
+      const title = t.smHighlights;
       return (
         <section style={secPad}>
           <SmSecHead label={title} title={title} isDesktop={isDesktop} />
@@ -393,7 +393,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
         name?: string; bio?: string; photo?: string; role?: string; languages?: string[];
       }>).filter(p => p?.name?.trim());
       if (!people.length) return null;
-      const title = isRtl ? "الفريق" : "Our Team";
+      const title = t.smOurTeam;
       return (
         <section style={secPad}>
           <SmSecHead title={title} isDesktop={isDesktop} />
@@ -570,7 +570,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
                   padding: isDesktop ? "26px 26px" : "18px 18px",
                   boxShadow: featured ? `0 8px 24px ${SM.brand}28` : "none",
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: featured ? "rgba(255,255,255,0.72)" : SM.muted, marginBottom: 10 }}>{tier.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: featured ? "rgba(255,255,255,0.72)" : SM.muted, marginBottom: 10 }}>{localizeTierLabel(tier.label ?? "", lang)}</div>
                   <div style={{ fontSize: isDesktop ? 40 : 34, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, color: featured ? "#fff" : SM.ink }}>{tier.price}</div>
                   <div style={{ fontSize: 11, color: featured ? "rgba(255,255,255,0.5)" : SM.superMuted, marginTop: 5, marginBottom: 16 }}>{t.perPerson}</div>
                   {Array.isArray(tier.perks) && tier.perks.length > 0 && (
@@ -676,7 +676,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
     case "booking_terms": {
       const text = smSecStr(s as ReturnType<typeof smFindSec>, "content");
       if (!text) return null;
-      const title = isRtl ? "شروط الحجز" : "Booking Terms";
+      const title = t.smBookingTerms;
       return (
         <section style={secPad}>
           <SmSecHead title={title} isDesktop={isDesktop} />
@@ -770,7 +770,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
     case "video": {
       const videoUrl = smSecStr(s as ReturnType<typeof smFindSec>, "videoUrl");
       if (!videoUrl) return null;
-      const title = isRtl ? "فيديو" : "Video";
+      const title = t.smVideo;
       return (
         <section style={secPad}>
           <SmSecHead title={title} isDesktop={isDesktop} />
@@ -822,13 +822,24 @@ function SmGallerySection({ images, videoUrl, mapImage, isDesktop, lang, t }: {
   return (
     <section style={{ padding: isDesktop ? "52px 80px" : "20px 18px", maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
       <h2 style={{ fontSize: isDesktop ? 32 : 22, fontWeight: 800, letterSpacing: "-0.4px", color: SM.ink, marginBottom: isDesktop ? 24 : 16, fontFamily: FONT }}>{t.gallery}</h2>
-      {videoUrl && (
-        <video src={videoUrl} controls muted poster={images[0]} style={{ width: "100%", borderRadius: isDesktop ? 14 : 12, background: "#000", maxHeight: isDesktop ? 460 : 220, marginBottom: 12, display: "block" }} />
-      )}
+      {videoUrl && (() => {
+        const isEmbed = videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo");
+        const embedUrl = (() => {
+          const yt = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+          if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+          const vi = videoUrl.match(/vimeo\.com\/(\d+)/);
+          if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
+          return videoUrl;
+        })();
+        const h = isDesktop ? 460 : 220;
+        return isEmbed
+          ? <iframe src={embedUrl} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: h, borderRadius: isDesktop ? 14 : 12, border: "none", display: "block", marginBottom: 12 }} />
+          : <video src={videoUrl} controls muted playsInline poster={images[0]} style={{ width: "100%", borderRadius: isDesktop ? 14 : 12, background: "#000", maxHeight: h, marginBottom: 12, display: "block" }} />;
+      })()}
       {images.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr 1fr", gap: isDesktop ? 10 : 8 }}>
           {images.slice(0, 6).map((url, i) => (
-            <img key={i} src={url} alt="" onClick={() => setLbIdx(i)} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10, cursor: "pointer", display: "block" }} />
+            <img key={i} src={url} alt="" onClick={() => setLbIdx(i)} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10, cursor: "pointer", display: "block" }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }} />
           ))}
         </div>
       )}
@@ -913,7 +924,7 @@ function SmSections({ pkg, isDesktop, onWhatsApp, lang, agency }: {
                   borderRadius: 14, padding: "18px",
                   boxShadow: i === 0 ? `0 8px 24px ${SM.brand}28` : "none",
                 }}>
-                  <div style={{ fontSize: 12, color: i === 0 ? "rgba(255,255,255,0.7)" : SM.muted, marginBottom: 8 }}>{tier.label}</div>
+                  <div style={{ fontSize: 12, color: i === 0 ? "rgba(255,255,255,0.7)" : SM.muted, marginBottom: 8 }}>{localizeTierLabel(tier.label, lang)}</div>
                   <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, color: i === 0 ? "#fff" : SM.ink }}>{tier.price}</div>
                   <div style={{ fontSize: 11, color: i === 0 ? "rgba(255,255,255,0.5)" : SM.superMuted, marginTop: 5, marginBottom: 14 }}>{t.perPerson}</div>
                   <button onClick={onWhatsApp} style={{ width: "100%", padding: "10px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: i === 0 ? "rgba(255,255,255,0.2)" : SM.brand, color: "#fff" }}>
@@ -1214,7 +1225,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   // Breakdown rows
   type BreakdownRow = { l: string; v: string };
   const breakdownRows: BreakdownRow[] = (pkg.pricingTiers || []).filter(tier => tier.price).length > 0
-    ? (pkg.pricingTiers || []).filter(tier => tier.price).map(tier => ({ l: tier.label, v: tier.price }))
+    ? (pkg.pricingTiers || []).filter(tier => tier.price).map(tier => ({ l: localizeTierLabel(tier.label, lang), v: tier.price }))
     : [{ l: t.perPerson, v: pkg.price }];
 
   const navLinks = [

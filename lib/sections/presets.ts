@@ -482,6 +482,174 @@ export const PRESETS: PresetDef[] = [
     ],
   },
 
+  // ─── Honeymoon ─────────────────────────────────────────────────────────────
+
+  {
+    id: "honeymoon",
+    label: "Honeymoon",
+    labelAr: "شهر العسل",
+    description: "Romantic getaway with overwater villa, couples spa, private dining, and all-inclusive meals",
+    descriptionAr: "عطلة رومانسية مع فيلا على الماء وسبا للأزواج وعشاء خاص وإقامة شاملة",
+    icon: "star",
+    sections: [
+      {
+        type: "highlights",
+        data: {
+          items: [
+            "Overwater villa accommodation",
+            "All-inclusive meals & beverages",
+            "Couples spa treatment included",
+            "Private beach access",
+            "Sunset cruise for two",
+          ],
+        },
+      },
+      { type: "hotel" },
+      {
+        type: "meals",
+        data: { plan: "all_inclusive", notes: "" },
+      },
+      {
+        type: "extras",
+        data: {
+          items: [
+            { name: "Couples massage",                    description: "60-minute relaxation massage for two",                      price: "" },
+            { name: "Private beach dinner",               description: "Candlelit dinner set up on the beach",                     price: "" },
+            { name: "Sunset cruise",                      description: "Private boat for two with refreshments",                   price: "" },
+            { name: "Welcome amenities",                  description: "Rose petals, champagne, and a personalised welcome note",  price: "" },
+          ],
+        },
+      },
+      {
+        type: "inclusions",
+        data: {
+          includes: [
+            "Overwater villa accommodation",
+            "All-inclusive meals & beverages",
+            "Airport transfers",
+            "Welcome amenities (flowers & champagne)",
+            "Daily turndown service",
+          ],
+          excludes: [
+            "International flights",
+            "Travel insurance",
+            "Spa treatments (bookable as extras)",
+            "Personal purchases",
+          ],
+        },
+      },
+      {
+        type: "pricing",
+        data: {
+          tiers: [
+            { label: "Per couple — overwater villa", price: "" },
+            { label: "Per couple — beach villa",     price: "" },
+          ],
+          cancellation: "Free cancellation up to 30 days before arrival",
+        },
+      },
+    ],
+  },
+
+  // ─── Multi-day Tour ────────────────────────────────────────────────────────
+
+  {
+    id: "multi_day_tour",
+    label: "Multi-day Tour",
+    labelAr: "جولة متعددة الأيام",
+    description: "Guided multi-day itinerary with hotel, breakfast, transfers, and departure dates",
+    descriptionAr: "جولة منظمة متعددة الأيام مع فندق ووجبات صباحية ونقل ومواعيد مغادرة",
+    icon: "map",
+    sections: [
+      {
+        type: "highlights",
+        data: {
+          items: [
+            "Expert licensed guide throughout",
+            "Hotel accommodation included",
+            "All airport & inter-city transfers",
+            "Breakfast daily",
+            "Small group — personalised experience",
+          ],
+        },
+      },
+      {
+        type: "departure_dates",
+        data: {
+          dates: [
+            { date: "", returnDate: "", price: "", spots: "" },
+            { date: "", returnDate: "", price: "", spots: "" },
+            { date: "", returnDate: "", price: "", spots: "" },
+          ],
+        },
+      },
+      {
+        type: "itinerary",
+        data: {
+          days: [
+            { day: 1, title: "Arrival & welcome",          desc: "" },
+            { day: 2, title: "Main highlights — morning",  desc: "" },
+            { day: 3, title: "Excursion day",              desc: "" },
+            { day: 4, title: "Free day & optional extras", desc: "" },
+            { day: 5, title: "Departure transfer",         desc: "" },
+          ],
+        },
+      },
+      { type: "hotel" },
+      {
+        type: "meals",
+        data: { plan: "breakfast", notes: "" },
+      },
+      {
+        type: "transfers",
+        data: {
+          description: "Private transfers between airport, hotel, and all excursion points.",
+          items: ["Airport pickup", "Airport drop-off", "Daily tour transfers"],
+        },
+      },
+      {
+        type: "inclusions",
+        data: {
+          includes: [
+            "Hotel accommodation",
+            "Breakfast daily",
+            "Airport & inter-city transfers",
+            "Licensed guide throughout",
+            "Entrance fees to main attractions",
+          ],
+          excludes: [
+            "International flights",
+            "Lunch & dinner",
+            "Personal expenses",
+            "Optional excursions",
+            "Travel insurance",
+          ],
+        },
+      },
+      {
+        type: "important_notes",
+        data: {
+          items: [
+            { text: "Passport must be valid for at least 6 months from date of travel" },
+            { text: "Travel insurance covering the full trip dates is strongly recommended" },
+            { text: "Cancellation policy: see pricing section for full terms" },
+          ],
+        },
+      },
+      {
+        type: "pricing",
+        data: {
+          tiers: [
+            { label: "Per person (based on 2 sharing)", price: "" },
+            { label: "Solo traveller supplement",       price: "" },
+            { label: "Child (2–11 years)",              price: "" },
+          ],
+          cancellation: "Free cancellation up to 45 days before departure. 50% refund up to 21 days before.",
+        },
+      },
+    ],
+  },
+
   // ─── Safari ────────────────────────────────────────────────────────────────
 
   {

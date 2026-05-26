@@ -1,21 +1,18 @@
 "use client";
 
-/**
- * PackageCard — agency dashboard card for the Packages screen.
- *
- * Intentionally independent of BaseCard (components/templates/shared.tsx).
- * BaseCard backs the 10 landing-page templates' Card exports and must not
- * be modified for dashboard concerns. This component implements the .pcard
- * design spec (cards.css in the design bundle) for the admin dashboard only.
- * Do not re-merge them: the two surfaces have different layouts, visual
- * contracts, and change drivers.
- */
-
 import type { TListPackage, TAgency } from "@/components/templates/types";
 import { locStr } from "@/components/templates/types";
 import type { Lang } from "@/lib/translations";
 import { T } from "@/lib/translations";
 import Icon from "@/components/Icon";
+import { guessDestinationKind, DESTINATION_GRADIENTS } from "@/lib/destination";
+import {
+  DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK3,
+  DA_RULE, DA_RULE2, DA_GOLD, DA_GREEN, DA_GREEN_SOFT,
+} from "@/lib/tokens";
+
+const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
+const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
 type Props = {
   pkg: TListPackage;
@@ -27,131 +24,260 @@ type Props = {
   onToggleActive: () => void;
   onDuplicate?: () => void;
   onCopyLink?: () => void;
-  stripeColor?: string;
   templateName?: string;
+  nights?: string | number;
+  // kept for API compat, unused in new design:
+  stripeColor?: string;
   templateDark?: boolean;
 };
 
 export function PackageCard({
   pkg, lang,
   onView, onEdit, onDelete, onToggleActive, onDuplicate, onCopyLink,
-  stripeColor, templateName, templateDark,
+  templateName, nights,
 }: Props) {
   const t = T[lang];
-  const thumb = pkg.coverImage || pkg.images?.[0];
+  const isAr = lang === "ar";
   const clicks = (pkg.whatsappClicks || 0) + (pkg.messengerClicks || 0);
   const conv = (pkg.views || 0) > 0 ? (clicks / (pkg.views || 1)) * 100 : 0;
   const isPublished = Boolean(pkg.agencySlug);
   const isActive = pkg.isActive !== false;
-  const stripe = stripeColor || "#1f5f8e";
-  const isOff = isPublished && !isActive;
 
-  const statusClass =
-    !isPublished ? "pcard__status pcard__status--draft" :
-    isActive      ? "pcard__status pcard__status--live"  :
-                    "pcard__status pcard__status--off";
+  const destKind = guessDestinationKind(pkg.destination || "");
+  const coverGrad = DESTINATION_GRADIENTS[destKind] ?? DESTINATION_GRADIENTS.default;
 
-  const statusLabel =
-    !isPublished ? t.packageStatusDraft :
-    isActive     ? t.live               :
-                   t.packageStatusInactive;
+  const statusLabel = !isPublished
+    ? t.packageStatusDraft
+    : isActive
+    ? t.live
+    : t.packageStatusInactive;
+  const isLive = isPublished && isActive;
+
+  const btnBase: React.CSSProperties = {
+    background: DA_SURFACE2,
+    border: `1px solid ${DA_RULE2}`,
+    borderRadius: 7,
+    color: DA_INK1,
+    fontFamily: SANS,
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+  };
 
   return (
-    <article className={"pcard" + (isOff ? " pcard--inactive" : "")}>
+    <div style={{
+      background: DA_SURFACE,
+      border: `1px solid ${DA_RULE}`,
+      borderRadius: 14,
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      opacity: isPublished && !isActive ? 0.72 : 1,
+    }}>
+      {/* Cover */}
+      <div style={{ position: "relative", height: 170, flexShrink: 0 }}>
+        {pkg.coverImage ? (
+          <img
+            src={pkg.coverImage}
+            alt={pkg.destination}
+            style={{ width: "100%", height: 170, objectFit: "cover", display: "block" }}
+          />
+        ) : (
+          <div style={{
+            width: "100%", height: 170, background: coverGrad,
+            position: "relative", overflow: "hidden",
+          }}>
+            <div style={{
+              position: "absolute", inset: 0,
+              backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0, rgba(255,255,255,.04) 1px, transparent 1px, transparent 8px)",
+            }} />
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(180deg, transparent 50%, rgba(0,0,0,.4) 100%)",
+            }} />
+          </div>
+        )}
 
-      {/* Template stripe */}
-      <div className="pcard__stripe" style={{ background: stripe }} />
+        {/* Template chip */}
+        {templateName && (
+          <div style={{
+            position: "absolute", top: 12,
+            ...(isAr ? { right: 12 } : { left: 12 }),
+            padding: "3px 9px",
+            background: "rgba(0,0,0,.5)",
+            backdropFilter: "blur(8px)",
+            color: "#fff",
+            borderRadius: 999,
+            fontSize: 10.5,
+            fontFamily: SANS,
+            fontWeight: 500,
+            display: "inline-flex", alignItems: "center", gap: 5,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: DA_GOLD, flexShrink: 0 }} />
+            {templateName}
+          </div>
+        )}
 
-      {/* Image */}
-      <div className="pcard__media">
-        {thumb
-          ? <img src={thumb} alt={pkg.destination} />
-          : <div className="pcard__media-no-img">
-              <Icon name="map" size={28} color="rgba(0,0,0,0.2)" />
-            </div>
-        }
-        <div className="pcard__media-tags">
-          {templateName && (
-            <span className="pcard__tpl">
-              <span
-                className="pcard__tpl-dot"
-                style={{
-                  background: stripe,
-                  border: templateDark ? "1px solid rgba(0,0,0,0.5)" : "none",
-                }}
-              />
-              {templateName}
-            </span>
-          )}
-          <span className={statusClass}>
-            <span className="dot" />
+        {/* Status badge */}
+        <div style={{
+          position: "absolute", top: 12,
+          ...(isAr ? { left: 12 } : { right: 12 }),
+        }}>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            padding: "3px 9px",
+            background: "rgba(0,0,0,.5)",
+            backdropFilter: "blur(8px)",
+            borderRadius: 999,
+            fontSize: 10.5, fontWeight: 500, fontFamily: SANS,
+            color: isLive ? "#6fde9f" : "rgba(255,255,255,.75)",
+          }}>
+            {isLive && (
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#6fde9f", flexShrink: 0 }} />
+            )}
             {statusLabel}
           </span>
         </div>
       </div>
 
       {/* Body */}
-      <div className="pcard__body">
-        <div className="pcard__top">
-          <div className="pcard__dest">{pkg.destination}</div>
-          <div className="pcard__price">{pkg.price}</div>
+      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+        <div>
+          <div style={{
+            fontFamily: DISPLAY, fontSize: 18, fontWeight: 400,
+            color: DA_INK1, letterSpacing: -.3, lineHeight: 1.15,
+          }}>
+            {locStr(pkg.title, lang) || pkg.destination}
+          </div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6, marginTop: 5,
+            fontFamily: SANS, fontSize: 11.5, color: DA_INK3, flexWrap: "wrap",
+          }}>
+            <span>{pkg.price}</span>
+            {nights && (
+              <>
+                <span>·</span>
+                <span>{nights} {isAr ? "ليالٍ" : "nights"}</span>
+              </>
+            )}
+            {pkg.createdAt && (
+              <>
+                <span>·</span>
+                <span>{new Date(pkg.createdAt).toLocaleDateString(
+                  lang === "ar" ? "ar-SA" : "en-GB",
+                  { day: "numeric", month: "short" }
+                )}</span>
+              </>
+            )}
+          </div>
         </div>
-        <h3 className="pcard__title">{locStr(pkg.title, lang) || pkg.destination}</h3>
 
-        <div className="pcard__metrics">
-          <div className="pcard__metric">
-            <div className="v">{(pkg.views || 0).toLocaleString()}</div>
-            <div className="l">{t.statViews}</div>
-          </div>
-          <div className="pcard__metric">
-            <div className="v">{clicks}</div>
-            <div className="l">{t.statLeads}</div>
-          </div>
-          <div className="pcard__metric">
-            <div className={"v" + (conv >= 2 ? " v--hi" : "")}>
-              {conv > 0 ? conv.toFixed(1) + "%" : "—"}
+        {/* 3-up stats */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8,
+          padding: "10px 0",
+          borderTop: `1px solid ${DA_RULE}`,
+          borderBottom: `1px solid ${DA_RULE}`,
+        }}>
+          {[
+            { value: (pkg.views || 0).toLocaleString(), label: t.statViews },
+            { value: String(clicks),                    label: t.statLeads },
+            { value: conv > 0 ? conv.toFixed(1) + "%" : "—", label: t.statConversion },
+          ].map((s, i) => (
+            <div key={i}>
+              <div style={{
+                fontFamily: DISPLAY, fontSize: 18, fontWeight: 400,
+                color: DA_INK1, letterSpacing: -.3,
+              }}>{s.value}</div>
+              <div style={{
+                fontSize: 10, fontFamily: SANS, color: DA_INK3,
+                marginTop: 1, letterSpacing: .3, textTransform: "uppercase",
+              }}>{s.label}</div>
             </div>
-            <div className="l">{t.statConversion}</div>
+          ))}
+        </div>
+
+        {/* Primary actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: "auto" }}>
+          <button onClick={onEdit} style={{ ...btnBase, flex: 1, padding: "7px 0" }}>
+            <Icon name="edit" size={11} color="currentColor" />
+            {t.apply}
+          </button>
+          <button onClick={onView} style={{ ...btnBase, flex: 1, padding: "7px 0" }}>
+            <Icon name="eye" size={11} color="currentColor" />
+            {t.preview}
+          </button>
+          {onCopyLink && (
+            <button onClick={onCopyLink} style={{ ...btnBase, width: 32, height: 30 }} title={t.copyLink}>
+              <Icon name="copy" size={12} color="currentColor" />
+            </button>
+          )}
+        </div>
+
+        {/* Secondary actions */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            {onDuplicate && (
+              <button
+                onClick={onDuplicate}
+                title={t.duplicatePackageTooltip}
+                style={{
+                  padding: "3px 8px",
+                  background: "transparent",
+                  border: `1px solid ${DA_RULE2}`,
+                  borderRadius: 5,
+                  color: DA_INK3,
+                  fontFamily: SANS,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                }}
+              >
+                <Icon name="copy" size={10} color="currentColor" />
+                {isAr ? "تكرار" : "Duplicate"}
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {isPublished && (
+              <button
+                onClick={onToggleActive}
+                title={isActive ? t.markInactive : t.markActive}
+                style={{
+                  padding: "3px 8px",
+                  background: isActive ? DA_GREEN_SOFT : DA_SURFACE2,
+                  border: `1px solid ${DA_RULE2}`,
+                  borderRadius: 5,
+                  color: isActive ? DA_GREEN : DA_INK3,
+                  fontFamily: SANS,
+                  fontSize: 10.5,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                {isActive ? t.markInactive : t.markActive}
+              </button>
+            )}
+            <button
+              onClick={onDelete}
+              title={t.deletePackage}
+              style={{
+                padding: "4px 6px",
+                background: "transparent",
+                border: "none",
+                color: "rgba(180,50,50,.55)",
+                cursor: "pointer",
+              }}
+            >
+              <Icon name="trash" size={13} color="currentColor" />
+            </button>
           </div>
         </div>
       </div>
-
-      {/* Actions bar */}
-      <div className="pcard__actions">
-        <button className="pcard__act pcard__act--primary" onClick={onEdit}>
-          {t.apply}
-        </button>
-        <button className="pcard__act" onClick={onView}>
-          {t.preview}
-        </button>
-        {onCopyLink && (
-          <button className="pcard__act" onClick={onCopyLink}>
-            {t.copyLink}
-          </button>
-        )}
-        {onDuplicate && (
-          <button className="pcard__act" onClick={onDuplicate} title={t.duplicatePackageTooltip}>
-            <Icon name="copy" size={13} color="currentColor" />
-          </button>
-        )}
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
-          {isPublished && (
-            <button
-              className={"pcard__toggle" + (isActive ? "" : " pcard__toggle--off")}
-              onClick={onToggleActive}
-              title={isActive ? t.markInactive : t.markActive}
-            />
-          )}
-          <button
-            className="pcard__act"
-            onClick={onDelete}
-            title={t.deletePackage}
-            style={{ padding: "5px 4px" }}
-          >
-            <Icon name="trash" size={13} color="rgba(180,50,50,0.55)" />
-          </button>
-        </div>
-      </div>
-    </article>
+    </div>
   );
 }

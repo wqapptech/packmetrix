@@ -7,6 +7,10 @@ import { SECTION_REGISTRY } from "@/lib/sections/registry";
 import type { AnySectionInstance, CoreForm } from "@/lib/sections/types";
 import { SAND } from "./constants";
 import { T } from "@/lib/translations";
+import {
+  DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_GOLD, DA_GOLD_SOFT, DA_GREEN, DA_DANGER,
+} from "@/lib/tokens";
 
 type UserPreset = { id: string; name: string; sections: AnySectionInstance[]; createdAt: number };
 
@@ -160,13 +164,13 @@ export function PresetPicker({
   return (
     <div style={{ maxWidth: 580, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: `${SAND}18`, border: `1px solid ${SAND}30`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
           <Icon name="package" size={22} color={SAND} />
         </div>
-        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8, color: DA_INK1 }}>
           {l ? "اختر نموذج الباقة" : "Choose a package template"}
         </h2>
-        <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, maxWidth: 400, margin: "0 auto" }}>
+        <p style={{ fontSize: 13.5, color: DA_INK3, lineHeight: 1.6, maxWidth: 400, margin: "0 auto" }}>
           {l
             ? "ابدأ من نموذج جاهز ثم خصّصه، أو ابدأ من صفحة بيضاء."
             : "Start from a ready-made template then customise it, or start with a blank canvas."}
@@ -174,54 +178,54 @@ export function PresetPicker({
       </div>
 
       {/* AI extract accordion */}
-      <div style={{ marginBottom: 24, borderRadius: 14, border: `1px solid ${aiOpen ? SAND + "30" : "rgba(255,255,255,0.08)"}`, overflow: "hidden", transition: "border-color 0.2s" }}>
+      <div style={{ marginBottom: 24, borderRadius: 14, border: `1px solid ${aiOpen ? DA_GOLD : DA_RULE}`, overflow: "hidden", transition: "border-color 0.2s" }}>
         <button
           onClick={() => setAiOpen((o) => !o)}
-          style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: aiOpen ? `${SAND}08` : "rgba(255,255,255,0.03)", border: "none", cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: aiOpen ? DA_GOLD_SOFT : DA_SURFACE, border: "none", cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}
         >
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: `${SAND}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: DA_GOLD_SOFT, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Icon name="sparkle" size={16} color={SAND} />
           </div>
           <div style={{ flex: 1, textAlign: "left" }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: DA_INK1 }}>
               {l ? "استخراج بيانات بالذكاء الاصطناعي" : "Extract data with AI"}
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: DA_INK3, marginTop: 2 }}>
               {l ? "الصق وصف باقتك وسنملأ الحقول تلقائياً ونقترح النموذج المناسب" : "Paste your package description — we'll fill the fields and suggest a template"}
             </div>
           </div>
-          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, transform: aiOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>▾</span>
+          <span style={{ color: DA_INK3, fontSize: 12, transform: aiOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>▾</span>
         </button>
 
         {aiOpen && (
-          <div style={{ padding: "0 16px 16px" }}>
+          <div style={{ padding: "0 16px 16px", background: DA_SURFACE }}>
             <textarea
               value={extractText}
               onChange={(e) => setExtractText(e.target.value)}
               placeholder={l ? "الصق وصف الرحلة هنا…" : "Paste your trip description, brochure, or social post here…"}
-              style={{ width: "100%", minHeight: 140, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "var(--white)", fontSize: 13, fontFamily: "inherit", outline: "none", resize: "vertical" as const, lineHeight: 1.6, marginTop: 12 }}
-              onFocus={(e) => (e.target.style.borderColor = `${SAND}60`)}
-              onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+              style={{ width: "100%", minHeight: 140, background: DA_BG, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 14px", color: DA_INK1, fontSize: 13, fontFamily: "inherit", outline: "none", resize: "vertical" as const, lineHeight: 1.6, marginTop: 12 }}
+              onFocus={(e) => (e.target.style.borderColor = DA_GOLD)}
+              onBlur={(e) => (e.target.style.borderColor = DA_RULE)}
             />
 
             {extractError && (
-              <p style={{ fontSize: 12, color: "#ef9090", marginTop: 8 }}>{extractError}</p>
+              <p style={{ fontSize: 12, color: DA_DANGER, marginTop: 8 }}>{extractError}</p>
             )}
 
             {extracted && (
-              <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 10, background: "rgba(45,212,160,0.07)", border: "1px solid rgba(45,212,160,0.2)", fontSize: 12.5, color: "rgba(255,255,255,0.8)", display: "flex", flexWrap: "wrap" as const, gap: "4px 16px" }}>
-                <span style={{ color: "#2dd4a0", fontWeight: 700, width: "100%", marginBottom: 4 }}>
-                  <Icon name="check" size={12} color="#2dd4a0" strokeWidth={2.5} />
+              <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 10, background: DA_GREEN + "12", border: `1px solid ${DA_GREEN}30`, fontSize: 12.5, color: DA_INK1, display: "flex", flexWrap: "wrap" as const, gap: "4px 16px" }}>
+                <span style={{ color: DA_GREEN, fontWeight: 700, width: "100%", marginBottom: 4 }}>
+                  <Icon name="check" size={12} color={DA_GREEN} strokeWidth={2.5} />
                   {" "}{l ? "تم الاستخراج — اختر نموذجاً أدناه" : "Extracted — pick a template below"}
                 </span>
-                {extracted.destination && <span style={{ color: "rgba(255,255,255,0.5)" }}>📍 {extracted.destination}</span>}
-                {extracted.price       && <span style={{ color: "rgba(255,255,255,0.5)" }}>💰 {extracted.price}</span>}
-                {extracted.nights      && <span style={{ color: "rgba(255,255,255,0.5)" }}>🌙 {extracted.nights} {l ? "ليالٍ" : "nights"}</span>}
-                {extracted.advantages?.length ? <span style={{ color: "rgba(255,255,255,0.5)" }}>✓ {extracted.advantages.length} {l ? "مشمولات" : "inclusions"}</span> : null}
-                {extracted.itinerary?.length   ? <span style={{ color: "rgba(255,255,255,0.5)" }}>🗓 {extracted.itinerary.length} {l ? "أيام" : "days"}</span> : null}
-                {extracted.airports?.length    ? <span style={{ color: "rgba(255,255,255,0.5)" }}>✈ {extracted.airports.length} {l ? "رحلات" : "departure(s)"}</span> : null}
+                {extracted.destination && <span style={{ color: DA_INK2 }}>📍 {extracted.destination}</span>}
+                {extracted.price       && <span style={{ color: DA_INK2 }}>💰 {extracted.price}</span>}
+                {extracted.nights      && <span style={{ color: DA_INK2 }}>🌙 {extracted.nights} {l ? "ليالٍ" : "nights"}</span>}
+                {extracted.advantages?.length ? <span style={{ color: DA_INK2 }}>✓ {extracted.advantages.length} {l ? "مشمولات" : "inclusions"}</span> : null}
+                {extracted.itinerary?.length   ? <span style={{ color: DA_INK2 }}>🗓 {extracted.itinerary.length} {l ? "أيام" : "days"}</span> : null}
+                {extracted.airports?.length    ? <span style={{ color: DA_INK2 }}>✈ {extracted.airports.length} {l ? "رحلات" : "departure(s)"}</span> : null}
                 {suggestedId && (
-                  <span style={{ color: SAND, fontWeight: 600 }}>
+                  <span style={{ color: DA_GOLD, fontWeight: 600 }}>
                     ✦ {l ? "مقترح:" : "Suggested:"} {PRESETS.find(p => p.id === suggestedId)?.[l ? "labelAr" : "label"] ?? suggestedId}
                   </span>
                 )}
@@ -232,11 +236,11 @@ export function PresetPicker({
               <button
                 onClick={handleExtract}
                 disabled={extracting || !extractText.trim()}
-                style={{ padding: "9px 20px", borderRadius: 10, border: "none", background: extracting || !extractText.trim() ? "rgba(255,255,255,0.06)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: extracting || !extractText.trim() ? "rgba(255,255,255,0.3)" : "#0d1b2e", fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: extracting || !extractText.trim() ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8 }}
+                style={{ padding: "9px 20px", borderRadius: 10, border: "none", background: extracting || !extractText.trim() ? DA_RULE : `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: extracting || !extractText.trim() ? DA_INK3 : DA_SURFACE2, fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: extracting || !extractText.trim() ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8 }}
               >
                 {extracting
-                  ? <><span className="spinner" style={{ borderTopColor: SAND }} /> {l ? "جاري الاستخراج…" : "Extracting…"}</>
-                  : <><Icon name="sparkle" size={13} color="#0d1b2e" /> {l ? "استخراج" : "Extract with AI"}</>}
+                  ? <><span className="spinner-warm" style={{ borderTopColor: SAND }} /> {l ? "جاري الاستخراج…" : "Extracting…"}</>
+                  : <><Icon name="sparkle" size={13} color={DA_SURFACE2} /> {l ? "استخراج" : "Extract with AI"}</>}
               </button>
             </div>
           </div>
@@ -246,36 +250,36 @@ export function PresetPicker({
       {/* User templates */}
       {userPresets.length > 0 && (
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: DA_INK3, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 8 }}>
             {t.yourSavedTemplates}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {userPresets.map(up => (
               <div
                 key={up.id}
-                style={{ position: "relative", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", overflow: "hidden" }}
+                style={{ position: "relative", borderRadius: 12, border: `1px solid ${DA_RULE}`, background: DA_SURFACE, overflow: "hidden" }}
               >
                 <button
                   onClick={() => applyUserPreset(up)}
                   style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, padding: "13px 14px 11px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = `${SAND}08`; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = DA_GOLD_SOFT; }}
                   onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
                 >
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: `${SAND}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: DA_GOLD_SOFT, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon name="package" size={15} color={SAND} />
                   </div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>{up.name}</div>
-                  <div style={{ fontSize: 11, color: SAND, display: "flex", alignItems: "center", gap: 4 }}>
-                    {up.sections.length} {l ? "أقسام" : "sections"} <Icon name="arrow_right" size={9} color={SAND} />
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: DA_INK1, lineHeight: 1.3 }}>{up.name}</div>
+                  <div style={{ fontSize: 11, color: DA_GOLD, display: "flex", alignItems: "center", gap: 4 }}>
+                    {up.sections.length} {l ? "أقسام" : "sections"} <Icon name="arrow_right" size={9} color={DA_GOLD} />
                   </div>
                 </button>
                 <button
                   onClick={() => deleteUserPreset(up.id)}
                   disabled={deletingId === up.id}
                   title={t.deleteTemplateTooltip}
-                  style={{ position: "absolute", top: 8, right: 8, width: 24, height: 24, borderRadius: 6, border: "none", background: "rgba(220,80,80,0.12)", color: "rgba(220,80,80,0.6)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: deletingId === up.id ? 0.4 : 1 }}
+                  style={{ position: "absolute", top: 8, right: 8, width: 24, height: 24, borderRadius: 6, border: "none", background: DA_DANGER + "18", color: DA_DANGER, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: deletingId === up.id ? 0.4 : 1 }}
                 >
-                  <Icon name="trash" size={11} color="rgba(220,80,80,0.7)" />
+                  <Icon name="trash" size={11} color={DA_DANGER} />
                 </button>
               </div>
             ))}
@@ -284,7 +288,7 @@ export function PresetPicker({
       )}
 
       {/* Preset cards */}
-      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: DA_INK3, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 8 }}>
         {t.builtInTemplates}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
@@ -304,8 +308,8 @@ export function PresetPicker({
                 gap: 10,
                 padding: "16px 14px",
                 borderRadius: 14,
-                border: `1px solid ${isRecommended ? SAND + "60" : "rgba(255,255,255,0.08)"}`,
-                background: isRecommended ? `${SAND}09` : "rgba(255,255,255,0.03)",
+                border: `1px solid ${isRecommended ? DA_GOLD : DA_RULE}`,
+                background: isRecommended ? DA_GOLD_SOFT : DA_SURFACE,
                 cursor: "pointer",
                 fontFamily: "inherit",
                 textAlign: "left",
@@ -313,32 +317,32 @@ export function PresetPicker({
                 transition: "border-color 0.15s, background 0.15s",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = `${SAND}40`;
-                e.currentTarget.style.background = `${SAND}07`;
+                e.currentTarget.style.borderColor = DA_GOLD;
+                e.currentTarget.style.background = DA_GOLD_SOFT;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = isRecommended ? `${SAND}60` : "rgba(255,255,255,0.08)";
-                e.currentTarget.style.background = isRecommended ? `${SAND}09` : "rgba(255,255,255,0.03)";
+                e.currentTarget.style.borderColor = isRecommended ? DA_GOLD : DA_RULE;
+                e.currentTarget.style.background = isRecommended ? DA_GOLD_SOFT : DA_SURFACE;
               }}
             >
               {isRecommended && (
-                <div style={{ position: "absolute", top: -1, right: -1, background: SAND, color: "#0d1b2e", fontSize: 9, fontWeight: 800, letterSpacing: "0.5px", borderRadius: "0 13px 0 8px", padding: "3px 9px" }}>
+                <div style={{ position: "absolute", top: -1, right: -1, background: DA_GOLD, color: DA_SURFACE2, fontSize: 9, fontWeight: 800, letterSpacing: "0.5px", borderRadius: "0 13px 0 8px", padding: "3px 9px" }}>
                   {l ? "مقترح ✦" : "✦ SUGGESTED"}
                 </div>
               )}
 
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: isRecommended ? `${SAND}30` : `${SAND}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: isRecommended ? DA_GOLD + "40" : DA_GOLD_SOFT, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Icon name={preset.icon} size={18} color={SAND} />
               </div>
 
               <div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginBottom: 4 }}>{presetLabel}</div>
-                <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)", lineHeight: 1.45 }}>{presetDesc}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: DA_INK1, marginBottom: 4 }}>{presetLabel}</div>
+                <div style={{ fontSize: 11.5, color: DA_INK3, lineHeight: 1.45 }}>{presetDesc}</div>
               </div>
 
-              <div style={{ fontSize: 11, color: SAND, display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: DA_GOLD, display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
                 {preset.sections.length} {l ? "أقسام" : "sections"}
-                <Icon name="arrow_right" size={10} color={SAND} />
+                <Icon name="arrow_right" size={10} color={DA_GOLD} />
               </div>
             </button>
           );
@@ -348,11 +352,11 @@ export function PresetPicker({
       {/* Start blank */}
       <button
         onClick={startBlank}
-        style={{ width: "100%", padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "transparent", color: "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "color 0.15s, border-color 0.15s" }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}
+        style={{ width: "100%", padding: "12px 16px", borderRadius: 12, border: `1px solid ${DA_RULE}`, background: DA_SURFACE, color: DA_INK2, fontSize: 13, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "color 0.15s, border-color 0.15s" }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = DA_INK1; e.currentTarget.style.borderColor = DA_RULE; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = DA_INK2; e.currentTarget.style.borderColor = DA_RULE; }}
       >
-        <Icon name="plus" size={13} color="rgba(255,255,255,0.4)" />
+        <Icon name="plus" size={13} color={DA_INK2} />
         {l ? "ابدأ من صفحة بيضاء" : "Start from a blank canvas"}
       </button>
     </div>

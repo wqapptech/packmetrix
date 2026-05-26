@@ -11,11 +11,16 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import posthog from "posthog-js";
 import { isTrialActive, trialDaysLeft } from "@/lib/trial";
 import { T } from "@/lib/translations";
+import {
+  DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT,
+  DA_GREEN, DA_GREEN_SOFT, DA_DANGER, DA_DANGER_SOFT,
+} from "@/lib/tokens";
 
 type TDict = typeof T["en"];
 
-const SAND = "#e8c97b";
-const SUCCESS = "#2dd4a0";
+const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
+const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
 function parsePackagePrice(s: string): number {
   const n = parseFloat(s.replace(/[^\d.]/g, ""));
@@ -25,9 +30,9 @@ function parsePackagePrice(s: string): number {
 function Stat({ v, l, sub }: { v: string; l: string; sub?: string }) {
   return (
     <div>
-      <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: SAND, letterSpacing: "-0.5px", lineHeight: 1 }}>{v}</div>
-      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 5, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px" }}>{l}</div>
-      {sub && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontFamily: DISPLAY, fontSize: 28, color: DA_GOLD, letterSpacing: "-0.5px", lineHeight: 1 }}>{v}</div>
+      <div style={{ fontSize: 11, color: DA_INK3, marginTop: 5, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px" }}>{l}</div>
+      {sub && <div style={{ fontSize: 10, color: DA_INK3, marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -37,11 +42,11 @@ function FeatureRow({ label }: { label: string }) {
     <div style={{ display: "flex", gap: 9, alignItems: "center", padding: "5px 0" }}>
       <div style={{
         width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-        background: `${SAND}22`,
+        background: DA_GOLD_SOFT,
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 9, color: SAND,
+        fontSize: 9, color: DA_GOLD,
       }}>✓</div>
-      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.75)" }}>{label}</span>
+      <span style={{ fontSize: 13, color: DA_INK2 }}>{label}</span>
     </div>
   );
 }
@@ -50,18 +55,18 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div
-      style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "14px 0", cursor: "pointer" }}
+      style={{ borderBottom: `1px solid ${DA_RULE}`, padding: "14px 0", cursor: "pointer" }}
       onClick={() => setOpen(!open)}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 13.5, fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>{q}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: DA_INK1 }}>{q}</span>
         <span style={{
-          fontSize: 18, color: "rgba(255,255,255,0.35)", flexShrink: 0,
+          fontSize: 18, color: DA_INK3, flexShrink: 0,
           transform: open ? "rotate(45deg)" : "none", transition: "transform 0.15s", display: "inline-block",
         }}>+</span>
       </div>
       {open && (
-        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 8, lineHeight: 1.65 }}>{a}</div>
+        <div style={{ fontSize: 13, color: DA_INK2, marginTop: 8, lineHeight: 1.65 }}>{a}</div>
       )}
     </div>
   );
@@ -203,31 +208,45 @@ export default function PaywallPage() {
     { q: "Can I cancel anytime?", a: "Yes. Cancel from your billing portal at any time. No lock-in, no cancellation fees." },
   ];
 
+  if (!userId) {
+    return (
+      <AppLayout>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+          <span className="spinner-warm" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
-      <div dir={dir} style={{ padding: isMobile ? "16px 16px 60px" : "28px 32px 80px", maxWidth: 640, margin: "0 auto" }}>
+      <div dir={dir} style={{ background: DA_BG, padding: isMobile ? "16px 16px 60px" : "28px 32px 80px", maxWidth: 640, margin: "0 auto" }}>
 
         {/* Trial / plan status banner */}
         <div style={{
           marginBottom: 28, padding: "14px 20px", borderRadius: 14,
           background: isPaid
-            ? "linear-gradient(135deg, rgba(232,201,123,0.07), rgba(11,20,36,0.4))"
+            ? DA_GOLD_SOFT
             : trialActive
-              ? "linear-gradient(135deg, rgba(232,201,123,0.05), rgba(11,20,36,0.3))"
-              : "rgba(255,80,80,0.06)",
-          border: `1px solid ${isPaid ? "rgba(232,201,123,0.2)" : trialActive ? "rgba(232,201,123,0.15)" : "rgba(255,80,80,0.18)"}`,
+              ? DA_SURFACE
+              : DA_DANGER_SOFT,
+          border: isPaid
+            ? `1px solid ${DA_RULE2}`
+            : trialActive
+              ? `1px solid ${DA_RULE}`
+              : `1px solid ${DA_DANGER}`,
           display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: isPaid ? `${SAND}18` : trialActive ? `${SAND}12` : "rgba(255,80,80,0.1)",
+              background: isPaid ? DA_GOLD_SOFT : trialActive ? DA_BG : DA_DANGER_SOFT,
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17,
             }}>
               {isPaid ? "✦" : trialActive ? "⏳" : "⚠️"}
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: isPaid ? SAND : trialActive ? "#fff" : "#ff8080" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: isPaid ? DA_GOLD : trialActive ? DA_INK1 : DA_DANGER }}>
                 {isPaid
                   ? `${t.youreOnPlanPrefix} ${userPlan.charAt(0).toUpperCase() + userPlan.slice(1)}${t.youreOnPlanSuffix ? ` ${t.youreOnPlanSuffix}` : ""}`
                   : trialActive
@@ -235,7 +254,7 @@ export default function PaywallPage() {
                     : t.trialExpiredTitle
                 }
               </div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: DA_INK3, marginTop: 2 }}>
                 {isPaid
                   ? t.manageSubscription
                   : trialActive
@@ -249,8 +268,8 @@ export default function PaywallPage() {
             {!isPaid && (
               <div style={{
                 padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700,
-                background: trialActive ? `${SAND}20` : "rgba(255,80,80,0.12)",
-                color: trialActive ? SAND : "#ff8080",
+                background: trialActive ? DA_GOLD_SOFT : DA_DANGER_SOFT,
+                color: trialActive ? DA_GOLD : DA_DANGER,
               }}>
                 {trialActive
                   ? `${t.trialEndsOn} ${new Date(trialEndsAt!).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short", year: "numeric" })}`
@@ -264,7 +283,7 @@ export default function PaywallPage() {
                 disabled={loading}
                 style={{
                   padding: "7px 16px", borderRadius: 99, fontSize: 12, fontWeight: 700,
-                  background: `${SAND}18`, border: `1px solid ${SAND}40`, color: SAND,
+                  background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE2}`, color: DA_GOLD,
                   cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
                 }}
               >
@@ -279,8 +298,8 @@ export default function PaywallPage() {
           <div style={{
             display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)",
             gap: 1, marginBottom: 32,
-            background: "rgba(255,255,255,0.05)", borderRadius: 14, overflow: "hidden",
-            border: "1px solid rgba(255,255,255,0.07)",
+            background: DA_RULE, borderRadius: 14, overflow: "hidden",
+            border: `1px solid ${DA_RULE}`,
           }}>
             {[
               { v: String(packageCount), l: t.packages },
@@ -288,7 +307,7 @@ export default function PaywallPage() {
               { v: String(totalClicks), l: t.billingDirectInquiries },
               { v: `€${estRevenue.toLocaleString()}`, l: t.billingEstRevenue, sub: t.billingConversionRate },
             ].map(({ v, l, sub }) => (
-              <div key={l} style={{ padding: "18px 20px", background: "rgba(7,14,26,0.8)", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
+              <div key={l} style={{ padding: "18px 20px", background: DA_SURFACE, borderRight: `1px solid ${DA_RULE}` }}>
                 <Stat v={v} l={l} sub={sub} />
               </div>
             ))}
@@ -303,22 +322,22 @@ export default function PaywallPage() {
             {foundingSoldOut ? (
               <span style={{
                 fontSize: 11, fontWeight: 800, padding: "3px 12px", borderRadius: 99,
-                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-                color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px",
+                background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+                color: DA_INK3, textTransform: "uppercase", letterSpacing: ".5px",
               }}>
                 {isAr ? "نفدت المقاعد التأسيسية" : "Founding spots sold out"}
               </span>
             ) : (
               <>
                 <span style={{
-                  fontSize: 11, fontWeight: 800, padding: "3px 12px", borderRadius: 99,
-                  background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-                  color: "#0a1426", textTransform: "uppercase", letterSpacing: ".5px",
+                  fontSize: 11, fontWeight: 800, padding: "3px 12px", borderRadius: 999,
+                  background: DA_GOLD,
+                  color: "#fff", textTransform: "uppercase", letterSpacing: ".5px",
                 }}>
                   {isAr ? "عرض محدود" : "Limited Offer"}
                 </span>
                 {spotsRemaining !== null && (
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>
+                  <span style={{ fontSize: 12, color: DA_INK3, fontWeight: 500 }}>
                     {isAr
                       ? `${spotsRemaining} من 50 مقعداً متبقياً`
                       : `${spotsRemaining} of 50 spots remaining`
@@ -331,16 +350,16 @@ export default function PaywallPage() {
 
           {/* Headline */}
           <h1 style={{
-            margin: "0 0 6px", fontFamily: "'DM Serif Display', serif",
+            margin: "0 0 6px", fontFamily: DISPLAY,
             fontSize: isMobile ? 30 : 38, letterSpacing: "-0.8px",
-            color: "#fff", lineHeight: 1.15,
+            color: DA_INK1, lineHeight: 1.15,
           }}>
             {foundingSoldOut
               ? (isAr ? "ابدأ مع الخطة القياسية" : "Get Started with Standard")
               : (isAr ? "كن عضواً مؤسساً" : "Become a Founding Member")
             }
           </h1>
-          <p style={{ margin: "0 0 28px", fontSize: 14, color: "rgba(255,255,255,0.45)" }}>
+          <p style={{ margin: "0 0 28px", fontSize: 14, color: DA_INK3 }}>
             {foundingSoldOut
               ? (isAr ? "المقاعد التأسيسية نفدت. الأسعار القياسية تُطبَّق الآن." : "Founding spots are gone. Standard pricing now applies.")
               : (isAr ? "احجز أقل سعر — للأبد. يضمن لنا كل عضو مؤسس الاستمرار في البناء." : "Lock in the lowest price — forever. Every Founding Member helps us build.")
@@ -349,7 +368,11 @@ export default function PaywallPage() {
 
           {/* Monthly/annual toggle */}
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: 4, gap: 2 }}>
+            <div style={{
+              display: "inline-flex", alignItems: "center",
+              background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
+              borderRadius: 10, padding: 4, gap: 2,
+            }}>
               {[false, true].map(isAnnual => (
                 <button
                   key={String(isAnnual)}
@@ -357,8 +380,12 @@ export default function PaywallPage() {
                   style={{
                     padding: "6px 14px", borderRadius: 7, fontSize: 12, fontWeight: 700,
                     border: "none", cursor: "pointer", fontFamily: "inherit",
-                    background: annual === isAnnual ? (isAnnual ? SAND : "rgba(255,255,255,0.12)") : "transparent",
-                    color: annual === isAnnual ? (isAnnual ? "#0a1426" : "#fff") : "rgba(255,255,255,0.4)",
+                    background: annual === isAnnual
+                      ? (isAnnual ? DA_GOLD : DA_SURFACE2)
+                      : "transparent",
+                    color: annual === isAnnual
+                      ? (isAnnual ? "#fff" : DA_INK1)
+                      : DA_INK3,
                     display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
                   }}
                 >
@@ -366,8 +393,8 @@ export default function PaywallPage() {
                   {isAnnual && (
                     <span style={{
                       fontSize: 9.5, fontWeight: 800, padding: "2px 5px", borderRadius: 99,
-                      background: annual ? "#0a1426" : "rgba(255,255,255,0.12)",
-                      color: annual ? SAND : "rgba(255,255,255,0.5)",
+                      background: DA_GOLD_SOFT,
+                      color: DA_GOLD,
                     }}>
                       {isAr ? "وفّر 17%" : "Save 17%"}
                     </span>
@@ -380,10 +407,8 @@ export default function PaywallPage() {
           {/* Pricing card */}
           <div style={{
             borderRadius: 20,
-            border: `1.5px solid ${foundingSoldOut ? "rgba(255,255,255,0.1)" : "rgba(232,201,123,0.35)"}`,
-            background: foundingSoldOut
-              ? "rgba(255,255,255,0.02)"
-              : "linear-gradient(160deg, rgba(232,201,123,0.07), rgba(11,20,36,0.5))",
+            border: foundingSoldOut ? `1px solid ${DA_RULE}` : `1.5px solid ${DA_GOLD}`,
+            background: foundingSoldOut ? DA_SURFACE : DA_GOLD_SOFT,
             padding: "28px 28px 24px",
             position: "relative",
             marginBottom: 16,
@@ -391,8 +416,8 @@ export default function PaywallPage() {
             {!foundingSoldOut && (
               <div style={{
                 position: "absolute", top: -12, left: dir === "rtl" ? "auto" : 24, right: dir === "rtl" ? 24 : "auto",
-                background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-                color: "#0a1426", fontSize: 10, fontWeight: 800,
+                background: DA_GOLD,
+                color: "#fff", fontSize: 10, fontWeight: 800,
                 padding: "3px 14px", borderRadius: 99, letterSpacing: ".5px", whiteSpace: "nowrap",
               }}>
                 {isAr ? "عضو مؤسس" : "FOUNDING MEMBER"}
@@ -401,13 +426,13 @@ export default function PaywallPage() {
 
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: foundingSoldOut ? "rgba(255,255,255,0.7)" : SAND, marginBottom: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: foundingSoldOut ? DA_INK2 : DA_GOLD, marginBottom: 4 }}>
                   {foundingSoldOut
                     ? (isAr ? "قياسي" : "Standard")
                     : (isAr ? "تأسيسي" : "Founding")
                   }
                 </div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+                <div style={{ fontSize: 12, color: DA_INK3 }}>
                   {foundingSoldOut
                     ? (isAr ? "للأعضاء الجدد" : "For new members")
                     : (isAr ? "مثبّت مدى الحياة · لن يرتفع أبداً" : "Locked in for life · Never increases")
@@ -416,25 +441,25 @@ export default function PaywallPage() {
               </div>
               <div style={{ textAlign: dir === "rtl" ? "left" : "right" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 3, justifyContent: dir === "rtl" ? "flex-start" : "flex-end" }}>
-                  <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 42, letterSpacing: "-1px", color: "#fff", lineHeight: 1 }}>
+                  <span style={{ fontFamily: DISPLAY, fontSize: 42, letterSpacing: "-1px", color: DA_INK1, lineHeight: 1 }}>
                     €{displayedPriceStr}
                   </span>
-                  <span style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>{t.billingPerMonth}</span>
+                  <span style={{ fontSize: 14, color: DA_INK3 }}>{t.billingPerMonth}</span>
                 </div>
                 {annual && (
-                  <div style={{ fontSize: 11, color: SUCCESS, fontWeight: 600, marginTop: 3 }}>
+                  <div style={{ fontSize: 11, color: DA_GREEN, fontWeight: 600, marginTop: 3 }}>
                     {isAr ? `مدفوع €${annualTotal} سنوياً` : `billed €${annualTotal}/yr`}
                   </div>
                 )}
                 {!foundingSoldOut && !annual && (
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>
+                  <div style={{ fontSize: 11, color: DA_INK3, marginTop: 3 }}>
                     {isAr ? "مقابل 79€/شهر للأعضاء الجدد" : "vs. €79/mo standard"}
                   </div>
                 )}
               </div>
             </div>
 
-            <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 20 }} />
+            <div style={{ height: 1, background: DA_RULE, marginBottom: 20 }} />
 
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "0 20px", marginBottom: 24 }}>
               {features.map((f) => <FeatureRow key={f} label={f} />)}
@@ -446,13 +471,13 @@ export default function PaywallPage() {
                 disabled={loading}
                 style={{
                   width: "100%", padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                  border: `1px solid ${SAND}40`, background: `${SAND}18`, color: SAND,
+                  border: `1px solid ${DA_RULE2}`, background: DA_SURFACE, color: DA_GOLD,
                   cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                 }}
               >
                 {loading
-                  ? <><span className="spinner" style={{ width: 13, height: 13 }} /> {t.redirectingBtn}</>
+                  ? <><span className="spinner-warm" style={{ width: 13, height: 13 }} /> {t.redirectingBtn}</>
                   : t.manageSubscriptionBtn
                 }
               </button>
@@ -462,16 +487,16 @@ export default function PaywallPage() {
                 disabled={loading}
                 style={{
                   width: "100%", padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                  border: "none",
-                  background: foundingSoldOut ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-                  color: foundingSoldOut ? "rgba(255,255,255,0.75)" : "#0a1426",
+                  border: foundingSoldOut ? `1px solid ${DA_RULE}` : "none",
+                  background: foundingSoldOut ? DA_SURFACE : DA_GOLD,
+                  color: foundingSoldOut ? DA_INK1 : "#fff",
                   cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                   transition: "opacity 0.15s",
                 }}
               >
                 {loading
-                  ? <><span className="spinner" style={{ width: 13, height: 13, borderTopColor: foundingSoldOut ? "#fff" : "#0a1426" }} /> {t.redirectingBtn}</>
+                  ? <><span className="spinner-warm" style={{ width: 13, height: 13, borderTopColor: foundingSoldOut ? DA_INK1 : "#fff" }} /> {t.redirectingBtn}</>
                   : foundingSoldOut
                     ? (isAr ? "✦ ابدأ الآن" : "✦ Get Started")
                     : (isAr ? "✦ احجز مقعدك التأسيسي" : "✦ Claim Your Founding Spot")
@@ -484,10 +509,10 @@ export default function PaywallPage() {
           {!foundingSoldOut && (
             <div style={{
               padding: "10px 16px", borderRadius: 10,
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: DA_BG,
+              border: `1px solid ${DA_RULE}`,
             }}>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
+              <span style={{ fontSize: 12, color: DA_INK3 }}>
                 {isAr
                   ? `بعد نفاد المقاعد: 79€/شهر${annual ? " · 756€/سنة" : ""}`
                   : `After founding sells out: €79/mo${annual ? " · €756/yr annual" : ""}`
@@ -500,21 +525,21 @@ export default function PaywallPage() {
         {/* Performance guarantee */}
         <div style={{
           marginBottom: 40, padding: "20px 24px", borderRadius: 16,
-          background: "rgba(45,212,160,0.05)",
-          border: "1px solid rgba(45,212,160,0.2)",
+          background: DA_GREEN_SOFT,
+          border: `1px solid ${DA_GREEN}`,
           display: "flex", gap: 16, alignItems: "flex-start",
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: "rgba(45,212,160,0.12)",
+            background: DA_GREEN_SOFT,
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 18, color: SUCCESS,
+            fontSize: 18, color: DA_GREEN,
           }}>✓</div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: SUCCESS, marginBottom: 5 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: DA_GREEN, marginBottom: 5 }}>
               {isAr ? "ضمان الأداء" : "Performance Guarantee"}
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.65 }}>
+            <div style={{ fontSize: 13, color: DA_INK2, lineHeight: 1.65 }}>
               {isAr
                 ? "احصل على أول عميل محتمل مؤهل خلال 30 يوماً مدفوعاً — أو نستردّ لك المبلغ كاملاً دون أسئلة."
                 : "Get your first qualified lead within 30 paid days — or we refund you in full. No questions asked."
@@ -525,7 +550,7 @@ export default function PaywallPage() {
 
         {/* FAQ */}
         <div style={{ marginBottom: 40 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 4 }}>
+          <div style={{ fontFamily: SANS, fontSize: 15, fontWeight: 600, color: DA_INK1, marginBottom: 4 }}>
             {isAr ? "أسئلة شائعة" : "Common questions"}
           </div>
           {faqs.map((item) => (
@@ -534,7 +559,7 @@ export default function PaywallPage() {
         </div>
 
         {/* Fine print */}
-        <div style={{ textAlign: "center", fontSize: 11.5, color: "rgba(255,255,255,0.3)", lineHeight: 1.8 }}>
+        <div style={{ textAlign: "center", fontSize: 11.5, color: DA_INK3, lineHeight: 1.8 }}>
           {isAr
             ? "ضمان عميل خلال 30 يوماً · إلغاء في أي وقت · دفع آمن عبر Stripe"
             : "30-day lead guarantee · Cancel anytime · Billed securely via Stripe"

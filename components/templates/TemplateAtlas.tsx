@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { T } from "@/lib/translations";
+import { T, localizeTierLabel } from "@/lib/translations";
 import {
   WAButton,
   AgencyBar,
@@ -136,7 +136,7 @@ function AtSection({
         <div style={{ padding: pad }}>
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
-            <SH label={atSecStr(d, "eyebrow") || "Highlights"} />
+            <SH label={atSecStr(d, "eyebrow") || t.atHighlights} />
             <div style={{
               display: "grid",
               gridTemplateColumns: isDesktop
@@ -300,13 +300,13 @@ function AtSection({
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const, marginBottom: 18 }}>
                 {meals && (
                   <div style={{ border: `1px solid ${AT.border}`, borderRadius: 4, padding: "8px 12px" }}>
-                    <div style={{ fontSize: 9.5, letterSpacing: "1px", textTransform: "uppercase" as const, color: AT.superMuted, marginBottom: 3 }}>Meal plan</div>
+                    <div style={{ fontSize: 9.5, letterSpacing: "1px", textTransform: "uppercase" as const, color: AT.superMuted, marginBottom: 3 }}>{t.atMealPlan}</div>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: AT.ink }}>{MEAL_LABELS[meals]?.[lang] ?? meals}</div>
                   </div>
                 )}
                 {visa && (
                   <div style={{ border: `1px solid ${AT.border}`, borderRadius: 4, padding: "8px 12px" }}>
-                    <div style={{ fontSize: 9.5, letterSpacing: "1px", textTransform: "uppercase" as const, color: AT.superMuted, marginBottom: 3 }}>Visa</div>
+                    <div style={{ fontSize: 9.5, letterSpacing: "1px", textTransform: "uppercase" as const, color: AT.superMuted, marginBottom: 3 }}>{t.atVisa}</div>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: AT.ink }}>{VISA_LABELS[visa]?.[lang] ?? visa}</div>
                     {visaDetails && <div style={{ fontSize: 11, color: AT.muted, marginTop: 2 }}>{visaDetails}</div>}
                   </div>
@@ -354,7 +354,7 @@ function AtSection({
         <div style={{ padding: pad }}>
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
-            <SH label={atSecStr(d, "eyebrow") || "FAQ"} />
+            <SH label={atSecStr(d, "eyebrow") || t.atFaq} />
             <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: "0 40px" }}>
               {items.map((item, i) => (
                 <div key={i} style={{ borderTop: `1px solid ${AT.border}`, padding: "16px 0" }}>
@@ -392,7 +392,7 @@ function AtSection({
         <div style={{ padding: pad }}>
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
-            <SH label={atSecStr(d, "eyebrow") || "Optional extras"} />
+            <SH label={atSecStr(d, "eyebrow") || t.atOptionalExtras} />
             <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 1 }}>
               {items.map((e, i) => {
                 const name = atItemStr(e, "label", "name");
@@ -422,7 +422,7 @@ function AtSection({
         <div style={{ padding: pad }}>
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
-            <SH label={atSecStr(d, "eyebrow") || "Your team"} />
+            <SH label={atSecStr(d, "eyebrow") || t.atYourTeam} />
             <div style={{
               display: "grid",
               gridTemplateColumns: isDesktop ? `repeat(${Math.min(items.length, 4)}, 1fr)` : "1fr 1fr",
@@ -443,7 +443,7 @@ function AtSection({
                     )}
                     <div style={{ fontFamily: AT.serif, fontSize: 15, fontWeight: 600, color: AT.ink }}>{name}</div>
                     {role && <div style={{ fontSize: 11, color: AT.superMuted, marginTop: 2, textTransform: "capitalize" as const }}>{role}</div>}
-                    {years != null && <div style={{ fontSize: 11, color: AT.superMuted, marginTop: 1 }}>{years} yrs exp</div>}
+                    {years != null && <div style={{ fontSize: 11, color: AT.superMuted, marginTop: 1 }}>{years} {t.atYrsExp}</div>}
                     {bio && <p style={{ fontSize: 12.5, color: AT.muted, lineHeight: 1.55, margin: "6px 0 0" }}>{bio}</p>}
                   </div>
                 );
@@ -463,7 +463,7 @@ function AtSection({
         <div style={{ padding: pad }}>
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
-            <SH label={atSecStr(d, "eyebrow") || "Important notes"} />
+            <SH label={atSecStr(d, "eyebrow") || t.atImportantNotesLabel} />
             {body && <p style={{ fontSize: 13.5, color: AT.muted, lineHeight: 1.7, margin: "0 0 12px" }}>{body}</p>}
             {items.length > 0 && (
               <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
@@ -489,7 +489,7 @@ function AtSection({
         <div style={{ padding: pad }}>
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
-            <SH label={atSecStr(d, "eyebrow") || `About ${agency.name}`} />
+            <SH label={atSecStr(d, "eyebrow") || `${t.atAboutAgencyPrefix} ${agency.name}`} />
             {title && (
               <div style={{ fontFamily: AT.serif, fontSize: isDesktop ? 26 : 20, fontWeight: 400, color: AT.ink, marginBottom: 10 }}>{title}</div>
             )}
@@ -553,7 +553,7 @@ function AtSection({
             }}>
               {tiers.map((tier, i) => {
                 const pop = (tier as AtSD).pop === true;
-                const label = atItemStr(tier, "label");
+                const label = localizeTierLabel(atItemStr(tier, "label"), lang);
                 const price = atItemStr(tier, "price");
                 const was = atItemStr(tier, "was");
                 const perks = atSecStrArr(tier as AtSD, "perks");
@@ -614,7 +614,7 @@ function AtSection({
         <div style={{ padding: pad }}>
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
-            <SH label={atSecStr(d, "eyebrow") || "Transfers"} />
+            <SH label={atSecStr(d, "eyebrow") || t.atTransfers} />
             {desc && !items.length && <p style={{ fontSize: 13.5, color: AT.muted, lineHeight: 1.7, margin: 0 }}>{desc}</p>}
             {items.length > 0 && (
               <ol style={{ margin: 0, padding: 0, listStyle: "none" }}>
@@ -639,7 +639,7 @@ function AtSection({
                         border: `1px solid ${AT.border}`, borderRadius: 3,
                         padding: "3px 7px", color: AT.superMuted, flexShrink: 0,
                       }}>
-                        {included ? "Included" : "Add-on"}
+                        {included ? t.atIncludedLabel : t.atAddOn}
                       </span>
                     </li>
                   );
@@ -657,11 +657,19 @@ function AtSection({
       const videoPoster = atSecStr(d, "videoPoster") || atSecStr(d, "poster");
       const mapSrc = atSecStr(d, "mapImage") || atSecStr(d, "map");
       const mapCaption = atSecStr(d, "mapCaption");
-      const photos = atSecArr(d, "photos").length ? atSecArr(d, "photos") : atSecArr(d, "images");
+      const photos = atSecStrArr(d, "images");
       const hasVideo = !!(videoUrl || videoPoster);
       const hasMap = !!mapSrc;
       const hasPhotos = photos.length > 0;
       if (!hasVideo && !hasMap && !hasPhotos) return null;
+      const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
+      const atToEmbed = (u: string) => {
+        const yt = u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+        if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+        const vi = u.match(/vimeo\.com\/(\d+)/);
+        if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
+        return u;
+      };
       return (
         <div style={{ padding: pad }}>
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
@@ -669,24 +677,19 @@ function AtSection({
             <SH label={atSecStr(d, "eyebrow") || t.gallery} />
             {hasPhotos && (
               <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr 1fr", gap: 8, marginBottom: (hasVideo || hasMap) ? 16 : 0 }}>
-                {photos.slice(0, 6).map((p, i) => (
-                  <img key={i} src={atItemStr(p, "src", "url")} alt={atItemStr(p, "caption") || ""} style={{ width: "100%", aspectRatio: "4/3" as React.CSSProperties["aspectRatio"], objectFit: "cover", borderRadius: 3 }} />
+                {photos.slice(0, 6).map((src, i) => (
+                  <img key={i} src={src} alt="" style={{ width: "100%", aspectRatio: "4/3" as React.CSSProperties["aspectRatio"], objectFit: "cover", borderRadius: 3 }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }} />
                 ))}
               </div>
             )}
             {(hasVideo || hasMap) && (
               <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 12 }}>
-                {hasVideo && (
-                  <div style={{ position: "relative", borderRadius: 4, overflow: "hidden", cursor: "pointer" }} onClick={() => videoUrl && window.open(videoUrl, "_blank")}>
-                    {videoPoster
-                      ? <img src={videoPoster} alt="video" style={{ width: "100%", height: 220, objectFit: "cover" }} />
-                      : <div style={{ width: "100%", height: 220, background: "rgba(13,27,46,0.08)" }} />
+                {hasVideo && videoUrl && (
+                  <div style={{ position: "relative", borderRadius: 4, overflow: "hidden", height: 220 }}>
+                    {isEmbed
+                      ? <iframe src={atToEmbed(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
+                      : <video src={videoUrl} controls playsInline poster={videoPoster || undefined} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                     }
-                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.25)" }}>
-                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <span style={{ fontSize: 16, color: AT.ink, marginLeft: 3 }}>▶</span>
-                      </div>
-                    </div>
                   </div>
                 )}
                 {hasMap && (
@@ -875,10 +878,10 @@ function AtReviews({
                 fontFamily: AT.sans, cursor: "pointer",
               }}
             >
-              {status === "sending" ? "Sending…" : t.submitReviewBtn}
+              {status === "sending" ? t.atSending : t.submitReviewBtn}
             </button>
             {status === "err" && (
-              <div style={{ fontSize: 12, color: "#c0392b", marginTop: 8 }}>Something went wrong. Please try again.</div>
+              <div style={{ fontSize: 12, color: "#c0392b", marginTop: 8 }}>{t.atSomethingWrong}</div>
             )}
           </div>
         )}

@@ -5,12 +5,18 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({
+  children,
+  topbar,
+}: {
+  children: React.ReactNode;
+  topbar?: React.ReactNode;
+}) {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--navy)" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--da-bg)" }}>
       <Sidebar
         isMobile={isMobile}
         isOpen={!isMobile || sidebarOpen}
@@ -31,7 +37,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <Topbar isMobile={isMobile} onMenuClick={() => setSidebarOpen(o => !o)} />
+        {topbar ?? <Topbar isMobile={isMobile} onMenuClick={() => setSidebarOpen(o => !o)} />}
         <div style={{ flex: 1, overflow: "auto" }}>
           {children}
         </div>

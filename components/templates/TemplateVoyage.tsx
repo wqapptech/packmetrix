@@ -1,8 +1,8 @@
 "use client";
 
 import "@/app/voyage.css";
-import React from "react";
-import { T } from "@/lib/translations";
+import React, { useState } from "react";
+import { T, localizeTierLabel } from "@/lib/translations";
 import {
   useIsDesktop,
   BaseCard,
@@ -69,18 +69,18 @@ function itemStr(item: SD | string, ...keys: string[]): string {
 
 // ─── Label maps ───────────────────────────────────────────────────────────────
 
-const MEAL_LABELS: Record<string, string> = {
-  none: "Meals not included",
-  breakfast: "Breakfast included",
-  half_board: "Half board",
-  full_board: "Full board",
-  all_inclusive: "All inclusive",
+const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
+  none:         { en: "Meals not included",  ar: "الوجبات غير مشمولة" },
+  breakfast:    { en: "Breakfast included",  ar: "الإفطار مشمول" },
+  half_board:   { en: "Half board",          ar: "إقامة نصفية" },
+  full_board:   { en: "Full board",          ar: "إقامة كاملة" },
+  all_inclusive:{ en: "All inclusive",       ar: "شامل بالكامل" },
 };
-const VISA_LABELS: Record<string, string> = {
-  included: "Visa included",
-  assistance: "Visa assistance",
-  required: "Visa required",
-  free: "Visa-free",
+const VISA_LABELS: Record<string, { en: string; ar: string }> = {
+  included:   { en: "Visa included",    ar: "التأشيرة مشمولة" },
+  assistance: { en: "Visa assistance",  ar: "مساعدة في التأشيرة" },
+  required:   { en: "Visa required",    ar: "التأشيرة مطلوبة" },
+  free:       { en: "Visa-free",        ar: "بدون تأشيرة" },
 };
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
@@ -120,17 +120,18 @@ function CheckIcon() {
 
 // ─── Ticker ────────────────────────────────────────────────────────────────────
 
-function VyTicker({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyTicker({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const messages: string[] = [];
   const scarcity = pkg.scarcity;
-  if (scarcity?.spotsRemaining != null) messages.push(`Only ${scarcity.spotsRemaining} spots left`);
+  if (scarcity?.spotsRemaining != null) messages.push(`${t.vyOnlyNSpotsLeft} ${scarcity.spotsRemaining} ${lang === "ar" ? t.vySpotsLeft : t.vySpots + " left"}`);
   const depSec = findSec(pkg, "departures");
   const deps = secArr(depSec, "departures").length ? secArr(depSec, "departures") : secArr(depSec, "items");
   if (deps[0]) {
     const d = itemStr(deps[0], "date");
-    if (d) messages.push(`Next departure: ${d}`);
+    if (d) messages.push(`${t.vyNextDeparture}: ${d}`);
   }
-  if (scarcity?.wasPrice && pkg.price) messages.push(`Save on this trip · Book now`);
+  if (scarcity?.wasPrice && pkg.price) messages.push(t.vyTickerSave);
   if (!messages.length) return null;
 
   const [idx, setIdx] = React.useState(0);
@@ -150,18 +151,18 @@ function VyTicker({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Gallery ───────────────────────────────────────────────────────────────────
 
-function VyGalleryMobile({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyGalleryMobile({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "media");
-  const photos = secArr(data, "photos").length ? secArr(data, "photos") : secArr(data, "images");
+  const photos = secStrArr(data, "images").length ? secStrArr(data, "images") : (pkg.images ?? []);
   if (!photos.length) return null;
   return (
     <section className="vy-gal">
-      <div className="vy-sec__eb">Photos</div>
+      <div className="vy-sec__eb">{t.vyPhotos}</div>
       <div className="vy-gal__grid">
-        {photos.slice(0, 6).map((p, i) => (
+        {photos.slice(0, 6).map((src, i) => (
           <div key={i} className="vy-gal__cell">
-            <img src={itemStr(p, "src", "url")} alt={itemStr(p, "caption") || "photo"} />
-            {itemStr(p, "caption") && <span className="vy-gal__cap">{itemStr(p, "caption")}</span>}
+            <img src={src} alt="photo" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
           </div>
         ))}
       </div>
@@ -169,23 +170,23 @@ function VyGalleryMobile({ pkg }: { pkg: TPageProps["pkg"] }) {
   );
 }
 
-function VyGalleryDesktop({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyGalleryDesktop({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "media");
-  const photos = secArr(data, "photos").length ? secArr(data, "photos") : secArr(data, "images");
+  const photos = secStrArr(data, "images").length ? secStrArr(data, "images") : (pkg.images ?? []);
   if (!photos.length) return null;
   return (
     <section className="vy-d-sec">
       <div className="vy-d-sec__head">
         <div>
-          <div className="vy-d-sec__eb">Gallery</div>
-          <h2 className="vy-d-sec__title">Captured <em>moments</em></h2>
+          <div className="vy-d-sec__eb">{t.gallery}</div>
+          <h2 className="vy-d-sec__title">{t.vyCapturedMoments}</h2>
         </div>
       </div>
       <div className="vy-d-gal">
-        {photos.slice(0, 6).map((p, i) => (
+        {photos.slice(0, 6).map((src, i) => (
           <div key={i} className="vy-d-gal__cell">
-            <img src={itemStr(p, "src", "url")} alt={itemStr(p, "caption") || "photo"} />
-            {itemStr(p, "caption") && <span className="cap">{itemStr(p, "caption")}</span>}
+            <img src={src} alt="photo" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
           </div>
         ))}
       </div>
@@ -195,7 +196,8 @@ function VyGalleryDesktop({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Itinerary ─────────────────────────────────────────────────────────────────
 
-function VyItineraryMobile({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyItineraryMobile({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "itinerary");
   const items = secArr(data, "items").length ? secArr(data, "items") : secArr(data, "days");
   // Legacy fallback
@@ -203,7 +205,7 @@ function VyItineraryMobile({ pkg }: { pkg: TPageProps["pkg"] }) {
   if (!legacyItems.length) return null;
   return (
     <section id="itinerary" className="vy-sec" style={{ scrollMarginTop: 60 }}>
-      <div className="vy-sec__eb">Day by day</div>
+      <div className="vy-sec__eb">{t.dayByDay}</div>
       <div className="vy-itin-scroll">
         {legacyItems.map((it, i) => {
           const day = itemStr(it, "day") || String(i + 1);
@@ -233,7 +235,8 @@ function VyItineraryMobile({ pkg }: { pkg: TPageProps["pkg"] }) {
   );
 }
 
-function VyItineraryDesktop({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyItineraryDesktop({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "itinerary");
   const items = secArr(data, "items").length ? secArr(data, "items") : secArr(data, "days");
   const legacyItems = items.length ? items : (pkg.itinerary ?? []).map((it) => it as unknown as SD);
@@ -243,8 +246,8 @@ function VyItineraryDesktop({ pkg }: { pkg: TPageProps["pkg"] }) {
     <section id="itinerary" className="vy-d-sec" style={{ scrollMarginTop: 64 }}>
       <div className="vy-d-sec__head">
         <div>
-          <div className="vy-d-sec__eb">Day by day</div>
-          <h2 className="vy-d-sec__title">{heading || <>The <em>schedule</em></>}</h2>
+          <div className="vy-d-sec__eb">{t.dayByDay}</div>
+          <h2 className="vy-d-sec__title">{heading || t.vyTheSchedule}</h2>
         </div>
       </div>
       <div className="vy-d-tickets">
@@ -278,13 +281,14 @@ function VyItineraryDesktop({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Highlights ────────────────────────────────────────────────────────────────
 
-function VyHighlightsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyHighlightsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "highlights");
   const items = secArr(data, "items");
   if (items.length < 2) return null;
   return (
     <section className="vy-v2 vy-v2-hl">
-      <div className="vy-v2__eb">Why this trip</div>
+      <div className="vy-v2__eb">{t.vyWhyThisTrip}</div>
       <div className="vy-v2-hl__grid">
         {items.slice(0, 3).map((item, i) => (
           <article key={i} className="vy-v2-hl__card">
@@ -302,7 +306,8 @@ function VyHighlightsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Hotels ────────────────────────────────────────────────────────────────────
 
-function VyHotelsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyHotelsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "hotel");
   const allHotelSecs = findAllSec(pkg, "hotel");
   // Build hotel list: from single section items array, or from multiple hotel sections
@@ -317,12 +322,13 @@ function VyHotelsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
   }
   if (!hotels.length) return null;
   const heading = secStr(data, "heading");
+  const stopsLabel = hotels.length !== 1 ? t.vyStopsPlural : t.vyStops;
   return (
     <section className="vy-v2 vy-v2-htl">
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">Where you crash · {hotels.length} stop{hotels.length !== 1 ? "s" : ""}</div>
+        <div className="vy-v2__eb">{t.vyWhereYouCrash} · {hotels.length} {stopsLabel}</div>
         <h2 className="vy-v2__title">
-          {heading || (hotels.length === 1 ? <>Your <em>base</em></> : <>{hotels.length} cities, {hotels.length} <em>rooms</em></>)}
+          {heading || (hotels.length === 1 ? t.vyYourBase : `${hotels.length} ${t.vyCities}, ${hotels.length} ${t.vyRooms}`)}
         </h2>
       </div>
       <div className="vy-v2-htl__grid" data-count={Math.min(hotels.length, 4)}>
@@ -365,30 +371,54 @@ function VyHotelsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Media ─────────────────────────────────────────────────────────────────────
 
-function VyMediaSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function vyToEmbed(url: string): string {
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}?autoplay=1`;
+  const vi = url.match(/vimeo\.com\/(\d+)/);
+  if (vi) return `https://player.vimeo.com/video/${vi[1]}?autoplay=1`;
+  return url;
+}
+
+function VyMediaSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "media");
   const videoUrl = secStr(data, "videoUrl") || secStr(data, "video");
   const videoPoster = secStr(data, "videoPoster") || secStr(data, "poster");
   const videoDuration = secStr(data, "videoDuration") || secStr(data, "duration");
   const mapSrc = secStr(data, "mapImage") || secStr(data, "map");
   const mapCaption = secStr(data, "mapCaption");
+  const [playing, setPlaying] = useState(false);
   if (!videoUrl && !videoPoster && !mapSrc) return null;
   const hasVideo = !!(videoUrl || videoPoster);
   const hasMap = !!mapSrc;
+  const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
   return (
     <section className="vy-v2 vy-v2-med">
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">Film & route</div>
-        <h2 className="vy-v2__title">Move at <em>actual speed</em></h2>
+        <div className="vy-v2__eb">{t.vyFilmRoute}</div>
+        <h2 className="vy-v2__title">{t.vyMoveAtSpeed}</h2>
       </div>
       <div className="vy-v2-med__row">
         {hasVideo && (
           <figure className="vy-v2-med__video" style={{ margin: 0 }}>
-            <img src={videoPoster || videoUrl} alt="trip film" />
-            <button className="vy-v2-med__play" aria-label="Play video" onClick={() => videoUrl && window.open(videoUrl, "_blank")}>
-              <PlayIcon />
-            </button>
-            <figcaption>PLAY{videoDuration ? ` · ${videoDuration}` : ""}</figcaption>
+            {playing && videoUrl ? (
+              isEmbed
+                ? <iframe src={vyToEmbed(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} />
+                : <video src={videoUrl} controls autoPlay playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", background: "#000" }} />
+            ) : (
+              <>
+                {videoPoster
+                  ? <img src={videoPoster} alt="trip film" />
+                  : <div style={{ position: "absolute", inset: 0, background: "#111" }} />
+                }
+                {videoUrl && (
+                  <button className="vy-v2-med__play" aria-label="Play video" onClick={() => setPlaying(true)}>
+                    <PlayIcon />
+                  </button>
+                )}
+                <figcaption>PLAY{videoDuration ? ` · ${videoDuration}` : ""}</figcaption>
+              </>
+            )}
           </figure>
         )}
         {hasMap && (
@@ -407,7 +437,8 @@ function VyMediaSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Meals + Visa chips ────────────────────────────────────────────────────────
 
-function VyMealsVisaChips({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyMealsVisaChips({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const incSec = findSec(pkg, "inclusions") as { meals?: string; visa?: { status: string; details?: string } } | undefined;
   const meals = incSec?.meals;
   const visa = incSec?.visa;
@@ -416,14 +447,14 @@ function VyMealsVisaChips({ pkg }: { pkg: TPageProps["pkg"] }) {
     <div className="vy-v2-mv">
       {meals && (
         <div className="vy-v2-mv__chip">
-          <span className="vy-v2-mv__stamp">MEAL PLAN</span>
-          <div className="vy-v2-mv__name">{MEAL_LABELS[meals] ?? meals}</div>
+          <span className="vy-v2-mv__stamp">{t.auMealPlan.toUpperCase()}</span>
+          <div className="vy-v2-mv__name">{MEAL_LABELS[meals]?.[lang] ?? meals}</div>
         </div>
       )}
       {visa && (
         <div className="vy-v2-mv__chip">
-          <span className="vy-v2-mv__stamp vy-v2-mv__stamp--alert">VISA</span>
-          <div className="vy-v2-mv__name">{VISA_LABELS[visa.status] ?? visa.status}</div>
+          <span className="vy-v2-mv__stamp vy-v2-mv__stamp--alert">{t.auVisa.toUpperCase()}</span>
+          <div className="vy-v2-mv__name">{VISA_LABELS[visa.status]?.[lang] ?? visa.status}</div>
           {visa.details && <p>{visa.details}</p>}
         </div>
       )}
@@ -433,7 +464,8 @@ function VyMealsVisaChips({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Inclusions ────────────────────────────────────────────────────────────────
 
-function VyInclusionsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyInclusionsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "inclusions");
   const includes = secStrArr(data, "includes").length
     ? secStrArr(data, "includes")
@@ -446,14 +478,14 @@ function VyInclusionsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
   return (
     <section id="included" className="vy-v2 vy-v2-inc" style={{ scrollMarginTop: 64 }}>
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">What&apos;s in</div>
-        <h2 className="vy-v2__title">{heading || <>Inclusions <em>&amp; not</em></>}</h2>
+        <div className="vy-v2__eb">{t.vyWhatsIn}</div>
+        <h2 className="vy-v2__title">{heading || t.vyInclusionsAndNot}</h2>
       </div>
-      <VyMealsVisaChips pkg={pkg} />
+      <VyMealsVisaChips pkg={pkg} lang={lang} />
       <div className="vy-v2-inc__cols">
         {includes.length > 0 && (
           <div>
-            <h4 className="vy-v2-inc__h">Included</h4>
+            <h4 className="vy-v2-inc__h">{t.includedLabel}</h4>
             <ul className="vy-v2-inc__list vy-v2-inc__list--in">
               {includes.map((s, i) => (
                 <li key={i}>
@@ -466,7 +498,7 @@ function VyInclusionsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
         )}
         {excludes.length > 0 && (
           <div>
-            <h4 className="vy-v2-inc__h">Not included</h4>
+            <h4 className="vy-v2-inc__h">{t.notIncluded}</h4>
             <ul className="vy-v2-inc__list vy-v2-inc__list--out">
               {excludes.map((s, i) => (
                 <li key={i}>
@@ -484,7 +516,8 @@ function VyInclusionsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Extras ────────────────────────────────────────────────────────────────────
 
-function VyExtrasSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyExtrasSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "extras");
   const items = secArr(data, "items").length ? secArr(data, "items") : secArr(data, "extras");
   if (!items.length) return null;
@@ -492,8 +525,8 @@ function VyExtrasSection({ pkg }: { pkg: TPageProps["pkg"] }) {
   return (
     <section className="vy-v2 vy-v2-ex">
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">Add-ons · pay on the day</div>
-        <h2 className="vy-v2__title">{heading || <>Bolt-ons,<br /><em>no pressure</em></>}</h2>
+        <div className="vy-v2__eb">{t.vyAddOnsPayOnDay}</div>
+        <h2 className="vy-v2__title">{heading || t.vyBoltOnsNoPressure}</h2>
       </div>
       <div className="vy-v2-ex__grid">
         {items.slice(0, 5).map((e, i) => (
@@ -512,7 +545,8 @@ function VyExtrasSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Transfers ─────────────────────────────────────────────────────────────────
 
-function VyTransfersSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyTransfersSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "transfers");
   const items = secArr(data, "transfers").length ? secArr(data, "transfers") : secArr(data, "items");
   if (!items.length) return null;
@@ -520,16 +554,16 @@ function VyTransfersSection({ pkg }: { pkg: TPageProps["pkg"] }) {
   return (
     <section className="vy-v2 vy-v2-tx">
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">Getting there</div>
-        <h2 className="vy-v2__title">{heading || <>Getting <em>between</em></>}</h2>
+        <div className="vy-v2__eb">{t.vyGettingThere}</div>
+        <h2 className="vy-v2__title">{heading || t.vyGettingBetween}</h2>
       </div>
       <ol className="vy-v2-tx__list">
-        {items.map((t, i) => {
-          const included = (t as SD & { included?: boolean }).included !== false;
-          const leg = itemStr(t, "leg", "route", "title");
-          const mode = itemStr(t, "mode", "type");
-          const duration = itemStr(t, "duration");
-          const note = itemStr(t, "note", "description");
+        {items.map((item, i) => {
+          const included = (item as SD & { included?: boolean }).included !== false;
+          const leg = itemStr(item, "leg", "route", "title");
+          const mode = itemStr(item, "mode", "type");
+          const duration = itemStr(item, "duration");
+          const note = itemStr(item, "note", "description");
           return (
             <li key={i} className="vy-v2-tx__row">
               <div className="vy-v2-tx__dot">{String(i + 1).padStart(2, "0")}</div>
@@ -543,7 +577,7 @@ function VyTransfersSection({ pkg }: { pkg: TPageProps["pkg"] }) {
                 {note && <div className="vy-v2-tx__note">{note}</div>}
               </div>
               <span className={`vy-v2-tx__pill${included ? "" : " vy-v2-tx__pill--out"}`}>
-                {included ? "Inc." : "+"}
+                {included ? t.vyIncPill : t.vyAddOnPill}
               </span>
             </li>
           );
@@ -555,7 +589,8 @@ function VyTransfersSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Pricing ───────────────────────────────────────────────────────────────────
 
-function VyPricingSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyPricingSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "pricing");
   const instalments = secArr(data, "instalments").length
     ? secArr(data, "instalments")
@@ -570,13 +605,13 @@ function VyPricingSection({ pkg }: { pkg: TPageProps["pkg"] }) {
   return (
     <section id="pricing" className="vy-v2 vy-v2-pr" style={{ scrollMarginTop: 64 }}>
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">Money stuff · in plain</div>
-        <h2 className="vy-v2__title">{heading || <>Pay in <em>three</em></>}</h2>
+        <div className="vy-v2__eb">{t.vyMoneyStuff}</div>
+        <h2 className="vy-v2__title">{heading || t.vyPayInThree}</h2>
       </div>
       <div className="vy-v2-pr__grid">
         {instalments.length > 0 && (
           <div>
-            <div className="vy-v2-pr__h">Instalments</div>
+            <div className="vy-v2-pr__h">{t.vyInstalments}</div>
             <ol className="vy-v2-pr__ladder">
               {instalments.map((inst, i) => (
                 <li key={i}>
@@ -593,7 +628,7 @@ function VyPricingSection({ pkg }: { pkg: TPageProps["pkg"] }) {
           </div>
         )}
         <div>
-          <div className="vy-v2-pr__h">Cancellation</div>
+          <div className="vy-v2-pr__h">{t.cancellationLabel}</div>
           {cancellation.length > 0 ? (
             <ul className="vy-v2-pr__cancel">
               {cancellation.map((c, i) => (
@@ -606,7 +641,7 @@ function VyPricingSection({ pkg }: { pkg: TPageProps["pkg"] }) {
           ) : cancellationStr ? (
             <p style={{ fontSize: 13, color: MUT, lineHeight: 1.6 }}>{cancellationStr}</p>
           ) : (
-            <p style={{ fontSize: 13, color: SMUT, lineHeight: 1.6 }}>Contact us for cancellation policy.</p>
+            <p style={{ fontSize: 13, color: SMUT, lineHeight: 1.6 }}>{t.vyContactForCancellation}</p>
           )}
         </div>
       </div>
@@ -616,14 +651,15 @@ function VyPricingSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Departures ────────────────────────────────────────────────────────────────
 
-function VyDeparturesMobile({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyDeparturesMobile({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "departures");
   const deps = secArr(data, "departures").length ? secArr(data, "departures") : secArr(data, "items");
-  const tiers = (pkg.pricingTiers ?? []).filter((t) => t.price);
+  const tiers = (pkg.pricingTiers ?? []).filter((tier) => tier.price);
   if (!deps.length && !tiers.length) return null;
   return (
     <section className="vy-sec">
-      <div className="vy-sec__eb">Dates</div>
+      <div className="vy-sec__eb">{t.vyDates}</div>
       {deps.length > 0 && (
         <div className="vy-deps">
           {deps.slice(0, 4).map((d, i) => {
@@ -634,7 +670,7 @@ function VyDeparturesMobile({ pkg }: { pkg: TPageProps["pkg"] }) {
             return (
               <div key={i} className={`vy-dep${i === 0 ? " vy-dep--sel" : ""}${sold ? " vy-dep--sold" : ""}`}>
                 <div className="vy-dep__date">{date}</div>
-                {spots != null && <div className="vy-dep__sub">{sold ? "Sold out" : `${spots} left`}</div>}
+                {spots != null && <div className="vy-dep__sub">{sold ? t.soldOut : `${spots} ${t.vyNLeft}`}</div>}
                 {price && <div className="vy-dep__price">{price}</div>}
               </div>
             );
@@ -646,10 +682,10 @@ function VyDeparturesMobile({ pkg }: { pkg: TPageProps["pkg"] }) {
           {tiers.map((tier, i) => (
             <div key={i} className={`vy-tier${i === 0 ? " vy-tier--pop" : ""}${(tier as TPricingTier & { soldOut?: boolean }).soldOut ? " vy-tier--sold" : ""}`}>
               <div className="vy-tier__top">
-                <div className="vy-tier__name">{tier.label}</div>
+                <div className="vy-tier__name">{localizeTierLabel(tier.label, lang)}</div>
                 <div className="vy-tier__price">{tier.price}</div>
               </div>
-              <div className="vy-tier__sub">per person</div>
+              <div className="vy-tier__sub">{t.perPerson}</div>
               {tier.perks?.length && (
                 <ul className="vy-tier__perks">
                   {tier.perks.map((p, j) => (
@@ -665,23 +701,24 @@ function VyDeparturesMobile({ pkg }: { pkg: TPageProps["pkg"] }) {
   );
 }
 
-function VyDeparturesDesktop({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyDeparturesDesktop({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "departures");
   const deps = secArr(data, "departures").length ? secArr(data, "departures") : secArr(data, "items");
-  const tiers = (pkg.pricingTiers ?? []).filter((t) => t.price);
+  const tiers = (pkg.pricingTiers ?? []).filter((tier) => tier.price);
   if (!deps.length && !tiers.length) return null;
   return (
     <section className="vy-d-sec">
       <div className="vy-d-sec__head">
         <div>
-          <div className="vy-d-sec__eb">Dates</div>
-          <h2 className="vy-d-sec__title">When to <em>go</em></h2>
+          <div className="vy-d-sec__eb">{t.vyDates}</div>
+          <h2 className="vy-d-sec__title">{t.vyWhenToGo}</h2>
         </div>
       </div>
       <div className="vy-d-book">
         {deps.length > 0 && (
           <div>
-            <h3>Departures</h3>
+            <h3>{t.departures}</h3>
             <div className="vy-d-deps">
               {deps.slice(0, 6).map((d, i) => {
                 const date = itemStr(d, "date");
@@ -691,7 +728,7 @@ function VyDeparturesDesktop({ pkg }: { pkg: TPageProps["pkg"] }) {
                 return (
                   <div key={i} className={`vy-d-dep${i === 0 ? " vy-d-dep--sel" : ""}${sold ? " vy-dep--sold" : ""}`}>
                     <div className="vy-d-dep__date">{date}</div>
-                    <div className="vy-d-dep__spots">{sold ? "Sold out" : spots != null ? `${spots} spots` : ""}</div>
+                    <div className="vy-d-dep__spots">{sold ? t.soldOut : spots != null ? `${spots} ${t.vySpots}` : ""}</div>
                     <div className="vy-d-dep__price">{price}</div>
                     <ArrowIcon />
                   </div>
@@ -702,15 +739,15 @@ function VyDeparturesDesktop({ pkg }: { pkg: TPageProps["pkg"] }) {
         )}
         {tiers.length > 0 && (
           <div>
-            <h3>Tiers</h3>
+            <h3>{t.vyTiers}</h3>
             <div className="vy-d-tiers">
               {tiers.map((tier, i) => (
                 <div key={i} className={`vy-tier${i === 0 ? " vy-tier--pop" : ""}${(tier as TPricingTier & { soldOut?: boolean }).soldOut ? " vy-tier--sold" : ""}`}>
                   <div className="vy-tier__top">
-                    <div className="vy-tier__name">{tier.label}</div>
+                    <div className="vy-tier__name">{localizeTierLabel(tier.label, lang)}</div>
                     <div className="vy-tier__price">{tier.price}</div>
                   </div>
-                  <div className="vy-tier__sub">per person</div>
+                  <div className="vy-tier__sub">{t.perPerson}</div>
                   {tier.perks?.length && (
                     <ul className="vy-tier__perks">
                       {tier.perks.map((p, j) => (
@@ -730,7 +767,8 @@ function VyDeparturesDesktop({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── FAQ ────────────────────────────────────────────────────────────────────────
 
-function VyFaqSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyFaqSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "faq");
   const items = secArr(data, "items");
   if (!items.length) return null;
@@ -738,8 +776,8 @@ function VyFaqSection({ pkg }: { pkg: TPageProps["pkg"] }) {
   return (
     <section className="vy-v2 vy-v2-faq">
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">FAQ · the actual questions</div>
-        <h2 className="vy-v2__title">{heading || <>What <em>crew</em> ask</>}</h2>
+        <div className="vy-v2__eb">{t.vyFaqEyebrow}</div>
+        <h2 className="vy-v2__title">{heading || t.vyWhatCrewAsk}</h2>
       </div>
       <dl className="vy-v2-faq__list">
         {items.map((f, i) => (
@@ -758,7 +796,8 @@ function VyFaqSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Important notes ───────────────────────────────────────────────────────────
 
-function VyImportantNotesSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyImportantNotesSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "important_notes");
   const notes = secArr(data, "notes").length ? secArr(data, "notes") : secArr(data, "items");
   if (!notes.length) return null;
@@ -766,8 +805,8 @@ function VyImportantNotesSection({ pkg }: { pkg: TPageProps["pkg"] }) {
   return (
     <section className="vy-v2 vy-v2-no">
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">Read these · seriously</div>
-        <h2 className="vy-v2__title">{heading || <>Practical <em>stuff</em></>}</h2>
+        <div className="vy-v2__eb">{t.vyReadThese}</div>
+        <h2 className="vy-v2__title">{heading || t.vyPracticalStuff}</h2>
       </div>
       <div className="vy-v2-no__grid">
         {notes.map((n, i) => {
@@ -775,7 +814,7 @@ function VyImportantNotesSection({ pkg }: { pkg: TPageProps["pkg"] }) {
           const isWarn = severity === "warn" || severity === "warning";
           return (
             <article key={i} className={`vy-v2-no__card${isWarn ? " vy-v2-no__card--warn" : ""}`}>
-              <div className="vy-v2-no__tag">{isWarn ? "⚠ READ THIS" : "FYI"}</div>
+              <div className="vy-v2-no__tag">{isWarn ? `⚠ ${t.vyReadThisTag}` : t.vyFyiTag}</div>
               <h3 className="vy-v2-no__t">{itemStr(n, "title", "text")}</h3>
               {itemStr(n, "body", "description") && (
                 <p className="vy-v2-no__b">{itemStr(n, "body", "description")}</p>
@@ -790,41 +829,73 @@ function VyImportantNotesSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Reviews ───────────────────────────────────────────────────────────────────
 
-function VyReviewsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyReviewsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "reviews");
-  const reviews = secArr(data, "reviews").length ? secArr(data, "reviews") : secArr(data, "items");
-  if (!reviews.length) return null;
+  const secReviews = secArr(data, "reviews").length ? secArr(data, "reviews") : secArr(data, "items");
   const heading = secStr(data, "heading");
+
+  // Render section-authored reviews when available, otherwise fall back to
+  // customer-submitted reviews stored in the flat pkg.reviews field.
+  if (secReviews.length > 0) {
+    return (
+      <section className="vy-v2">
+        <div className="vy-v2__head">
+          <div className="vy-v2__eb">{t.vyWhatCrewSays}</div>
+          <h2 className="vy-v2__title">{heading || t.vyRealFeedback}</h2>
+        </div>
+        <div className="vy-v2-revs__grid">
+          {secReviews.map((r, i) => {
+            const name = itemStr(r, "name", "reviewer");
+            const text = itemStr(r, "text", "review", "content");
+            const rating = secNum(r, "rating") ?? 5;
+            const avatar = itemStr(r, "avatar", "photo");
+            const location = itemStr(r, "location", "where");
+            return (
+              <article key={i} className="vy-rev">
+                <div className="vy-rev__top">
+                  {avatar
+                    ? <img src={avatar} alt={name} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
+                    : <div className="vy-rev__avatar">{name[0]?.toUpperCase()}</div>
+                  }
+                  <div>
+                    <div className="vy-rev__who">{name}</div>
+                    {location && <div className="vy-rev__where">{location}</div>}
+                  </div>
+                  <div className="vy-rev__stars">{"★".repeat(Math.round(Math.min(rating, 5)))}</div>
+                </div>
+                <div className="vy-rev__text">{text}</div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
+
+  // Fallback: customer-submitted reviews (pkg.reviews flat field)
+  const flatReviews = pkg.reviews ?? [];
+  if (!flatReviews.length) return null;
   return (
     <section className="vy-v2">
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">What crew says</div>
-        <h2 className="vy-v2__title">{heading || <>Real <em>feedback</em></>}</h2>
+        <div className="vy-v2__eb">{t.vyWhatCrewSays}</div>
+        <h2 className="vy-v2__title">{heading || t.vyRealFeedback}</h2>
       </div>
       <div className="vy-v2-revs__grid">
-        {reviews.map((r, i) => {
-          const name = itemStr(r, "name", "reviewer");
-          const text = itemStr(r, "text", "review", "content");
-          const rating = secNum(r, "rating") ?? 5;
-          const avatar = itemStr(r, "avatar", "photo");
-          const location = itemStr(r, "location", "where");
-          return (
-            <article key={i} className="vy-rev">
-              <div className="vy-rev__top">
-                {avatar
-                  ? <img src={avatar} alt={name} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
-                  : <div className="vy-rev__avatar">{name[0]?.toUpperCase()}</div>
-                }
-                <div>
-                  <div className="vy-rev__who">{name}</div>
-                  {location && <div className="vy-rev__where">{location}</div>}
-                </div>
-                <div className="vy-rev__stars">{"★".repeat(Math.round(Math.min(rating, 5)))}</div>
+        {flatReviews.map((r, i) => (
+          <article key={i} className="vy-rev">
+            <div className="vy-rev__top">
+              <div className="vy-rev__avatar">{r.name[0]?.toUpperCase()}</div>
+              <div>
+                <div className="vy-rev__who">{r.name}</div>
+                {r.country && <div className="vy-rev__where">{r.country}</div>}
               </div>
-              <div className="vy-rev__text">{text}</div>
-            </article>
-          );
-        })}
+              <div className="vy-rev__stars">{"★".repeat(Math.round(Math.min(r.rating, 5)))}</div>
+            </div>
+            <div className="vy-rev__text">{r.text}</div>
+          </article>
+        ))}
       </div>
     </section>
   );
@@ -832,7 +903,8 @@ function VyReviewsSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── People ────────────────────────────────────────────────────────────────────
 
-function VyPeopleSection({ pkg, onWhatsApp }: { pkg: TPageProps["pkg"]; onWhatsApp: () => void }) {
+function VyPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: "en" | "ar"; onWhatsApp: () => void }) {
+  const t = T[lang];
   const data = findSec(pkg, "people");
   const people = secArr(data, "people").length ? secArr(data, "people") : (pkg.people ?? []).map((p) => p as unknown as SD);
   // Also support legacy pkg.agent
@@ -857,18 +929,18 @@ function VyPeopleSection({ pkg, onWhatsApp }: { pkg: TPageProps["pkg"]; onWhatsA
                 <span className="vy-v2-pp__pill">{secStrArr(agent, "languages").join(" · ")}</span>
               )}
               {secNum(agent, "yearsExperience") != null && (
-                <span className="vy-v2-pp__pill">{secNum(agent, "yearsExperience")} yrs exp</span>
+                <span className="vy-v2-pp__pill">{secNum(agent, "yearsExperience")} {t.vyYrsExp}</span>
               )}
               {itemStr(agent, "replyTime") && (
                 <span className="vy-v2-pp__pill vy-v2-pp__pill--live">
                   <span className="vy-v2-pp__pulse" />
-                  Replies {itemStr(agent, "replyTime")}
+                  {t.vyRepliesPrefix} {itemStr(agent, "replyTime")}
                 </span>
               )}
             </div>
             <button className="vy-v2-pp__cta" onClick={onWhatsApp}>
               <WaIcon size={14} />
-              WhatsApp {itemStr(agent, "name").split(" ")[0]}
+              {t.bookWhatsApp}
             </button>
           </div>
         </div>
@@ -876,7 +948,7 @@ function VyPeopleSection({ pkg, onWhatsApp }: { pkg: TPageProps["pkg"]; onWhatsA
       {guides.length > 0 && (
         <div style={{ padding: "24px 36px 36px", background: PINK }}>
           <div className="vy-v2-pp__guides">
-            <div className="vy-v2-pp__eb">Guides on the ground</div>
+            <div className="vy-v2-pp__eb">{t.auGuidesOnGround}</div>
             <div className="vy-v2-pp__guide-row">
               {guides.map((g, i) => (
                 <div key={i} className="vy-v2-pp__guide">
@@ -901,7 +973,8 @@ function VyPeopleSection({ pkg, onWhatsApp }: { pkg: TPageProps["pkg"]; onWhatsA
 
 // ─── About agency ──────────────────────────────────────────────────────────────
 
-function VyAboutAgencySection({ pkg, agency }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"] }) {
+function VyAboutAgencySection({ pkg, agency, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "about_agency");
   const story = secStr(data, "story") || secStr(data, "content");
   const foundedRaw = (data as SD | undefined)?.founded;
@@ -914,8 +987,8 @@ function VyAboutAgencySection({ pkg, agency }: { pkg: TPageProps["pkg"]; agency:
   return (
     <section className="vy-v2">
       <div className="vy-v2__head">
-        <div className="vy-v2__eb">{agency.name} · the outfit</div>
-        <h2 className="vy-v2__title">{heading || <>Real trips,<br /><em>not tours</em></>}</h2>
+        <div className="vy-v2__eb">{agency.name} · {t.vyTheOutfit}</div>
+        <h2 className="vy-v2__title">{heading || t.vyRealTripsNotTours}</h2>
       </div>
       <div className="vy-v2-ag">
         <div>
@@ -923,7 +996,7 @@ function VyAboutAgencySection({ pkg, agency }: { pkg: TPageProps["pkg"]; agency:
           {founded && (
             <div className="vy-v2-ag__last">
               <span className="vy-v2-pp__pulse" />
-              Since {founded}
+              {t.vySince} {founded}
             </div>
           )}
         </div>
@@ -933,19 +1006,15 @@ function VyAboutAgencySection({ pkg, agency }: { pkg: TPageProps["pkg"]; agency:
               {founded && (
                 <div className="vy-v2-ag__stat">
                   <div className="v">{currentYear - founded}+</div>
-                  <div className="l">Years</div>
+                  <div className="l">{t.auYearsLabel}</div>
                 </div>
               )}
               {teamSize && (
                 <div className="vy-v2-ag__stat">
                   <div className="v">{teamSize}</div>
-                  <div className="l">Crew</div>
+                  <div className="l">{t.vyCrew}</div>
                 </div>
               )}
-              <div className="vy-v2-ag__stat">
-                <div className="v">180+</div>
-                <div className="l">Trips/yr</div>
-              </div>
             </div>
           )}
           {teamPhoto && <img className="vy-v2-ag__photo" src={teamPhoto} alt={`${agency.name} team`} />}
@@ -957,7 +1026,8 @@ function VyAboutAgencySection({ pkg, agency }: { pkg: TPageProps["pkg"]; agency:
 
 // ─── Custom blocks ─────────────────────────────────────────────────────────────
 
-function VyCustomSection({ pkg }: { pkg: TPageProps["pkg"] }) {
+function VyCustomSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
   const data = findSec(pkg, "custom");
   const allCustom = findAllSec(pkg, "custom");
   const blocks: SD[] = secArr(data, "blocks").length
@@ -970,7 +1040,7 @@ function VyCustomSection({ pkg }: { pkg: TPageProps["pkg"] }) {
     <section className="vy-v2 vy-v2-cu">
       {blocks.map((c, i) => (
         <article key={i} className="vy-v2-cu__block">
-          <div className="vy-v2-cu__stamp">Editor&apos;s cut</div>
+          <div className="vy-v2-cu__stamp">{t.vyEditorialsCut}</div>
           {itemStr(c, "image", "photo") && (
             <img className="vy-v2-cu__img" src={itemStr(c, "image", "photo")} alt="" />
           )}
@@ -984,12 +1054,14 @@ function VyCustomSection({ pkg }: { pkg: TPageProps["pkg"] }) {
 
 // ─── Final CTA ─────────────────────────────────────────────────────────────────
 
-function VyFinalCta({ pkg, agency, onWhatsApp, onMessenger }: {
+function VyFinalCta({ pkg, agency, lang, onWhatsApp, onMessenger }: {
   pkg: TPageProps["pkg"];
   agency: TPageProps["agency"];
+  lang: "en" | "ar";
   onWhatsApp: () => void;
   onMessenger?: () => void;
 }) {
+  const t = T[lang];
   const scarcity = pkg.scarcity;
   const hasMessenger = !!(pkg.messenger || pkg.contacts?.some((c) => c.type === "messenger"));
   const firstAgentName = (pkg.people ?? []).find((p) => p.role === "agent")?.name?.split(" ")[0]
@@ -999,20 +1071,20 @@ function VyFinalCta({ pkg, agency, onWhatsApp, onMessenger }: {
     <section className="vy-v2-cta">
       <div className="vy-v2-cta__eb">
         {scarcity?.spotsRemaining != null
-          ? `${scarcity.spotsRemaining} spots left · book now`
-          : `${agency.name} · book now`}
+          ? `${scarcity.spotsRemaining} ${t.vySpotsLeftBookNow}`
+          : `${agency.name} · ${t.vyAgencyBookNow}`}
       </div>
-      <h2 className="vy-v2-cta__h">GET<br />IN.</h2>
+      <h2 className="vy-v2-cta__h">{t.vyGetIn}</h2>
       <p className="vy-v2-cta__p">
-        {firstAgentName} is online. WhatsApp them your dates and questions — they reply within 15 minutes.
+        {firstAgentName} {lang === "ar" ? t.vyIsOnlinePrefixAr : t.vyIsOnlinePrefix}
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
         <button className="vy-v2-cta__btn" onClick={onWhatsApp}>
-          <WaIcon size={15} /> WhatsApp {firstAgentName}
+          <WaIcon size={15} /> {t.bookWhatsApp}
         </button>
         {hasMessenger && onMessenger && (
           <button className="vy-v2-cta__btn" style={{ background: "transparent", border: `2px solid ${ACID}`, color: ACID }} onClick={onMessenger}>
-            Messenger
+            {t.vyMessenger}
           </button>
         )}
       </div>
@@ -1027,7 +1099,7 @@ function VyMobileFooter({ agency }: { agency: TPageProps["agency"] }) {
     <footer className="vy-m-foot">
       <div className="vy-m-foot__name">{agency.name}</div>
       {agency.tagline && <div>{agency.tagline}</div>}
-      <div style={{ marginTop: 8 }}>Powered by Packmetrix</div>
+      <div style={{ marginTop: 8 }}>{T["en"].poweredBy}</div>
     </footer>
   );
 }
@@ -1047,9 +1119,9 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
   const hasItin   = !!(findSec(pkg, "itinerary") || pkg.itinerary?.length);
   const hasInc    = !!(findSec(pkg, "inclusions") || pkg.includes?.length);
   const navLinks  = [
-    ...(hasItin ? [{ label: t.navItinerary ?? "Itinerary", href: "#itinerary" }] : []),
-    ...(hasInc  ? [{ label: t.navIncluded  ?? "Included",  href: "#included"  }] : []),
-    ...(hasDeps ? [{ label: "Dates",                       href: "#pricing"   }] : []),
+    ...(hasItin ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
+    ...(hasInc  ? [{ label: t.navIncluded,  href: "#included"  }] : []),
+    ...(hasDeps ? [{ label: t.vyDates,      href: "#pricing"   }] : []),
   ];
 
   if (isDesktop) {
@@ -1058,7 +1130,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <DesktopNav agency={agency} price={pkg.price} brand={ACID} navLinks={navLinks} lang={lang} dark onWhatsApp={onWhatsApp} />
 
         {/* Ticker */}
-        <VyTicker pkg={pkg} />
+        <VyTicker pkg={pkg} lang={lang} />
 
         {/* Desktop hero: big number + destination left, image + buy card right */}
         <div className="vy-d-hero">
@@ -1071,7 +1143,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
             </div>
             {nights && (
               <div className="vy-d-hero__num">
-                {nights}<span className="unit">{t.nightsLabel ?? "N"}</span>
+                {nights}<span className="unit">{t.nightsLabel}</span>
               </div>
             )}
             <div className="vy-d-hero__dest">{pkg.destination?.split(",")[0]}</div>
@@ -1089,18 +1161,18 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
             </div>
             <div className="vy-d-hero__buy">
               <div className="vy-d-hero__buy-row">
-                <div className="vy-d-hero__buy-lab">All-in from</div>
+                <div className="vy-d-hero__buy-lab">{t.vyAllInFrom}</div>
                 {pkg.scarcity?.spotsRemaining != null && (
                   <div className="vy-d-hero__buy-spots">
                     <span className="dot" />
-                    {pkg.scarcity.spotsRemaining} spots
+                    {pkg.scarcity.spotsRemaining} {t.vySpots}
                   </div>
                 )}
               </div>
               <div className="vy-d-hero__buy-price">{pkg.price}</div>
               <div className="vy-d-hero__buy-cta">
                 <button className="vy-cta-d" onClick={onWhatsApp}>
-                  <WaIcon size={15} /> Book via WhatsApp
+                  <WaIcon size={15} /> {t.bookWhatsApp}
                 </button>
               </div>
             </div>
@@ -1112,49 +1184,49 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
           <div className="vy-d-stats">
             {nights && (
               <div className="vy-d-stats__cell">
-                <div className="v">{nights}<em>{t.nightsLabel ?? "N"}</em></div>
-                <div className="l">Trip length</div>
+                <div className="v">{nights}<em>{t.nightsLabel}</em></div>
+                <div className="l">{t.vyTripLength}</div>
               </div>
             )}
             {pkg.totalSpots && (
               <div className="vy-d-stats__cell">
                 <div className="v">{pkg.totalSpots}</div>
-                <div className="l">Max crew</div>
+                <div className="l">{t.vyMaxCrew}</div>
               </div>
             )}
             {pkg.rating != null && (
               <div className="vy-d-stats__cell">
                 <div className="v"><em>{pkg.rating}</em></div>
-                <div className="l">{pkg.reviewCount ? `${pkg.reviewCount} reviews` : "Rating"}</div>
+                <div className="l">{pkg.reviewCount ? `${pkg.reviewCount} ${t.vyReviews}` : t.vyRating}</div>
               </div>
             )}
             {pkg.scarcity?.spotsRemaining != null && (
               <div className="vy-d-stats__cell">
                 <div className="v"><em>{pkg.scarcity.spotsRemaining}</em></div>
-                <div className="l">Spots left</div>
+                <div className="l">{t.vySpotsLeft}</div>
               </div>
             )}
           </div>
         )}
 
         {/* Sections in order */}
-        <VyHighlightsSection pkg={pkg} />
-        <VyItineraryDesktop pkg={pkg} />
-        <VyHotelsSection pkg={pkg} />
-        <VyGalleryDesktop pkg={pkg} />
-        <VyMediaSection pkg={pkg} />
-        <VyInclusionsSection pkg={pkg} />
-        <VyExtrasSection pkg={pkg} />
-        <VyTransfersSection pkg={pkg} />
-        <VyPricingSection pkg={pkg} />
-        <VyDeparturesDesktop pkg={pkg} />
-        <VyFaqSection pkg={pkg} />
-        <VyImportantNotesSection pkg={pkg} />
-        <VyReviewsSection pkg={pkg} />
-        <VyPeopleSection pkg={pkg} onWhatsApp={onWhatsApp} />
-        <VyAboutAgencySection pkg={pkg} agency={agency} />
-        <VyCustomSection pkg={pkg} />
-        <VyFinalCta pkg={pkg} agency={agency} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
+        <VyHighlightsSection pkg={pkg} lang={lang} />
+        <VyItineraryDesktop pkg={pkg} lang={lang} />
+        <VyHotelsSection pkg={pkg} lang={lang} />
+        <VyGalleryDesktop pkg={pkg} lang={lang} />
+        <VyMediaSection pkg={pkg} lang={lang} />
+        <VyInclusionsSection pkg={pkg} lang={lang} />
+        <VyExtrasSection pkg={pkg} lang={lang} />
+        <VyTransfersSection pkg={pkg} lang={lang} />
+        <VyPricingSection pkg={pkg} lang={lang} />
+        <VyDeparturesDesktop pkg={pkg} lang={lang} />
+        <VyFaqSection pkg={pkg} lang={lang} />
+        <VyImportantNotesSection pkg={pkg} lang={lang} />
+        <VyReviewsSection pkg={pkg} lang={lang} />
+        <VyPeopleSection pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
+        <VyAboutAgencySection pkg={pkg} agency={agency} lang={lang} />
+        <VyCustomSection pkg={pkg} lang={lang} />
+        <VyFinalCta pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
         <DesktopFooter agency={agency} brand={ACID} dark />
       </div>
     );
@@ -1164,7 +1236,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
   return (
     <div className="vy vy--mobile" style={{ direction: isRtl ? "rtl" : "ltr" }}>
       <AgencyBar agency={agency} price={pkg.price} brand={ACID} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} dark />
-      <VyTicker pkg={pkg} />
+      <VyTicker pkg={pkg} lang={lang} />
 
       {/* Mobile hero */}
       <div style={{ position: "relative", overflow: "hidden" }}>
@@ -1173,14 +1245,14 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: MONO, fontSize: 10, color: MUT, letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: 12 }}>
             <span>{pkg.destination}</span>
             {pkg.scarcity?.spotsRemaining != null && (
-              <span style={{ color: ACID, fontWeight: 700 }}>{pkg.scarcity.spotsRemaining} spots</span>
+              <span style={{ color: ACID, fontWeight: 700 }}>{pkg.scarcity.spotsRemaining} {t.vySpots}</span>
             )}
           </div>
           {nights && (
             <div style={{ fontFamily: ARCH, fontSize: 120, lineHeight: 0.85, letterSpacing: "-5px", color: FG }}>{nights}</div>
           )}
           {nights && (
-            <div style={{ fontFamily: MONO, fontSize: 11, color: MUT, letterSpacing: "0.8px", textTransform: "uppercase", marginTop: 6 }}>{t.nightsLabel ?? "nights"}</div>
+            <div style={{ fontFamily: MONO, fontSize: 11, color: MUT, letterSpacing: "0.8px", textTransform: "uppercase", marginTop: 6 }}>{t.nightsLabel}</div>
           )}
           <div style={{ fontFamily: ARCH, fontSize: 44, lineHeight: 0.92, letterSpacing: "-2px", textTransform: "uppercase", marginTop: 14, color: FG }}>
             {pkg.destination?.split(",")[0]}
@@ -1199,20 +1271,20 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
       {/* Poster price card */}
       <div style={{ margin: "16px 16px", background: ACID, color: BG, padding: "20px 20px", borderRadius: 6 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
-          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.6px", textTransform: "uppercase", fontWeight: 700 }}>All-in from</div>
+          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.6px", textTransform: "uppercase", fontWeight: 700 }}>{t.vyAllInFrom}</div>
           {pkg.scarcity?.spotsRemaining != null && (
             <div style={{ fontFamily: MONO, fontSize: 10, background: BG, color: ACID, padding: "3px 7px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", background: PINK, display: "inline-block" }} />
-              {pkg.scarcity.spotsRemaining} left
+              {pkg.scarcity.spotsRemaining} {t.vyNLeft}
             </div>
           )}
         </div>
         <div style={{ fontFamily: ARCH, fontSize: 64, lineHeight: 0.9, letterSpacing: "-3px", marginBottom: 8 }}>{pkg.price}</div>
         <div style={{ fontFamily: MONO, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 20 }}>
-          {nights ? `${nights} ${t.nightsLabel ?? "nights"} · ` : ""}{t.perPerson ?? "per person"}
+          {nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}
         </div>
         <button className="vy-cta" onClick={onWhatsApp}>
-          <WaIcon size={14} /> Book via WhatsApp
+          <WaIcon size={14} /> {t.bookWhatsApp}
         </button>
       </div>
 
@@ -1224,23 +1296,23 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
       )}
 
       {/* Sections in order */}
-      <VyHighlightsSection pkg={pkg} />
-      <VyItineraryMobile pkg={pkg} />
-      <VyHotelsSection pkg={pkg} />
-      <VyGalleryMobile pkg={pkg} />
-      <VyMediaSection pkg={pkg} />
-      <VyInclusionsSection pkg={pkg} />
-      <VyExtrasSection pkg={pkg} />
-      <VyTransfersSection pkg={pkg} />
-      <VyPricingSection pkg={pkg} />
-      <VyDeparturesMobile pkg={pkg} />
-      <VyFaqSection pkg={pkg} />
-      <VyImportantNotesSection pkg={pkg} />
-      <VyReviewsSection pkg={pkg} />
-      <VyPeopleSection pkg={pkg} onWhatsApp={onWhatsApp} />
-      <VyAboutAgencySection pkg={pkg} agency={agency} />
-      <VyCustomSection pkg={pkg} />
-      <VyFinalCta pkg={pkg} agency={agency} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
+      <VyHighlightsSection pkg={pkg} lang={lang} />
+      <VyItineraryMobile pkg={pkg} lang={lang} />
+      <VyHotelsSection pkg={pkg} lang={lang} />
+      <VyGalleryMobile pkg={pkg} lang={lang} />
+      <VyMediaSection pkg={pkg} lang={lang} />
+      <VyInclusionsSection pkg={pkg} lang={lang} />
+      <VyExtrasSection pkg={pkg} lang={lang} />
+      <VyTransfersSection pkg={pkg} lang={lang} />
+      <VyPricingSection pkg={pkg} lang={lang} />
+      <VyDeparturesMobile pkg={pkg} lang={lang} />
+      <VyFaqSection pkg={pkg} lang={lang} />
+      <VyImportantNotesSection pkg={pkg} lang={lang} />
+      <VyReviewsSection pkg={pkg} lang={lang} />
+      <VyPeopleSection pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
+      <VyAboutAgencySection pkg={pkg} agency={agency} lang={lang} />
+      <VyCustomSection pkg={pkg} lang={lang} />
+      <VyFinalCta pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
       <VyMobileFooter agency={agency} />
 
       {/* Sticky bar */}
@@ -1248,12 +1320,12 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <div>
           <div className="vy-sticky__price">{pkg.price}</div>
           <div className="vy-sticky__sub">
-            {nights ? <><b>{nights}{t.nightsLabel ?? "N"}</b> · </> : null}
-            {t.perPerson ?? "per person"}
+            {nights ? <><b>{nights}{t.nightsLabel}</b> · </> : null}
+            {t.perPerson}
           </div>
         </div>
         <button className="vy-sticky__btn" onClick={onWhatsApp}>
-          <WaIcon size={13} /> Book now
+          <WaIcon size={13} /> {t.vyBookNow}
         </button>
       </div>
     </div>

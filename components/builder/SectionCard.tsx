@@ -6,6 +6,10 @@ import { SECTION_REGISTRY } from "@/lib/sections/registry";
 import type { AnySectionInstance } from "@/lib/sections/types";
 import { SectionEditor } from "./SectionEditor";
 import { SAND } from "./constants";
+import {
+  DA_SURFACE, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2,
+  DA_GOLD, DA_GOLD_SOFT, DA_DANGER,
+} from "@/lib/tokens";
 
 export function SectionCard({
   section,
@@ -46,8 +50,8 @@ export function SectionCard({
     <div
       style={{
         marginBottom: 8,
-        background: isDragOver ? "rgba(232,201,123,0.04)" : "rgba(255,255,255,0.03)",
-        border: `1px solid ${isDragOver ? SAND + "40" : "rgba(255,255,255,0.08)"}`,
+        background: isDragOver ? DA_GOLD_SOFT : DA_SURFACE,
+        border: `1px solid ${isDragOver ? DA_GOLD : DA_RULE}`,
         borderRadius: 14,
         overflow: "hidden",
         transition: "border-color 0.15s, background 0.15s",
@@ -70,7 +74,7 @@ export function SectionCard({
           {...dragHandleProps}
           style={{
             cursor: "grab",
-            color: "rgba(255,255,255,0.2)",
+            color: DA_INK3,
             padding: "0 2px",
             flexShrink: 0,
             fontSize: 16,
@@ -83,12 +87,12 @@ export function SectionCard({
 
         {/* Icon + label */}
         <div style={{ flexShrink: 0, opacity: 0.7 }}>
-          <Icon name={def.icon} size={15} color="rgba(255,255,255,0.6)" />
+          <Icon name={def.icon} size={15} color={DA_INK2} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.9)" }}>{label}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: DA_INK1 }}>{label}</div>
           {summary && !open && (
-            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>
+            <div style={{ fontSize: 11.5, color: DA_INK3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>
               {summary}
             </div>
           )}
@@ -116,11 +120,11 @@ export function SectionCard({
             title={deleteLabel}
             style={iconBtn(false)}
           >
-            <Icon name="trash" size={11} color="rgba(220,80,80,0.7)" />
+            <Icon name="trash" size={11} color={DA_DANGER} />
           </button>
           <span style={{
             marginLeft: 4,
-            color: "rgba(255,255,255,0.25)",
+            color: DA_INK3,
             fontSize: 12,
             display: "inline-block",
             transform: open ? "rotate(180deg)" : "none",
@@ -151,13 +155,13 @@ function iconBtn(disabled: boolean): React.CSSProperties {
     height: 26,
     borderRadius: 7,
     border: "none",
-    background: "rgba(255,255,255,0.05)",
+    background: DA_SURFACE,
     cursor: disabled ? "not-allowed" : "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontSize: 12,
-    color: disabled ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.5)",
+    color: disabled ? DA_RULE2 : DA_INK3,
     opacity: disabled ? 0.4 : 1,
     padding: 0,
     lineHeight: 1,

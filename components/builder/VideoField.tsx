@@ -4,6 +4,10 @@ import { useState } from "react";
 import Icon from "@/components/Icon";
 import { SAND, tabBtn } from "./constants";
 import { PexelsVideoSearch } from "./PexelsVideoSearch";
+import {
+  DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_RULE2, DA_GOLD, DA_DANGER,
+} from "@/lib/tokens";
 
 export function VideoField({
   value,
@@ -21,7 +25,7 @@ export function VideoField({
   const [error, setError] = useState<string | null>(null);
 
   const uploadLabel = lang === "ar" ? "رفع" : "Upload";
-  const searchLabel = lang === "ar" ? "بحث في Pexels" : "Search Pexels";
+  const searchLabel = lang === "ar" ? "بحث عن مقاطع" : "Search Videos";
   const removeLabel = lang === "ar" ? "إزالة" : "Remove";
   const uploadingLabel = lang === "ar" ? "جاري الرفع…" : "Uploading…";
   const clickLabel = lang === "ar" ? "انقر لرفع فيديو" : "Click to upload a video";
@@ -56,55 +60,56 @@ export function VideoField({
           <video
             src={value}
             controls
-            style={{ width: "100%", borderRadius: 12, background: "#0d1b2e", maxHeight: 240 }}
+            style={{ width: "100%", borderRadius: 12, background: DA_SURFACE2, maxHeight: 240, border: `1px solid ${DA_RULE}` }}
           />
           <button
             onClick={() => onChange("")}
-            style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.35)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+            style={{ marginTop: 6, fontSize: 12, color: DA_INK3, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
           >
             {removeLabel}
           </button>
         </div>
       )}
 
-      <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "4px 5px", marginBottom: 14, gap: 4 }}>
+      <div style={{ display: "inline-flex", background: DA_BG, borderRadius: 99, padding: "4px 5px", marginBottom: 14, gap: 4 }}>
         <button onClick={() => setMode("upload")} style={tabBtn(mode === "upload")}>
-          <Icon name="video" size={12} color={mode === "upload" ? "#fff" : "rgba(255,255,255,0.4)"} />
+          <Icon name="video" size={12} color={mode === "upload" ? DA_SURFACE : DA_INK3} />
           {uploadLabel}
         </button>
         <button onClick={() => setMode("search")} style={tabBtn(mode === "search")}>
-          <Icon name="video" size={12} color={mode === "search" ? SAND : "rgba(255,255,255,0.4)"} />
-          <span style={{ color: mode === "search" ? SAND : undefined }}>{searchLabel}</span>
+          <Icon name="video" size={12} color={mode === "search" ? DA_GOLD : DA_INK3} />
+          <span style={{ color: mode === "search" ? DA_GOLD : undefined }}>{searchLabel}</span>
         </button>
       </div>
 
-      {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 10 }}>{error}</p>}
+      {error && <p style={{ fontSize: 12, color: DA_DANGER, marginBottom: 10 }}>{error}</p>}
 
       {mode === "upload" && (
         <label
           style={{
             display: "block",
-            border: "1.5px dashed rgba(255,255,255,0.15)",
+            border: `1.5px dashed ${DA_RULE}`,
             borderRadius: 14,
             padding: "28px 20px",
             textAlign: "center",
             cursor: uploading ? "not-allowed" : "pointer",
+            background: DA_BG,
             transition: "border-color 0.2s",
           }}
-          onMouseEnter={(e) => !uploading && (e.currentTarget.style.borderColor = `${SAND}50`)}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
+          onMouseEnter={(e) => !uploading && (e.currentTarget.style.borderColor = DA_GOLD)}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = DA_RULE)}
         >
           <input type="file" accept="video/*" hidden onChange={handleFile} disabled={uploading} />
           {uploading ? (
             <>
-              <span className="spinner" style={{ borderTopColor: SAND }} />
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 8 }}>{uploadingLabel}</div>
+              <span className="spinner-warm" style={{ borderTopColor: DA_GOLD }} />
+              <div style={{ fontSize: 12, color: DA_INK3, marginTop: 8 }}>{uploadingLabel}</div>
             </>
           ) : (
             <>
-              <Icon name="video" size={28} color="rgba(255,255,255,0.18)" />
-              <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.4)", marginTop: 10 }}>{clickLabel}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>{fmtHint}</div>
+              <Icon name="video" size={28} color={DA_RULE2} />
+              <div style={{ fontSize: 13, fontWeight: 600, color: DA_INK3, marginTop: 10 }}>{clickLabel}</div>
+              <div style={{ fontSize: 11, color: DA_INK3, marginTop: 4 }}>{fmtHint}</div>
             </>
           )}
         </label>

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { T } from "@/lib/translations";
+import { T, localizeTierLabel } from "@/lib/translations";
 import {
   WAButton,
   Eyebrow,
@@ -71,7 +71,8 @@ function tbItemStr(item: TbSecData | string, ...keys: string[]): string {
 
 // ─── Individual section renderers ────────────────────────────────────────────
 
-function TbItinerarySection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbItinerarySection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = tbFindSec(pkg, "itinerary");
   const days = tbSecArr(data, "days").length ? tbSecArr(data, "days") : (pkg.itinerary ?? []).map(d => ({ day: d.day, title: d.title, desc: d.desc }));
   if (!days.length) return null;
@@ -79,14 +80,14 @@ function TbItinerarySection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
   if (isDesktop) {
     return (
       <DContainer id="itinerary" style={{ padding: pad, scrollMarginTop: 88 }}>
-        <Eyebrow text="Journey — Day by Day" brand={BRAND} />
-        <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.6px", marginTop: 10, marginBottom: 24 }}>Your adventure, laid out</h2>
+        <Eyebrow text={t.tbJourneyDayByDay} brand={BRAND} />
+        <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.6px", marginTop: 10, marginBottom: 24 }}>{t.tbAdventureLaidOut}</h2>
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(days.length, 5)}, 1fr)`, gap: 12 }}>
           {days.slice(0, 5).map((d, i) => {
             const day = typeof d.day === "number" ? d.day : Number(d.day) || (i + 1);
             return (
               <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "18px 16px" }}>
-                <div style={{ fontSize: 10.5, color: BRAND, fontWeight: 800, letterSpacing: "0.5px", textTransform: "uppercase" as const, marginBottom: 4 }}>Day {day}</div>
+                <div style={{ fontSize: 10.5, color: BRAND, fontWeight: 800, letterSpacing: "0.5px", textTransform: "uppercase" as const, marginBottom: 4 }}>{t.dayLabel} {day}</div>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, lineHeight: 1.3, marginBottom: tbItemStr(d, "desc") ? 6 : 0 }}>{tbItemStr(d, "title")}</div>
                 {tbItemStr(d, "desc") && <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.45 }}>{tbItemStr(d, "desc")}</div>}
               </div>
@@ -98,8 +99,8 @@ function TbItinerarySection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
   }
   return (
     <section id="itinerary" style={{ padding: pad, scrollMarginTop: 88 }}>
-      <Eyebrow text="Day by Day" brand={BRAND} />
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: INK, margin: "10px 0 16px", letterSpacing: "-0.3px" }}>Your Journey</h2>
+      <Eyebrow text={t.dayByDay} brand={BRAND} />
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: INK, margin: "10px 0 16px", letterSpacing: "-0.3px" }}>{t.tbYourJourney}</h2>
       <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
         {days.map((d, i) => {
           const day = typeof d.day === "number" ? d.day : Number(d.day) || (i + 1);
@@ -107,7 +108,7 @@ function TbItinerarySection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
             <div key={i} style={{ display: "flex", gap: 14, padding: "14px 16px", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, alignItems: "flex-start" }}>
               <div style={{ fontSize: 24, flexShrink: 0, lineHeight: 1, marginTop: 2 }}>{dayEmoji(day)}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: BRAND, textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 4 }}>Day {day}</div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: BRAND, textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 4 }}>{t.dayLabel} {day}</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: INK, lineHeight: 1.3, marginBottom: tbItemStr(d, "desc") ? 4 : 0 }}>{tbItemStr(d, "title")}</div>
                 {tbItemStr(d, "desc") && <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.55 }}>{tbItemStr(d, "desc")}</div>}
               </div>
@@ -119,7 +120,8 @@ function TbItinerarySection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
   );
 }
 
-function TbHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = tbFindSec(pkg, "highlights");
   const items = tbSecArr(data, "items").map(i => tbItemStr(i, "text")).filter(Boolean);
   if (!items.length) return null;
@@ -127,7 +129,7 @@ function TbHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Trip Highlights</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbTripHighlights}</div>
         <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
           {items.map((item, i) => (
             <div key={i} style={{ background: `${BRAND}12`, border: `1px solid ${BRAND}30`, borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, color: BRAND }}>{item}</div>
@@ -138,7 +140,8 @@ function TbHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   );
 }
 
-function TbHotelSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbHotelSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = tbFindSec(pkg, "hotel");
   const desc = tbSecStr(data, "description") || pkg.hotelDescription || "";
   const image = tbSecStr(data, "image");
@@ -147,7 +150,7 @@ function TbHotelSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Where You Stay</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbWhereYouStay}</div>
         <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>
           {image && <img src={image} alt="Hotel" style={{ width: "100%", height: isDesktop ? 240 : 160, objectFit: "cover", display: "block" }} />}
           <div style={{ padding: isDesktop ? "22px 24px" : "16px 18px" }}>
@@ -159,7 +162,8 @@ function TbHotelSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
   );
 }
 
-function TbInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data     = tbFindSec(pkg, "inclusions");
   const includes = (data?.includes as string[] | undefined) ?? pkg.includes ?? [];
   const excludes = (data?.excludes as string[] | undefined) ?? pkg.excludes ?? [];
@@ -168,7 +172,7 @@ function TbInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   return (
     <section id="included" style={{ padding: pad, scrollMarginTop: 88 }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <Eyebrow text="What's Included" brand={BRAND} />
+        <Eyebrow text={t.tbWhatsIncluded} brand={BRAND} />
         {includes.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1fr 1fr", gap: 8, marginTop: 16, marginBottom: excludes.length ? 16 : 0 }}>
             {includes.map((item, i) => (
@@ -181,7 +185,7 @@ function TbInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
         )}
         {excludes.length > 0 && (
           <div style={{ marginTop: includes.length ? 12 : 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 8 }}>Not Included</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 8 }}>{t.tbNotIncluded}</div>
             {excludes.map((item, i) => (
               <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12.5, color: MUTED, marginBottom: 6 }}>
                 <span style={{ color: "rgba(13,27,46,0.3)", fontWeight: 700 }}>—</span>
@@ -195,7 +199,8 @@ function TbInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   );
 }
 
-function TbFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = tbFindSec(pkg, "faq");
   const items = tbSecArr(data, "items");
   if (!items.length) return null;
@@ -203,7 +208,7 @@ function TbFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: b
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Common Questions</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbCommonQuestions}</div>
         <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? "1fr 1fr" : undefined, flexDirection: isDesktop ? undefined : "column" as const, gap: 0 }}>
           {items.map((f, i) => {
             const q = tbItemStr(f, "q", "question");
@@ -239,7 +244,8 @@ function TbCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   );
 }
 
-function TbExtrasSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = tbFindSec(pkg, "extras");
   const items = tbSecArr(data, "items");
   if (!items.length) return null;
@@ -247,7 +253,7 @@ function TbExtrasSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Optional Add-ons</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbOptionalAddOns}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 8 }}>
           {items.map((item, i) => {
             const name  = tbItemStr(item, "name", "title");
@@ -269,7 +275,8 @@ function TbExtrasSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   );
 }
 
-function TbPeopleSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data   = tbFindSec(pkg, "people");
   const people = tbSecArr(data, "people");
   if (!people.length) return null;
@@ -277,7 +284,7 @@ function TbPeopleSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>Your Tribe Leaders</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.tbYourTribeLeaders}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 12 }}>
           {people.map((person, i) => {
             const name  = tbItemStr(person, "name");
@@ -311,7 +318,8 @@ function TbPeopleSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   );
 }
 
-function TbImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = tbFindSec(pkg, "important_notes");
   const notes = tbSecArr(data, "notes");
   const items = notes.length ? notes : tbSecArr(data, "items");
@@ -320,7 +328,7 @@ function TbImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; i
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Good to Know</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbGoodToKnow}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1fr", gap: 10 }}>
           {items.map((n, i) => {
             const severity = tbItemStr(n, "severity");
@@ -329,7 +337,7 @@ function TbImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; i
             const isWarn   = severity === "warn";
             return (
               <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderLeftColor: isWarn ? BRAND : BORDER.replace("0.08", "0.3"), borderLeftWidth: 3, borderRadius: "0 12px 12px 0", padding: "14px 16px" }}>
-                {isWarn && <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase" as const, color: BRAND, marginBottom: 5 }}>⚠ Important</div>}
+                {isWarn && <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase" as const, color: BRAND, marginBottom: 5 }}>⚠ {t.tbImportantTag}</div>}
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, lineHeight: 1.3, marginBottom: body ? 6 : 0 }}>{title}</div>
                 {body && <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.55 }}>{body}</div>}
               </div>
@@ -341,7 +349,8 @@ function TbImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; i
   );
 }
 
-function TbAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean }) {
+function TbAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = tbFindSec(pkg, "about_agency");
   if (!data && !agency.tagline) return null;
   const story     = tbItemStr(data || {}, "story", "content");
@@ -354,7 +363,7 @@ function TbAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>About {agency.name}</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbAboutPrefix} {agency.name}</div>
         {isDesktop && teamPhoto ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "start" }}>
             <div>
@@ -364,13 +373,13 @@ function TbAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg
                   {founded && (
                     <div>
                       <div style={{ fontSize: 28, fontWeight: 800, color: BRAND, lineHeight: 1 }}>{currentYear - founded}+</div>
-                      <div style={{ fontSize: 10, color: MUTED, marginTop: 3, letterSpacing: "0.5px", textTransform: "uppercase" as const }}>Years</div>
+                      <div style={{ fontSize: 10, color: MUTED, marginTop: 3, letterSpacing: "0.5px", textTransform: "uppercase" as const }}>{t.tbYears}</div>
                     </div>
                   )}
                   {teamSize && (
                     <div>
                       <div style={{ fontSize: 28, fontWeight: 800, color: BRAND, lineHeight: 1 }}>{teamSize}</div>
-                      <div style={{ fontSize: 10, color: MUTED, marginTop: 3, letterSpacing: "0.5px", textTransform: "uppercase" as const }}>Team</div>
+                      <div style={{ fontSize: 10, color: MUTED, marginTop: 3, letterSpacing: "0.5px", textTransform: "uppercase" as const }}>{t.tbTeam}</div>
                     </div>
                   )}
                 </div>
@@ -393,12 +402,12 @@ function TbAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg
                 {founded && (
                   <div style={{ flex: 1, textAlign: "center" as const, borderRight: `1px solid ${BORDER}`, padding: "8px 0" }}>
                     <div style={{ fontSize: 22, fontWeight: 800, color: BRAND, lineHeight: 1 }}>{currentYear - founded}+</div>
-                    <div style={{ fontSize: 10, color: MUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>Years</div>
+                    <div style={{ fontSize: 10, color: MUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.tbYears}</div>
                   </div>
                 )}
                 <div style={{ flex: 1, textAlign: "center" as const, padding: "8px 0" }}>
                   <div style={{ fontSize: 22, fontWeight: 800, color: BRAND, lineHeight: 1 }}>100%</div>
-                  <div style={{ fontSize: 10, color: MUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>Satisfaction</div>
+                  <div style={{ fontSize: 10, color: MUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.tbSatisfactionLabel}</div>
                 </div>
               </div>
             )}
@@ -409,7 +418,8 @@ function TbAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg
   );
 }
 
-function TbDeparturesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = tbFindSec(pkg, "departures");
   const deps = tbSecArr(data, "departures").length ? tbSecArr(data, "departures") : (pkg.departures ?? []).map(d => d as unknown as TbSecData);
   if (!deps.length) return null;
@@ -417,7 +427,7 @@ function TbDeparturesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Departure Dates</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbDepartureDates}</div>
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
           {deps.map((d, i) => {
             const date  = tbItemStr(d, "date");
@@ -428,7 +438,7 @@ function TbDeparturesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
               <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: spots != null ? 3 : 0 }}>{date}</div>
-                  {spots != null && <div style={{ fontSize: 11.5, color: isLow ? BRAND : MUTED, fontWeight: isLow ? 700 : 400 }}>{isLow ? `Only ${spots} spots left` : `${spots} spots available`}</div>}
+                  {spots != null && <div style={{ fontSize: 11.5, color: isLow ? BRAND : MUTED, fontWeight: isLow ? 700 : 400 }}>{isLow ? `${t.tbOnlySpotsLeft} ${spots} ${t.tbSpotsLeft}` : `${spots} ${t.tbSpotsAvailable}`}</div>}
                 </div>
                 {price && <div style={{ fontSize: 15, fontWeight: 800, color: BRAND }}>{price}</div>}
               </div>
@@ -453,13 +463,13 @@ function TbPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 12, marginTop: 16 }}>
           {tiers.map((tier, i) => {
             const pop   = !!tier.pop;
-            const label = tbItemStr(tier, "label");
+            const label = localizeTierLabel(tbItemStr(tier, "label"), lang);
             const price = tbItemStr(tier, "price");
             const was   = tbItemStr(tier, "was");
             const perks = (tier.perks as string[] | undefined) ?? [];
             return (
               <div key={i} style={{ background: pop ? BRAND : "#fff", border: `1px solid ${pop ? BRAND : BORDER}`, borderRadius: 14, padding: isDesktop ? "24px 24px" : "18px 18px", display: "flex", flexDirection: "column" as const }}>
-                {pop && <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.75)", marginBottom: 8 }}>Most Popular</div>}
+                {pop && <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.75)", marginBottom: 8 }}>{t.tbMostPopular}</div>}
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: pop ? "rgba(255,255,255,0.75)" : MUTED, marginBottom: 6 }}>{label}</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
                   <div style={{ fontSize: isDesktop ? 34 : 28, fontWeight: 800, letterSpacing: "-0.5px", color: pop ? "#fff" : BRAND, lineHeight: 1 }}>{price}</div>
@@ -488,7 +498,8 @@ function TbPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
   );
 }
 
-function TbTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = tbFindSec(pkg, "transfers");
   const items = tbSecArr(data, "items");
   if (!items.length) return null;
@@ -496,7 +507,7 @@ function TbTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Transfers</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbTransfersLabel}</div>
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
           {items.map((item, i) => {
             const from = tbItemStr(item, "from");
@@ -519,7 +530,8 @@ function TbTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
   );
 }
 
-function TbMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function TbMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const mediaSec   = tbFindSec(pkg, "media");
   const videoUrl   = tbSecStr(mediaSec, "videoUrl") || pkg.videoUrl || "";
   const mapSrc     = tbSecStr(mediaSec, "mapImage") || tbSecStr(mediaSec, "mapSrc") || "";
@@ -530,27 +542,36 @@ function TbMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Photos &amp; Film</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbPhotosFilm}</div>
         {mapSrc && (
           <figure style={{ margin: "0 0 12px", position: "relative", borderRadius: 14, overflow: "hidden" }}>
             <img src={mapSrc} alt="map" style={{ width: "100%", height: isDesktop ? 320 : 200, objectFit: "cover", display: "block" }} />
             {mapCaption && <figcaption style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.65),transparent)", padding: "18px 14px 12px", color: "#fff", fontSize: 11.5 }}>{mapCaption}</figcaption>}
           </figure>
         )}
-        {videoUrl && (
-          <figure style={{ margin: "0 0 12px", borderRadius: 14, overflow: "hidden", background: INK, position: "relative", height: isDesktop ? 200 : 160 }}>
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ width: 52, height: 52, borderRadius: "50%", background: BRAND, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width={20} height={20} viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
-              </div>
-            </div>
-          </figure>
-        )}
+        {videoUrl && (() => {
+          const isEmbed = videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo");
+          const embed = (() => {
+            const yt = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+            if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+            const vi = videoUrl.match(/vimeo\.com\/(\d+)/);
+            if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
+            return videoUrl;
+          })();
+          return (
+            <figure style={{ margin: "0 0 12px", borderRadius: 14, overflow: "hidden", background: INK, position: "relative", height: isDesktop ? 240 : 200 }}>
+              {isEmbed
+                ? <iframe src={embed} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
+                : <video src={videoUrl} controls playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              }
+            </figure>
+          );
+        })()}
         {images.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(images.length, isDesktop ? 4 : 2)}, 1fr)`, gap: 8 }}>
             {images.slice(0, isDesktop ? 4 : 4).map((src, i) => (
               <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: 100 }}>
-                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
               </div>
             ))}
           </div>
@@ -565,20 +586,20 @@ function TbMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
 function TbSections({ pkg, isDesktop, onWhatsApp, lang, agency }: { pkg: TPageProps["pkg"]; isDesktop: boolean; onWhatsApp: () => void; lang: TPageProps["lang"]; agency: TPageProps["agency"] }) {
   return (
     <>
-      <TbItinerarySection pkg={pkg} isDesktop={isDesktop} />
-      <TbHighlightsSection pkg={pkg} isDesktop={isDesktop} />
-      <TbHotelSection pkg={pkg} isDesktop={isDesktop} />
-      <TbInclusionsSection pkg={pkg} isDesktop={isDesktop} />
-      <TbMediaSection pkg={pkg} isDesktop={isDesktop} />
-      <TbTransfersSection pkg={pkg} isDesktop={isDesktop} />
+      <TbItinerarySection pkg={pkg} isDesktop={isDesktop} lang={lang} />
+      <TbHighlightsSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
+      <TbHotelSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
+      <TbInclusionsSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
+      <TbMediaSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
+      <TbTransfersSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
       <TbPricingSection pkg={pkg} isDesktop={isDesktop} onWhatsApp={onWhatsApp} lang={lang} />
-      <TbDeparturesSection pkg={pkg} isDesktop={isDesktop} />
-      <TbExtrasSection pkg={pkg} isDesktop={isDesktop} />
+      <TbDeparturesSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
+      <TbExtrasSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
       <TbCustomSection pkg={pkg} isDesktop={isDesktop} />
-      <TbPeopleSection pkg={pkg} isDesktop={isDesktop} />
-      <TbImportantNotesSection pkg={pkg} isDesktop={isDesktop} />
-      <TbFaqSection pkg={pkg} isDesktop={isDesktop} />
-      <TbAboutAgencySection pkg={pkg} agency={agency} isDesktop={isDesktop} />
+      <TbPeopleSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
+      <TbImportantNotesSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
+      <TbFaqSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
+      <TbAboutAgencySection pkg={pkg} agency={agency} isDesktop={isDesktop} lang={lang} />
     </>
   );
 }
@@ -612,7 +633,7 @@ function TbReviews({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; a
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>
-          {showList ? `${reviews.length} Verified Reviews` : t.writeReviewTitle}
+          {showList ? `${reviews.length} ${t.tbVerifiedReviews}` : t.writeReviewTitle}
         </div>
         {showList && (
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 10, marginBottom: canSubmit ? 24 : 0 }}>
@@ -640,8 +661,8 @@ function TbReviews({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; a
             </div>
             <input placeholder={t.reviewYourName} value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: SANS, background: "transparent", color: INK, marginBottom: 8, boxSizing: "border-box" as const }} />
             <textarea placeholder={t.reviewPlaceholder} value={text} onChange={e => setText(e.target.value)} rows={3} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: SANS, background: "transparent", color: INK, marginBottom: 14, resize: "none" as const, boxSizing: "border-box" as const }} />
-            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: BRAND, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, fontFamily: SANS, cursor: "pointer" }}>{status === "sending" ? "Sending…" : t.submitReviewBtn}</button>
-            {status === "err" && <div style={{ fontSize: 12, color: "#c0392b", marginTop: 8 }}>Something went wrong.</div>}
+            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: BRAND, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, fontFamily: SANS, cursor: "pointer" }}>{status === "sending" ? t.tbSending : t.submitReviewBtn}</button>
+            {status === "err" && <div style={{ fontSize: 12, color: "#c0392b", marginTop: 8 }}>{t.tbSomethingWrong}</div>}
           </div>
         )}
         {status === "ok" && <div style={{ background: `${BRAND}10`, border: `1px solid ${BRAND}30`, borderRadius: 10, padding: "14px 18px", fontSize: 13, color: BRAND, fontWeight: 600 }}>{t.reviewSubmitSuccess}</div>}
@@ -660,13 +681,13 @@ function TbCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
     <section style={{ padding: pad, background: INK, color: "#fff" }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined, display: "flex", flexDirection: isDesktop ? "row" as const : "column" as const, justifyContent: "space-between", alignItems: isDesktop ? "center" : "flex-start", gap: 24 }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: BRAND, marginBottom: 8 }}>Join the tribe</div>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: BRAND, marginBottom: 8 }}>{t.tbJoinTheTribe}</div>
           <div style={{ fontSize: isDesktop ? 36 : 28, fontWeight: 800, letterSpacing: "-0.8px", color: "#fff", lineHeight: 1 }}>{pkg.price}</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
           <WAButton label={t.saveMySeat} size="lg" onClick={onWhatsApp} />
-          {pkg.messenger && <button onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 8, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: SANS, cursor: "pointer" }}>Messenger</button>}
+          {pkg.messenger && <button onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 8, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: SANS, cursor: "pointer" }}>{t.tbMessenger}</button>}
         </div>
       </div>
     </section>

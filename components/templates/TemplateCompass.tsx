@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { T } from "@/lib/translations";
+import { T, localizeTierLabel } from "@/lib/translations";
 import {
   WAButton,
   Eyebrow,
@@ -133,7 +133,8 @@ function CmHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   );
 }
 
-function CmMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function CmMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const mediaSec = cmFindSec(pkg, "media");
   const videoUrl = cmSecStr(mediaSec, "videoUrl") || pkg.videoUrl || "";
   const mapSrc = cmSecStr(mediaSec, "mapImage") || cmSecStr(mediaSec, "mapSrc") || "";
@@ -155,26 +156,34 @@ function CmMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
                 padding: "20px 14px 12px",
                 color: "#fff", fontSize: 11.5, fontFamily: MONO, letterSpacing: "0.5px",
               }}>
-                {mapCaption || "Route map"}
+                {mapCaption || t.coRouteMap}
               </figcaption>
             </figure>
           )}
-          {videoUrl && (
-            <figure style={{ margin: 0, borderRadius: 12, overflow: "hidden", background: INK, position: "relative", height: isDesktop ? 200 : 160, order: isDesktop ? 2 : 1 }}>
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ width: 52, height: 52, borderRadius: "50%", background: ORANGE, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width={20} height={20} viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
-                </div>
-              </div>
-              <figcaption style={{ position: "absolute", bottom: 10, left: 12, fontFamily: MONO, fontSize: 10, color: "rgba(255,255,255,0.7)", letterSpacing: "0.5px" }}>Film</figcaption>
-            </figure>
-          )}
+          {videoUrl && (() => {
+            const isEmbed = videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo");
+            const embed = (() => {
+              const yt = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+              if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+              const vi = videoUrl.match(/vimeo\.com\/(\d+)/);
+              if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
+              return videoUrl;
+            })();
+            return (
+              <figure style={{ margin: 0, borderRadius: 12, overflow: "hidden", background: INK, position: "relative", height: isDesktop ? 240 : 200, order: isDesktop ? 2 : 1 }}>
+                {isEmbed
+                  ? <iframe src={embed} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
+                  : <video src={videoUrl} controls playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                }
+              </figure>
+            );
+          })()}
         </div>
         {images.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(images.length, isDesktop ? 4 : 2)}, 1fr)`, gap: 8, marginTop: 10 }}>
             {images.slice(0, isDesktop ? 4 : 4).map((src, i) => (
               <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: 100 }}>
-                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
               </div>
             ))}
           </div>
@@ -184,23 +193,23 @@ function CmMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
   );
 }
 
-function CmDeparturesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function CmDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = cmFindSec(pkg, "departures");
   const deps = cmSecArr(data, "departures").length ? cmSecArr(data, "departures") : (pkg.departures ?? []).map(d => d as unknown as CmSecData);
   if (!deps.length) return null;
-  const seasons = ["Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov"] as const;
   const getSeasonLabel = (dateStr: string) => {
     const m = dateStr.toLowerCase();
-    if (m.includes("mar") || m.includes("apr") || m.includes("may")) return "Spring";
-    if (m.includes("sep") || m.includes("oct") || m.includes("nov")) return "Autumn";
+    if (m.includes("mar") || m.includes("apr") || m.includes("may")) return t.coSpring;
+    if (m.includes("sep") || m.includes("oct") || m.includes("nov")) return t.coAutumn;
     return "";
   };
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Departure windows</div>
-        <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 18px", color: INK }}>Seasonal openings</h3>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>{t.coDepartureWindows}</div>
+        <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 18px", color: INK }}>{t.coSeasonalOpenings}</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {deps.map((d, i) => {
             const date = cmItemStr(d, "date");
@@ -223,7 +232,7 @@ function CmDeparturesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
                   </div>
                   {spots != null && (
                     <div style={{ fontSize: 11.5, color: isLow ? ORANGE : MUTED, fontWeight: isLow ? 700 : 400 }}>
-                      {isLow ? `Only ${spots} spots left` : `${spots} spots available`}
+                      {isLow ? `${t.coOnlySpotsLeft} ${spots} ${t.coSpotsLeft}` : `${spots} ${t.coSpotsAvailable}`}
                     </div>
                   )}
                 </div>
@@ -605,7 +614,8 @@ function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPag
 
 // ─── Missing section components ─────────────────────────────────────────────
 
-function CmHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function CmHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = cmFindSec(pkg, "highlights");
   const items = cmSecArr(data, "items").map(i => cmItemStr(i, "text")).filter(Boolean);
   if (!items.length) return null;
@@ -613,7 +623,7 @@ function CmHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Trek highlights</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.coHighlights}</div>
         <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
           {items.map((item, i) => (
             <div key={i} style={{ background: `${ORANGE}10`, border: `1px solid ${ORANGE}30`, borderRadius: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, color: ORANGE }}>{item}</div>
@@ -624,7 +634,8 @@ function CmHighlightsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   );
 }
 
-function CmInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function CmInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data     = cmFindSec(pkg, "inclusions");
   const includes = (data?.includes as string[] | undefined) ?? pkg.includes ?? [];
   const excludes = (data?.excludes as string[] | undefined) ?? pkg.excludes ?? [];
@@ -633,7 +644,7 @@ function CmInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
   return (
     <section id="included" style={{ padding: pad, scrollMarginTop: 88 }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <Eyebrow text="What's included" brand={ORANGE} />
+        <Eyebrow text={t.coWhatsIncluded} brand={ORANGE} />
         {includes.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1fr 1fr", gap: 8, marginBottom: excludes.length ? 16 : 0, marginTop: 16 }}>
             {includes.map((item, i) => (
@@ -646,7 +657,7 @@ function CmInclusionsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDes
         )}
         {excludes.length > 0 && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 8 }}>Not included</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 8 }}>{t.coNotIncluded}</div>
             {excludes.map((item, i) => (
               <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: MUTED, marginBottom: 6 }}>
                 <span style={{ color: "rgba(13,27,46,0.3)", fontWeight: 700 }}>—</span>
@@ -673,13 +684,13 @@ function CmPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 12, marginTop: 16 }}>
           {tiers.map((tier, i) => {
             const pop   = !!tier.pop;
-            const label = cmItemStr(tier, "label");
+            const label = localizeTierLabel(cmItemStr(tier, "label"), lang);
             const price = cmItemStr(tier, "price");
             const was   = cmItemStr(tier, "was");
             const perks = (tier.perks as string[] | undefined) ?? [];
             return (
               <div key={i} style={{ background: pop ? ORANGE : "#fff", border: `1px solid ${pop ? ORANGE : BORDER}`, borderRadius: 14, padding: isDesktop ? "24px 24px" : "18px 18px", display: "flex", flexDirection: "column" as const }}>
-                {pop && <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.75)", marginBottom: 8 }}>Most popular</div>}
+                {pop && <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.75)", marginBottom: 8 }}>{t.coMostPopular}</div>}
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: pop ? "rgba(255,255,255,0.75)" : MUTED, marginBottom: 6 }}>{label}</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
                   <div style={{ fontFamily: INTER, fontSize: isDesktop ? 34 : 28, fontWeight: 800, letterSpacing: "-0.5px", color: pop ? "#fff" : ORANGE, lineHeight: 1 }}>{price}</div>
@@ -708,7 +719,8 @@ function CmPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
   );
 }
 
-function CmTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function CmTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = cmFindSec(pkg, "transfers");
   const items = cmSecArr(data, "items");
   if (!items.length) return null;
@@ -716,7 +728,7 @@ function CmTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>Transfers</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.coTransfers}</div>
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
           {items.map((item, i) => {
             const from = cmItemStr(item, "from");
@@ -739,7 +751,8 @@ function CmTransfersSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesk
   );
 }
 
-function CmExtrasSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function CmExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data  = cmFindSec(pkg, "extras");
   const items = cmSecArr(data, "items");
   if (!items.length) return null;
@@ -747,7 +760,7 @@ function CmExtrasSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>Optional add-ons</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.coExtras}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 8 }}>
           {items.map((item, i) => {
             const name  = cmItemStr(item, "name", "title");
@@ -787,7 +800,8 @@ function CmCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   );
 }
 
-function CmPeopleSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function CmPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data   = cmFindSec(pkg, "people");
   const people = cmSecArr(data, "people");
   if (!people.length) return null;
@@ -795,7 +809,7 @@ function CmPeopleSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   return (
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>Your team</div>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.coPeople}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 12 }}>
           {people.map((person, i) => {
             const name  = cmItemStr(person, "name");
@@ -856,7 +870,7 @@ function CmReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
     <section style={{ padding: pad }}>
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>
-          {showList ? `${reviews.length} verified reviews` : t.writeReviewTitle}
+          {showList ? `${reviews.length} ${t.coVerifiedReviews}` : t.writeReviewTitle}
         </div>
         {showList && (
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 10, marginBottom: canSubmit ? 24 : 0 }}>
@@ -884,8 +898,8 @@ function CmReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
             </div>
             <input placeholder={t.reviewYourName} value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: INTER, background: "transparent", color: INK, marginBottom: 8, boxSizing: "border-box" as const }} />
             <textarea placeholder={t.reviewPlaceholder} value={text} onChange={e => setText(e.target.value)} rows={3} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: INTER, background: "transparent", color: INK, marginBottom: 14, resize: "none" as const, boxSizing: "border-box" as const }} />
-            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: ORANGE, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, fontFamily: INTER, cursor: "pointer" }}>{status === "sending" ? "Sending…" : t.submitReviewBtn}</button>
-            {status === "err" && <div style={{ fontSize: 12, color: "#c0392b", marginTop: 8 }}>Something went wrong.</div>}
+            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: ORANGE, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, fontFamily: INTER, cursor: "pointer" }}>{status === "sending" ? t.coSending : t.submitReviewBtn}</button>
+            {status === "err" && <div style={{ fontSize: 12, color: "#c0392b", marginTop: 8 }}>{t.coSomethingWrong}</div>}
           </div>
         )}
         {status === "ok" && <div style={{ background: `${ORANGE}10`, border: `1px solid ${ORANGE}30`, borderRadius: 10, padding: "14px 18px", fontSize: 13, color: ORANGE, fontWeight: 600 }}>{t.reviewSubmitSuccess}</div>}
@@ -924,7 +938,7 @@ function CmCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
           <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
-          {pkg.messenger && <button onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 8, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: INTER, cursor: "pointer" }}>Messenger</button>}
+          {pkg.messenger && <button onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 8, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: INTER, cursor: "pointer" }}>{t.coMessenger}</button>}
         </div>
       </div>
     </section>
@@ -1044,15 +1058,15 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
         )}
 
         <CmHotelsSection pkg={pkg} isDesktop={true} />
-        <CmMediaSection pkg={pkg} isDesktop={true} />
-        <CmHighlightsSection pkg={pkg} isDesktop={true} />
-        <CmInclusionsSection pkg={pkg} isDesktop={true} />
+        <CmMediaSection pkg={pkg} isDesktop={true} lang={lang} />
+        <CmHighlightsSection pkg={pkg} isDesktop={true} lang={lang} />
+        <CmInclusionsSection pkg={pkg} isDesktop={true} lang={lang} />
         <CmPricingSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
-        <CmTransfersSection pkg={pkg} isDesktop={true} />
-        <CmExtrasSection pkg={pkg} isDesktop={true} />
+        <CmTransfersSection pkg={pkg} isDesktop={true} lang={lang} />
+        <CmExtrasSection pkg={pkg} isDesktop={true} lang={lang} />
         <CmCustomSection pkg={pkg} isDesktop={true} />
-        <CmPeopleSection pkg={pkg} isDesktop={true} />
-        <CmDeparturesSection pkg={pkg} isDesktop={true} />
+        <CmPeopleSection pkg={pkg} isDesktop={true} lang={lang} />
+        <CmDeparturesSection pkg={pkg} isDesktop={true} lang={lang} />
         <CmFaqSection pkg={pkg} isDesktop={true} />
         <CmImportantNotesSection pkg={pkg} isDesktop={true} />
         <CmReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
@@ -1172,15 +1186,15 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
       )}
 
       <CmHotelsSection pkg={pkg} isDesktop={false} />
-      <CmMediaSection pkg={pkg} isDesktop={false} />
-      <CmHighlightsSection pkg={pkg} isDesktop={false} />
-      <CmInclusionsSection pkg={pkg} isDesktop={false} />
+      <CmMediaSection pkg={pkg} isDesktop={false} lang={lang} />
+      <CmHighlightsSection pkg={pkg} isDesktop={false} lang={lang} />
+      <CmInclusionsSection pkg={pkg} isDesktop={false} lang={lang} />
       <CmPricingSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
-      <CmTransfersSection pkg={pkg} isDesktop={false} />
-      <CmExtrasSection pkg={pkg} isDesktop={false} />
+      <CmTransfersSection pkg={pkg} isDesktop={false} lang={lang} />
+      <CmExtrasSection pkg={pkg} isDesktop={false} lang={lang} />
       <CmCustomSection pkg={pkg} isDesktop={false} />
-      <CmPeopleSection pkg={pkg} isDesktop={false} />
-      <CmDeparturesSection pkg={pkg} isDesktop={false} />
+      <CmPeopleSection pkg={pkg} isDesktop={false} lang={lang} />
+      <CmDeparturesSection pkg={pkg} isDesktop={false} lang={lang} />
       <CmFaqSection pkg={pkg} isDesktop={false} />
       <CmImportantNotesSection pkg={pkg} isDesktop={false} />
       <CmReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />

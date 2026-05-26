@@ -7,7 +7,7 @@ import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
-import { useLang } from "@/hooks/useLang";
+import { useLang, switchLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import posthog from "posthog-js";
@@ -15,15 +15,17 @@ import { FREE_AI_LIMIT } from "@/lib/limits";
 import { hasFullAccess } from "@/lib/trial";
 import type { AnySectionInstance, CoreForm } from "@/lib/sections/types";
 import { DEFAULT_CORE_FORM } from "@/lib/sections/index";
+import { PRESET_MAP } from "@/lib/sections/presets";
+import { SECTION_REGISTRY } from "@/lib/sections/registry";
 import { CoreFieldsEditor } from "@/components/builder/CoreFieldsEditor";
 import { SectionList } from "@/components/builder/SectionList";
-import { PresetPicker } from "@/components/builder/PresetPicker";
-import { MiniPreview } from "@/components/builder/MiniPreview";
+import { BuilderTopBar } from "@/components/builder/BuilderTopBar";
+import { VisualTemplatePicker } from "@/components/builder/TemplatePicker";
+import { LivePreviewPhone } from "@/components/builder/LivePreviewPhone";
 import { TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/components/templates";
-import TemplateSelector from "@/components/TemplateSelector";
+import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_GREEN, DA_GREEN_SOFT, DA_DANGER } from "@/lib/tokens";
 
-const SAND = "#e8c97b";
-const SUCCESS = "#2dd4a0";
+const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const DRAFT_KEY = "builderDraft_v2";
 
 // ─── API bridge ───────────────────────────────────────────────────────────────
@@ -351,62 +353,64 @@ function buildApiPayload(
 
 // ─── Builder UI phases ────────────────────────────────────────────────────────
 
-type UiPhase = "template" | "preset" | "build";
-type Tab = "core" | "sections";
+type UiPhase = "template" | "build";
+type Tab = "core" | "sections" | "seo";
 
-// ─── Template selection step ──────────────────────────────────────────────────
+// ─── SEO tab (auto-generated preview) ────────────────────────────────────────
 
-function TemplateStep({
-  selectedId,
-  onSelect,
-  onContinue,
-  lang,
-}: {
-  selectedId: string;
-  onSelect: (id: string) => void;
-  onContinue: () => void;
-  lang: "en" | "ar";
-}) {
-  const t = T[lang];
-  const isRtl = lang === "ar";
-  const isMobile = useIsMobile();
+function SeoTab({ core, lang }: { core: CoreForm; lang: "en" | "ar" }) {
+  const l = lang === "ar";
+  const seoTitle = core.titleEn || core.destination || "";
+  const seoTitleAr = core.titleAr || core.destination || "";
+  const seoDesc = (core.descriptionEn || "").slice(0, 160);
+  const seoDescAr = (core.descriptionAr || "").slice(0, 160);
 
   return (
-    <div dir={isRtl ? "rtl" : "ltr"} style={{ maxWidth: 880, margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <h2 style={{
-          fontSize: isMobile ? 22 : 26, fontWeight: 700,
-          letterSpacing: "-0.4px", marginBottom: 8,
-        }}>
-          {t.builderTemplateStepTitle}
-        </h2>
-        <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>
-          {t.builderTemplateStepSub}
-        </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ padding: "12px 16px", background: DA_GOLD_SOFT, border: `1px solid rgba(176,138,62,.25)`, borderRadius: 10, fontSize: 13, color: DA_INK2, lineHeight: 1.55 }}>
+        <span style={{ color: DA_GOLD, fontWeight: 600 }}>✦ </span>
+        {l
+          ? "بيانات SEO تُولَّد تلقائياً من معلومات الباقة عند النشر. لا حاجة لأي إعداد يدوي."
+          : "SEO metadata is automatically generated from your core info at publish time. No manual setup needed."}
       </div>
 
-      {/* Template grid — rich previews from TemplateSelector */}
-      <div style={{ marginBottom: 32 }}>
-        <TemplateSelector activeTemplateId={selectedId} lang={lang} onSelect={(id) => { const tpl = TEMPLATES.find(t => t.id === id); if (tpl?.available) onSelect(id); }} />
+      <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, padding: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_INK3, marginBottom: 12 }}>
+          {l ? "معاينة جوجل" : "Google preview"}
+        </div>
+        <div style={{ fontSize: 18, color: "#1a0dab", lineHeight: 1.3, marginBottom: 4 }}>
+          {seoTitle || (l ? "عنوان الباقة" : "Package title")}
+        </div>
+        <div style={{ fontSize: 13, color: "#006621", marginBottom: 4 }}>packmetrix.com/your-agency/…</div>
+        <div style={{ fontSize: 13, color: "#545454", lineHeight: 1.5 }}>
+          {seoDesc || (l ? "وصف الباقة سيظهر هنا…" : "Package description will appear here…")}
+        </div>
       </div>
 
-      {/* Continue button */}
-      <div style={{ display: "flex", justifyContent: isRtl ? "flex-start" : "flex-end" }}>
-        <button
-          onClick={onContinue}
-          style={{
-            background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-            color: "#0d1b2e", border: "none", borderRadius: 10,
-            padding: "11px 28px", fontSize: 13.5, fontWeight: 700,
-            fontFamily: "inherit", cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 8,
-          }}
-        >
-          {t.builderTemplateContinue}
-          <Icon name="arrow_right" size={14} color="#0d1b2e" />
-        </button>
-      </div>
+      {seoTitleAr && seoTitleAr !== seoTitle && (
+        <div dir="rtl" style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_INK3, marginBottom: 12 }}>
+            {l ? "معاينة جوجل — عربي" : "Google preview — Arabic"}
+          </div>
+          <div style={{ fontSize: 18, color: "#1a0dab", lineHeight: 1.3, marginBottom: 4 }}>{seoTitleAr}</div>
+          <div style={{ fontSize: 13, color: "#006621", marginBottom: 4 }}>packmetrix.com/your-agency/…</div>
+          <div style={{ fontSize: 13, color: "#545454", lineHeight: 1.5 }}>{seoDescAr || "…"}</div>
+        </div>
+      )}
+
+      {core.coverImage && (
+        <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_INK3, marginBottom: 12 }}>
+            {l ? "صورة المشاركة (OG Image)" : "Sharing image (OG image)"}
+          </div>
+          <div style={{ position: "relative", width: "100%", aspectRatio: "1200/630", borderRadius: 8, overflow: "hidden" }}>
+            <img src={core.coverImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
+          <div style={{ fontSize: 12, color: DA_INK3, marginTop: 8 }}>
+            {l ? "صورة الغلاف تُستخدم تلقائياً عند المشاركة." : "Your cover image is automatically used when shared."}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -567,6 +571,19 @@ function BuilderPageInner() {
     return () => clearTimeout(timer);
   }, [core, sections, selectedTemplateId, isEditMode, authLoading, uiPhase]);
 
+  // ── Discard ──────────────────────────────────────────────────────────────────
+
+  const handleDiscard = () => {
+    const confirmed = confirm(
+      l
+        ? "سيتم حذف مسودتك. هل تريد الاستمرار؟"
+        : "Discard this package? Your draft will be lost."
+    );
+    if (!confirmed) return;
+    localStorage.removeItem(DRAFT_KEY);
+    router.push("/packages");
+  };
+
   // ── Submit ───────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
@@ -589,6 +606,8 @@ function BuilderPageInner() {
         if (!res.ok) { setError(json.error || "Something went wrong."); return; }
         if (json.agencySlug) setAgencySlug(json.agencySlug);
         posthog.capture("package_updated", { destination: core.destination, language: core.primaryLanguage, templateId: selectedTemplateId });
+        router.push("/packages");
+        return;
       } else {
         const res = await fetch("/api/generate", {
           method: "POST",
@@ -647,88 +666,231 @@ function BuilderPageInner() {
     return (
       <AppLayout>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span className="spinner" />
+          <span className="spinner-warm" />
         </div>
       </AppLayout>
     );
   }
 
-  // ── Success ──────────────────────────────────────────────────────────────────
+  // ── Success (PublishSuccess) ─────────────────────────────────────────────────
 
   if (done && finalPackageId) {
+    const LS = l ? {
+      title: isEditMode ? "تم حفظ التغييرات." : "تم نشر صفحة الباقة!",
+      sub: isEditMode
+        ? "تم تحديث الصفحة بنجاح."
+        : "صفحة هبوطك جاهزة للمشاركة. الصقها في واتساب أو إنستغرام أو التيك توك.",
+      copy: "نسخ الرابط", copied: "تم النسخ",
+      preview: "معاينة الصفحة",
+      dashboard: "العودة للوحة",
+      share: "مشاركة عبر",
+      wa: "واتساب", ig: "إنستغرام",
+      next: "ما الخطوة التالية؟",
+      next1: "شارك الرابط مع عملائك المهتمين",
+      next2: "كل ضغط على واتساب يظهر فوراً في لوحة العملاء",
+      next3: "اصنع باقة جديدة في دقائق",
+    } : {
+      title: isEditMode ? "Changes saved." : "Landing page is live.",
+      sub: isEditMode
+        ? "Your page has been updated successfully."
+        : "Your package page is ready to share. Paste the link into WhatsApp, Instagram or TikTok and watch the leads come in.",
+      copy: "Copy link", copied: "Copied",
+      preview: "Preview page",
+      dashboard: "Back to dashboard",
+      share: "Share via",
+      wa: "WhatsApp", ig: "Instagram",
+      next: "What happens next?",
+      next1: "Send the link to interested travellers",
+      next2: "Every WhatsApp tap lands in your Leads inbox in real time",
+      next3: "Build another package in minutes",
+    };
     return (
       <AppLayout>
-        <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, padding: 48 }}>
-          <div className="fade-up" style={{ textAlign: "center" }}>
-            <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(45,212,160,0.15)", border: `2px solid ${SUCCESS}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-              <Icon name="check" size={32} color={SUCCESS} strokeWidth={2.5} />
+        <div dir={l ? "rtl" : "ltr"} style={{
+          flex: 1, padding: "60px 40px",
+          background: DA_BG, overflowY: "auto",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "inherit",
+        }}>
+          <div style={{ width: "100%", maxWidth: 640, textAlign: "center" }}>
+            <div style={{ width: 72, height: 72, borderRadius: "50%", background: DA_GREEN_SOFT, color: DA_GREEN, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="check" size={32} color={DA_GREEN} strokeWidth={2.5} />
             </div>
-            <h2 style={{ fontFamily: "var(--font-dm-serif), serif", fontSize: 32, marginBottom: 10 }}>
-              {isEditMode
-                ? (l ? "تم حفظ التغييرات" : "Changes saved")
-                : (l ? "تم إنشاء الصفحة!" : "Landing page created!")}
-            </h2>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, maxWidth: 400 }}>
-              {isEditMode
-                ? (l ? "تم تحديث الصفحة بنجاح." : "Your page has been updated successfully.")
-                : (l ? "صفحة الباقة جاهزة للمشاركة." : "Your package page is ready to share.")}
-            </p>
-          </div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 52, fontWeight: 400, color: DA_INK1, marginTop: 24, letterSpacing: -1.2, lineHeight: 1 }}>
+              {LS.title}
+            </div>
+            <div style={{ fontSize: 14, color: DA_INK2, marginTop: 14, lineHeight: 1.55, maxWidth: 460, margin: "14px auto 0" }}>
+              {LS.sub}
+            </div>
 
-          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", gap: 12, maxWidth: 480, width: "100%" }}>
-            <Icon name="link" size={16} color={SAND} />
-            <span style={{ flex: 1, fontSize: 13, color: "rgba(255,255,255,0.6)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shareUrl}</span>
-            <button onClick={handleCopy} style={{ background: `${SAND}22`, border: `1px solid ${SAND}40`, borderRadius: 8, padding: "5px 12px", fontSize: 12, color: copied ? SUCCESS : SAND, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
-              {copied ? (l ? "تم النسخ!" : "Copied!") : (l ? "نسخ" : "Copy")}
-            </button>
-          </div>
+            {/* URL row */}
+            <div style={{ marginTop: 28, padding: 6, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ flex: 1, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: DA_INK1, fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}>
+                <Icon name="link" size={14} color={DA_GOLD} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", direction: "ltr" }}>{shareUrl}</span>
+              </div>
+              <button onClick={handleCopy} style={{ background: copied ? DA_GREEN_SOFT : DA_GOLD, border: "none", borderRadius: 9, padding: "10px 16px", color: copied ? DA_GREEN : "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Icon name="copy" size={13} color={copied ? DA_GREEN : "#fff"} />
+                {copied ? LS.copied : LS.copy}
+              </button>
+            </div>
 
-          <div style={{ display: "flex", gap: 12 }}>
-            <button onClick={() => router.push(`/${agencySlug}/${finalPackageId}`)} style={{ background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: "#0d1b2e", border: "none", borderRadius: 10, padding: "11px 24px", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-              <Icon name="eye" size={16} color="#0d1b2e" /> {l ? "معاينة الصفحة" : "Preview page"}
-            </button>
-            <button onClick={() => router.push("/dashboard")} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid var(--border)", color: "rgba(255,255,255,0.7)", borderRadius: 10, padding: "11px 24px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
-              {l ? "لوحة التحكم" : "Dashboard"}
-            </button>
+            {/* CTAs */}
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16 }}>
+              <button onClick={() => router.push(`/${agencySlug}/${finalPackageId}`)} style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 20px", fontSize: 13.5, fontWeight: 500, fontFamily: "inherit", cursor: "pointer", color: DA_INK1, display: "flex", alignItems: "center", gap: 7 }}>
+                <Icon name="eye" size={14} color={DA_INK2} /> {LS.preview}
+              </button>
+              <button onClick={() => router.push("/dashboard")} style={{ background: "transparent", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 13.5, color: DA_INK3, fontFamily: "inherit", cursor: "pointer" }}>
+                {LS.dashboard}
+              </button>
+            </div>
+
+            {/* Share rail */}
+            <div style={{ marginTop: 28, padding: "16px 18px", background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_INK3 }}>{LS.share}</div>
+              <button style={{ padding: "7px 14px", background: "#25D366", color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                <Icon name="whatsapp" size={13} color="#fff" /> {LS.wa}
+              </button>
+              <button style={{ padding: "7px 14px", background: "linear-gradient(135deg, #f58529 0%, #dd2a7b 50%, #8134af 100%)", color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                {LS.ig}
+              </button>
+            </div>
+
+            {/* Next steps */}
+            <div style={{ marginTop: 28, padding: "18px 22px", background: DA_GOLD_SOFT, border: `1px solid rgba(176,138,62,.3)`, borderRadius: 12, textAlign: "left" as const }}>
+              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_GOLD_DEEP, marginBottom: 10 }}>{LS.next}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[LS.next1, LS.next2, LS.next3].map((line, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 22, height: 22, borderRadius: "50%", background: DA_GOLD, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{i + 1}</div>
+                    <div style={{ fontSize: 13, color: DA_INK1 }}>{line}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </AppLayout>
     );
   }
 
-  // ── Template step ────────────────────────────────────────────────────────────
+  // ── Discard bar (template + preset phases) ───────────────────────────────────
+
+  const DiscardTopBar = !isEditMode ? (
+    <div dir={l ? "rtl" : "ltr"} style={{
+      height: 52, paddingInline: 24,
+      borderBottom: `1px solid ${DA_RULE}`,
+      background: DA_BG,
+      display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-end",
+      flexShrink: 0,
+    }}>
+      {/* Language toggle */}
+      <div style={{ display: "flex", background: DA_SURFACE2, border: `1px solid ${DA_RULE2}`, borderRadius: 999, padding: 2 }}>
+        {(["en", "ar"] as const).map(code => {
+          const active = lang === code;
+          return (
+            <button
+              key={code}
+              onClick={() => switchLang(code)}
+              style={{
+                padding: "4px 11px", borderRadius: 999, border: "none",
+                background: active ? DA_INK1 : "transparent",
+                color: active ? DA_BG : DA_INK2,
+                fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
+                fontSize: 11.5, fontWeight: 500, cursor: "pointer", transition: "all .15s",
+              }}
+            >
+              {code === "en" ? "EN" : "عربي"}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        onClick={handleDiscard}
+        style={{
+          padding: "6px 14px",
+          background: "transparent",
+          border: `1px solid ${DA_RULE2}`,
+          borderRadius: 8,
+          color: DA_INK3,
+          fontSize: 12.5,
+          fontWeight: 500,
+          cursor: "pointer",
+          fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
+        }}
+      >
+        {l ? "تجاهل" : "Discard"}
+      </button>
+    </div>
+  ) : undefined;
+
+  // ── Template + trip-type step ────────────────────────────────────────────────
 
   if (uiPhase === "template") {
     return (
-      <AppLayout>
-        <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "24px 16px 48px" : "48px 48px" }}>
-          <TemplateStep
-            selectedId={selectedTemplateId}
-            onSelect={setSelectedTemplateId}
-            onContinue={() => setUiPhase(isEditMode ? "build" : "preset")}
-            lang={lang}
-          />
-        </div>
-      </AppLayout>
-    );
-  }
-
-  // ── Preset picker ────────────────────────────────────────────────────────────
-
-  if (uiPhase === "preset") {
-    return (
-      <AppLayout>
-        <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "24px 16px" : "48px 48px" }}>
-          <PresetPicker
-            lang={lang}
-            userId={user?.uid}
-            onApply={(coreOverrides, presetSections) => {
-              setCore((c) => ({ ...c, ...coreOverrides }));
-              setSections(presetSections);
-              setUiPhase("build");
-            }}
-          />
-        </div>
+      <AppLayout topbar={DiscardTopBar}>
+        <VisualTemplatePicker
+          selectedId={selectedTemplateId}
+          isEditMode={isEditMode}
+          onCancel={isEditMode ? () => setUiPhase("build") : undefined}
+          onStart={(templateId, tripTypeId, userPresetSections) => {
+            setSelectedTemplateId(templateId);
+            const hasExisting = sections.length > 0;
+            if (userPresetSections) {
+              setSections(userPresetSections);
+            } else if (tripTypeId) {
+              const preset = PRESET_MAP[tripTypeId];
+              if (preset) {
+                const instantiated: AnySectionInstance[] = preset.sections.map((ps, i) => ({
+                  id: `${ps.type}_${Date.now()}_${i}`,
+                  type: ps.type,
+                  order: hasExisting ? sections.length + i : i,
+                  data: { ...(SECTION_REGISTRY[ps.type as keyof typeof SECTION_REGISTRY]?.defaultData ?? {}), ...(ps.data ?? {}) },
+                } as AnySectionInstance));
+                if (hasExisting) {
+                  setSections((prev) => {
+                    const existingTypes = new Set(prev.map((s) => s.type));
+                    const missing = instantiated.filter((s) => !existingTypes.has(s.type));
+                    return [...prev, ...missing.map((s, i) => ({ ...s, order: prev.length + i }))];
+                  });
+                } else {
+                  setSections(instantiated);
+                }
+              }
+            }
+            setTab("sections");
+            setUiPhase("build");
+          }}
+          lang={lang}
+          isMobile={isMobile}
+          userId={user?.uid}
+          onAiExtract={(result) => {
+            setCore((c) => ({
+              ...c,
+              ...(result.destination     ? { destination:     result.destination }     : {}),
+              ...(result.price           ? { price:           result.price }           : {}),
+              ...(result.nights          ? { nights:          result.nights }          : {}),
+              ...(result.titleEn         ? { titleEn:         result.titleEn }         : {}),
+              ...(result.titleAr         ? { titleAr:         result.titleAr }         : {}),
+              ...(result.descriptionEn   ? { descriptionEn:   result.descriptionEn }   : {}),
+              ...(result.descriptionAr   ? { descriptionAr:   result.descriptionAr }   : {}),
+              ...(result.primaryLanguage ? { primaryLanguage: result.primaryLanguage } : {}),
+            }));
+            if (result.includes?.length) {
+              setSections((prev) => {
+                if (prev.some((s) => s.type === "inclusions")) return prev;
+                return [...prev, {
+                  id: `inclusions_ai_${Date.now()}`,
+                  type: "inclusions" as const,
+                  order: prev.length,
+                  data: { includes: result.includes!, excludes: [] },
+                }];
+              });
+            }
+            if (result.suggestedTemplateId) setSelectedTemplateId(result.suggestedTemplateId);
+            setUiPhase("build");
+          }}
+        />
       </AppLayout>
     );
   }
@@ -736,104 +898,47 @@ function BuilderPageInner() {
   // ── Build view ───────────────────────────────────────────────────────────────
 
   const selectedTpl = TEMPLATES.find(t => t.id === selectedTemplateId);
+  const pkgDisplayName = core.titleEn || core.titleAr || core.destination || undefined;
+  const templateDisplayName = selectedTpl ? (l ? selectedTpl.nameAr : selectedTpl.name) : undefined;
 
   return (
-    <AppLayout>
-      <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "20px 16px 80px" : "32px 48px 60px" }}>
-
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-          <div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
-              {isEditMode
-                ? (l ? "تعديل الباقة" : "Edit package")
-                : (l ? "منشئ الباقات" : "Package builder")}
-            </h2>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>
-              {isEditMode
-                ? (l ? "قم بتحديث محتوى الصفحة وانشر التغييرات" : "Update content and publish changes")
-                : (l ? "أضف الأقسام وانشر صفحتك في ثوانٍ" : "Add sections and publish your page in seconds")}
-            </p>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            {!isEditMode && draftStatus !== "idle" && (
-              <div style={{ fontSize: 12, color: draftStatus === "saved" ? "rgba(45,212,160,0.7)" : "rgba(255,255,255,0.35)", display: "flex", alignItems: "center", gap: 5 }}>
-                {draftStatus === "saving"
-                  ? <><span className="spinner" style={{ width: 10, height: 10, borderWidth: 1.5, borderTopColor: "rgba(255,255,255,0.35)" }} /> {l ? "حفظ مسودة…" : "Saving draft…"}</>
-                  : <><Icon name="check" size={11} color="rgba(45,212,160,0.7)" strokeWidth={2.5} /> {l ? "تم حفظ المسودة" : "Draft saved"}</>}
-              </div>
-            )}
-
-            {/* Active template pill */}
-            {selectedTpl && (
-              <button
-                onClick={() => setUiPhase("template")}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 7,
-                  fontSize: 12, color: "rgba(255,255,255,0.6)",
-                  background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit",
-                }}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: selectedTpl.templateColor, flexShrink: 0 }} />
-                {l ? selectedTpl.nameAr : selectedTpl.name}
-                <Icon name="edit" size={10} color="rgba(255,255,255,0.35)" />
-              </button>
-            )}
-
-            {sections.length > 0 && (
-              <button
-                onClick={() => { setSaveAsOpen(true); setSaveName(""); setSaveAsStatus("idle"); }}
-                style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}
-              >
-                <Icon name="copy" size={11} color="rgba(255,255,255,0.35)" />
-                {t.saveAsTemplateBtn}
-              </button>
-            )}
-            {!isEditMode && (
-              <button
-                onClick={() => setUiPhase("preset")}
-                style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit" }}
-              >
-                {l ? "تغيير النموذج المبدئي" : "Change preset"}
-              </button>
-            )}
-          </div>
-        </div>
+    <AppLayout topbar={
+      <BuilderTopBar
+        pkgName={pkgDisplayName}
+        templateName={templateDisplayName}
+        draftSaved={draftStatus === "saved"}
+        onChangeTemplate={() => setUiPhase("template")}
+        onPublish={handleSubmit}
+        publishing={generating}
+        isEditMode={isEditMode}
+        onBack={isEditMode ? () => router.push("/packages") : undefined}
+        onDiscard={!isEditMode ? handleDiscard : undefined}
+      />
+    }>
+      <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "20px 16px 80px" : "28px 40px 60px" }}>
 
         {/* Save-as-template modal */}
         {saveAsOpen && (
           <div style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setSaveAsOpen(false)}>
-            <div style={{ background: "#0d1b2e", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 18, padding: "28px 24px", width: "100%", maxWidth: 380 }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>
-                {t.saveAsTemplateModalTitle}
-              </div>
-              <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.4)", marginBottom: 18, lineHeight: 1.5 }}>
-                {l
-                  ? `سيتم حفظ ${sections.length} قسماً كقالب يمكنك إعادة استخدامه.`
-                  : `Save ${sections.length} sections as a reusable template.`}
+            <div style={{ background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 18, padding: "28px 24px", width: "100%", maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6, color: DA_INK1 }}>{t.saveAsTemplateModalTitle}</div>
+              <div style={{ fontSize: 12.5, color: DA_INK3, marginBottom: 18, lineHeight: 1.5 }}>
+                {l ? `سيتم حفظ ${sections.length} قسماً كقالب يمكنك إعادة استخدامه.` : `Save ${sections.length} sections as a reusable template.`}
               </div>
               <input
-                autoFocus
-                value={saveName}
-                onChange={e => setSaveName(e.target.value)}
+                autoFocus value={saveName} onChange={e => setSaveName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") handleSaveAsTemplate(); }}
+                onFocus={e => { e.currentTarget.style.borderColor = DA_GOLD; }}
+                onBlur={e => { e.currentTarget.style.borderColor = DA_RULE; }}
                 placeholder={t.saveAsTemplatePlaceholder}
-                style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "9px 14px", color: "#fff", fontSize: 13.5, fontFamily: "inherit", outline: "none", boxSizing: "border-box" as const }}
+                style={{ width: "100%", background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "9px 14px", color: DA_INK1, fontSize: 13.5, fontFamily: "inherit", outline: "none", boxSizing: "border-box" as const }}
               />
               <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-                <button
-                  onClick={() => setSaveAsOpen(false)}
-                  style={{ flex: 1, padding: "9px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "rgba(255,255,255,0.4)", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}
-                >
+                <button onClick={() => setSaveAsOpen(false)} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1px solid ${DA_RULE}`, background: DA_SURFACE, color: DA_INK2, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
                   {t.saveAsTemplateCancel}
                 </button>
-                <button
-                  onClick={handleSaveAsTemplate}
-                  disabled={!saveName.trim() || saveAsStatus === "saving" || saveAsStatus === "saved"}
-                  style={{ flex: 2, padding: "9px", borderRadius: 9, border: "none", background: saveAsStatus === "saved" ? "rgba(45,212,160,0.2)" : !saveName.trim() ? "rgba(255,255,255,0.06)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`, color: saveAsStatus === "saved" ? "#2dd4a0" : !saveName.trim() ? "rgba(255,255,255,0.25)" : "#0d1b2e", fontSize: 13, fontWeight: 700, cursor: !saveName.trim() || saveAsStatus !== "idle" ? "not-allowed" : "pointer", fontFamily: "inherit" }}
-                >
+                <button onClick={handleSaveAsTemplate} disabled={!saveName.trim() || saveAsStatus === "saving" || saveAsStatus === "saved"}
+                  style={{ flex: 2, padding: "9px", borderRadius: 9, border: saveAsStatus === "saved" ? `1px solid ${DA_GREEN}` : "none", background: saveAsStatus === "saved" ? DA_GREEN_SOFT : !saveName.trim() ? DA_SURFACE : DA_GOLD, color: saveAsStatus === "saved" ? DA_GREEN : !saveName.trim() ? DA_INK3 : "#fff", fontSize: 13, fontWeight: 700, cursor: !saveName.trim() || saveAsStatus !== "idle" ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
                   {saveAsStatus === "saving" ? t.saveAsTemplateSaving : saveAsStatus === "saved" ? t.saveAsTemplateSaved : t.saveAsTemplateSave}
                 </button>
               </div>
@@ -841,115 +946,77 @@ function BuilderPageInner() {
           </div>
         )}
 
-        {/* Tab bar */}
-        <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "4px 5px", marginBottom: 24, gap: 4 }}>
-          {(["core", "sections"] as Tab[]).map((tabKey) => {
-            const active = tab === tabKey;
-            const tabLabel = tabKey === "core"
-              ? (l ? "المعلومات الأساسية" : "Core info")
-              : (l ? "الأقسام" : "Sections");
-            const count = tabKey === "sections" ? sections.length : undefined;
-            return (
-              <button
-                key={tabKey}
-                onClick={() => setTab(tabKey)}
-                style={{
-                  padding: "8px 16px", borderRadius: 99, border: "none",
-                  background: active ? "rgba(255,255,255,0.1)" : "transparent",
-                  color: active ? "#fff" : "rgba(255,255,255,0.4)",
-                  fontSize: 13, fontWeight: active ? 600 : 400,
-                  fontFamily: "inherit", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 7,
-                  transition: "all 0.15s",
-                }}
-              >
-                {tabLabel}
-                {count !== undefined && (
-                  <span style={{ fontSize: 11, background: active ? SAND : "rgba(255,255,255,0.08)", color: active ? "#0d1b2e" : "rgba(255,255,255,0.4)", borderRadius: 99, padding: "1px 7px", fontWeight: 700 }}>
-                    {count}
-                  </span>
-                )}
+        {/* Tab bar + secondary actions */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "inline-flex", background: DA_SURFACE, border: `1px solid ${DA_RULE2}`, borderRadius: 10, padding: 4, gap: 4 }}>
+            {(["core", "sections", "seo"] as Tab[]).map((tabKey) => {
+              const active = tab === tabKey;
+              const tabLabel = tabKey === "core"
+                ? (l ? "المعلومات الأساسية" : "Core info")
+                : tabKey === "sections"
+                  ? (l ? "الأقسام" : "Sections")
+                  : (l ? "SEO والمشاركة" : "SEO & social");
+              const count = tabKey === "sections" ? sections.length : undefined;
+              return (
+                <button
+                  key={tabKey}
+                  onClick={() => setTab(tabKey)}
+                  style={{
+                    padding: "7px 14px", borderRadius: 7, border: "none",
+                    background: active ? DA_INK1 : "transparent",
+                    color: active ? DA_BG : DA_INK2,
+                    fontSize: 13, fontWeight: active ? 500 : 400,
+                    fontFamily: "inherit", cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 7,
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {tabLabel}
+                  {count !== undefined && (
+                    <span style={{ fontSize: 10.5, fontFamily: "var(--font-jetbrains-mono), monospace", background: active ? "rgba(255,255,255,.12)" : DA_BG, color: active ? DA_BG : DA_INK3, borderRadius: 999, padding: "1px 7px" }}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Secondary actions */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {sections.length > 0 && (
+              <button onClick={() => { setSaveAsOpen(true); setSaveName(""); setSaveAsStatus("idle"); }} style={{ fontSize: 12, color: DA_INK3, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
+                <Icon name="copy" size={11} color={DA_INK3} />
+                {t.saveAsTemplateBtn}
               </button>
-            );
-          })}
+            )}
+          </div>
         </div>
 
-        {/* Content + preview */}
-        <div style={{ display: "flex", gap: 32, alignItems: "flex-start" }}>
-          <div className="fade-in" key={tab} style={{ flex: 1, maxWidth: isMobile ? "100%" : 580 }}>
+        {/* Content + preview rail */}
+        <div style={{ display: "flex", gap: 36, alignItems: "flex-start" }}>
+          <div className="fade-in" key={tab} style={{ flex: 1, minWidth: 0 }}>
             {tab === "core" && (
-              <>
-                <CoreFieldsEditor
-                  core={core}
-                  onChange={setCore}
-                  userId={user?.uid ?? ""}
-                  lang={lang}
-                />
-              </>
+              <CoreFieldsEditor core={core} onChange={setCore} userId={user?.uid ?? ""} lang={lang} />
             )}
             {tab === "sections" && (
-              <SectionList
-                sections={sections}
-                onChange={setSections}
-                userId={user?.uid ?? ""}
-                lang={lang}
-                templateId={selectedTemplateId}
-              />
+              <SectionList sections={sections} onChange={setSections} userId={user?.uid ?? ""} lang={lang} templateId={selectedTemplateId} />
+            )}
+            {tab === "seo" && (
+              <SeoTab core={core} lang={lang} />
             )}
           </div>
 
           {!isMobile && (
-            <div style={{ width: 260, flexShrink: 0 }}>
-              <MiniPreview core={core} sections={sections} lang={lang} templateId={selectedTemplateId} />
+            <div style={{ flexShrink: 0, position: "sticky", top: 24 }}>
+              <LivePreviewPhone core={core} sections={sections} lang={lang} templateId={selectedTemplateId} />
             </div>
           )}
         </div>
 
-        {/* Error */}
         {error && (
-          <p style={{ marginTop: 16, fontSize: 13, color: "var(--danger)" }}>{error}</p>
+          <p style={{ marginTop: 16, fontSize: 13, color: DA_DANGER }}>{error}</p>
         )}
-
-        {/* Publish bar */}
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--border)", gap: 12 }}>
-          {isEditMode ? (
-            <button
-              onClick={handleSubmit}
-              disabled={generating}
-              style={{
-                background: generating ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-                color: generating ? "rgba(255,255,255,0.4)" : "#0d1b2e",
-                border: "none", borderRadius: 10, padding: "11px 28px",
-                fontSize: 13, fontWeight: 700, fontFamily: "inherit",
-                cursor: generating ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", gap: 8,
-              }}
-            >
-              {generating
-                ? <><span className="spinner" style={{ borderTopColor: SAND }} /> {l ? "جاري الحفظ…" : "Saving…"}</>
-                : <><Icon name="check" size={14} color="#0d1b2e" strokeWidth={2.5} /> {l ? "حفظ التغييرات" : "Save changes"}</>
-              }
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={generating}
-              style={{
-                background: generating ? "rgba(255,255,255,0.08)" : `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-                color: generating ? "rgba(255,255,255,0.4)" : "#0d1b2e",
-                border: "none", borderRadius: 10, padding: "11px 28px",
-                fontSize: 13, fontWeight: 700, fontFamily: "inherit",
-                cursor: generating ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", gap: 8,
-              }}
-            >
-              {generating
-                ? <><span className="spinner" style={{ borderTopColor: SAND }} /> {l ? "جاري النشر…" : "Publishing…"}</>
-                : <><Icon name="sparkle" size={14} color="#0d1b2e" strokeWidth={2.5} /> {l ? "نشر الصفحة" : "Publish page"}</>
-              }
-            </button>
-          )}
-        </div>
       </div>
     </AppLayout>
   );

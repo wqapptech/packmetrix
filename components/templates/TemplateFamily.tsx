@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { T } from "@/lib/translations";
+import { T, localizeTierLabel } from "@/lib/translations";
 import {
   WAButton,
   Eyebrow,
@@ -206,13 +206,14 @@ function FaHighlights({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
 }
 
 function FaHotel({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
+  const t = T[lang];
   const data = faFindSec(pkg, "hotel");
   const desc = faSecStr(data, "description") || pkg.hotelDescription;
   const hotels = faSecArr(faFindSec(pkg, "hotels"), "hotels");
   if (!desc && !hotels.length) return null;
   return (
     <section style={{ padding: "20px 18px" }}>
-      <FaSectionHead kicker={lang === "ar" ? "أين تقيم" : "Where you stay"} title={lang === "ar" ? "الإقامة العائلية" : "Your family home away from home"} />
+      <FaSectionHead kicker={t.faWhereYouStay} title={t.faFamilyHome} />
       {hotels.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {hotels.map((h, i) => (
@@ -254,7 +255,7 @@ function FaInclusions({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   if (!includes.length && !excludes.length && !meals && !visaStatus) return null;
   return (
     <section id="included" style={{ padding: "20px 18px", scrollMarginTop: 88 }}>
-      <FaSectionHead kicker={t.includedLabel} title={lang === "ar" ? "ما يشمله البرنامج" : "What's included for your family"} />
+      <FaSectionHead kicker={t.includedLabel} title={t.faWhatsIncludedFamily} />
       {(meals || visaStatus) && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
           {meals && (
@@ -312,7 +313,7 @@ function FaFaq({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   if (!items.length) return null;
   return (
     <section style={{ padding: "20px 18px" }}>
-      <FaSectionHead kicker={t.frequentlyAsked} title={lang === "ar" ? "أسئلة العائلات" : "Questions families ask us"} />
+      <FaSectionHead kicker={t.frequentlyAsked} title={t.faFamilyQuestions} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {items.map((f, i) => {
           const q = faSecStr(f, "question") || faSecStr(f, "q");
@@ -351,12 +352,13 @@ function FaCustom({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
 }
 
 function FaExtras({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
+  const t = T[lang];
   const data = faFindSec(pkg, "extras");
   const items = faSecArr(data, "items");
   if (!items.length) return null;
   return (
     <section style={{ padding: "20px 18px" }}>
-      <FaSectionHead kicker={lang === "ar" ? "إضافات اختيارية" : "Optional add-ons"} title={lang === "ar" ? "أضف لمسة خاصة" : "Little things that make a big difference"} />
+      <FaSectionHead kicker={t.faOptionalAddOns} title={t.faLittleThings} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {items.map((e, i) => {
           const name = faSecStr(e, "label") || faSecStr(e, "name");
@@ -378,12 +380,13 @@ function FaExtras({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
 }
 
 function FaPeople({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
+  const t = T[lang];
   const data = faFindSec(pkg, "people");
   const people = faSecArr(data, "people");
   if (!people.length) return null;
   return (
     <section style={{ padding: "20px 18px" }}>
-      <FaSectionHead kicker={lang === "ar" ? "فريقنا" : "Your travel team"} title={lang === "ar" ? "أشخاص يهتمون بعائلتك" : "The people who care for your family"} />
+      <FaSectionHead kicker={t.faTravelTeam} title={t.faPeopleWhoCare} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {people.map((p, i) => {
           const name = faSecStr(p, "name");
@@ -402,7 +405,7 @@ function FaPeople({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 800, color: FA.ink }}>{name}</div>
                 {role && <div style={{ fontSize: 11.5, color: FA.brand, fontWeight: 600, textTransform: "capitalize", marginTop: 2 }}>{role.replace("_", " ")}</div>}
-                {years != null && <div style={{ fontSize: 12, color: FA.muted, marginTop: 2 }}>{years} {lang === "ar" ? "سنوات خبرة" : "years experience"}</div>}
+                {years != null && <div style={{ fontSize: 12, color: FA.muted, marginTop: 2 }}>{years} {t.faYearsExperience}</div>}
                 {bio && <div style={{ fontSize: 12.5, color: FA.muted, marginTop: 6, lineHeight: 1.55 }}>{bio}</div>}
               </div>
             </div>
@@ -414,13 +417,14 @@ function FaPeople({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
 }
 
 function FaImportantNotes({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
+  const t = T[lang];
   const data = faFindSec(pkg, "important_notes");
   const notes = faSecArr(data, "notes");
   const items = notes.length ? notes : faSecArr(data, "items");
   if (!items.length) return null;
   return (
     <section style={{ padding: "20px 18px" }}>
-      <FaSectionHead kicker={lang === "ar" ? "ملاحظات مهمة" : "Good to know"} title={lang === "ar" ? "ما تحتاج معرفته" : "Before you pack the bags"} />
+      <FaSectionHead kicker={t.faGoodToKnow} title={t.faBeforeYouPackBags} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {items.map((n, i) => {
           const severity = faSecStr(n, "severity");
@@ -431,7 +435,7 @@ function FaImportantNotes({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
             <div key={i} style={{ padding: "12px 14px", background: isWarn ? "#fff8f4" : "#fff", border: `1px solid ${isWarn ? FA.brand + "40" : FA.border}`, borderRadius: 12, borderLeft: `3px solid ${isWarn ? FA.brand : FA.border}` }}>
               {isWarn && (
                 <div style={{ fontSize: 9.5, fontWeight: 800, color: FA.brand, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 4 }}>
-                  {lang === "ar" ? "مهم" : "Important"}
+                  {t.faImportantTag}
                 </div>
               )}
               <div style={{ fontSize: 13.5, fontWeight: 600, color: FA.ink, lineHeight: 1.35 }}>{title}</div>
@@ -469,6 +473,7 @@ function FaAboutAgency({ pkg, agency, lang }: { pkg: TPackage; agency: TAgency; 
 }
 
 function FaDepartures({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
+  const t = T[lang];
   const data = faFindSec(pkg, "departures");
   const entries = faSecArr(data, "entries");
   // legacy fallbacks
@@ -484,7 +489,7 @@ function FaDepartures({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   if (!deps.length) return null;
   return (
     <section style={{ padding: "20px 18px" }}>
-      <FaSectionHead kicker={lang === "ar" ? "مواعيد المغادرة" : "Departure dates"} title={lang === "ar" ? "اختر موعدك المثالي" : "Pick your perfect window"} />
+      <FaSectionHead kicker={t.faDepartureDates} title={t.faPickPerfectWindow} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {deps.map((d, i) => {
           const spots = "spots" in d ? d.spots : 0;
@@ -494,7 +499,7 @@ function FaDepartures({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: FA.ink }}>{d.date}</div>
                 <div style={{ fontSize: 12, color: isLow ? FA.brand : FA.muted, marginTop: 2, fontWeight: isLow ? 700 : 400 }}>
-                  {isLow ? `Only ${spots} spots left!` : `${spots} spots available`}
+                  {isLow ? `${t.faOnlySpotsLeft} ${spots} ${t.faSpotsLeftLabel}` : `${spots} ${t.faSpotsAvailable}`}
                 </div>
               </div>
               {d.price && <div style={{ fontSize: 15, fontWeight: 800, color: FA.brand, flexShrink: 0 }}>{d.price}</div>}
@@ -514,11 +519,11 @@ function FaPricing({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: Lang; onWha
   if (!tiers.length && !cancellation) return null;
   return (
     <section id="pricing" style={{ padding: "20px 18px", scrollMarginTop: 88 }}>
-      <FaSectionHead kicker={t.navPricing} title={lang === "ar" ? "خيارات الحجز" : "What families choose"} />
+      <FaSectionHead kicker={t.navPricing} title={t.faWhatFamiliesChoose} />
       {tiers.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: cancellation ? 16 : 0 }}>
           {tiers.map((tier, i) => {
-            const label = faSecStr(tier, "label");
+            const label = localizeTierLabel(faSecStr(tier, "label"), lang);
             const price = faSecStr(tier, "price");
             const isPop = !!(tier as FaSD).pop;
             return (
@@ -531,7 +536,7 @@ function FaPricing({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: Lang; onWha
               }}>
                 {isPop && (
                   <div style={{ position: "absolute", top: -1, right: 16, background: "#fff", color: FA.brand, fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: "0 0 8px 8px", letterSpacing: "0.5px", textTransform: "uppercase" }}>
-                    {lang === "ar" ? "الأكثر اختياراً" : "Most popular"}
+                    {t.faMostPopular}
                   </div>
                 )}
                 <div style={{ fontSize: 12, fontWeight: 600, color: isPop ? "rgba(255,255,255,0.75)" : FA.muted, marginBottom: 6 }}>{label}</div>
@@ -546,7 +551,7 @@ function FaPricing({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: Lang; onWha
       {cancellation && (
         <div style={{ padding: "12px 14px", background: `${FA.brand}08`, border: `1px solid ${FA.brand}20`, borderRadius: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: FA.brand, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 5 }}>
-            {lang === "ar" ? "سياسة الإلغاء" : "Cancellation policy"}
+            {t.faCancellationPolicy}
           </div>
           <div style={{ fontSize: 12.5, color: FA.muted, lineHeight: 1.6 }}>{cancellation}</div>
         </div>
@@ -556,6 +561,7 @@ function FaPricing({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: Lang; onWha
 }
 
 function FaTransfers({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
+  const t = T[lang];
   const data = faFindSec(pkg, "transfers");
   if (!data) return null;
   const rawItems = faSecArrMixed(data, "items");
@@ -563,7 +569,7 @@ function FaTransfers({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   if (!rawItems.length && !desc) return null;
   return (
     <section style={{ padding: "20px 18px" }}>
-      <FaSectionHead kicker={lang === "ar" ? "التنقلات" : "Getting around"} title={lang === "ar" ? "راحة من الباب للباب" : "Door-to-door comfort for the whole family"} />
+      <FaSectionHead kicker={t.faGettingAround} title={t.faDoorToDoorComfort} />
       {desc && !rawItems.length && <p style={{ fontSize: 13.5, color: FA.muted, lineHeight: 1.7, margin: 0 }}>{desc}</p>}
       {rawItems.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -576,7 +582,7 @@ function FaTransfers({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: FA.brand, flexShrink: 0 }} />
                 <div style={{ flex: 1, fontSize: 13.5, color: FA.ink, fontWeight: 500 }}>{label}</div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: included ? FA.brand : FA.muted, flexShrink: 0 }}>
-                  {included ? (lang === "ar" ? "مشمول" : "Included") : (lang === "ar" ? "إضافي" : "Add-on")}
+                  {included ? t.faTransferIncluded : t.faTransferAddOn}
                 </div>
               </div>
             );
@@ -588,6 +594,7 @@ function FaTransfers({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
 }
 
 function FaMedia({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
+  const t = T[lang];
   const data = faFindSec(pkg, "media");
   const images = faSecStrArr(data, "images").length
     ? faSecStrArr(data, "images")
@@ -598,10 +605,20 @@ function FaMedia({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   if (!images.length && !videoUrl && !mapImage) return null;
   return (
     <section style={{ padding: "20px 18px" }}>
-      <FaSectionHead kicker={lang === "ar" ? "معرض الصور" : "In photographs"} title={lang === "ar" ? "تجربتك بالصور" : "A glimpse of what awaits"} />
-      {videoUrl && (
-        <video src={videoUrl} controls style={{ width: "100%", borderRadius: 12, background: "#0d1b2e", maxHeight: 220, marginBottom: 10 }} />
-      )}
+      <FaSectionHead kicker={t.faInPhotographs} title={t.faGlimpseAwaits} />
+      {videoUrl && (() => {
+        const isEmbed = videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo");
+        const embedUrl = (() => {
+          const yt = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+          if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+          const vi = videoUrl.match(/vimeo\.com\/(\d+)/);
+          if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
+          return videoUrl;
+        })();
+        return isEmbed
+          ? <iframe src={embedUrl} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: 220, borderRadius: 12, border: "none", display: "block", marginBottom: 10 }} />
+          : <video src={videoUrl} controls playsInline style={{ width: "100%", borderRadius: 12, background: "#0d1b2e", maxHeight: 220, marginBottom: 10 }} />;
+      })()}
       {mapImage && (
         <div style={{ marginBottom: 10, borderRadius: 12, overflow: "hidden" }}>
           <img src={mapImage} alt={mapCaption || "map"} style={{ width: "100%", objectFit: "cover", maxHeight: 200 }} />
@@ -611,7 +628,7 @@ function FaMedia({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
       {images.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {images.slice(0, 6).map((url, i) => (
-            <img key={i} src={url} alt="" style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10 }} />
+            <img key={i} src={url} alt="" style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10 }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }} />
           ))}
         </div>
       )}
@@ -652,8 +669,8 @@ function FaReviews({ pkg, agency, lang }: { pkg: TPackage; agency: TAgency; lang
   return (
     <section style={{ padding: "20px 18px" }}>
       <FaSectionHead
-        kicker={lang === "ar" ? "آراء العملاء" : "What families say"}
-        title={lang === "ar" ? "تجارب حقيقية من عائلات حقيقية" : "Real stories from real families"}
+        kicker={t.faWhatFamiliesSay}
+        title={t.faRealStories}
       />
 
       {pkg.rating != null && (
@@ -663,7 +680,7 @@ function FaReviews({ pkg, agency, lang }: { pkg: TPackage; agency: TAgency; lang
             <FaStars value={pkg.rating} size={16} />
             {pkg.reviewCount != null && (
               <div style={{ fontSize: 12, color: FA.muted, marginTop: 4 }}>
-                {pkg.reviewCount} {lang === "ar" ? "تقييم" : "reviews"}
+                {pkg.reviewCount} {t.faReviewsCount}
               </div>
             )}
           </div>
@@ -797,16 +814,16 @@ function FaCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
       </svg>
       <div style={{ position: "relative" }}>
         <div style={{ fontSize: isDesktop ? 28 : 22, fontWeight: 800, color: "#fff", marginBottom: 8, lineHeight: 1.2, letterSpacing: "-0.4px" }}>
-          {lang === "ar" ? `هل أنتم مستعدون للرحلة إلى ${pkg.destination}؟` : `Ready to take your family to ${pkg.destination}?`}
+          {t.faReadyToTakeFamily} {pkg.destination}?
         </div>
         <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.72)", marginBottom: 22, lineHeight: 1.55 }}>
-          {lang === "ar" ? "احجزوا مكانكم الآن — الأماكن محدودة لكل عائلة" : "Reserve your family's spot — limited spaces per departure"}
+          {t.faReserveFamilySpot}
         </div>
         <div style={{ display: "flex", flexDirection: isDesktop ? "row" : "column", gap: 10 }}>
           <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} style={{ background: "#fff", color: FA.brand }} />
           {pkg.messenger && (
             <button onClick={onMessenger} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 10, padding: "14px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-              {t.bookWhatsApp.replace("WhatsApp", "Messenger")}
+              {t.faMessengerBtn}
             </button>
           )}
         </div>

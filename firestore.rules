@@ -20,6 +20,15 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // Live viewer presence for public package pages.
+    // Only a { ts: timestamp } document is allowed; no auth required.
+    match /presence/{packageId}/viewers/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['ts'])
+                   && request.resource.data.ts is timestamp;
+      allow delete: if true;
+    }
+
     // Everything else requires authentication.
     match /{document=**} {
       allow read, write: if request.auth != null;

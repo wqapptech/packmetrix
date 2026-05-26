@@ -4,6 +4,17 @@ import { useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import type { FieldDef, SectionTypeDef } from "@/lib/sections/types";
 import { SAND } from "./constants";
+import {
+  DA_SURFACE,
+  DA_INK1,
+  DA_INK2,
+  DA_INK3,
+  DA_RULE,
+  DA_RULE2,
+  DA_GOLD,
+  DA_GOLD_SOFT,
+  DA_DANGER,
+} from "@/lib/tokens";
 import { FieldLabel, TagInput, TextArea, TextInput, NumberInput, SelectInput } from "./primitives";
 import { ImageField } from "./ImageField";
 import { VideoField } from "./VideoField";
@@ -289,9 +300,9 @@ function RepeaterField({
           style={{
             padding: "20px 16px",
             borderRadius: 12,
-            border: "1.5px dashed rgba(255,255,255,0.1)",
+            border: `1.5px dashed ${DA_RULE}`,
             textAlign: "center",
-            color: "rgba(255,255,255,0.3)",
+            color: DA_INK3,
             fontSize: 13,
             marginBottom: 10,
           }}
@@ -313,11 +324,11 @@ function RepeaterField({
             onDragEnd={onDragEnd}
             style={{
               marginBottom: 8,
-              background: "rgba(255,255,255,0.03)",
-              border: `1px solid ${dragOver === i ? SAND + "60" : "rgba(255,255,255,0.08)"}`,
+              background: dragOver === i ? DA_GOLD_SOFT : DA_SURFACE,
+              border: `1px solid ${dragOver === i ? DA_GOLD : DA_RULE}`,
               borderRadius: 12,
               overflow: "hidden",
-              transition: "border-color 0.15s",
+              transition: "border-color 0.15s, background 0.15s",
               opacity: dragOver === i ? 0.6 : 1,
             }}
           >
@@ -334,14 +345,14 @@ function RepeaterField({
             >
               {/* Drag handle */}
               <div
-                style={{ cursor: "grab", color: "rgba(255,255,255,0.2)", padding: "0 2px", flexShrink: 0 }}
+                style={{ cursor: "grab", color: DA_INK3, padding: "0 2px", flexShrink: 0 }}
                 onMouseDown={(e) => e.stopPropagation()}
               >
                 ⠿
               </div>
 
               {/* Summary */}
-              <div style={{ flex: 1, fontSize: 13, color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ flex: 1, fontSize: 13, color: DA_INK1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {summary}
               </div>
 
@@ -368,16 +379,16 @@ function RepeaterField({
                   title={duplicateLabel}
                   style={iconBtn(false)}
                 >
-                  <Icon name="copy" size={11} color="rgba(255,255,255,0.45)" />
+                  <Icon name="copy" size={11} color={DA_INK2} />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); remove(i); }}
                   title={deleteLabel}
                   style={iconBtn(false)}
                 >
-                  <Icon name="trash" size={11} color="rgba(220,80,80,0.6)" />
+                  <Icon name="trash" size={11} color={DA_DANGER} />
                 </button>
-                <span style={{ marginLeft: 4, color: "rgba(255,255,255,0.25)", fontSize: 12, transition: "transform 0.15s", display: "inline-block", transform: isOpen ? "rotate(180deg)" : "none" }}>
+                <span style={{ marginLeft: 4, color: DA_INK3, fontSize: 12, transition: "transform 0.15s", display: "inline-block", transform: isOpen ? "rotate(180deg)" : "none" }}>
                   ▾
                 </span>
               </div>
@@ -400,7 +411,7 @@ function RepeaterField({
                     <div key={subField.key}>
                       <FieldLabel required={subField.required}>{label}</FieldLabel>
                       {helpText && (
-                        <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)", marginBottom: 6 }}>
+                        <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 6 }}>
                           {helpText}
                         </div>
                       )}
@@ -426,14 +437,15 @@ function RepeaterField({
           marginTop: 4,
           fontSize: 12,
           color: SAND,
-          background: "none",
-          border: "none",
+          background: DA_GOLD_SOFT,
+          border: `1px solid ${DA_RULE2}`,
+          borderRadius: 8,
           cursor: "pointer",
           fontFamily: "inherit",
           display: "flex",
           alignItems: "center",
           gap: 6,
-          padding: 0,
+          padding: "6px 12px",
         }}
       >
         <Icon name="plus" size={13} color={SAND} />
@@ -449,13 +461,13 @@ function iconBtn(disabled: boolean): React.CSSProperties {
     height: 24,
     borderRadius: 6,
     border: "none",
-    background: "rgba(255,255,255,0.05)",
+    background: DA_GOLD_SOFT,
     cursor: disabled ? "not-allowed" : "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontSize: 12,
-    color: disabled ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.5)",
+    color: disabled ? DA_INK3 : DA_INK2,
     opacity: disabled ? 0.4 : 1,
     padding: 0,
     lineHeight: 1,
@@ -520,7 +532,7 @@ export function SectionEditor({
           <div key={field.key}>
             <FieldLabel required={field.required}>{label}</FieldLabel>
             {helpText && (
-              <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)", marginBottom: 6, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 6, lineHeight: 1.5 }}>
                 {helpText}
               </div>
             )}

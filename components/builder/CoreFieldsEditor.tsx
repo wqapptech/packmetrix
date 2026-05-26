@@ -6,6 +6,10 @@ import type { CoreForm } from "@/lib/sections/types";
 import { SAND, tabBtn } from "./constants";
 import { FieldLabel, TextInput, TextArea } from "./primitives";
 import { PexelsPhotoSearch } from "./PexelsPhotoSearch";
+import {
+  DA_BG, DA_SURFACE, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2,
+  DA_GOLD, DA_GOLD_SOFT, DA_GREEN, DA_DANGER,
+} from "@/lib/tokens";
 
 export function CoreFieldsEditor({
   core,
@@ -36,9 +40,9 @@ export function CoreFieldsEditor({
               flex: 1, padding: "10px 16px", borderRadius: 10,
               border: core.primaryLanguage === lng
                 ? `1.5px solid ${SAND}`
-                : "1px solid rgba(255,255,255,0.1)",
-              background: core.primaryLanguage === lng ? `${SAND}18` : "rgba(255,255,255,0.03)",
-              color: core.primaryLanguage === lng ? SAND : "rgba(255,255,255,0.5)",
+                : `1px solid ${DA_RULE}`,
+              background: core.primaryLanguage === lng ? DA_GOLD_SOFT : DA_SURFACE,
+              color: core.primaryLanguage === lng ? SAND : DA_INK3,
               fontSize: 13, fontWeight: core.primaryLanguage === lng ? 700 : 400,
               cursor: "pointer", fontFamily: "inherit",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -54,7 +58,7 @@ export function CoreFieldsEditor({
         ))}
       </div>
       {core.primaryLanguage === "ar" && (
-        <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 8, background: "rgba(232,201,123,0.06)", border: "1px solid rgba(232,201,123,0.18)", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
+        <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 8, background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE2}`, fontSize: 12, color: DA_INK3 }}>
           {l ? "سيُعرض محتوى الصفحة من اليمين إلى اليسار" : "The landing page will be displayed right-to-left."}
         </div>
       )}
@@ -93,8 +97,8 @@ export function CoreFieldsEditor({
         </div>
       </div>
 
-      {/* Bilingual title */}
-      <div style={{ marginTop: 4, marginBottom: 4, padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", fontSize: 11.5, color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
+      {/* Bilingual tip box */}
+      <div style={{ marginTop: 4, marginBottom: 4, padding: "10px 12px", borderRadius: 8, background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE2}`, fontSize: 11.5, color: DA_INK3, lineHeight: 1.5 }}>
         <span style={{ color: SAND }}>✦ </span>
         {l
           ? "أدخل عنوان الباقة بالإنجليزية والعربية لدعم جميع العملاء."
@@ -156,13 +160,13 @@ export function CoreFieldsEditor({
           onChange={(e) => set("whatsapp", e.target.value)}
           placeholder="+1 234 567 8900"
           style={{
-            width: "100%", background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
-            padding: "10px 14px 10px 40px", color: "var(--white)",
+            width: "100%", background: DA_SURFACE,
+            border: `1px solid ${DA_RULE}`, borderRadius: 10,
+            padding: "10px 14px 10px 40px", color: DA_INK1,
             fontSize: 13, fontFamily: "inherit", outline: "none", transition: "border-color 0.2s",
           }}
-          onFocus={(e) => (e.target.style.borderColor = `${SAND}60`)}
-          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+          onFocus={(e) => (e.target.style.borderColor = DA_GOLD)}
+          onBlur={(e) => (e.target.style.borderColor = DA_RULE)}
         />
       </div>
 
@@ -176,13 +180,13 @@ export function CoreFieldsEditor({
           onChange={(e) => set("messenger", e.target.value)}
           placeholder="https://m.me/yourpage"
           style={{
-            width: "100%", background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
-            padding: "10px 14px 10px 40px", color: "var(--white)",
+            width: "100%", background: DA_SURFACE,
+            border: `1px solid ${DA_RULE}`, borderRadius: 10,
+            padding: "10px 14px 10px 40px", color: DA_INK1,
             fontSize: 13, fontFamily: "inherit", outline: "none", transition: "border-color 0.2s",
           }}
-          onFocus={(e) => (e.target.style.borderColor = `${SAND}60`)}
-          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+          onFocus={(e) => (e.target.style.borderColor = DA_GOLD)}
+          onBlur={(e) => (e.target.style.borderColor = DA_RULE)}
         />
       </div>
 
@@ -194,7 +198,6 @@ export function CoreFieldsEditor({
 // ─── Inline cover-image picker ─────────────────────────────────────────────────
 
 const COVER_RATIO = 16 / 9;
-const SUCCESS = "#2dd4a0";
 
 function CoverImageField({
   value,
@@ -263,46 +266,47 @@ function CoverImageField({
             <img src={value} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Icon name="check" size={13} color={SUCCESS} strokeWidth={2.5} />
-            <span style={{ fontSize: 12, color: SUCCESS, fontWeight: 600, flex: 1 }}>
+            <Icon name="check" size={13} color={DA_GREEN} strokeWidth={2.5} />
+            <span style={{ fontSize: 12, color: DA_GREEN, fontWeight: 600, flex: 1 }}>
               {l ? "تم تعيين صورة الغلاف" : "Cover image set"}
             </span>
-            <button onClick={() => onChange("")} style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+            <button onClick={() => onChange("")} style={{ fontSize: 12, color: DA_INK3, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
               {l ? "إزالة" : "Remove"}
             </button>
           </div>
         </div>
       )}
 
-      <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "4px 5px", marginBottom: 14, gap: 4 }}>
+      {/* Cover image tab bar */}
+      <div style={{ display: "inline-flex", background: DA_SURFACE, borderRadius: 99, padding: "4px 5px", marginBottom: 14, gap: 4, border: `1px solid ${DA_RULE}` }}>
         <button onClick={() => setMode("upload")} style={tabBtn(mode === "upload")}>
-          <Icon name="image" size={12} color={mode === "upload" ? "#fff" : "rgba(255,255,255,0.4)"} />
+          <Icon name="image" size={12} color={mode === "upload" ? DA_BG : DA_INK3} />
           {l ? "رفع" : "Upload"}
         </button>
         <button onClick={() => setMode("search")} style={tabBtn(mode === "search")}>
-          <Icon name="image" size={12} color={mode === "search" ? SAND : "rgba(255,255,255,0.4)"} />
-          <span style={{ color: mode === "search" ? SAND : undefined }}>{l ? "بحث في Pexels" : "Search Pexels"}</span>
+          <Icon name="image" size={12} color={mode === "search" ? SAND : DA_INK3} />
+          <span style={{ color: mode === "search" ? SAND : undefined }}>{l ? "بحث عن صور" : "Search Photos"}</span>
         </button>
       </div>
 
-      {error && <p style={{ fontSize: 12, color: "#ef9090", marginBottom: 10 }}>{error}</p>}
+      {error && <p style={{ fontSize: 12, color: DA_DANGER, marginBottom: 10 }}>{error}</p>}
 
       {mode === "upload" && (
         <label
-          style={{ display: "block", border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 14, overflow: "hidden", cursor: uploading ? "not-allowed" : "pointer", transition: "border-color 0.2s" }}
-          onMouseEnter={(e) => !uploading && (e.currentTarget.style.borderColor = `${SAND}50`)}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
+          style={{ display: "block", border: `1.5px dashed ${DA_RULE}`, borderRadius: 14, overflow: "hidden", cursor: uploading ? "not-allowed" : "pointer", transition: "border-color 0.2s" }}
+          onMouseEnter={(e) => !uploading && (e.currentTarget.style.borderColor = DA_GOLD)}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = DA_RULE)}
         >
           <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleFile} disabled={uploading} />
-          <div style={{ position: "relative", width: "100%", paddingTop: `${(1 / COVER_RATIO) * 100}%`, background: "rgba(255,255,255,0.02)" }}>
+          <div style={{ position: "relative", width: "100%", paddingTop: `${(1 / COVER_RATIO) * 100}%`, background: DA_BG }}>
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
               {uploading ? (
-                <><span className="spinner" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{l ? "جاري الرفع…" : "Uploading…"}</span></>
+                <><span className="spinner-warm" style={{ borderTopColor: SAND }} /><span style={{ fontSize: 12, color: DA_INK3 }}>{l ? "جاري الرفع…" : "Uploading…"}</span></>
               ) : (
                 <>
-                  <Icon name="image" size={28} color="rgba(255,255,255,0.15)" />
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.4)" }}>{l ? "انقر لرفع صورة الغلاف" : "Click to upload cover image"}</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)" }}>{l ? "الحد الأدنى 1200×675 — 16:9" : "Min 1200×675px — 16:9"}</div>
+                  <Icon name="image" size={28} color={DA_RULE2} />
+                  <div style={{ fontSize: 13, fontWeight: 600, color: DA_INK3 }}>{l ? "انقر لرفع صورة الغلاف" : "Click to upload cover image"}</div>
+                  <div style={{ fontSize: 11, color: DA_INK3 }}>{l ? "الحد الأدنى 1200×675 — 16:9" : "Min 1200×675px — 16:9"}</div>
                 </>
               )}
             </div>

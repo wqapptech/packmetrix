@@ -2,9 +2,10 @@
 
 import type { AnySectionInstance, CoreForm } from "@/lib/sections/types";
 import { TEMPLATES } from "@/components/templates";
+import { DA_BG, DA_SURFACE, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_GOLD, DA_GOLD_SOFT, DA_GREEN } from "@/lib/tokens";
 
-const SAND = "#e8c97b";
-const SUCCESS = "#2dd4a0";
+const SAND = DA_GOLD;
+const SUCCESS = DA_GREEN;
 
 function score(core: CoreForm, sections: AnySectionInstance[]): number {
   let s = 0;
@@ -67,18 +68,18 @@ export function MiniPreview({
 
   return (
     <div style={{
-      background: "rgba(0,0,0,0.35)",
-      border: "1px solid rgba(255,255,255,0.08)",
+      background: DA_BG,
+      border: `1px solid ${DA_RULE}`,
       borderRadius: 18,
       padding: 14,
       position: "sticky" as const,
       top: 16,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: ".7px", textTransform: "uppercase" as const }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: DA_INK3, letterSpacing: ".7px", textTransform: "uppercase" as const }}>
           {l ? "معاينة مباشرة" : "Live preview"}
         </span>
-        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.05)", borderRadius: 6, padding: "2px 8px" }}>
+        <span style={{ fontSize: 10, color: DA_INK3, background: DA_SURFACE, borderRadius: 6, padding: "2px 8px" }}>
           📱
         </span>
       </div>
@@ -149,7 +150,7 @@ export function MiniPreview({
       )}
 
       {/* Score */}
-      <div style={{ marginTop: tpl ? 6 : 10, padding: "8px 10px", background: "rgba(232,201,123,0.07)", border: "1px solid rgba(232,201,123,0.2)", borderRadius: 9, fontSize: 10.5, color: "rgba(255,255,255,0.65)", display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ marginTop: tpl ? 6 : 10, padding: "8px 10px", background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE}`, borderRadius: 9, fontSize: 10.5, color: DA_INK2, display: "flex", gap: 8, alignItems: "center" }}>
         <span style={{ color: SAND }}>✦</span>
         <span>
           <b style={{ color: scoreColor }}>{scoreLabel} {sc}/100</b>

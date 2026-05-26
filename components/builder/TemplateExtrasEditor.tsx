@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { FieldLabel, TextInput, SelectInput } from "./primitives";
 import { ImageField } from "./ImageField";
+import {
+  DA_BG, DA_SURFACE, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_GOLD, DA_DANGER,
+} from "@/lib/tokens";
 
 // ─── Type ─────────────────────────────────────────────────────────────────────
 
@@ -86,36 +90,36 @@ export function TemplateExtrasEditor({
         onClick={() => setOpen(o => !o)}
         style={{
           width: "100%", textAlign: "left",
-          background: open ? `${brand}0d` : "rgba(255,255,255,0.02)",
-          border: `1px solid ${open ? `${brand}40` : "rgba(255,255,255,0.08)"}`,
+          background: open ? DA_GOLD + "12" : DA_SURFACE,
+          border: `1px solid ${open ? DA_GOLD : DA_RULE}`,
           borderRadius: open ? "12px 12px 0 0" : 12,
           padding: "12px 14px", cursor: "pointer", fontFamily: "inherit",
           display: "flex", alignItems: "center", gap: 10,
           transition: "all 0.15s",
         }}
       >
-        <span style={{ width: 8, height: 8, borderRadius: "50%", background: anyFilled ? brand : "rgba(255,255,255,0.2)", flexShrink: 0, transition: "background 0.2s" }} />
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: open ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.55)" }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: anyFilled ? DA_GOLD : DA_RULE, flexShrink: 0, transition: "background 0.2s" }} />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: open ? DA_INK1 : DA_INK2 }}>
           {l ? "إعدادات القالب" : "Template options"}
         </span>
         {anyFilled && !open && (
-          <span style={{ fontSize: 11, color: brand, background: `${brand}18`, borderRadius: 6, padding: "2px 8px", fontWeight: 600, flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: DA_GOLD, background: DA_GOLD + "18", borderRadius: 6, padding: "2px 8px", fontWeight: 600, flexShrink: 0 }}>
             {l ? "تم التعبئة" : "Filled"}
           </span>
         )}
-        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, display: "inline-block", transition: "transform 0.15s", transform: open ? "rotate(180deg)" : "none" }}>▾</span>
+        <span style={{ color: DA_INK3, fontSize: 12, display: "inline-block", transition: "transform 0.15s", transform: open ? "rotate(180deg)" : "none" }}>▾</span>
       </button>
 
       {open && (
         <div style={{
-          border: `1px solid ${brand}25`, borderTop: "none",
+          border: `1px solid ${DA_RULE}`, borderTop: "none",
           borderRadius: "0 0 12px 12px", padding: "16px 14px 20px",
-          background: `${brand}06`,
+          background: DA_SURFACE,
         }}>
           {/* ── Travel designer (Aurora, Sakina) ───────────────────────────── */}
           {hasAgent && (
             <>
-              <div style={{ fontSize: 10, fontWeight: 700, color: brand, letterSpacing: "1.2px", textTransform: "uppercase" as const, marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: DA_GOLD, letterSpacing: "1.2px", textTransform: "uppercase" as const, marginBottom: 14 }}>
                 {l ? cfg.agentLabel.ar : cfg.agentLabel.en}
               </div>
 
@@ -149,7 +153,7 @@ export function TemplateExtrasEditor({
           {/* ── Trek stats (Compass) ────────────────────────────────────────── */}
           {hasTrek && (
             <>
-              <div style={{ fontSize: 10, fontWeight: 700, color: brand, letterSpacing: "1.2px", textTransform: "uppercase" as const, marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: DA_GOLD, letterSpacing: "1.2px", textTransform: "uppercase" as const, marginBottom: 14 }}>
                 {l ? "إحصائيات الرحلة" : "Trek stats"}
               </div>
 
@@ -183,7 +187,7 @@ export function TemplateExtrasEditor({
           {/* ── Scarcity & urgency (Pulse) ──────────────────────────────────── */}
           {hasScarcity && (
             <>
-              <div style={{ fontSize: 10, fontWeight: 700, color: brand, letterSpacing: "1.2px", textTransform: "uppercase" as const, marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: DA_GOLD, letterSpacing: "1.2px", textTransform: "uppercase" as const, marginBottom: 14 }}>
                 {l ? "الندرة والإلحاح" : "Scarcity & urgency"}
               </div>
 
@@ -209,10 +213,10 @@ export function TemplateExtrasEditor({
                 </div>
               </div>
 
-              <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: "rgba(226,73,42,0.08)", border: "1px solid rgba(226,73,42,0.2)", fontSize: 12, color: "rgba(255,255,255,0.45)", lineHeight: 1.55 }}>
+              <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: DA_DANGER + "0d", border: `1px solid ${DA_DANGER}30`, fontSize: 12, color: DA_INK2, lineHeight: 1.55 }}>
                 {l
-                  ? "⏱ يُحسب العد التنازلي تلقائياً من أول تاريخ رحلة. ويُحسب التوفير تلقائياً من السعر الأصلي مطروحاً منه السعر الحالي. المشاهدون الحاليون يُولَّدون تلقائياً."
-                  : "⏱ Countdown uses the first departure date. Saving is auto-calculated from Was price − current price. Viewer count is auto-generated."}
+                  ? "⏱ يُحسب العد التنازلي تلقائياً من أول تاريخ رحلة. ويُحسب التوفير تلقائياً من السعر الأصلي مطروحاً منه السعر الحالي. عدد المشاهدين يعكس الزوار الحاليين في الوقت الفعلي."
+                  : "⏱ Countdown uses the first departure date. Saving is auto-calculated from Was price − current price. Viewer count reflects real active visitors in real time."}
               </div>
             </>
           )}

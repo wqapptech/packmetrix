@@ -11,8 +11,14 @@ import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import posthog from "posthog-js";
+import {
+  DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GREEN, DA_GREEN_SOFT,
+  DA_DANGER, DA_DANGER_SOFT,
+} from "@/lib/tokens";
 
-const SAND = "#e8c97b";
+const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
+const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
 type Lead = {
   id: string;
@@ -35,11 +41,11 @@ function HeatDots({ level, hot, warm, cool }: { level: number; hot: string; warm
         {[1, 2, 3, 4, 5].map(n => (
           <span key={n} style={{
             display: "inline-block", width: 5, height: 5, borderRadius: "50%",
-            background: n <= level ? SAND : "rgba(255,255,255,0.1)",
+            background: n <= level ? DA_GOLD : DA_RULE2,
           }} />
         ))}
       </div>
-      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{label}</div>
+      <div style={{ fontSize: 10, color: DA_INK3, marginTop: 3 }}>{label}</div>
     </div>
   );
 }
@@ -47,15 +53,20 @@ function HeatDots({ level, hot, warm, cool }: { level: number; hot: string; warm
 // ── Status pill ───────────────────────────────────────────────────────────────
 
 function StatusPill({ status, label }: { status: string; label: string }) {
-  const styles: Record<string, { bg: string; color: string }> = {
-    new:       { bg: "rgba(100,149,237,0.13)", color: "#7eb3f5" },
-    contacted: { bg: "rgba(245,166,35,0.13)",  color: "#f5b34a" },
-    booked:    { bg: "rgba(45,212,160,0.13)",  color: "#54e0b5" },
-    lost:      { bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" },
+  const styles: Record<string, { bg: string; color: string; border?: string }> = {
+    new:       { bg: DA_GOLD_SOFT, color: DA_GOLD },
+    contacted: { bg: DA_SURFACE, color: DA_INK2, border: `1px solid ${DA_RULE2}` },
+    booked:    { bg: DA_GREEN_SOFT, color: DA_GREEN },
+    lost:      { bg: DA_SURFACE, color: DA_INK3 },
   };
   const m = styles[status] || styles.new;
   return (
-    <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", background: m.bg, color: m.color }}>
+    <span style={{
+      padding: "3px 10px", borderRadius: 99, fontSize: 10.5, fontWeight: 700,
+      textTransform: "uppercase", letterSpacing: ".5px",
+      background: m.bg, color: m.color,
+      border: m.border || "none",
+    }}>
       {label}
     </span>
   );
@@ -79,28 +90,41 @@ function TripPortalTeaser({ userId, leadId, t }: { userId: string | null; leadId
   };
 
   return (
-    <div style={{ marginTop: 16, padding: "14px 16px", borderRadius: 12, background: "rgba(232,201,123,0.06)", border: "1px dashed rgba(232,201,123,0.25)" }}>
+    <div style={{ marginTop: 16, padding: "14px 16px", borderRadius: 12, background: DA_GOLD_SOFT, border: `1px dashed ${DA_RULE2}` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: SAND }}>{t.tripPortalTitle}</div>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", color: "rgba(232,201,123,0.6)", background: "rgba(232,201,123,0.1)", border: "1px solid rgba(232,201,123,0.2)", borderRadius: 99, padding: "2px 8px", flexShrink: 0 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: DA_GOLD, fontFamily: DISPLAY }}>{t.tripPortalTitle}</div>
+        <span style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase",
+          color: DA_GOLD, background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+          borderRadius: 99, padding: "2px 8px", flexShrink: 0,
+        }}>
           {t.tripPortalComingSoon}
         </span>
       </div>
-      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.55, marginBottom: 12 }}>
+      <div style={{ fontSize: 12, color: DA_INK3, lineHeight: 1.55, marginBottom: 12 }}>
         {t.tripPortalDesc}
       </div>
       <button
         disabled
-        style={{ width: "100%", padding: "9px", borderRadius: 9, background: "rgba(232,201,123,0.06)", border: "1px solid rgba(232,201,123,0.15)", color: "rgba(232,201,123,0.35)", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", cursor: "not-allowed", marginBottom: 8 }}
+        style={{
+          width: "100%", padding: "9px", borderRadius: 9,
+          background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+          color: DA_INK3, fontSize: 12.5, fontWeight: 700,
+          fontFamily: "inherit", cursor: "not-allowed", marginBottom: 8,
+        }}
       >
         🔒 Generate Trip Portal
       </button>
       {requested ? (
-        <div style={{ textAlign: "center", fontSize: 12, color: "#54e0b5", fontWeight: 600 }}>{t.tripPortalRequested}</div>
+        <div style={{ textAlign: "center", fontSize: 12, color: DA_GREEN, fontWeight: 600 }}>{t.tripPortalRequested}</div>
       ) : (
         <button
           onClick={handleWantFaster}
-          style={{ width: "100%", padding: "7px", borderRadius: 9, background: "none", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)", fontSize: 11.5, fontFamily: "inherit", cursor: "pointer" }}
+          style={{
+            width: "100%", padding: "7px", borderRadius: 9,
+            background: "none", border: `1px solid ${DA_RULE}`,
+            color: DA_INK3, fontSize: 11.5, fontFamily: "inherit", cursor: "pointer",
+          }}
         >
           {t.tripPortalWantFaster}
         </button>
@@ -120,15 +144,23 @@ function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: 
   const statusLabel = t[`status${lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}` as keyof typeof t] as string || lead.status;
 
   return (
-    <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", position: "sticky", top: 16, alignSelf: "start" }}>
+    <div style={{
+      background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
+      borderRadius: 14, padding: "20px 22px",
+      position: "sticky", top: 16, alignSelf: "start",
+    }}>
       {/* Header */}
       <div style={{ display: "flex", gap: 14, marginBottom: 18, alignItems: "center" }}>
-        <div style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff" }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
+          background: avatarColor, display: "flex", alignItems: "center",
+          justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#fff",
+        }}>
           {initials}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>{lead.destination}</div>
-          <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: DA_INK1 }}>{lead.destination}</div>
+          <div style={{ fontSize: 11.5, color: DA_INK3 }}>
             {lead.price} · {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}
           </div>
         </div>
@@ -137,12 +169,14 @@ function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: 
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-        <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px" }}>{t.engagementCol}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: heat >= 4 ? "#54e0b5" : SAND, marginTop: 3 }}>{heat}/5 · {heat >= 4 ? t.heatHot : heat >= 3 ? t.heatWarm : t.heatCool}</div>
+        <div style={{ padding: "10px 12px", background: DA_BG, border: `1px solid ${DA_RULE}`, borderRadius: 8 }}>
+          <div style={{ fontSize: 10, color: DA_INK3, textTransform: "uppercase", letterSpacing: ".5px" }}>{t.engagementCol}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: heat >= 4 ? DA_GREEN : DA_GOLD, marginTop: 3 }}>
+            {heat}/5 · {heat >= 4 ? t.heatHot : heat >= 3 ? t.heatWarm : t.heatCool}
+          </div>
         </div>
-        <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px" }}>{t.channelCol}</div>
+        <div style={{ padding: "10px 12px", background: DA_BG, border: `1px solid ${DA_RULE}`, borderRadius: 8 }}>
+          <div style={{ fontSize: 10, color: DA_INK3, textTransform: "uppercase", letterSpacing: ".5px" }}>{t.channelCol}</div>
           <div style={{ fontSize: 14, fontWeight: 700, marginTop: 3, color: channelColor }}>
             {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}
           </div>
@@ -150,28 +184,31 @@ function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: 
       </div>
 
       {/* Activity */}
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>{t.activityTitle}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: DA_INK1 }}>{t.activityTitle}</div>
       {[
         { title: t.actLeadCreated, sub: `${lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"} CTA`, time: new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), c: channelColor },
-        { title: t.actViewedPricing, sub: t.actScrolledPricing, time: t.actDuringVisit, c: SAND },
+        { title: t.actViewedPricing, sub: t.actScrolledPricing, time: t.actDuringVisit, c: DA_GOLD },
         { title: t.actLandedOnPage, sub: `${lead.destination}`, time: t.actSessionStart, c: "#1f5f8e" },
       ].map((a, i) => (
-        <div key={i} style={{ display: "flex", gap: 11, paddingBottom: 12, marginBottom: 12, borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+        <div key={i} style={{ display: "flex", gap: 11, paddingBottom: 12, marginBottom: 12, borderBottom: i < 2 ? `1px solid ${DA_RULE}` : "none" }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: a.c, marginTop: 6, flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600 }}>{a.title}</div>
-            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 2, lineHeight: 1.4 }}>{a.sub}</div>
-            <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>{a.time}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: DA_INK1 }}>{a.title}</div>
+            <div style={{ fontSize: 11.5, color: DA_INK2, marginTop: 2, lineHeight: 1.4 }}>{a.sub}</div>
+            <div style={{ fontSize: 10.5, color: DA_INK3, marginTop: 3 }}>{a.time}</div>
           </div>
         </div>
       ))}
 
       {/* Session ref */}
       {lead.sessionId && (
-        <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".5px" }}>{t.waRefLabel}</span>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(255,255,255,0.65)", fontFamily: "monospace" }}>{lead.sessionId.slice(0, 8)}</span>
-          <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.3)", marginLeft: "auto" }}>{t.searchInWhatsApp}</span>
+        <div style={{
+          padding: "8px 12px", background: DA_BG, border: `1px solid ${DA_RULE}`,
+          borderRadius: 8, marginBottom: 14, display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span style={{ fontSize: 10, color: DA_INK3, textTransform: "uppercase", letterSpacing: ".5px" }}>{t.waRefLabel}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: DA_INK2, fontFamily: "monospace" }}>{lead.sessionId.slice(0, 8)}</span>
+          <span style={{ fontSize: 10.5, color: DA_INK3, marginLeft: "auto" }}>{t.searchInWhatsApp}</span>
         </div>
       )}
 
@@ -181,7 +218,12 @@ function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: 
           href="https://web.whatsapp.com/"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ flex: 1, minWidth: 110, padding: "10px", borderRadius: 9, background: "#25d366", color: "#fff", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer", textDecoration: "none", textAlign: "center", display: "block" }}
+          style={{
+            flex: 1, minWidth: 110, padding: "10px", borderRadius: 9,
+            background: "#25d366", color: "#fff", border: "none",
+            fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+            textDecoration: "none", textAlign: "center", display: "block",
+          }}
         >
           {t.openWhatsAppBtn}
         </a>
@@ -190,7 +232,12 @@ function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: 
         {lead.status !== "contacted" && lead.status !== "booked" && (
           <button
             onClick={() => onStatusChange(lead.id, "contacted")}
-            style={{ flex: 1, padding: "9px 12px", borderRadius: 9, background: "rgba(245,179,74,0.1)", border: "1px solid rgba(245,179,74,0.25)", color: "#f5b34a", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+            style={{
+              flex: 1, padding: "9px 12px", borderRadius: 9,
+              background: DA_GOLD_SOFT, border: `1px solid ${DA_GOLD}`,
+              color: DA_GOLD, fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
           >
             {t.markContactedBtn}
           </button>
@@ -198,7 +245,12 @@ function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: 
         {lead.status !== "booked" && (
           <button
             onClick={() => onStatusChange(lead.id, "booked")}
-            style={{ flex: 1, padding: "9px 12px", borderRadius: 9, background: "rgba(84,224,181,0.1)", border: "1px solid rgba(84,224,181,0.25)", color: "#54e0b5", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+            style={{
+              flex: 1, padding: "9px 12px", borderRadius: 9,
+              background: DA_GREEN_SOFT, border: `1px solid ${DA_GREEN}`,
+              color: DA_GREEN, fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
           >
             {t.markBookedBtn}
           </button>
@@ -206,7 +258,12 @@ function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: 
         {lead.status !== "lost" && lead.status !== "booked" && (
           <button
             onClick={() => onStatusChange(lead.id, "lost")}
-            style={{ flex: 1, padding: "9px 12px", borderRadius: 9, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+            style={{
+              flex: 1, padding: "9px 12px", borderRadius: 9,
+              background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+              color: DA_INK3, fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
           >
             {t.markLostBtn}
           </button>
@@ -214,7 +271,12 @@ function DetailPanel({ lead, userId, onStatusChange, t }: { lead: Lead; userId: 
         {(lead.status === "booked" || lead.status === "lost") && (
           <button
             onClick={() => onStatusChange(lead.id, "new")}
-            style={{ flex: 1, padding: "9px 12px", borderRadius: 9, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+            style={{
+              flex: 1, padding: "9px 12px", borderRadius: 9,
+              background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+              color: DA_INK3, fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
           >
             {t.reopenBtn}
           </button>
@@ -308,7 +370,7 @@ export default function LeadsPage() {
     return (
       <AppLayout>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span className="spinner" />
+          <span className="spinner-warm" />
         </div>
       </AppLayout>
     );
@@ -321,49 +383,68 @@ export default function LeadsPage() {
         {/* Page head */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>{t.leadsPageTitle}</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
+            <div style={{ fontSize: 26, fontWeight: 400, color: DA_INK1, fontFamily: DISPLAY }}>{t.leadsPageTitle}</div>
+            <div style={{ fontSize: 13, color: DA_INK3, marginTop: 4, fontFamily: SANS }}>
               {leads.length} {leads.length !== 1 ? t.activeConversations : t.activeConversation}
               {leads.length > 0 && ` · ${t.updatedJustNow}`}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={exportCsv} style={{ padding: "7px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.65)", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer" }}>
+            <button
+              onClick={exportCsv}
+              style={{
+                padding: "7px 12px", borderRadius: 8,
+                background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+                color: DA_INK2, fontSize: 12.5, fontFamily: "inherit", cursor: "pointer",
+              }}
+            >
               {t.exportCsv}
             </button>
           </div>
         </div>
 
         {/* Status tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: `1px solid ${DA_RULE}` }}>
           {tabs.map(tab => (
-            <button key={tab.k} onClick={() => setActiveTab(tab.k)} style={{
-              padding: "10px 16px", border: "none", background: "none",
-              color: activeTab === tab.k ? SAND : "rgba(255,255,255,0.5)",
-              fontSize: 13, fontWeight: activeTab === tab.k ? 700 : 500,
-              cursor: "pointer", fontFamily: "inherit",
-              borderBottom: activeTab === tab.k ? `2px solid ${SAND}` : "2px solid transparent",
-              marginBottom: -1, transition: "all .15s",
-            }}>
-              {statusLabel(tab.k)} <span style={{ marginLeft: 5, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{tab.count}</span>
+            <button
+              key={tab.k}
+              onClick={() => setActiveTab(tab.k)}
+              style={{
+                padding: "10px 16px", border: "none", background: "none",
+                color: activeTab === tab.k ? DA_GOLD : DA_INK3,
+                fontSize: 13, fontWeight: activeTab === tab.k ? 600 : 500,
+                cursor: "pointer", fontFamily: "inherit",
+                borderBottom: activeTab === tab.k ? `2px solid ${DA_GOLD}` : "2px solid transparent",
+                marginBottom: -1, transition: "all .15s",
+              }}
+            >
+              {statusLabel(tab.k)} <span style={{ marginLeft: 5, fontSize: 11, color: DA_INK3 }}>{tab.count}</span>
             </button>
           ))}
         </div>
 
         {leads.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: 12 }}>
-            <Icon name="users" size={40} color="rgba(255,255,255,0.08)" strokeWidth={1} />
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.3)" }}>{t.noLeadsYet}</p>
-            <p style={{ fontSize: 12, maxWidth: 280, textAlign: "center", color: "rgba(255,255,255,0.25)" }}>
+            <Icon name="users" size={32} color={DA_RULE2} strokeWidth={1.5} />
+            <p style={{ fontSize: 14, color: DA_INK3 }}>{t.noLeadsYet}</p>
+            <p style={{ fontSize: 12, maxWidth: 280, textAlign: "center", color: DA_INK3 }}>
               {t.leadsAppearNote}
             </p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.6fr 1fr", gap: 18 }}>
             {/* Lead list */}
-            <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{
+              background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
+              borderRadius: 14, overflow: "hidden",
+            }}>
               {/* Column headers */}
-              <div style={{ padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", fontSize: 10.5, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: ".5px", gap: 14 }}>
+              <div style={{
+                padding: "12px 20px", borderBottom: `1px solid ${DA_RULE}`,
+                display: "flex", fontSize: 10.5, fontWeight: 700,
+                color: DA_INK3, textTransform: "uppercase", letterSpacing: ".5px", gap: 14,
+                background: DA_BG,
+              }}>
                 <div style={{ width: 38 }} />
                 <div style={{ flex: 2 }}>{t.colLead}</div>
                 <div style={{ flex: 1.4 }}>{t.colPackage}</div>
@@ -373,7 +454,7 @@ export default function LeadsPage() {
               </div>
 
               {filtered.length === 0 ? (
-                <div style={{ padding: "32px 0", textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.3)" }}>
+                <div style={{ padding: "32px 0", textAlign: "center", fontSize: 13, color: DA_INK3 }}>
                   {statusLabel(activeTab)} — {t.noLeadsYet.toLowerCase()}
                 </div>
               ) : filtered.map(lead => {
@@ -390,24 +471,28 @@ export default function LeadsPage() {
                     onClick={() => setSelected(lead)}
                     style={{
                       display: "flex", alignItems: "center", gap: 14, padding: "14px 20px",
-                      borderBottom: "1px solid rgba(255,255,255,0.05)",
+                      borderBottom: `1px solid ${DA_RULE}`,
                       cursor: "pointer",
-                      background: isSelected ? "rgba(232,201,123,0.06)" : "transparent",
+                      background: isSelected ? DA_GOLD_SOFT : "transparent",
                       transition: "background .15s",
-                      borderLeft: lang === "ar" ? undefined : isSelected ? `2px solid ${SAND}` : "2px solid transparent",
-                      borderRight: lang === "ar" ? isSelected ? `2px solid ${SAND}` : "2px solid transparent" : undefined,
+                      borderLeft: lang === "ar" ? undefined : isSelected ? `2px solid ${DA_GOLD}` : "2px solid transparent",
+                      borderRight: lang === "ar" ? isSelected ? `2px solid ${DA_GOLD}` : "2px solid transparent" : undefined,
                     }}
-                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = DA_BG; }}
                     onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
                   >
-                    <div style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0, background: avatarColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>
+                    <div style={{
+                      width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
+                      background: avatarColor, display: "flex", alignItems: "center",
+                      justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff",
+                    }}>
                       {initials}
                     </div>
                     <div style={{ flex: 2, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.destination}</div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{t.viaChannel} {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: DA_INK1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.destination}</div>
+                      <div style={{ fontSize: 11, color: DA_INK3 }}>{t.viaChannel} {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}</div>
                     </div>
-                    <div style={{ flex: 1.4, fontSize: 12, color: "rgba(255,255,255,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ flex: 1.4, fontSize: 12, color: DA_INK2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {lead.price || lead.destination}
                     </div>
                     <div style={{ width: 70 }}>
@@ -416,7 +501,7 @@ export default function LeadsPage() {
                     <div style={{ width: 80 }}>
                       <StatusPill status={lead.status} label={sLabel} />
                     </div>
-                    <div style={{ width: 60, textAlign: lang === "ar" ? "left" : "right", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                    <div style={{ width: 60, textAlign: lang === "ar" ? "left" : "right", fontSize: 11, color: DA_INK3 }}>
                       {new Date(lead.createdAt).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short" })}
                     </div>
                   </div>
@@ -428,8 +513,12 @@ export default function LeadsPage() {
             {selected ? (
               <DetailPanel lead={selected} userId={userId} onStatusChange={updateStatus} t={t} />
             ) : (
-              <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>{t.selectLeadNote}</p>
+              <div style={{
+                background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
+                borderRadius: 14, padding: "20px 22px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <p style={{ fontSize: 13, color: DA_INK3 }}>{t.selectLeadNote}</p>
               </div>
             )}
           </div>

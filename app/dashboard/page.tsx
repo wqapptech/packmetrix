@@ -3,17 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, where, orderBy } from "firebase/firestore";
+import {
+  collection, doc, getDoc, getDocs, query, where, orderBy,
+} from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
+import {
+  DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT,
+  DA_GREEN, DA_GREEN_SOFT, DA_DANGER, DA_DANGER_SOFT,
+} from "@/lib/tokens";
 
-const SAND = "#e8c97b";
-const TEAL = "#4ecdc4";
-const SUCCESS = "#2dd4a0";
+const SANS    = `var(--font-inter-tight), system-ui, sans-serif`;
+const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
+const MONO    = `var(--font-jetbrains-mono), monospace`;
 
 type Package = {
   id: string;
@@ -29,10 +36,6 @@ type Package = {
   isActive?: boolean;
 };
 
-function slugify(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
-}
-
 type Lead = {
   id: string;
   destination: string;
@@ -42,70 +45,183 @@ type Lead = {
   createdAt: number;
 };
 
-// ── Sparkline SVG ─────────────────────────────────────────────────────────────
+type OnboardingState = "starting" | "branding-done" | "package-drafted";
 
-function Sparkline({ color }: { color: string }) {
-  const pts = [3, 5, 4, 6, 5, 8, 7, 9, 8, 11, 10, 12];
-  const max = Math.max(...pts);
-  const path = pts.map((v, idx) => `${idx * 4},${20 - (v / max) * 16}`).join(" ");
-  return (
-    <svg width="50" height="22" viewBox="0 0 48 22" style={{ position: "absolute", right: 10, top: 10, opacity: 0.5 }}>
-      <polyline points={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-// ── KPI card ──────────────────────────────────────────────────────────────────
+// ── Onboarding stepper ─────────────────────────────────────────────────────────
 
-function KpiCard({ label, value, delta, trend, sparkColor }: {
-  label: string; value: string; delta?: string; trend?: "up" | "down" | "flat"; sparkColor?: string;
+function OnboardingStepper({
+  state, lang, onBranding, onBuild, onPublish,
+}: {
+  state: OnboardingState;
+  lang: "en" | "ar";
+  onBranding: () => void;
+  onBuild: () => void;
+  onPublish: () => void;
 }) {
-  const deltaBg = trend === "up" ? "rgba(45,212,160,0.13)" : trend === "down" ? "rgba(239,68,68,0.13)" : "rgba(255,255,255,0.06)";
-  const deltaColor = trend === "up" ? "#54e0b5" : trend === "down" ? "#f08080" : "rgba(255,255,255,0.45)";
-  const arrow = trend === "up" ? "▲" : trend === "down" ? "▼" : "—";
+  const t = T[lang];
+  const isAr = lang === "ar";
+
+  const completed = state === "starting" ? 0 : state === "branding-done" ? 1 : 2;
+
+  const steps = [
+    { label: t.onboardingStep1Label, desc: t.onboardingStep1Desc, cta: t.onboardingStep1Cta, time: t.onboardingStep1Time, action: onBranding },
+    { label: t.onboardingStep2Label, desc: t.onboardingStep2Desc, cta: t.onboardingStep2Cta, time: t.onboardingStep2Time, action: onBuild },
+    { label: t.onboardingStep3Label, desc: t.onboardingStep3Desc, cta: t.onboardingStep3Cta, time: t.onboardingStep3Time, action: onPublish },
+  ];
+
   return (
     <div style={{
-      background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: 13, padding: "16px 16px 14px", position: "relative", overflow: "hidden",
+      background: DA_SURFACE,
+      border: `1px solid ${DA_RULE}`,
+      borderRadius: 16,
+      overflow: "hidden",
     }}>
-      {sparkColor && <Sparkline color={sparkColor} />}
-      <div style={{ fontSize: 10.5, fontWeight: 600, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: ".6px" }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.6px", lineHeight: 1.05, marginTop: 6, color: "#fdfcf9" }}>
-        {value}
-      </div>
-      {delta && (
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 11, marginTop: 6, padding: "2px 7px", borderRadius: 99,
-          background: deltaBg, color: deltaColor,
-        }}>
-          {arrow} {delta}
+      {/* Header band */}
+      <div style={{
+        padding: "24px 28px",
+        background: DA_GOLD_SOFT,
+        borderBottom: `1px solid ${DA_RULE}`,
+        display: "flex", alignItems: "flex-end",
+        justifyContent: "space-between",
+        gap: 24, flexWrap: "wrap",
+      }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: SANS, fontSize: 10.5, fontWeight: 600,
+            letterSpacing: 1.5, textTransform: "uppercase", color: DA_GOLD_DEEP,
+          }}>
+            {t.onboardingEyebrow}
+          </div>
+          <div style={{
+            fontFamily: DISPLAY, fontSize: 30, fontWeight: 400,
+            color: DA_INK1, marginTop: 10, letterSpacing: -0.5, lineHeight: 1.15,
+          }}>
+            {t.onboardingTitle}
+          </div>
+          <div style={{
+            fontFamily: SANS, fontSize: 13.5, color: DA_INK2,
+            marginTop: 8, maxWidth: 520, lineHeight: 1.55,
+          }}>
+            {t.onboardingSub}
+          </div>
         </div>
-      )}
-    </div>
-  );
-}
+        <div style={{ textAlign: isAr ? "left" : "right" }}>
+          <div style={{
+            fontFamily: MONO, fontSize: 11, color: DA_GOLD_DEEP,
+            letterSpacing: -0.2, marginBottom: 8,
+          }}>
+            {completed} {t.onboardingProgressOf} {steps.length} {t.onboardingProgressDone}
+          </div>
+          <div style={{ display: "flex", gap: 4, justifyContent: isAr ? "flex-start" : "flex-end" }}>
+            {steps.map((_, i) => (
+              <div key={i} style={{
+                width: 44, height: 4, borderRadius: 2,
+                background: i < completed ? DA_GOLD : "rgba(176,138,62,.25)",
+                opacity: i === completed && i >= completed ? 0.55 : 1,
+              }} />
+            ))}
+          </div>
+        </div>
+      </div>
 
-// ── Per-package bar chart ──────────────────────────────────────────────────────
-
-function PackageBars({ packages }: { packages: Package[] }) {
-  const top = [...packages].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 7);
-  const peak = Math.max(...top.map(p => p.views || 0), 1);
-
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(top.length, 1)},1fr)`, gap: 14, height: 140, alignItems: "end", paddingTop: 8 }}>
-      {top.map((pkg) => {
-        const clicks = (pkg.whatsappClicks || 0) + (pkg.messengerClicks || 0);
-        const label = pkg.destination.split(/[\s,]/)[0].slice(0, 7);
+      {/* Step rows */}
+      {steps.map((step, i) => {
+        const isDone    = i < completed;
+        const isCurrent = i === completed;
+        const isLocked  = i > completed;
         return (
-          <div key={pkg.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 120 }}>
-              <div style={{ width: 8, borderRadius: 3, background: `linear-gradient(180deg, ${SAND}, ${SAND}60)`, height: `${Math.max(((pkg.views || 0) / peak) * 100, 2)}%` }} />
-              <div style={{ width: 8, borderRadius: 3, background: `linear-gradient(180deg, ${TEAL}, ${TEAL}60)`, height: `${Math.min(Math.max((clicks / peak) * 100 * 4, clicks > 0 ? 4 : 0), 100)}%` }} />
+          <div key={i} style={{
+            display: "flex", alignItems: "flex-start", gap: 18,
+            padding: isCurrent ? "22px 28px" : "18px 28px",
+            borderBottom: i < steps.length - 1 ? `1px solid ${DA_RULE}` : "none",
+            background: isCurrent ? DA_SURFACE : "transparent",
+          }}>
+            {/* Circle */}
+            <div style={{
+              width: 32, height: 32, borderRadius: "50%",
+              flexShrink: 0,
+              background: isDone ? DA_GREEN : isCurrent ? DA_GOLD : DA_BG,
+              border: isLocked ? `1px dashed ${DA_RULE2}` : "none",
+              color: isDone || isCurrent ? "#fff" : DA_INK3,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: SANS, fontSize: 13, fontWeight: 600,
+            }}>
+              {isDone ? <Icon name="check" size={16} color="#fff" strokeWidth={2.5} /> : i + 1}
             </div>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "100%" }}>{label}</span>
+
+            {/* Body */}
+            <div style={{ flex: 1, minWidth: 0, opacity: isLocked ? 0.55 : 1 }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10,
+                flexWrap: "wrap", marginBottom: 4,
+              }}>
+                <div style={{
+                  fontFamily: SANS, fontSize: 15, fontWeight: 600, color: DA_INK1,
+                }}>
+                  {step.label}
+                </div>
+                <span style={{
+                  fontFamily: MONO, fontSize: 10.5, color: DA_INK3, letterSpacing: -0.2,
+                  padding: "1px 7px", borderRadius: 4, background: DA_BG,
+                }}>
+                  {step.time}
+                </span>
+              </div>
+              {isCurrent && (
+                <div style={{
+                  fontFamily: SANS, fontSize: 13.5, color: DA_INK2,
+                  lineHeight: 1.55, maxWidth: 540, marginBottom: 14,
+                }}>
+                  {step.desc}
+                </div>
+              )}
+              {isCurrent && (
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <button
+                    onClick={step.action}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 7,
+                      padding: "9px 18px", borderRadius: 9,
+                      background: DA_GOLD, color: "#fff",
+                      fontFamily: SANS, fontWeight: 600, fontSize: 13,
+                      border: "none", cursor: "pointer",
+                    }}
+                  >
+                    {step.cta}
+                    <Icon name="arrow_right" size={14} color="#fff" strokeWidth={2} />
+                  </button>
+                  <button style={{
+                    padding: "9px 14px", borderRadius: 9,
+                    background: "none", border: `1px solid ${DA_RULE2}`,
+                    color: DA_INK3, fontFamily: SANS, fontSize: 13, cursor: "pointer",
+                  }}>
+                    {t.onboardingSkipForNow}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Done chip */}
+            {isDone && (
+              <div style={{
+                fontFamily: SANS, fontSize: 11.5, color: DA_GREEN,
+                fontWeight: 500, display: "flex", alignItems: "center",
+                gap: 5, paddingTop: 6, flexShrink: 0,
+              }}>
+                <Icon name="check" size={12} color={DA_GREEN} strokeWidth={2.5} />
+                {t.onboardingStepDone}
+              </div>
+            )}
           </div>
         );
       })}
@@ -113,167 +229,192 @@ function PackageBars({ packages }: { packages: Package[] }) {
   );
 }
 
-// ── Funnel ────────────────────────────────────────────────────────────────────
+// ── Stat tile ──────────────────────────────────────────────────────────────────
 
-function FunnelRow({ label, value, pct, color, tail }: {
-  label: string; value: string; pct: number; color: string; tail?: string;
+function StatTile({
+  eyebrow, value, sub, trend, ghosted = false,
+}: {
+  eyebrow: string;
+  value: string;
+  sub: string;
+  trend?: string;
+  ghosted?: boolean;
 }) {
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 12 }}>
-        <span style={{ color: "rgba(255,255,255,0.65)" }}>
-          {label}{tail && <em style={{ fontStyle: "normal", color: "rgba(255,255,255,0.35)", fontSize: 11, marginLeft: 6 }}> · {tail}</em>}
-        </span>
-        <b style={{ color: "#fff" }}>{value} <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 500, fontSize: 11, marginLeft: 4 }}>{Number.isInteger(pct) ? pct : pct.toFixed(1)}%</span></b>
+    <div style={{
+      background: ghosted ? "transparent" : DA_SURFACE,
+      border: `1px solid ${DA_RULE}`,
+      borderStyle: ghosted ? "dashed" : "solid",
+      borderRadius: 12,
+      padding: 20,
+      opacity: ghosted ? 0.65 : 1,
+    }}>
+      <div style={{
+        fontFamily: SANS, fontSize: 10.5, fontWeight: 600,
+        letterSpacing: 1.2, textTransform: "uppercase", color: DA_INK3,
+      }}>
+        {eyebrow}
       </div>
-      <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: color, borderRadius: 99, transition: "width .8s" }} />
+      <div style={{
+        fontFamily: DISPLAY, fontSize: 40, fontWeight: 400,
+        color: ghosted ? DA_INK3 : DA_INK1,
+        marginTop: 10, letterSpacing: -1, lineHeight: 1,
+      }}>
+        {value}
+      </div>
+      <div style={{
+        marginTop: 8, display: "flex", alignItems: "center", gap: 6,
+        fontSize: 12, color: DA_INK2,
+      }}>
+        {trend && (
+          <span style={{ color: DA_GREEN, fontFamily: MONO, fontSize: 11, letterSpacing: -0.2 }}>
+            {trend}
+          </span>
+        )}
+        <span>{sub}</span>
       </div>
     </div>
   );
 }
 
-// ── Package row ───────────────────────────────────────────────────────────────
+// ── Package row ────────────────────────────────────────────────────────────────
 
-function PackageRow({ pkg, lang, isMobile, onView, onEdit, onDelete, isLast }: {
-  pkg: Package; lang: "en" | "ar"; isMobile?: boolean; onView: () => void; onEdit: () => void; onDelete: () => Promise<void>; isLast: boolean;
+function PackageRow({
+  pkg, lang, isMobile, onView, onEdit, onDelete, isLast,
+}: {
+  pkg: Package;
+  lang: "en" | "ar";
+  isMobile?: boolean;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => Promise<void>;
+  isLast: boolean;
 }) {
   const t = T[lang];
   const [confirming, setConfirming] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deleting,   setDeleting]   = useState(false);
 
-  const clicks = (pkg.whatsappClicks || 0) + (pkg.messengerClicks || 0);
-  const conv = (pkg.views || 0) > 0 ? ((clicks / pkg.views) * 100) : 0;
-  const convStr = (Number.isInteger(conv) ? conv.toFixed(0) : conv.toFixed(1)) + "%";
-  const convColor = conv >= 2 ? SUCCESS : conv >= 1 ? SAND : "rgba(255,255,255,0.7)";
-  const thumbUrl = pkg.coverImage || pkg.images?.[0];
+  const isLive    = pkg.isActive !== false && !!pkg.agencySlug;
+  const thumbUrl  = pkg.coverImage || pkg.images?.[0];
+  const clicks    = (pkg.whatsappClicks || 0) + (pkg.messengerClicks || 0);
+  const conv      = (pkg.views || 0) > 0 ? ((clicks / pkg.views) * 100) : 0;
+  const convStr   = conv.toFixed(1) + "%";
+
   const dotColors = ["#c9713a", "#2d7a4e", "#2563a8", "#7c3aed", "#0f766e"];
-  const dotColor = dotColors[Math.abs(pkg.id.charCodeAt(0)) % dotColors.length];
-
-  const borderBottom = isLast ? "none" : "1px solid rgba(255,255,255,0.05)";
-
-  const statusBadge = pkg.agencySlug ? (
-    <span style={{
-      padding: "1px 6px", borderRadius: 99, fontSize: 9, fontWeight: 700,
-      textTransform: "uppercase", letterSpacing: ".4px",
-      background: pkg.isActive !== false ? "rgba(45,212,160,0.12)" : "rgba(200,100,40,0.15)",
-      color: pkg.isActive !== false ? "#2dd4a0" : "#e0843a",
-    }}>
-      {pkg.isActive !== false ? "● Live" : "○ Inactive"}
-    </span>
-  ) : null;
-
-  if (isMobile) {
-    return (
-      <div style={{ padding: "12px 14px", borderBottom }}>
-        {/* Top row: thumb · name · action buttons */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 9, flexShrink: 0,
-            background: thumbUrl ? `url("${thumbUrl}") center/cover` : dotColor,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            overflow: "hidden", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",
-          }}>
-            {!thumbUrl && <Icon name="map" size={14} color="rgba(255,255,255,0.7)" />}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pkg.destination}</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
-              {pkg.price}{statusBadge}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-            <button onClick={onView} title={t.viewBtn} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
-              <Icon name="eye" size={12} />
-            </button>
-            <button onClick={onEdit} title={t.editBtn} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
-              <Icon name="edit" size={12} />
-            </button>
-          </div>
-        </div>
-        {/* Stats row */}
-        <div style={{ display: "flex", marginTop: 10, paddingLeft: 54 }}>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>{(pkg.views || 0).toLocaleString()}</div>
-            <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px", marginTop: 1 }}>{t.statViews}</div>
-          </div>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>{clicks}</div>
-            <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px", marginTop: 1 }}>{t.statLeads}</div>
-          </div>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: convColor }}>{convStr}</div>
-            <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px", marginTop: 1 }}>{t.statConversion}</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const dotColor  = dotColors[Math.abs(pkg.id.charCodeAt(0)) % dotColors.length];
 
   return (
-    <div className="pkg-row"
-      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
-      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-      style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 22px", borderBottom, transition: "background .15s" }}
+    <div
+      onMouseEnter={e => !isMobile && (e.currentTarget.style.background = DA_BG)}
+      onMouseLeave={e => !isMobile && (e.currentTarget.style.background = "transparent")}
+      style={{
+        display: "flex", alignItems: "center", gap: 14,
+        padding: isMobile ? "12px 16px" : "14px 22px",
+        borderBottom: isLast ? "none" : `1px solid ${DA_RULE}`,
+        transition: "background .12s",
+      }}
     >
-      {/* Thumb */}
+      {/* Thumbnail */}
       <div style={{
-        width: 54, height: 54, borderRadius: 10, flexShrink: 0,
+        width: isMobile ? 44 : 56,
+        height: isMobile ? 44 : 56,
+        borderRadius: 9, flexShrink: 0,
         background: thumbUrl ? `url("${thumbUrl}") center/cover` : dotColor,
         display: "flex", alignItems: "center", justifyContent: "center",
-        position: "relative", overflow: "hidden",
-        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",
+        overflow: "hidden",
+        border: `1px solid ${DA_RULE}`,
       }}>
-        {!thumbUrl && <Icon name="map" size={16} color="rgba(255,255,255,0.7)" />}
+        {!thumbUrl && (
+          <Icon name="map" size={isMobile ? 14 : 16} color="rgba(255,255,255,0.7)" />
+        )}
       </div>
-      {/* Name */}
-      <div style={{ flex: 2, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pkg.destination}</div>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
-          {pkg.price}
-          {pkg.agencySlug && (
-            <span style={{
-              padding: "1px 7px", borderRadius: 99, fontSize: 9.5, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: ".4px",
-              background: pkg.isActive !== false ? "rgba(45,212,160,0.12)" : "rgba(200,100,40,0.15)",
-              color: pkg.isActive !== false ? "#2dd4a0" : "#e0843a",
-            }}>
-              {pkg.isActive !== false ? "● Live" : "○ Inactive"}
-            </span>
-          )}
+
+      {/* Name + stats */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <div style={{
+            fontFamily: SANS, fontSize: 13.5, fontWeight: 500, color: DA_INK1,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {pkg.destination}
+          </div>
+          <span style={{
+            padding: "1px 7px", borderRadius: 99, fontSize: 10, fontWeight: 600,
+            background: isLive ? DA_GREEN_SOFT : DA_BG,
+            color: isLive ? DA_GREEN : DA_INK3,
+            flexShrink: 0,
+          }}>
+            {isLive ? t.dashLive : t.dashDraft}
+          </span>
+        </div>
+        <div style={{
+          display: "flex", gap: 12,
+          fontFamily: MONO, fontSize: 11, color: DA_INK3, letterSpacing: -0.2,
+        }}>
+          <span>{(pkg.views || 0).toLocaleString()} {t.statViews.toLowerCase()}</span>
+          <span>{clicks} {t.statLeads.toLowerCase()}</span>
+          <span>{convStr}</span>
+          {pkg.price && <span>· {pkg.price}</span>}
         </div>
       </div>
-      {/* Stats */}
-      <div style={{ flex: 1, textAlign: "center" }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{(pkg.views || 0).toLocaleString()}</div>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px" }}>{t.statViews}</div>
-      </div>
-      <div style={{ flex: 1, textAlign: "center" }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{clicks}</div>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px" }}>{t.statLeads}</div>
-      </div>
-      <div style={{ flex: 1, textAlign: "center" }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: convColor }}>{convStr}</div>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: ".4px" }}>{t.statConversion}</div>
-      </div>
-      {/* Action buttons */}
-      <div style={{ display: "flex", gap: 5 }}>
-        <button onClick={onView} title={t.viewBtn} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
-          <Icon name="eye" size={13} />
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+        <button onClick={onView} title={t.viewBtn} style={{
+          width: 30, height: 30, borderRadius: 7,
+          border: `1px solid ${DA_RULE2}`, background: DA_SURFACE2,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <Icon name="eye" size={13} color={DA_INK2} />
         </button>
-        <button onClick={onEdit} title={t.editBtn} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.55)" }}>
-          <Icon name="edit" size={13} />
+        <button onClick={onEdit} title={t.editBtn} style={{
+          width: 30, height: 30, borderRadius: 7,
+          border: `1px solid ${DA_RULE2}`, background: DA_SURFACE2,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <Icon name="edit" size={13} color={DA_INK2} />
         </button>
         {confirming ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <button onClick={async () => { setDeleting(true); await onDelete(); setDeleting(false); setConfirming(false); }} disabled={deleting} style={{ height: 30, borderRadius: 8, padding: "0 8px", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.35)", color: "#ef9090", fontSize: 11, fontFamily: "inherit", cursor: "pointer" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <button
+              onClick={async () => {
+                setDeleting(true);
+                await onDelete();
+                setDeleting(false);
+                setConfirming(false);
+              }}
+              disabled={deleting}
+              style={{
+                height: 30, borderRadius: 7, padding: "0 8px",
+                background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}40`,
+                color: DA_DANGER, fontSize: 11, fontFamily: SANS, cursor: "pointer",
+              }}
+            >
               {deleting ? "…" : "Yes"}
             </button>
-            <button onClick={() => setConfirming(false)} style={{ height: 30, borderRadius: 8, padding: "0 8px", background: "none", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "inherit", cursor: "pointer" }}>No</button>
+            <button
+              onClick={() => setConfirming(false)}
+              style={{
+                height: 30, borderRadius: 7, padding: "0 8px",
+                background: "none", border: `1px solid ${DA_RULE2}`,
+                color: DA_INK3, fontSize: 11, fontFamily: SANS, cursor: "pointer",
+              }}
+            >
+              No
+            </button>
           </div>
         ) : (
-          <button onClick={() => setConfirming(true)} title={t.deletePackage} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(239,68,68,0.2)", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(239,68,68,0.5)" }}>
-            <Icon name="trash" size={13} color="rgba(239,68,68,0.5)" />
+          <button
+            onClick={() => setConfirming(true)}
+            title={t.deletePackage}
+            style={{
+              width: 30, height: 30, borderRadius: 7,
+              border: `1px solid ${DA_DANGER}30`,
+              background: "none", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <Icon name="trash" size={13} color={`${DA_DANGER}99`} />
           </button>
         )}
       </div>
@@ -281,64 +422,547 @@ function PackageRow({ pkg, lang, isMobile, onView, onEdit, onDelete, isLast }: {
   );
 }
 
-// ── Status pill ───────────────────────────────────────────────────────────────
+// ── First-run dashboard ────────────────────────────────────────────────────────
 
-const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  new:         { bg: "rgba(76,205,196,0.13)",  color: "#4ecdc4" },
-  contacted:   { bg: "rgba(167,139,250,0.13)", color: "#a78bfa" },
-  negotiating: { bg: "rgba(245,166,35,0.13)",  color: "#f5b34a" },
-  booked:      { bg: "rgba(45,212,160,0.13)",  color: "#54e0b5" },
-  lost:        { bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" },
-};
+function DashboardFirstRun({
+  agencyName, onboardingState, lang, isMobile, onBranding, onBuild, onPublish,
+}: {
+  agencyName: string;
+  onboardingState: OnboardingState;
+  lang: "en" | "ar";
+  isMobile: boolean;
+  onBranding: () => void;
+  onBuild: () => void;
+  onPublish: () => void;
+}) {
+  const t = T[lang];
+  const isAr = lang === "ar";
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+  const ghostMetrics = [
+    { eyebrow: t.pageViews,  value: "—", sub: t.rangeLast30 },
+    { eyebrow: t.leads,      value: "—", sub: t.rangeLast30 },
+    { eyebrow: t.booked,     value: "—", sub: t.rangeLast30 },
+    { eyebrow: t.viewToLead, value: "—", sub: t.rangeLast30 },
+  ];
+
+  return (
+    <div style={{ padding: isMobile ? "16px 16px 40px" : "32px 40px 56px" }}>
+      {/* Greeting */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{
+          fontFamily: SANS, fontSize: 10.5, fontWeight: 600,
+          letterSpacing: 1.2, textTransform: "uppercase",
+          color: DA_INK3, marginBottom: 10,
+        }}>
+          {t.crumbWorkspace} · {t.navDashboard}
+        </div>
+        <div style={{
+          fontFamily: DISPLAY,
+          fontSize: isMobile ? 34 : 48,
+          fontWeight: 400,
+          color: DA_INK1, letterSpacing: -1, lineHeight: 1,
+        }}>
+          {t.dashWelcome}, {agencyName}
+        </div>
+        <div style={{
+          fontFamily: SANS, fontSize: 14, color: DA_INK2,
+          marginTop: 10, maxWidth: 560,
+        }}>
+          {isAr
+            ? "حساب جديد · لا توجد بيانات بعد. لنبدأ الرحلة."
+            : "Brand new account · no data yet. Let's get you to your first live page."
+          }
+        </div>
+      </div>
+
+      {/* Onboarding stepper */}
+      <div style={{ marginBottom: 32 }}>
+        <OnboardingStepper
+          state={onboardingState}
+          lang={lang}
+          onBranding={onBranding}
+          onBuild={onBuild}
+          onPublish={onPublish}
+        />
+      </div>
+
+      {/* Ghosted metrics label */}
+      <div style={{
+        fontFamily: SANS, fontSize: 11.5, fontWeight: 500,
+        letterSpacing: 0.5, textTransform: "uppercase",
+        color: DA_INK3, marginBottom: 14,
+      }}>
+        {t.dashMetricsGhostedLabel}
+      </div>
+
+      {/* Ghosted tiles */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gap: 14,
+        marginBottom: 32,
+      }}>
+        {ghostMetrics.map((m, i) => (
+          <StatTile key={i} {...m} ghosted />
+        ))}
+      </div>
+
+      {/* Help band */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 18,
+        padding: 22,
+        background: DA_SURFACE,
+        border: `1px solid ${DA_RULE}`,
+        borderRadius: 12,
+        flexWrap: "wrap",
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: DA_GREEN_SOFT,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <Icon name="whatsapp" size={20} color={DA_GREEN} />
+        </div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 600, color: DA_INK1 }}>
+            {t.dashHelpTitle}
+          </div>
+          <div style={{ fontFamily: SANS, fontSize: 13, color: DA_INK2, marginTop: 2 }}>
+            {t.dashHelpSub}
+          </div>
+        </div>
+        <a
+          href="https://wa.me/31687654321"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 7,
+            padding: "9px 16px", borderRadius: 9,
+            background: DA_SURFACE2,
+            border: `1px solid ${DA_RULE2}`,
+            color: DA_INK1,
+            fontFamily: SANS, fontWeight: 500, fontSize: 13,
+            textDecoration: "none",
+          }}
+        >
+          <Icon name="whatsapp" size={14} color={DA_GREEN} />
+          {t.dashHelpCta}
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ── Populated dashboard ────────────────────────────────────────────────────────
 
 type DateRange = "7" | "30" | "90" | "all";
 
-function getStartMs(range: DateRange): number {
-  if (range === "all") return 0;
-  return Date.now() - Number(range) * 24 * 60 * 60 * 1000;
-}
-
-type SortKey = "conv" | "views" | "leads" | "newest";
-
-function sortPackages(pkgs: Package[], by: SortKey): Package[] {
-  return [...pkgs].sort((a, b) => {
-    if (by === "views")  return (b.views || 0) - (a.views || 0);
-    if (by === "leads")  return ((b.whatsappClicks || 0) + (b.messengerClicks || 0)) - ((a.whatsappClicks || 0) + (a.messengerClicks || 0));
-    if (by === "newest") return (b.createdAt || 0) - (a.createdAt || 0);
-    const convA = (a.views || 0) > 0 ? (((a.whatsappClicks || 0) + (a.messengerClicks || 0)) / a.views) : 0;
-    const convB = (b.views || 0) > 0 ? (((b.whatsappClicks || 0) + (b.messengerClicks || 0)) / b.views) : 0;
-    return convB - convA;
-  });
-}
-
-export default function Dashboard() {
+function DashboardPopulated({
+  agencyName, packages, leads, userId, lang, isMobile, loading, onDeletePackage,
+}: {
+  agencyName: string;
+  packages: Package[];
+  leads: Lead[];
+  userId: string | null;
+  lang: "en" | "ar";
+  isMobile: boolean;
+  loading: boolean;
+  onDeletePackage: (id: string) => void;
+}) {
   const router = useRouter();
-  const lang = useLang();
-  const isMobile = useIsMobile();
   const t = T[lang];
+  const isAr = lang === "ar";
 
-  const [packages, setPackages] = useState<Package[]>([]);
-  const [recentLeads, setRecentLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [agencyName, setAgencyName] = useState("Agency");
-  const [sortBy, setSortBy] = useState<SortKey>("conv");
   const [dateRange, setDateRange] = useState<DateRange>("30");
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [rangeOpen, setRangeOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setFilterOpen(false);
+        setRangeOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  const startMs = dateRange === "all"
+    ? 0
+    : Date.now() - Number(dateRange) * 24 * 60 * 60 * 1000;
+
+  const filteredPkgs  = startMs === 0 ? packages  : packages.filter(p => (p.createdAt || 0) >= startMs);
+  const filteredLeads = startMs === 0 ? leads      : leads.filter(l => (l.createdAt || 0) >= startMs);
+
+  const totalViews  = filteredPkgs.reduce((a, b) => a + (b.views || 0), 0);
+  const totalClicks = filteredPkgs.reduce((a, b) => a + (b.whatsappClicks || 0) + (b.messengerClicks || 0), 0);
+  const totalLeads  = filteredLeads.length;
+  const totalBooked = filteredLeads.filter(l => l.status === "booked").length;
+  const convRate    = totalViews > 0
+    ? ((totalClicks / totalViews) * 100).toFixed(1) + "%"
+    : "0.0%";
+
+  const livePkgCount  = packages.filter(p => p.isActive !== false && !!p.agencySlug).length;
+  const userAgencySlug = slugify(agencyName) || "agency";
+
+  const dateRangeOptions: { k: DateRange; l: string }[] = [
+    { k: "7",   l: t.rangeLast7 },
+    { k: "30",  l: t.rangeLast30 },
+    { k: "90",  l: t.rangeLast90 },
+    { k: "all", l: t.rangeAllTime },
+  ];
+  const activeRangeLabel = dateRangeOptions.find(o => o.k === dateRange)?.l ?? t.rangeLast30;
+
+  const metrics = [
+    { eyebrow: t.pageViews,  value: totalViews.toLocaleString(),  sub: activeRangeLabel },
+    { eyebrow: t.leads,      value: totalLeads.toLocaleString(),  sub: activeRangeLabel },
+    { eyebrow: t.booked,     value: totalBooked.toLocaleString(), sub: activeRangeLabel },
+    { eyebrow: t.viewToLead, value: convRate,                     sub: activeRangeLabel },
+  ];
+
+  const leadStatusStyles: Record<string, { bg: string; color: string }> = {
+    new:         { bg: DA_GOLD_SOFT,   color: DA_GOLD },
+    contacted:   { bg: DA_BG,          color: DA_INK2 },
+    negotiating: { bg: DA_GOLD_SOFT,   color: DA_GOLD },
+    booked:      { bg: DA_GREEN_SOFT,  color: DA_GREEN },
+    lost:        { bg: DA_BG,          color: DA_INK3 },
+  };
+
+  const today = new Date();
+  const subDate = today.toLocaleDateString(t.dateLocale, {
+    weekday: "long", day: "numeric", month: "long",
+  });
+  const subText = `${subDate} · ${livePkgCount} ${livePkgCount !== 1 ? t.packagesLive : t.packageLive}`;
+
+  const sortedPackages = [...packages].sort((a, b) => {
+    const cA = (a.views || 0) > 0
+      ? (((a.whatsappClicks || 0) + (a.messengerClicks || 0)) / a.views)
+      : 0;
+    const cB = (b.views || 0) > 0
+      ? (((b.whatsappClicks || 0) + (b.messengerClicks || 0)) / b.views)
+      : 0;
+    return cB - cA;
+  });
+
+  return (
+    <div style={{ padding: isMobile ? "16px 16px 40px" : "32px 40px 56px" }}>
+      {/* Header */}
+      <div style={{
+        display: "flex", alignItems: "flex-end",
+        justifyContent: "space-between",
+        marginBottom: 28, gap: 16, flexWrap: "wrap",
+      }}>
+        <div>
+          <div style={{
+            fontFamily: SANS, fontSize: 10.5, fontWeight: 600,
+            letterSpacing: 1.2, textTransform: "uppercase",
+            color: DA_INK3, marginBottom: 10,
+          }}>
+            {t.crumbWorkspace} · {t.navDashboard}
+          </div>
+          <div style={{
+            fontFamily: DISPLAY,
+            fontSize: isMobile ? 30 : 44,
+            fontWeight: 400,
+            color: DA_INK1, letterSpacing: -1, lineHeight: 1,
+          }}>
+            {t.dashGoodMorning}, {agencyName}
+          </div>
+          <div style={{ fontFamily: SANS, fontSize: 13.5, color: DA_INK2, marginTop: 8 }}>
+            {subText}
+          </div>
+        </div>
+
+        {/* Date range picker */}
+        <div ref={dropdownRef} style={{ position: "relative" }}>
+          <button
+            onClick={() => setRangeOpen(o => !o)}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "8px 14px",
+              background: DA_SURFACE,
+              border: `1px solid ${DA_RULE2}`,
+              borderRadius: 8,
+              fontFamily: SANS, fontSize: 13, color: DA_INK2,
+              cursor: "pointer",
+            }}
+          >
+            <Icon name="calendar" size={14} color={DA_INK3} />
+            {activeRangeLabel}
+            <span style={{ fontSize: 10, color: DA_INK3 }}>▾</span>
+          </button>
+          {rangeOpen && (
+            <div style={{
+              position: "absolute",
+              top: "calc(100% + 6px)",
+              insetInlineEnd: 0,
+              width: 160,
+              background: DA_SURFACE2,
+              border: `1px solid ${DA_RULE}`,
+              borderRadius: 10, overflow: "hidden",
+              boxShadow: "0 12px 32px rgba(26,22,17,0.12)",
+              zIndex: 100,
+            }}>
+              {dateRangeOptions.map(({ k, l }) => (
+                <button
+                  key={k}
+                  onClick={() => { setDateRange(k); setRangeOpen(false); }}
+                  style={{
+                    width: "100%", padding: "10px 14px",
+                    background: dateRange === k ? DA_GOLD_SOFT : "none",
+                    border: "none",
+                    color: dateRange === k ? DA_GOLD : DA_INK2,
+                    fontSize: 13, fontFamily: SANS, cursor: "pointer",
+                    textAlign: isAr ? "right" : "left",
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                  }}
+                >
+                  {l}
+                  {dateRange === k && <span style={{ fontSize: 11, color: DA_GOLD }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stat tiles */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gap: 14,
+        marginBottom: 24,
+      }}>
+        {metrics.map((m, i) => <StatTile key={i} {...m} />)}
+      </div>
+
+      {/* Two-col: packages + leads */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1.6fr 1fr",
+        gap: 18,
+      }}>
+        {/* Packages */}
+        <div style={{
+          background: DA_SURFACE,
+          border: `1px solid ${DA_RULE}`,
+          borderRadius: 14, overflow: "hidden",
+        }}>
+          <div style={{
+            padding: "18px 22px 14px",
+            borderBottom: `1px solid ${DA_RULE}`,
+            display: "flex", alignItems: "flex-end",
+            justifyContent: "space-between",
+          }}>
+            <div>
+              <div style={{ fontFamily: SANS, fontSize: 15, fontWeight: 600, color: DA_INK1 }}>
+                {t.yourPackages}
+              </div>
+              <div style={{ fontFamily: SANS, fontSize: 12, color: DA_INK3, marginTop: 2 }}>
+                {t.dashSortedByConversion}
+              </div>
+            </div>
+            <button
+              onClick={() => router.push("/packages")}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                fontFamily: SANS, fontSize: 12, fontWeight: 500, color: DA_GOLD,
+                background: "none", border: "none", cursor: "pointer", padding: 0,
+              }}
+            >
+              {t.dashViewAll}
+              <Icon name="arrow_right" size={12} color={DA_GOLD} strokeWidth={2} />
+            </button>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: 32, textAlign: "center" }}>
+              <span className="spinner-warm" />
+            </div>
+          ) : packages.length === 0 ? (
+            <div style={{ padding: "40px 24px", textAlign: "center" }}>
+              <Icon name="package" size={32} color={DA_INK3} strokeWidth={1} />
+              <p style={{
+                marginTop: 12, fontSize: 14, color: DA_INK3, fontFamily: SANS,
+              }}>
+                {t.noPackages}
+              </p>
+              <button
+                onClick={() => router.push("/builder")}
+                style={{
+                  marginTop: 16, background: DA_GOLD_SOFT,
+                  border: `1px solid ${DA_GOLD}40`,
+                  borderRadius: 10, padding: "8px 20px",
+                  color: DA_GOLD, fontSize: 13,
+                  fontFamily: SANS, cursor: "pointer", fontWeight: 600,
+                }}
+              >
+                {t.createFirst}
+              </button>
+            </div>
+          ) : (
+            sortedPackages.map((pkg, i, arr) => (
+              <PackageRow
+                key={pkg.id}
+                pkg={pkg}
+                lang={lang}
+                isMobile={isMobile}
+                onView={() =>
+                  window.open(
+                    `https://${pkg.agencySlug || userAgencySlug}.packmetrix.com/${pkg.id}`,
+                    "_blank",
+                    "noopener,noreferrer",
+                  )
+                }
+                onEdit={() => router.push(`/builder?id=${pkg.id}`)}
+                onDelete={async () => {
+                  const res = await fetch("/api/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: pkg.id, userId }),
+                  });
+                  if (res.ok) onDeletePackage(pkg.id);
+                }}
+                isLast={i === arr.length - 1}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Leads */}
+        <div style={{
+          background: DA_SURFACE,
+          border: `1px solid ${DA_RULE}`,
+          borderRadius: 14, overflow: "hidden",
+        }}>
+          <div style={{
+            padding: "18px 22px 14px",
+            borderBottom: `1px solid ${DA_RULE}`,
+            display: "flex", alignItems: "flex-end",
+            justifyContent: "space-between",
+          }}>
+            <div>
+              <div style={{ fontFamily: SANS, fontSize: 15, fontWeight: 600, color: DA_INK1 }}>
+                {t.recentLeads}
+              </div>
+              <div style={{ fontFamily: SANS, fontSize: 12, color: DA_INK3, marginTop: 2 }}>
+                {filteredLeads.length > 0
+                  ? `${filteredLeads.length} ${isAr ? "عميل محتمل" : "total"}`
+                  : "—"
+                }
+              </div>
+            </div>
+            <button
+              onClick={() => router.push("/leads")}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                fontFamily: SANS, fontSize: 12, fontWeight: 500, color: DA_GOLD,
+                background: "none", border: "none", cursor: "pointer", padding: 0,
+              }}
+            >
+              {t.dashViewAll}
+              <Icon name="arrow_right" size={12} color={DA_GOLD} strokeWidth={2} />
+            </button>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: 32, textAlign: "center" }}>
+              <span className="spinner-warm" />
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div style={{
+              padding: "32px 22px", textAlign: "center",
+              color: DA_INK3, fontSize: 13, fontFamily: SANS,
+            }}>
+              {t.noLeadsInPeriod}
+            </div>
+          ) : (
+            filteredLeads.slice(0, 8).map((lead, i, arr) => {
+              const initials    = (lead.destination || "?").slice(0, 2).toUpperCase();
+              const avatarColors = ["#c66a3d", "#1f5f8e", "#7c3aed", "#0d6e3f"];
+              const avatarColor  = avatarColors[i % avatarColors.length];
+              const ss           = leadStatusStyles[lead.status] || leadStatusStyles.new;
+              const statusLabel  =
+                lead.status === "new"         ? (isAr ? "جديد"        : "New")
+                : lead.status === "contacted" ? (isAr ? "تم التواصل"  : "Contacted")
+                : lead.status === "negotiating" ? (isAr ? "يتفاوض"    : "Negotiating")
+                : lead.status === "booked"    ? (isAr ? "محجوز"       : "Booked")
+                : lead.status === "lost"      ? (isAr ? "خسرنا"       : "Lost")
+                : lead.status;
+
+              return (
+                <div key={lead.id} style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "14px 22px",
+                  borderBottom: i < arr.length - 1 ? `1px solid ${DA_RULE}` : "none",
+                }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: "50%",
+                    background: avatarColor, color: "#fff",
+                    flexShrink: 0, display: "flex", alignItems: "center",
+                    justifyContent: "center",
+                    fontFamily: SANS, fontSize: 13, fontWeight: 600,
+                  }}>
+                    {initials}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontFamily: SANS, fontSize: 13, fontWeight: 500, color: DA_INK1,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {lead.destination}
+                    </div>
+                    <div style={{ fontFamily: SANS, fontSize: 11.5, color: DA_INK3 }}>
+                      {lead.channel === "whatsapp" ? t.viaWhatsApp : t.viaMessenger}
+                    </div>
+                  </div>
+                  <div style={{
+                    display: "flex", flexDirection: "column",
+                    alignItems: isAr ? "flex-start" : "flex-end",
+                    gap: 4,
+                  }}>
+                    <span style={{
+                      padding: "2px 8px", borderRadius: 99,
+                      fontSize: 10.5, fontWeight: 600,
+                      background: ss.bg, color: ss.color,
+                      textTransform: "uppercase", letterSpacing: 0.5,
+                    }}>
+                      {statusLabel}
+                    </span>
+                    <div style={{
+                      fontFamily: MONO, fontSize: 10.5,
+                      color: DA_INK3, letterSpacing: -0.2,
+                    }}>
+                      {new Date(lead.createdAt).toLocaleDateString(t.dateLocale, {
+                        day: "numeric", month: "short",
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function Dashboard() {
+  const router = useRouter();
+  const lang   = useLang();
+  const isMobile = useIsMobile();
+
+  const [packages,    setPackages]    = useState<Package[]>([]);
+  const [leads,       setLeads]       = useState<Lead[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [userId,      setUserId]      = useState<string | null>(null);
+  const [agencyName,  setAgencyName]  = useState("Agency");
+  const [hasBranding, setHasBranding] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -346,8 +970,9 @@ export default function Dashboard() {
       setUserId(user.uid);
       const snap = await getDoc(doc(db, "users", user.uid));
       if (snap.exists()) {
-        const n = snap.data().name;
-        if (n) setAgencyName(n);
+        const data = snap.data();
+        if (data.name) setAgencyName(data.name);
+        setHasBranding(!!(data.name && data.logoUrl));
       }
       setAuthLoading(false);
     });
@@ -362,7 +987,7 @@ export default function Dashboard() {
         getDocs(query(collection(db, "leads"), where("userId", "==", userId), orderBy("createdAt", "desc"))),
       ]);
       setPackages(pkgSnap.docs.map(d => ({ id: d.id, ...d.data() } as Package)));
-      setRecentLeads(leadSnap.docs.map(d => ({ id: d.id, ...d.data() } as Lead)));
+      setLeads(leadSnap.docs.map(d => ({ id: d.id, ...d.data() } as Lead)));
       setLoading(false);
     };
     load();
@@ -371,222 +996,55 @@ export default function Dashboard() {
   if (authLoading) {
     return (
       <AppLayout>
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span className="spinner" />
+        <div style={{
+          flex: 1, display: "flex",
+          alignItems: "center", justifyContent: "center",
+          background: DA_BG, height: "100%",
+        }}>
+          <span className="spinner-warm" />
         </div>
       </AppLayout>
     );
   }
 
-  const userAgencySlug = slugify(agencyName) || "agency";
-  const startMs = getStartMs(dateRange);
-  const filteredPackages = startMs === 0 ? packages : packages.filter(p => (p.createdAt || 0) >= startMs);
-  const filteredLeads = startMs === 0 ? recentLeads : recentLeads.filter(l => (l.createdAt || 0) >= startMs);
+  const hasPublishedPackage = !loading && packages.some(
+    p => p.isActive !== false && !!p.agencySlug,
+  );
+  const hasAnyPackage = !loading && packages.length > 0;
 
-  const totalViews  = filteredPackages.reduce((a, b) => a + (b.views || 0), 0);
-  const totalClicks = filteredPackages.reduce((a, b) => a + (b.whatsappClicks || 0) + (b.messengerClicks || 0), 0);
-  const totalLeads  = filteredLeads.length;
-  const totalBooked = filteredLeads.filter(l => l.status === "booked").length;
-  const convRate    = totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) : "0.0";
-  const bookRate    = totalLeads > 0 ? ((totalBooked / totalLeads) * 100).toFixed(0) : "0";
-
-  const dateRangeOptions: { k: DateRange; l: string }[] = [
-    { k: "7",   l: t.rangeLast7 },
-    { k: "30",  l: t.rangeLast30 },
-    { k: "90",  l: t.rangeLast90 },
-    { k: "all", l: t.rangeAllTime },
-  ];
-  const sortOptions: { k: SortKey; l: string }[] = [
-    { k: "conv",   l: t.sortConv },
-    { k: "views",  l: t.sortViews },
-    { k: "leads",  l: t.sortLeads },
-    { k: "newest", l: t.sortNewest },
-  ];
-  const activeLabel = dateRangeOptions.find(o => o.k === dateRange)?.l ?? t.rangeLast30;
+  const onboardingState: OnboardingState =
+    !hasBranding         ? "starting"
+    : !hasAnyPackage     ? "branding-done"
+    : "package-drafted";
 
   return (
     <AppLayout>
-      <div style={{ padding: isMobile ? "16px 16px 40px" : "28px 32px 60px", maxWidth: 1240 }}>
-
-        {/* Page head */}
-        <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
-          <div>
-            <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.4px" }}>
-              {t.goodMorning}, {agencyName}
-            </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
-              {new Date().toLocaleDateString(t.dateLocale, { weekday: "long", day: "numeric", month: "long" })}
-              {packages.length > 0 && ` · ${packages.length} ${packages.length !== 1 ? t.packagesLive : t.packageLive}`}
-            </div>
-          </div>
-          <div ref={dropdownRef} style={{ position: "relative" }}>
-            <button
-              onClick={() => setFilterOpen(o => !o)}
-              style={{ padding: "7px 12px", borderRadius: 8, background: filterOpen ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.75)", fontSize: 12.5, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
-            >
-              {activeLabel}
-              <span style={{ fontSize: 10, opacity: 0.6, transform: filterOpen ? "rotate(180deg)" : "none", transition: "transform .15s", display: "inline-block" }}>▾</span>
-            </button>
-            {filterOpen && (
-              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 160, background: "#0f1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,0.5)", zIndex: 100 }}>
-                {dateRangeOptions.map(({ k, l }) => (
-                  <button
-                    key={k}
-                    onClick={() => { setDateRange(k); setFilterOpen(false); }}
-                    style={{ width: "100%", padding: "10px 14px", background: dateRange === k ? "rgba(232,201,123,0.08)" : "none", border: "none", color: dateRange === k ? SAND : "rgba(255,255,255,0.65)", fontSize: 13, fontFamily: "inherit", cursor: "pointer", textAlign: lang === "ar" ? "right" : "left", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                  >
-                    {l}
-                    {dateRange === k && <span style={{ fontSize: 11, color: SAND }}>✓</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* KPI strip */}
-        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(5,1fr)", gap: 12, marginBottom: 18 }}>
-          <KpiCard label={t.pageViews}  value={totalViews.toLocaleString()}   delta={totalViews > 0 ? t.live : undefined}   trend="up"  sparkColor={SAND} />
-          <KpiCard label={t.leads}      value={totalLeads.toLocaleString()}   delta={totalLeads > 0 ? t.active : undefined}  trend="up"  sparkColor={TEAL} />
-          <KpiCard label={t.booked}     value={totalBooked.toLocaleString()}  delta={totalBooked > 0 ? `${bookRate}% ${t.closeRate}` : undefined} trend={totalBooked > 0 ? "up" : "flat"} sparkColor={SUCCESS} />
-          <KpiCard label={t.viewToLead} value={`${convRate}%`}                sparkColor="#25d366" />
-          <KpiCard label={t.packages}   value={String(filteredPackages.length)} sparkColor="#a78bfa" />
-        </div>
-
-        {/* Charts row */}
-        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.6fr 1fr", gap: 16, marginBottom: 18 }}>
-          {/* Weekly bar chart */}
-          <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{t.trafficTitle}</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{t.trafficSub}</div>
-              </div>
-              <div style={{ display: "flex", gap: 14, fontSize: 11, color: "rgba(255,255,255,0.5)" }}>
-                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: SAND, marginRight: 5 }}></span>{t.sessions}</span>
-                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: TEAL, marginRight: 5 }}></span>{t.leads}</span>
-              </div>
-            </div>
-            {loading ? (
-              <div style={{ height: 140, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span className="spinner" />
-              </div>
-            ) : packages.length === 0 ? (
-              <div style={{ height: 140, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>{t.noPackages}</div>
-            ) : (
-              <PackageBars packages={filteredPackages} />
-            )}
-          </div>
-
-          {/* Funnel */}
-          <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{t.convFunnel}</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>{activeLabel} · {filteredPackages.length} {t.packages.toLowerCase()}</div>
-            <FunnelRow label={t.views}  value={totalViews.toLocaleString()}  pct={100} color={SAND} />
-            <FunnelRow label={t.leads}  value={totalLeads.toLocaleString()}  pct={totalViews > 0 ? Math.min(100, (totalLeads / totalViews) * 100) : 0}  color={TEAL} tail={t.ctaClicked} />
-            <FunnelRow label={t.booked} value={totalBooked.toLocaleString()} pct={totalLeads > 0 ? Math.min(100, (totalBooked / totalLeads) * 100) : 0} color={SUCCESS} tail={t.leadBooking} />
-          </div>
-        </div>
-
-        {/* Packages + Insights/Leads */}
-        <div dir="ltr" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.4fr 1fr", gap: 16, marginBottom: 18 }}>
-          {/* Package list */}
-          <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, overflow: "hidden" }}>
-            <div style={{ padding: isMobile ? "12px 14px" : "16px 22px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 0 }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{t.yourPackages}</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{t.sortedBy} {sortOptions.find(o => o.k === sortBy)?.l.toLowerCase()}</div>
-              </div>
-              <div style={{ display: "flex", gap: 4, overflowX: isMobile ? "auto" : "visible", width: isMobile ? "100%" : "auto", paddingBottom: isMobile ? 2 : 0 }}>
-                {sortOptions.map(({ k, l }) => (
-                  <button
-                    key={k}
-                    onClick={() => setSortBy(k)}
-                    style={{
-                      padding: "4px 10px", borderRadius: 7, fontSize: 11.5, fontFamily: "inherit", cursor: "pointer", transition: "all .12s", flexShrink: 0,
-                      background: sortBy === k ? `${SAND}18` : "rgba(255,255,255,0.03)",
-                      border: sortBy === k ? `1px solid ${SAND}50` : "1px solid rgba(255,255,255,0.07)",
-                      color: sortBy === k ? SAND : "rgba(255,255,255,0.45)",
-                      fontWeight: sortBy === k ? 600 : 400,
-                    }}
-                  >{l}</button>
-                ))}
-              </div>
-            </div>
-            {loading ? (
-              <div style={{ padding: 32, textAlign: "center" }}><span className="spinner" /></div>
-            ) : packages.length === 0 ? (
-              <div style={{ padding: "40px 24px", textAlign: "center" }}>
-                <Icon name="package" size={32} color="rgba(255,255,255,0.1)" strokeWidth={1} />
-                <p style={{ marginTop: 12, fontSize: 14, color: "rgba(255,255,255,0.3)" }}>{t.noPackages}</p>
-                <button onClick={() => router.push("/builder")} style={{ marginTop: 16, background: `${SAND}18`, border: `1px solid ${SAND}40`, borderRadius: 10, padding: "8px 20px", color: SAND, fontSize: 13, fontFamily: "inherit", cursor: "pointer", fontWeight: 600 }}>
-                  {t.createFirst}
-                </button>
-              </div>
-            ) : (
-              sortPackages(packages, sortBy)
-                .map((pkg, i, arr) => (
-                  <PackageRow
-                    key={pkg.id}
-                    pkg={pkg}
-                    lang={lang}
-                    isMobile={isMobile}
-                    onView={() => window.open(`https://${pkg.agencySlug || userAgencySlug}.packmetrix.com/${pkg.id}`, "_blank", "noopener,noreferrer")}
-                    onEdit={() => router.push(`/builder?id=${pkg.id}`)}
-                    onDelete={async () => {
-                      const res = await fetch("/api/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pkg.id, userId }) });
-                      if (res.ok) setPackages(prev => prev.filter(p => p.id !== pkg.id));
-                    }}
-                    isLast={i === arr.length - 1}
-                  />
-                ))
-            )}
-          </div>
-
-          {/* Right column: recent leads */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Recent leads */}
-            <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>{t.recentLeads}</div>
-              {loading ? (
-                <div style={{ textAlign: "center", padding: 16 }}><span className="spinner" /></div>
-              ) : filteredLeads.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "16px 0", fontSize: 13, color: "rgba(255,255,255,0.3)" }}>{t.noLeadsInPeriod}</div>
-              ) : (
-                filteredLeads.map((lead, i) => {
-                  const initials = (lead.destination || "?").slice(0, 2).toUpperCase();
-                  const avatarColors = ["#c66a3d", "#1f5f8e", "#7c3aed", "#0d6e3f"];
-                  const avatarColor = avatarColors[i % avatarColors.length];
-                  const ss = STATUS_STYLES[lead.status] || STATUS_STYLES.new;
-                  return (
-                    <div key={lead.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < filteredLeads.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: avatarColor, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>
-                        {initials}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{lead.destination}</div>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
-                          {lead.channel === "whatsapp" ? t.viaWhatsApp : t.viaMessenger}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 10.5, fontWeight: 700, background: ss.bg, color: ss.color, textTransform: "uppercase", letterSpacing: ".5px" }}>
-                          {lead.status}
-                        </span>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>
-                          {new Date(lead.createdAt).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short" })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-              <button onClick={() => router.push("/leads")} style={{ marginTop: 14, width: "100%", padding: "9px", borderRadius: 9, background: "none", border: `1px solid ${SAND}40`, color: SAND, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
-                {t.viewAllLeads}
-              </button>
-            </div>
-          </div>
-        </div>
+      <div
+        dir={lang === "ar" ? "rtl" : "ltr"}
+        style={{ background: DA_BG, minHeight: "100%" }}
+      >
+        {hasPublishedPackage ? (
+          <DashboardPopulated
+            agencyName={agencyName}
+            packages={packages}
+            leads={leads}
+            userId={userId}
+            lang={lang}
+            isMobile={isMobile}
+            loading={loading}
+            onDeletePackage={(id) => setPackages(prev => prev.filter(p => p.id !== id))}
+          />
+        ) : (
+          <DashboardFirstRun
+            agencyName={agencyName}
+            onboardingState={onboardingState}
+            lang={lang}
+            isMobile={isMobile}
+            onBranding={() => router.push("/profile")}
+            onBuild={() => router.push("/builder")}
+            onPublish={() => router.push("/builder")}
+          />
+        )}
       </div>
     </AppLayout>
   );

@@ -3,6 +3,10 @@
 import { useState } from "react";
 import Icon from "@/components/Icon";
 import { SAND } from "./constants";
+import {
+  DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_GOLD, DA_GREEN,
+} from "@/lib/tokens";
 
 function interleave3<T>(a: T[], b: T[], c: T[]): T[] {
   const out: T[] = [];
@@ -87,17 +91,17 @@ export function PexelsPhotoSearch({
           placeholder={placeholder || (lang === "ar" ? "ابحث عن صور…" : "Search for photos…")}
           style={{
             flex: 1,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            background: DA_SURFACE,
+            border: `1px solid ${DA_RULE}`,
             borderRadius: 10,
             padding: "10px 14px",
-            color: "var(--white)",
+            color: DA_INK1,
             fontSize: 13,
             fontFamily: "inherit",
             outline: "none",
           }}
-          onFocus={(e) => (e.target.style.borderColor = `${SAND}60`)}
-          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+          onFocus={(e) => (e.target.style.borderColor = DA_GOLD)}
+          onBlur={(e) => (e.target.style.borderColor = DA_RULE)}
         />
         <button
           onClick={search}
@@ -106,7 +110,7 @@ export function PexelsPhotoSearch({
             padding: "10px 18px",
             borderRadius: 10,
             background: `linear-gradient(135deg, ${SAND}, #c4a84f)`,
-            color: "#0a1426",
+            color: DA_SURFACE2,
             fontWeight: 700,
             fontSize: 13,
             border: "none",
@@ -119,10 +123,10 @@ export function PexelsPhotoSearch({
           }}
         >
           {loading ? (
-            <span className="spinner" style={{ width: 13, height: 13, borderTopColor: "#0a1426" }} />
+            <span className="spinner-warm" style={{ width: 13, height: 13, borderTopColor: DA_SURFACE2 }} />
           ) : (
             <>
-              <Icon name="image" size={13} color="#0a1426" />
+              <Icon name="image" size={13} color={DA_SURFACE2} />
               {searchLabel}
             </>
           )}
@@ -131,12 +135,12 @@ export function PexelsPhotoSearch({
 
       {loading && (
         <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
-          <span className="spinner" style={{ borderTopColor: SAND }} />
+          <span className="spinner-warm" style={{ borderTopColor: DA_GOLD }} />
         </div>
       )}
 
       {!loading && searched && results.length === 0 && (
-        <div style={{ textAlign: "center", padding: "24px 0", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: "24px 0", color: DA_INK3, fontSize: 13 }}>
           {noResults}
         </div>
       )}
@@ -151,10 +155,12 @@ export function PexelsPhotoSearch({
                 title={photo.photographer}
                 style={{ position: "relative", aspectRatio: "4/3", borderRadius: 9, overflow: "hidden", cursor: "pointer" }}
                 onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.outline = `2px solid ${DA_GOLD}`;
                   const o = e.currentTarget.querySelector(".px-ov") as HTMLElement;
                   if (o) o.style.opacity = "1";
                 }}
                 onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.outline = "none";
                   const o = e.currentTarget.querySelector(".px-ov") as HTMLElement;
                   if (o) o.style.opacity = "0";
                 }}
@@ -168,7 +174,7 @@ export function PexelsPhotoSearch({
                     justifyContent: "center", gap: 5, opacity: 0, transition: "opacity .15s", padding: 8,
                   }}
                 >
-                  <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
+                  <Icon name="check" size={18} color={DA_GREEN} strokeWidth={2.5} />
                   <span style={{ color: "#fff", fontSize: 11, fontWeight: 600 }}>{useLabel}</span>
                   {photo._unsplash && (
                     <span style={{ fontSize: 9.5, color: "rgba(255,255,255,0.6)", textAlign: "center", lineHeight: 1.4 }}>
@@ -189,12 +195,10 @@ export function PexelsPhotoSearch({
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 8, fontSize: 10.5, color: "rgba(255,255,255,0.2)", textAlign: "right" }}>
-            <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>Pexels</a>
+          <div style={{ marginTop: 8, fontSize: 10.5, color: DA_INK3, textAlign: "right" }}>
+            <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: DA_INK3, textDecoration: "none" }}>Pexels</a>
             {" · "}
-            <a href="https://pixabay.com" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>Pixabay</a>
-            {" · "}
-            <a href="https://unsplash.com/?utm_source=packmetrix&utm_medium=referral" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>Unsplash</a>
+            <a href="https://unsplash.com/?utm_source=packmetrix&utm_medium=referral" target="_blank" rel="noopener noreferrer" style={{ color: DA_INK3, textDecoration: "none" }}>Unsplash</a>
           </div>
         </>
       )}
