@@ -1323,7 +1323,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
   const hasTiers  = !!(pkg.pricingTiers?.length);
   const hasAgent  = !!(pkg.agent);
   // Manual override takes precedence; otherwise use real Firestore presence count
-  const effectiveViewers = pkg.viewersNow !== undefined ? pkg.viewersNow : liveViewers;
+  const effectiveViewers = pkg.viewersNow != null ? pkg.viewersNow : liveViewers;
 
   const cdLabels: [string, string, string, string] = [t.daysLabel, t.hoursLabelShort, t.minLabel, t.secLabel];
   const firstDate = firstDepDate?.split(" ").slice(0, 2).join(" ") ?? "";
@@ -1516,6 +1516,15 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
             </button>
           )}
         </div>
+
+        {/* standalone viewer count — only when no scarcity block */}
+        {!hasScar && effectiveViewers !== null && effectiveViewers > 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: PL.mut, marginBottom: 10 }}>
+            <BlinkDot color={PL.deal} size={5} />
+            <b style={{ color: PL.deal }}>{effectiveViewers}</b>
+            <span>{t.viewingNow}</span>
+          </div>
+        )}
 
         {/* countdown — only when a departure date exists */}
         {hasDeps && (
@@ -1820,7 +1829,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
   const showUrgencyDeps = !!(pkg.departures?.length && !depSection);
   const hasTiers  = !!(pkg.pricingTiers?.length);
   const hasAgent  = !!(pkg.agent);
-  const effectiveViewers = pkg.viewersNow !== undefined ? pkg.viewersNow : liveViewers;
+  const effectiveViewers = pkg.viewersNow != null ? pkg.viewersNow : liveViewers;
 
   const filled = hasScar
     ? Math.round(((pkg.totalSpots! - pkg.spotsRemaining!) / pkg.totalSpots!) * 100)
@@ -2059,6 +2068,15 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
               </button>
             )}
           </div>
+
+          {/* standalone viewer count — only when no scarcity block */}
+          {!hasScar && effectiveViewers !== null && effectiveViewers > 1 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: PL.mut, marginTop: 4 }}>
+              <BlinkDot color={PL.deal} size={5} />
+              <b style={{ color: PL.deal }}>{effectiveViewers}</b>
+              <span>{t.viewingNow}</span>
+            </div>
+          )}
 
           {/* assurances — only show items with real data */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: PL.mut }}>

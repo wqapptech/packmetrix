@@ -13,6 +13,7 @@ import { T } from "@/lib/translations";
 import posthog from "posthog-js";
 import { hasFullAccess } from "@/lib/trial";
 import { PackageCard } from "@/components/packages/PackageCard";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { TEMPLATE_MAP } from "@/components/templates";
 import type { TAgency, LocStr } from "@/components/templates/types";
 import {
@@ -35,9 +36,11 @@ import {
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
-const AGENCY_BASE =
-  process.env.NEXT_PUBLIC_AGENCY_URL ??
-  (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://agency.packmetrix.com");
+function pkgUrl(slug: string, id: string): string {
+  return process.env.NODE_ENV === "development"
+    ? `http://localhost:3000/${slug}/${id}`
+    : `https://${slug}.packmetrix.com/${id}`;
+}
 
 type Package = {
   id: string;
@@ -150,6 +153,8 @@ export default function PackagesPage() {
   const [agency, setAgency] = useState<TAgency>({ name: "Agency" });
   const [filter, setFilter] = useState<FilterTab>("all");
   const [sortLabel] = useState(isAr ? "ترتيب حسب: التحويل" : "Sort: conversion");
+  const [confirmAction, setConfirmAction] = useState<{ type: "delete" | "duplicate"; pkg: Package } | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -228,6 +233,7 @@ export default function PackagesPage() {
   const range30d = isAr ? "آخر ٣٠ يوم" : "Last 30 days";
 
   return (
+    <>
     <AppLayout>
       <div
         dir={dir}
@@ -461,7 +467,7 @@ export default function PackagesPage() {
                   templateName={tpl ? (isAr ? tpl.nameAr : tpl.name) : undefined}
                   onView={() =>
                     window.open(
-                      `${AGENCY_BASE}/${pkg.agencySlug || agencySlug}/${pkg.id}`,
+                      pkgUrl(pkg.agencySlug || agencySlug, pkg.id),
                       "_blank",
                       "noopener,noreferrer"
                     )
@@ -469,15 +475,10 @@ export default function PackagesPage() {
                   onEdit={() => router.push(`/builder?id=${pkg.id}`)}
                   onCopyLink={
                     pkg.agencySlug
-                      ? () => navigator.clipboard?.writeText(`${AGENCY_BASE}/${pkg.agencySlug}/${pkg.id}`)
+                      ? () => navigator.clipboard?.writeText(pkgUrl(pkg.agencySlug!, pkg.id))
                       : undefined
                   }
-                  onDelete={async () => {
-                    if (!confirm(t.confirmDeletePackage)) return;
-                    posthog.capture("package_deleted", { destination: pkg.destination, views: pkg.views });
-                    await deleteDoc(doc(db, "packages", pkg.id));
-                    setPackages((prev) => prev.filter((p) => p.id !== pkg.id));
-                  }}
+                  onDelete={() => setConfirmAction({ type: "delete", pkg })}
                   onToggleActive={async () => {
                     const next = pkg.isActive === false ? true : false;
                     posthog.capture("package_toggled_active", { destination: pkg.destination, is_active: next });
@@ -486,25 +487,7 @@ export default function PackagesPage() {
                       prev.map((p) => (p.id === pkg.id ? { ...p, isActive: next } : p))
                     );
                   }}
-                  onDuplicate={async () => {
-                    if (!confirm(t.confirmDuplicate)) return;
-                    const res = await fetch("/api/duplicate", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ packageId: pkg.id, userId }),
-                    });
-                    if (!res.ok) return;
-                    const { id, agencySlug: slug } = await res.json();
-                    setPackages((prev) => [
-                      {
-                        ...pkg, id, agencySlug: slug,
-                        isActive: false, views: 0,
-                        whatsappClicks: 0, messengerClicks: 0,
-                        createdAt: Date.now(),
-                      },
-                      ...prev,
-                    ]);
-                  }}
+                  onDuplicate={() => setConfirmAction({ type: "duplicate", pkg })}
                 />
               );
             })}
@@ -512,5 +495,58 @@ export default function PackagesPage() {
         )}
       </div>
     </AppLayout>
+
+    <ConfirmModal
+      open={confirmAction !== null}
+      onClose={() => { if (!confirmLoading) setConfirmAction(null); }}
+      loading={confirmLoading}
+      dir={dir}
+      variant={confirmAction?.type === "delete" ? "danger" : "default"}
+      icon={confirmAction?.type === "delete" ? "trash" : "copy"}
+      title={
+        confirmAction?.type === "delete"
+          ? (isAr ? "حذف الباقة؟" : "Delete package?")
+          : (isAr ? "تكرار الباقة؟" : "Duplicate package?")
+      }
+      message={
+        confirmAction?.type === "delete"
+          ? (isAr ? "سيتم حذف هذه الباقة نهائياً ولا يمكن التراجع." : "This package will be permanently deleted. This cannot be undone.")
+          : (isAr ? "سيتم إنشاء نسخة جديدة كمسودة غير نشطة." : "A copy will be created as an inactive draft.")
+      }
+      confirmLabel={
+        confirmAction?.type === "delete"
+          ? (isAr ? "نعم، احذف" : "Delete")
+          : (isAr ? "نعم، كرّر" : "Duplicate")
+      }
+      cancelLabel={isAr ? "إلغاء" : "Cancel"}
+      onConfirm={async () => {
+        if (!confirmAction) return;
+        setConfirmLoading(true);
+        try {
+          if (confirmAction.type === "delete") {
+            posthog.capture("package_deleted", { destination: confirmAction.pkg.destination, views: confirmAction.pkg.views });
+            await deleteDoc(doc(db, "packages", confirmAction.pkg.id));
+            setPackages(prev => prev.filter(p => p.id !== confirmAction.pkg.id));
+          } else {
+            const res = await fetch("/api/duplicate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ packageId: confirmAction.pkg.id, userId }),
+            });
+            if (res.ok) {
+              const { id, agencySlug: slug } = await res.json();
+              setPackages(prev => [
+                { ...confirmAction.pkg, id, agencySlug: slug, isActive: false, views: 0, whatsappClicks: 0, messengerClicks: 0, createdAt: Date.now() },
+                ...prev,
+              ]);
+            }
+          }
+        } finally {
+          setConfirmLoading(false);
+          setConfirmAction(null);
+        }
+      }}
+    />
+    </>
   );
 }

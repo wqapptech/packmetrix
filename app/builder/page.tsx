@@ -24,6 +24,7 @@ import { VisualTemplatePicker } from "@/components/builder/TemplatePicker";
 import { LivePreviewPhone } from "@/components/builder/LivePreviewPhone";
 import { TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/components/templates";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_GREEN, DA_GREEN_SOFT, DA_DANGER } from "@/lib/tokens";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const DRAFT_KEY = "builderDraft_v2";
@@ -445,6 +446,7 @@ function BuilderPageInner() {
   const [saveAsOpen, setSaveAsOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [saveAsStatus, setSaveAsStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [discardOpen, setDiscardOpen] = useState(false);
 
   // ── Auth + load ──────────────────────────────────────────────────────────────
 
@@ -573,13 +575,8 @@ function BuilderPageInner() {
 
   // ── Discard ──────────────────────────────────────────────────────────────────
 
-  const handleDiscard = () => {
-    const confirmed = confirm(
-      l
-        ? "سيتم حذف مسودتك. هل تريد الاستمرار؟"
-        : "Discard this package? Your draft will be lost."
-    );
-    if (!confirmed) return;
+  const handleDiscard = () => setDiscardOpen(true);
+  const doDiscard = () => {
     localStorage.removeItem(DRAFT_KEY);
     router.push("/packages");
   };
@@ -902,6 +899,7 @@ function BuilderPageInner() {
   const templateDisplayName = selectedTpl ? (l ? selectedTpl.nameAr : selectedTpl.name) : undefined;
 
   return (
+    <>
     <AppLayout topbar={
       <BuilderTopBar
         pkgName={pkgDisplayName}
@@ -1019,6 +1017,20 @@ function BuilderPageInner() {
         )}
       </div>
     </AppLayout>
+
+    <ConfirmModal
+      open={discardOpen}
+      onClose={() => setDiscardOpen(false)}
+      onConfirm={doDiscard}
+      variant="warning"
+      icon="trash"
+      title={l ? "تجاهل المسودة؟" : "Discard draft?"}
+      message={l ? "ستُحذف مسودتك نهائياً ولا يمكن التراجع." : "Your draft will be permanently lost. This cannot be undone."}
+      confirmLabel={l ? "نعم، تجاهل" : "Discard"}
+      cancelLabel={l ? "إلغاء" : "Cancel"}
+      dir={l ? "rtl" : "ltr"}
+    />
+    </>
   );
 }
 

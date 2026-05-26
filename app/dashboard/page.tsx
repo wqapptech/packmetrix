@@ -15,8 +15,9 @@ import { T } from "@/lib/translations";
 import {
   DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT,
-  DA_GREEN, DA_GREEN_SOFT, DA_DANGER, DA_DANGER_SOFT,
+  DA_GREEN, DA_GREEN_SOFT, DA_DANGER,
 } from "@/lib/tokens";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 const SANS    = `var(--font-inter-tight), system-ui, sans-serif`;
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
@@ -280,19 +281,17 @@ function StatTile({
 // ── Package row ────────────────────────────────────────────────────────────────
 
 function PackageRow({
-  pkg, lang, isMobile, onView, onEdit, onDelete, isLast,
+  pkg, lang, isMobile, onView, onEdit, onDeleteRequest, isLast,
 }: {
   pkg: Package;
   lang: "en" | "ar";
   isMobile?: boolean;
   onView: () => void;
   onEdit: () => void;
-  onDelete: () => Promise<void>;
+  onDeleteRequest: () => void;
   isLast: boolean;
 }) {
   const t = T[lang];
-  const [confirming, setConfirming] = useState(false);
-  const [deleting,   setDeleting]   = useState(false);
 
   const isLive    = pkg.isActive !== false && !!pkg.agencySlug;
   const thumbUrl  = pkg.coverImage || pkg.images?.[0];
@@ -374,49 +373,18 @@ function PackageRow({
         }}>
           <Icon name="edit" size={13} color={DA_INK2} />
         </button>
-        {confirming ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <button
-              onClick={async () => {
-                setDeleting(true);
-                await onDelete();
-                setDeleting(false);
-                setConfirming(false);
-              }}
-              disabled={deleting}
-              style={{
-                height: 30, borderRadius: 7, padding: "0 8px",
-                background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}40`,
-                color: DA_DANGER, fontSize: 11, fontFamily: SANS, cursor: "pointer",
-              }}
-            >
-              {deleting ? "…" : "Yes"}
-            </button>
-            <button
-              onClick={() => setConfirming(false)}
-              style={{
-                height: 30, borderRadius: 7, padding: "0 8px",
-                background: "none", border: `1px solid ${DA_RULE2}`,
-                color: DA_INK3, fontSize: 11, fontFamily: SANS, cursor: "pointer",
-              }}
-            >
-              No
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setConfirming(true)}
-            title={t.deletePackage}
-            style={{
-              width: 30, height: 30, borderRadius: 7,
-              border: `1px solid ${DA_DANGER}30`,
-              background: "none", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            <Icon name="trash" size={13} color={`${DA_DANGER}99`} />
-          </button>
-        )}
+        <button
+          onClick={onDeleteRequest}
+          title={t.deletePackage}
+          style={{
+            width: 30, height: 30, borderRadius: 7,
+            border: `1px solid ${DA_DANGER}30`,
+            background: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <Icon name="trash" size={13} color={`${DA_DANGER}99`} />
+        </button>
       </div>
     </div>
   );
@@ -576,6 +544,8 @@ function DashboardPopulated({
 
   const [dateRange, setDateRange] = useState<DateRange>("30");
   const [rangeOpen, setRangeOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Package | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -646,6 +616,7 @@ function DashboardPopulated({
   });
 
   return (
+    <>
     <div style={{ padding: isMobile ? "16px 16px 40px" : "32px 40px 56px" }}>
       {/* Header */}
       <div style={{
@@ -816,14 +787,7 @@ function DashboardPopulated({
                   )
                 }
                 onEdit={() => router.push(`/builder?id=${pkg.id}`)}
-                onDelete={async () => {
-                  const res = await fetch("/api/delete", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: pkg.id, userId }),
-                  });
-                  if (res.ok) onDeletePackage(pkg.id);
-                }}
+                onDeleteRequest={() => setPendingDelete(pkg)}
                 isLast={i === arr.length - 1}
               />
             ))
@@ -946,6 +910,34 @@ function DashboardPopulated({
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      open={pendingDelete !== null}
+      onClose={() => { if (!deleting) setPendingDelete(null); }}
+      loading={deleting}
+      variant="danger"
+      title={isAr ? "حذف الباقة؟" : "Delete package?"}
+      message={isAr ? "سيتم حذف هذه الباقة نهائياً ولا يمكن التراجع." : "This package will be permanently deleted. This cannot be undone."}
+      confirmLabel={isAr ? "نعم، احذف" : "Delete"}
+      cancelLabel={isAr ? "إلغاء" : "Cancel"}
+      dir={isAr ? "rtl" : "ltr"}
+      onConfirm={async () => {
+        if (!pendingDelete) return;
+        setDeleting(true);
+        try {
+          const res = await fetch("/api/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: pendingDelete.id, userId }),
+          });
+          if (res.ok) onDeletePackage(pendingDelete.id);
+        } finally {
+          setDeleting(false);
+          setPendingDelete(null);
+        }
+      }}
+    />
+    </>
   );
 }
 

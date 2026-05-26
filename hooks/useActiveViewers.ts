@@ -6,6 +6,7 @@ import {
   doc,
   setDoc,
   deleteDoc,
+  getDocs,
   onSnapshot,
   serverTimestamp,
   Timestamp,
@@ -16,8 +17,11 @@ function makeSessionId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-// TTL for considering a viewer "active" (2 minutes)
-const ACTIVE_WINDOW_MS = 2 * 60 * 1000;
+// A session must heartbeat every HEARTBEAT_MS to stay alive.
+// ACTIVE_WINDOW_MS must be comfortably larger so a late heartbeat doesn't
+// cause the current viewer to flicker out.
+const HEARTBEAT_MS   = 15_000; // 15 s
+const ACTIVE_WINDOW_MS = 45_000; // 45 s — orphaned tabs expire quickly
 
 export function useActiveViewers(packageId: string | undefined): number | null {
   const [count, setCount] = useState<number | null>(null);
@@ -29,15 +33,27 @@ export function useActiveViewers(packageId: string | undefined): number | null {
     const sessionRef = doc(db, "presence", packageId, "viewers", sessionId);
     const colRef = collection(db, "presence", packageId, "viewers");
 
-    // Write initial presence
-    setDoc(sessionRef, { ts: serverTimestamp() }).catch(() => {});
+    // Write initial presence, then prune stale docs left by crashed sessions
+    setDoc(sessionRef, { ts: serverTimestamp() })
+      .then(() => getDocs(colRef))
+      .then((snap) => {
+        const cutoff = Date.now() - ACTIVE_WINDOW_MS;
+        snap.docs.forEach((d) => {
+          if (d.id === sessionId) return;
+          const ts = d.data().ts as Timestamp | null;
+          if (!ts || ts.toMillis() < cutoff) {
+            deleteDoc(d.ref).catch(() => {});
+          }
+        });
+      })
+      .catch(() => {});
 
-    // Heartbeat every 30s to stay "active"
+    // Heartbeat — keep the session alive
     const heartbeat = setInterval(() => {
       setDoc(sessionRef, { ts: serverTimestamp() }).catch(() => {});
-    }, 30_000);
+    }, HEARTBEAT_MS);
 
-    // Listen and count viewers active within the window
+    // Real-time count of viewers whose heartbeat is within the active window
     const unsub = onSnapshot(
       colRef,
       (snap) => {

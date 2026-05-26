@@ -12,6 +12,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import { canUseCustomDomain } from "@/lib/limits";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT, DA_GREEN, DA_GREEN_SOFT, DA_DANGER, DA_DANGER_SOFT } from "@/lib/tokens";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
@@ -285,6 +286,10 @@ export default function BrandingPage() {
 
   const handleDeleteAccount = async () => {
     if (!auth.currentUser) return;
+    if (deleteConfirmEmail.toLowerCase().trim() !== email.toLowerCase().trim()) {
+      setDeleteError(lang === "ar" ? "البريد الإلكتروني غير مطابق." : "Email does not match.");
+      return;
+    }
     setDeleting(true);
     setDeleteError(null);
     try {
@@ -706,153 +711,79 @@ export default function BrandingPage() {
         </div>
       </div>
       {/* ── Remove domain confirmation modal ── */}
-      {confirmRemoveOpen && (
-        <div
-          style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-          onClick={e => { if (e.target === e.currentTarget && !domainRemoving) setConfirmRemoveOpen(false); }}
-        >
-          <div style={{ width: "100%", maxWidth: 420, background: DA_SURFACE2, border: `1px solid ${DA_DANGER}`, borderRadius: 16, overflow: "hidden" }}>
-            {/* Header */}
-            <div style={{ padding: "18px 22px", borderBottom: `1px solid ${DA_RULE}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, fontFamily: SANS, color: DA_INK1 }}>
-                  {domainStatus === "failed" ? "Remove & try a different domain" : "Remove custom domain"}
-                </div>
-                <div style={{ fontSize: 12, fontFamily: "monospace", color: DA_INK3, marginTop: 3 }}>{customDomain}</div>
-              </div>
-              <button
-                onClick={() => setConfirmRemoveOpen(false)} disabled={domainRemoving}
-                style={{ background: "none", border: "none", color: DA_INK3, fontSize: 20, cursor: "pointer", lineHeight: 1, padding: "2px 4px", flexShrink: 0 }}
-              >×</button>
-            </div>
-
-            {/* Body */}
-            <div style={{ padding: "18px 22px" }}>
-              <p style={{ margin: "0 0 16px", fontSize: 13, fontFamily: SANS, color: DA_INK2, lineHeight: 1.6 }}>
-                {domainStatus === "active"
-                  ? `Your site at https://${customDomain} will stop working immediately. You can connect a new domain after removing this one.`
-                  : `This will remove the domain registration. You can connect a new domain straight away.`}
-              </p>
-              {domainError && (
-                <div style={{ fontSize: 12, color: DA_DANGER, padding: "8px 12px", borderRadius: 8, background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`, marginBottom: 14 }}>
-                  {domainError}
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button
-                  onClick={() => setConfirmRemoveOpen(false)} disabled={domainRemoving}
-                  style={{ padding: "9px 18px", borderRadius: 9, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 13, fontWeight: 600, fontFamily: SANS, cursor: domainRemoving ? "not-allowed" : "pointer" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  disabled={domainRemoving}
-                  onClick={async () => {
-                    if (domainStatus === "failed") {
-                      await handleResetDomain();
-                    } else {
-                      await handleRemoveDomain();
-                    }
-                    setConfirmRemoveOpen(false);
-                  }}
-                  style={{ padding: "9px 20px", borderRadius: 9, background: DA_DANGER, color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: SANS, border: "none", cursor: domainRemoving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, opacity: domainRemoving ? 0.6 : 1 }}
-                >
-                  {domainRemoving && <span className="spinner-warm" style={{ width: 12, height: 12, borderTopColor: "#fff", flexShrink: 0 }} />}
-                  {domainRemoving ? "Removing…" : "Yes, remove domain"}
-                </button>
-              </div>
-            </div>
+      <ConfirmModal
+        open={confirmRemoveOpen}
+        onClose={() => { if (!domainRemoving) setConfirmRemoveOpen(false); }}
+        loading={domainRemoving}
+        variant="warning"
+        icon="globe"
+        title={domainStatus === "failed" ? "Remove & try a different domain?" : "Remove custom domain?"}
+        message={
+          domainStatus === "active"
+            ? `Your site at https://${customDomain} will stop working immediately. You can connect a new domain after removing this one.`
+            : `This will remove the domain registration. You can connect a new domain straight away.`
+        }
+        confirmLabel={domainRemoving ? "Removing…" : "Yes, remove domain"}
+        cancelLabel="Cancel"
+        onConfirm={async () => {
+          if (domainStatus === "failed") {
+            await handleResetDomain();
+          } else {
+            await handleRemoveDomain();
+          }
+          setConfirmRemoveOpen(false);
+        }}
+      >
+        {domainError && (
+          <div style={{ fontSize: 12, color: DA_DANGER, padding: "8px 12px", borderRadius: 8, background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`, marginBottom: 4 }}>
+            {domainError}
           </div>
-        </div>
-      )}
+        )}
+      </ConfirmModal>
       {/* ── Delete account modal ── */}
-      {deleteOpen && (
-        <div
-          style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-          onClick={e => { if (e.target === e.currentTarget && !deleting) setDeleteOpen(false); }}
-        >
-          <div style={{ width: "100%", maxWidth: 440, background: DA_SURFACE, border: `1px solid ${DA_DANGER}`, borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ padding: "18px 22px", borderBottom: `1px solid ${DA_RULE}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, fontFamily: SANS, color: DA_DANGER }}>
-                  {lang === "ar" ? "حذف الحساب نهائياً" : "Permanently delete account"}
-                </div>
-                <div style={{ fontSize: 12, color: DA_INK3, marginTop: 3 }}>
-                  {lang === "ar" ? "لا يمكن التراجع عن هذا الإجراء" : "This action cannot be undone"}
-                </div>
-              </div>
-              <button
-                onClick={() => setDeleteOpen(false)} disabled={deleting}
-                style={{ background: "none", border: "none", color: DA_INK3, fontSize: 20, cursor: "pointer", lineHeight: 1, padding: "2px 4px", flexShrink: 0 }}
-              >×</button>
-            </div>
-
-            <div style={{ padding: "20px 22px" }}>
-              <div style={{ marginBottom: 16, padding: "12px 14px", background: DA_DANGER_SOFT, borderRadius: 9, fontSize: 13, color: DA_DANGER, lineHeight: 1.55 }}>
-                {lang === "ar" ? (
-                  <>سيتم حذف ما يلي نهائياً:<br />• جميع صفحات الباقات<br />• جميع العملاء والبيانات<br />• النطاق المخصص<br />• حسابك بالكامل</>
-                ) : (
-                  <>The following will be permanently deleted:<br />• All package pages<br />• All leads and analytics<br />• Your custom domain<br />• Your account and profile</>
-                )}
-              </div>
-
-              <div style={{ fontSize: 12, fontWeight: 500, color: DA_INK2, marginBottom: 8 }}>
-                {lang === "ar"
-                  ? `أدخل بريدك الإلكتروني (${email}) للتأكيد`
-                  : `Type your email address (${email}) to confirm`}
-              </div>
-              <input
-                type="email"
-                value={deleteConfirmEmail}
-                onChange={e => { setDeleteConfirmEmail(e.target.value); setDeleteError(null); }}
-                placeholder={email}
-                disabled={deleting}
-                style={{
-                  width: "100%", padding: "10px 12px",
-                  background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
-                  borderRadius: 8, color: DA_INK1, fontSize: 13.5,
-                  fontFamily: SANS, outline: "none", boxSizing: "border-box",
-                }}
-                onFocus={e => (e.target.style.borderColor = DA_DANGER)}
-                onBlur={e => (e.target.style.borderColor = DA_RULE)}
-              />
-
-              {deleteError && (
-                <div style={{ fontSize: 12, color: DA_DANGER, padding: "8px 12px", borderRadius: 8, background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`, marginTop: 12 }}>
-                  {deleteError}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-                <button
-                  onClick={() => setDeleteOpen(false)} disabled={deleting}
-                  style={{ padding: "9px 18px", borderRadius: 9, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 13, fontWeight: 600, fontFamily: SANS, cursor: deleting ? "not-allowed" : "pointer" }}
-                >
-                  {lang === "ar" ? "إلغاء" : "Cancel"}
-                </button>
-                <button
-                  disabled={deleting || deleteConfirmEmail.toLowerCase().trim() !== email.toLowerCase().trim()}
-                  onClick={handleDeleteAccount}
-                  style={{
-                    padding: "9px 20px", borderRadius: 9,
-                    background: DA_DANGER, color: "#fff",
-                    fontSize: 13, fontWeight: 700, fontFamily: SANS, border: "none",
-                    cursor: (deleting || deleteConfirmEmail.toLowerCase().trim() !== email.toLowerCase().trim()) ? "not-allowed" : "pointer",
-                    opacity: (deleting || deleteConfirmEmail.toLowerCase().trim() !== email.toLowerCase().trim()) ? 0.5 : 1,
-                    display: "flex", alignItems: "center", gap: 6,
-                    transition: "opacity .15s",
-                  }}
-                >
-                  {deleting && <span className="spinner-warm" style={{ width: 12, height: 12, borderTopColor: "#fff", flexShrink: 0 }} />}
-                  {deleting
-                    ? (lang === "ar" ? "جارٍ الحذف…" : "Deleting…")
-                    : (lang === "ar" ? "حذف حسابي نهائياً" : "Delete my account")}
-                </button>
-              </div>
-            </div>
-          </div>
+      <ConfirmModal
+        open={deleteOpen}
+        onClose={() => { if (!deleting) { setDeleteOpen(false); setDeleteConfirmEmail(""); setDeleteError(null); } }}
+        loading={deleting}
+        variant="danger"
+        title={lang === "ar" ? "حذف الحساب نهائياً؟" : "Delete account permanently?"}
+        message={lang === "ar" ? "لا يمكن التراجع عن هذا الإجراء." : "This action cannot be undone."}
+        confirmLabel={lang === "ar" ? "حذف حسابي" : "Delete my account"}
+        cancelLabel={lang === "ar" ? "إلغاء" : "Cancel"}
+        dir={lang === "ar" ? "rtl" : "ltr"}
+        onConfirm={handleDeleteAccount}
+      >
+        <div style={{ marginBottom: 14, padding: "10px 13px", background: DA_DANGER_SOFT, borderRadius: 9, fontSize: 12.5, color: DA_DANGER, lineHeight: 1.6 }}>
+          {lang === "ar" ? (
+            <>• جميع صفحات الباقات<br />• جميع العملاء والبيانات<br />• النطاق المخصص<br />• حسابك بالكامل</>
+          ) : (
+            <>• All package pages<br />• All leads and analytics<br />• Your custom domain<br />• Your account and profile</>
+          )}
         </div>
-      )}
+        <div style={{ fontSize: 12, fontWeight: 500, color: DA_INK2, marginBottom: 6 }}>
+          {lang === "ar" ? `أدخل بريدك الإلكتروني للتأكيد` : `Type your email to confirm`}
+        </div>
+        <input
+          type="email"
+          value={deleteConfirmEmail}
+          onChange={e => { setDeleteConfirmEmail(e.target.value); setDeleteError(null); }}
+          placeholder={email}
+          disabled={deleting}
+          style={{
+            width: "100%", padding: "9px 12px",
+            background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
+            borderRadius: 8, color: DA_INK1, fontSize: 13,
+            fontFamily: SANS, outline: "none", boxSizing: "border-box",
+          }}
+          onFocus={e => (e.target.style.borderColor = DA_DANGER)}
+          onBlur={e => (e.target.style.borderColor = DA_RULE)}
+        />
+        {deleteError && (
+          <div style={{ fontSize: 12, color: DA_DANGER, padding: "8px 12px", borderRadius: 8, background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`, marginTop: 10 }}>
+            {deleteError}
+          </div>
+        )}
+      </ConfirmModal>
     </AppLayout>
   );
 }
