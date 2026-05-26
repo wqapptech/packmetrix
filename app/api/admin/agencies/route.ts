@@ -65,9 +65,24 @@ export async function GET(req: Request) {
       agencySlug: d.agencySlug || d.name || "",
       customDomain: d.customDomain || null,
       customDomainStatus: d.customDomainStatus || null,
+      trialEndsAt: d.trialEndsAt || null,
       createdAt: d.createdAt || 0,
     };
   });
 
   return NextResponse.json({ agencies });
+}
+
+export async function PATCH(req: Request) {
+  const admin = await verifyAdminToken(req.headers.get("authorization"));
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+  const { uid, trialEndsAt } = await req.json();
+  if (!uid || typeof trialEndsAt !== "number") {
+    return NextResponse.json({ error: "Missing uid or trialEndsAt" }, { status: 400 });
+  }
+
+  await db.collection("users").doc(uid).update({ trialEndsAt });
+
+  return NextResponse.json({ success: true, trialEndsAt });
 }

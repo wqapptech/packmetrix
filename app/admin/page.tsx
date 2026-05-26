@@ -4,6 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import {
+  DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT,
+  DA_GREEN, DA_GREEN_SOFT, DA_DANGER, DA_DANGER_SOFT,
+} from "@/lib/tokens";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,64 +22,237 @@ type Agency = {
   agencySlug: string;
   customDomain: string | null;
   customDomainStatus: DomainStatus | null;
+  trialEndsAt: number | null;
   createdAt: number;
 };
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────────────────
 
-const SAND    = "#e8c97b";
-const SUCCESS = "#2dd4a0";
-const BORDER  = "rgba(255,255,255,0.08)";
+const SANS    = `var(--font-inter-tight), system-ui, sans-serif`;
+const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  pending_dns:      { label: "Pending DNS",      color: "#f59e0b", bg: "rgba(245,158,11,0.12)"  },
-  verifying:        { label: "Verifying",         color: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
-  ssl_provisioning: { label: "SSL Provisioning",  color: "#60a5fa", bg: "rgba(96,165,250,0.12)"  },
-  active:           { label: "Live",              color: SUCCESS,   bg: "rgba(45,212,160,0.12)"  },
-  failed:           { label: "Failed",            color: "#f87171", bg: "rgba(248,113,113,0.12)" },
-};
+const BLUE        = "#2563eb";
+const BLUE_SOFT   = "#dbeafe";
+const AMBER       = "#b45309";
+const AMBER_SOFT  = "#fef3c7";
+const VIOLET      = "#7c3aed";
+const VIOLET_SOFT = "#ede9fe";
 
-const PLAN_META: Record<string, { label: string; color: string }> = {
-  free:  { label: "Free",  color: "rgba(255,255,255,0.35)" },
-  start: { label: "Start", color: "#60a5fa" },
-  grow:  { label: "Grow",  color: SAND },
-  scale: { label: "Scale", color: "#a78bfa" },
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+function isPaid(plan: string) {
+  return ["founding", "standard", "start", "grow", "scale"].includes(plan);
+}
 
-function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>—</span>;
-  const m = STATUS_META[status] ?? STATUS_META.pending;
+function trialDaysLeft(trialEndsAt: number | null): number {
+  if (!trialEndsAt) return 0;
+  return Math.max(0, Math.ceil((trialEndsAt - Date.now()) / 86_400_000));
+}
+
+function isTrialActive(trialEndsAt: number | null) {
+  return !!trialEndsAt && Date.now() < trialEndsAt;
+}
+
+function fmtDate(ts: number) {
+  if (!ts) return "—";
+  return new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function Chip({ label, color, bg, border }: { label: string; color: string; bg: string; border?: string }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 9px", borderRadius: 99, background: m.bg, fontSize: 11.5, fontWeight: 600, color: m.color }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: m.color, flexShrink: 0 }} />
+    <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 99, background: bg, border: `1px solid ${border ?? "transparent"}`, fontSize: 11, fontWeight: 700, color, letterSpacing: 0.2, whiteSpace: "nowrap" as const, fontFamily: SANS }}>
+      {label}
+    </span>
+  );
+}
+
+const PLAN_CHIP: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  founding: { label: "Founding", color: DA_GOLD_DEEP,  bg: DA_GOLD_SOFT,   border: "rgba(176,138,62,0.3)" },
+  standard: { label: "Standard", color: VIOLET,         bg: VIOLET_SOFT,    border: "rgba(124,58,237,0.2)" },
+  start:    { label: "Start",    color: BLUE,           bg: BLUE_SOFT,      border: "rgba(37,99,235,0.2)"  },
+  grow:     { label: "Grow",     color: DA_GOLD_DEEP,  bg: DA_GOLD_SOFT,   border: "rgba(176,138,62,0.3)" },
+  scale:    { label: "Scale",    color: VIOLET,         bg: VIOLET_SOFT,    border: "rgba(124,58,237,0.2)" },
+  free:     { label: "Free",     color: DA_INK3,        bg: DA_BG,          border: DA_RULE },
+};
+
+const DOMAIN_CHIP: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
+  pending_dns:      { label: "Pending DNS",    color: AMBER,      bg: AMBER_SOFT,   border: "rgba(180,83,9,0.2)",   dot: AMBER      },
+  verifying:        { label: "Verifying",       color: VIOLET,     bg: VIOLET_SOFT,  border: "rgba(124,58,237,0.2)", dot: VIOLET     },
+  ssl_provisioning: { label: "SSL",             color: BLUE,       bg: BLUE_SOFT,    border: "rgba(37,99,235,0.2)",  dot: BLUE       },
+  active:           { label: "Live",            color: DA_GREEN,   bg: DA_GREEN_SOFT,border: "rgba(77,138,94,0.25)", dot: DA_GREEN   },
+  failed:           { label: "Failed",          color: DA_DANGER,  bg: DA_DANGER_SOFT,border: "rgba(192,83,58,0.2)", dot: DA_DANGER  },
+};
+
+function DomainChip({ status }: { status: string | null }) {
+  if (!status) return <span style={{ color: DA_INK3, fontSize: 12 }}>—</span>;
+  const m = DOMAIN_CHIP[status];
+  if (!m) return null;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 99, background: m.bg, border: `1px solid ${m.border}`, fontSize: 11, fontWeight: 700, color: m.color }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: m.dot, flexShrink: 0 }} />
       {m.label}
     </span>
   );
 }
 
-function PlanBadge({ plan }: { plan: string }) {
-  const m = PLAN_META[plan] ?? PLAN_META.free;
+function TrialChip({ trialEndsAt, plan }: { trialEndsAt: number | null; plan: string }) {
+  if (isPaid(plan)) return <span style={{ color: DA_INK3, fontSize: 12 }}>—</span>;
+  if (!trialEndsAt) return <Chip label="No trial" color={DA_INK3} bg={DA_BG} border={DA_RULE} />;
+  const days = trialDaysLeft(trialEndsAt);
+  if (days === 0) return <Chip label="Expired" color={DA_DANGER} bg={DA_DANGER_SOFT} border="rgba(192,83,58,0.2)" />;
+  const color  = days <= 3 ? AMBER : DA_GREEN;
+  const bg     = days <= 3 ? AMBER_SOFT : DA_GREEN_SOFT;
+  const border = days <= 3 ? "rgba(180,83,9,0.2)" : "rgba(77,138,94,0.25)";
+  return <Chip label={`${days}d left`} color={color} bg={bg} border={border} />;
+}
+
+function StatCard({ value, label, accent }: { value: string | number; label: string; accent?: string }) {
   return (
-    <span style={{ fontSize: 11.5, fontWeight: 700, color: m.color, textTransform: "uppercase" as const, letterSpacing: ".4px" }}>
-      {m.label}
-    </span>
+    <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
+      <div style={{ fontSize: 28, fontWeight: 700, color: accent ?? DA_INK1, letterSpacing: -0.8, fontFamily: DISPLAY }}>{value}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: DA_INK3, marginTop: 4, textTransform: "uppercase" as const, letterSpacing: 0.5, fontFamily: SANS }}>{label}</div>
+    </div>
   );
 }
 
-// ─── Delete Confirmation Modal ────────────────────────────────────────────────
+function IconBtn({ onClick, title, icon, danger }: { onClick: () => void; title: string; icon: string; danger?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, cursor: "pointer", padding: 0, fontSize: 15, fontFamily: SANS, transition: "background .12s",
+        background: danger ? DA_DANGER_SOFT : DA_GOLD_SOFT,
+        border: `1px solid ${danger ? "rgba(192,83,58,0.25)" : "rgba(176,138,62,0.3)"}`,
+        color: danger ? DA_DANGER : DA_GOLD_DEEP,
+      }}
+    >
+      {icon}
+    </button>
+  );
+}
 
-function DeleteAgencyModal({
-  agency,
-  token,
-  onClose,
-  onDeleted,
-}: {
-  agency: Agency;
-  token: string;
-  onClose: () => void;
-  onDeleted: (uid: string) => void;
+// ─── Extend Trial Modal ───────────────────────────────────────────────────────
+
+function ExtendTrialModal({ agency, token, onClose, onExtended }: {
+  agency: Agency; token: string; onClose: () => void; onExtended: (uid: string, ts: number) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+  const [days, setDays]     = useState(14);
+  const [mode, setMode]     = useState<"add" | "set">("add");
+
+  const active    = isTrialActive(agency.trialEndsAt);
+  const daysLeft  = trialDaysLeft(agency.trialEndsAt);
+  const newExpiry = mode === "add"
+    ? (active && agency.trialEndsAt ? agency.trialEndsAt : Date.now()) + days * 86_400_000
+    : Date.now() + days * 86_400_000;
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/agencies", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ uid: agency.uid, trialEndsAt: newExpiry }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
+      onExtended(agency.uid, newExpiry);
+      onClose();
+    } catch (err: any) { setError(err.message); }
+    finally { setSaving(false); }
+  };
+
+  const inputStyle: React.CSSProperties = { width: "100%", background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 14px", color: DA_INK1, fontSize: 14, fontWeight: 600, fontFamily: SANS, outline: "none" };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(26,22,17,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ width: "100%", maxWidth: 460, background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 20px 60px rgba(26,22,17,0.15)" }}>
+        {/* Header */}
+        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: DA_INK1, fontFamily: DISPLAY }}>Extend Trial</div>
+            <div style={{ fontSize: 12.5, color: DA_INK2, marginTop: 3 }}>{agency.name || agency.email}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: DA_INK3, fontSize: 22, cursor: "pointer", lineHeight: 1, padding: "0 4px" }}>×</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column" as const, gap: 20 }}>
+          {/* Current status */}
+          <div style={{ padding: "12px 16px", borderRadius: 12, background: DA_BG, border: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 12, color: DA_INK3, fontWeight: 600 }}>Current trial</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600 }}>
+              {!agency.trialEndsAt
+                ? <span style={{ color: DA_INK3 }}>No trial set</span>
+                : active
+                ? <span style={{ color: DA_GREEN }}>{daysLeft}d remaining · expires {fmtDate(agency.trialEndsAt)}</span>
+                : <span style={{ color: DA_DANGER }}>Expired {fmtDate(agency.trialEndsAt)}</span>}
+            </div>
+          </div>
+
+          {/* Mode toggle */}
+          <div style={{ display: "flex", gap: 8 }}>
+            {(["add", "set"] as const).map(m => (
+              <button key={m} onClick={() => setMode(m)} style={{ flex: 1, padding: "9px 0", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: SANS, transition: "all .15s",
+                background: mode === m ? DA_GOLD_SOFT : "transparent",
+                border: `1px solid ${mode === m ? "rgba(176,138,62,0.4)" : DA_RULE}`,
+                color: mode === m ? DA_GOLD_DEEP : DA_INK2,
+              }}>
+                {m === "add" ? "Add days" : "Set from today"}
+              </button>
+            ))}
+          </div>
+
+          {/* Quick pick */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: DA_INK3, letterSpacing: 0.6, textTransform: "uppercase" as const, marginBottom: 10, fontFamily: SANS }}>Quick pick</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[7, 14, 30, 60].map(d => (
+                <button key={d} onClick={() => setDays(d)} style={{ flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: SANS, transition: "all .12s",
+                  background: days === d ? DA_GOLD : DA_BG,
+                  border: `1px solid ${days === d ? "rgba(176,138,62,0.5)" : DA_RULE}`,
+                  color: days === d ? "#fff" : DA_INK2,
+                }}>
+                  {d}d
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: DA_INK3, letterSpacing: 0.6, textTransform: "uppercase" as const, marginBottom: 8, fontFamily: SANS }}>Custom days</div>
+            <input type="number" min={1} max={365} value={days} onChange={e => setDays(Math.max(1, Math.min(365, Number(e.target.value))))} style={inputStyle} />
+          </div>
+
+          {/* Preview */}
+          <div style={{ padding: "14px 16px", borderRadius: 12, background: DA_GOLD_SOFT, border: "1px solid rgba(176,138,62,0.25)" }}>
+            <div style={{ fontSize: 11, color: DA_GOLD_DEEP, fontWeight: 600, marginBottom: 4, opacity: 0.7 }}>New expiry date</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: DA_GOLD_DEEP, fontFamily: DISPLAY }}>{fmtDate(newExpiry)}</div>
+          </div>
+
+          {error && <div style={{ fontSize: 12.5, color: DA_DANGER, padding: "10px 14px", borderRadius: 10, background: DA_DANGER_SOFT, border: "1px solid rgba(192,83,58,0.2)" }}>{error}</div>}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} disabled={saving} style={{ padding: "10px 20px", borderRadius: 10, background: "transparent", border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: SANS }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ padding: "10px 24px", borderRadius: 10, background: saving ? DA_GOLD_SOFT : DA_GOLD, color: saving ? DA_GOLD_DEEP : "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: saving ? "not-allowed" : "pointer", fontFamily: SANS }}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Delete Modal ─────────────────────────────────────────────────────────────
+
+function DeleteAgencyModal({ agency, token, onClose, onDeleted }: {
+  agency: Agency; token: string; onClose: () => void; onDeleted: (uid: string) => void;
 }) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -91,61 +269,89 @@ function DeleteAgencyModal({
       if (!res.ok) throw new Error((await res.json()).error ?? "Delete failed");
       onDeleted(agency.uid);
       onClose();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setDeleting(false);
-    }
+    } catch (err: any) { setError(err.message); }
+    finally { setDeleting(false); }
   };
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{ width: "100%", maxWidth: 460, background: "#111c2d", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 16, overflow: "hidden" }}>
-        {/* Header */}
-        <div style={{ padding: "18px 22px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(26,22,17,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ width: "100%", maxWidth: 440, background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 20px 60px rgba(26,22,17,0.15)" }}>
+        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#f87171" }}>Delete Agency</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{agency.name || agency.email}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: DA_DANGER, fontFamily: DISPLAY }}>Delete Agency</div>
+            <div style={{ fontSize: 12.5, color: DA_INK2, marginTop: 3 }}>{agency.name || agency.email}</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 20, cursor: "pointer", lineHeight: 1, padding: "2px 6px" }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: DA_INK3, fontSize: 22, cursor: "pointer", lineHeight: 1, padding: "0 4px" }}>×</button>
         </div>
-
-        {/* Body */}
-        <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.6 }}>
+        <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column" as const, gap: 16 }}>
+          <div style={{ padding: "14px 16px", borderRadius: 12, background: DA_DANGER_SOFT, border: "1px solid rgba(192,83,58,0.2)", fontSize: 13.5, color: DA_INK1, lineHeight: 1.65 }}>
             This will permanently delete:
-            <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
-              <li>The agency account &amp; profile</li>
-              <li>All packages</li>
-              <li>All leads</li>
+            <ul style={{ margin: "8px 0 0", paddingLeft: 18, color: DA_INK2 }}>
+              <li>Agency account &amp; profile</li>
+              <li>All packages and leads</li>
               <li>Custom domain configuration</li>
               <li>Firebase Auth account</li>
             </ul>
           </div>
-          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.4)" }}>
-            This action <strong style={{ color: "rgba(255,255,255,0.7)" }}>cannot be undone</strong>. Are you sure you want to delete <strong style={{ color: "#fdfcf9" }}>{agency.name || agency.email}</strong>?
+          <div style={{ fontSize: 13, color: DA_INK2 }}>
+            This <strong style={{ color: DA_INK1 }}>cannot be undone</strong>. Deleting <strong style={{ color: DA_INK1 }}>{agency.name || agency.email}</strong>.
           </div>
-          {error && (
-            <div style={{ fontSize: 12, color: "#f87171", padding: "8px 12px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
-              {error}
-            </div>
-          )}
+          {error && <div style={{ fontSize: 12.5, color: DA_DANGER, padding: "10px 14px", borderRadius: 10, background: DA_DANGER_SOFT, border: "1px solid rgba(192,83,58,0.2)" }}>{error}</div>}
         </div>
-
-        {/* Footer */}
-        <div style={{ padding: "14px 22px", borderTop: `1px solid ${BORDER}`, display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={onClose} disabled={deleting} style={{ padding: "9px 18px", borderRadius: 9, background: "rgba(255,255,255,0.05)", border: `1px solid ${BORDER}`, color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            Cancel
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            style={{ padding: "9px 20px", borderRadius: 9, background: deleting ? "rgba(248,113,113,0.3)" : "rgba(248,113,113,0.85)", color: "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: deleting ? "not-allowed" : "pointer", fontFamily: "inherit" }}
-          >
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} disabled={deleting} style={{ padding: "10px 20px", borderRadius: 10, background: "transparent", border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: SANS }}>Cancel</button>
+          <button onClick={handleDelete} disabled={deleting} style={{ padding: "10px 22px", borderRadius: 10, background: deleting ? DA_DANGER_SOFT : DA_DANGER, color: deleting ? DA_DANGER : "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: deleting ? "not-allowed" : "pointer", fontFamily: SANS }}>
             {deleting ? "Deleting…" : "Delete permanently"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Wipe Modal ───────────────────────────────────────────────────────────────
+
+function WipeModal({ token, onClose, onWiped }: { token: string; onClose: () => void; onWiped: (count: number) => void }) {
+  const [wiping, setWiping] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+
+  const handleWipe = async () => {
+    setWiping(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/cleanup", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Cleanup failed");
+      const { deleted } = await res.json();
+      onWiped(deleted);
+      onClose();
+    } catch (err: any) { setError(err.message); }
+    finally { setWiping(false); }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(26,22,17,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ width: "100%", maxWidth: 460, background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 20px 60px rgba(26,22,17,0.15)" }}>
+        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: DA_DANGER, fontFamily: DISPLAY }}>Wipe test data</div>
+            <div style={{ fontSize: 12.5, color: DA_INK2, marginTop: 3 }}>Delete all agencies except wqapptech@gmail.com</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: DA_INK3, fontSize: 22, cursor: "pointer", lineHeight: 1, padding: "0 4px" }}>×</button>
+        </div>
+        <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column" as const, gap: 16 }}>
+          <div style={{ padding: "14px 16px", borderRadius: 12, background: DA_DANGER_SOFT, border: "1px solid rgba(192,83,58,0.2)", fontSize: 13.5, color: DA_INK1, lineHeight: 1.65 }}>
+            This will permanently delete <strong>every agency</strong> except <strong>wqapptech@gmail.com</strong>, including all their packages, leads, custom domains, and Firebase Auth accounts.
+          </div>
+          <div style={{ fontSize: 13, color: DA_INK2 }}>This <strong style={{ color: DA_INK1 }}>cannot be undone</strong>.</div>
+          {error && <div style={{ fontSize: 12.5, color: DA_DANGER, padding: "10px 14px", borderRadius: 10, background: DA_DANGER_SOFT, border: "1px solid rgba(192,83,58,0.2)" }}>{error}</div>}
+        </div>
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} disabled={wiping} style={{ padding: "10px 20px", borderRadius: 10, background: "transparent", border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: SANS }}>Cancel</button>
+          <button onClick={handleWipe} disabled={wiping} style={{ padding: "10px 22px", borderRadius: 10, background: wiping ? DA_DANGER_SOFT : DA_DANGER, color: wiping ? DA_DANGER : "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: wiping ? "not-allowed" : "pointer", fontFamily: SANS }}>
+            {wiping ? "Wiping…" : "Wipe all test data"}
           </button>
         </div>
       </div>
@@ -162,10 +368,12 @@ export default function AdminPage() {
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [search, setSearch]       = useState("");
+  const [filterPlan, setFilterPlan] = useState("all");
   const [deleting, setDeleting]   = useState<Agency | null>(null);
-  const [filterPlan, setFilterPlan] = useState<string>("all");
+  const [extending, setExtending] = useState<Agency | null>(null);
+  const [wiping, setWiping]       = useState(false);
+  const [wipeMsg, setWipeMsg]     = useState<string | null>(null);
 
-  // Get Firebase ID token then load agencies
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.replace("/admin/login"); return; }
@@ -179,146 +387,155 @@ export default function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/agencies", {
-        headers: { Authorization: `Bearer ${t}` },
-      });
+      const res = await fetch("/api/admin/agencies", { headers: { Authorization: `Bearer ${t}` } });
       if (res.status === 403) { router.replace("/admin/login"); return; }
       if (!res.ok) throw new Error("Failed to load agencies");
-      const data = await res.json();
-      setAgencies(data.agencies);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+      setAgencies((await res.json()).agencies);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
   }, [router]);
 
-  useEffect(() => {
-    if (token) loadAgencies(token);
-  }, [token, loadAgencies]);
+  useEffect(() => { if (token) loadAgencies(token); }, [token, loadAgencies]);
 
-  const handleDeleted = (uid: string) => {
-    setAgencies(prev => prev.filter(a => a.uid !== uid));
+  const handleDeleted  = (uid: string) => setAgencies(prev => prev.filter(a => a.uid !== uid));
+  const handleExtended = (uid: string, ts: number) => setAgencies(prev => prev.map(a => a.uid === uid ? { ...a, trialEndsAt: ts } : a));
+  const handleWiped    = (count: number) => {
+    setWipeMsg(`Deleted ${count} test ${count === 1 ? "agency" : "agencies"}.`);
+    if (token) loadAgencies(token);
   };
 
   const filtered = agencies.filter(a => {
     const q = search.toLowerCase();
-    const matchSearch = !q || a.name.toLowerCase().includes(q) || a.email.toLowerCase().includes(q) || (a.customDomain ?? "").toLowerCase().includes(q);
-    const matchPlan = filterPlan === "all" || a.plan === filterPlan;
-    return matchSearch && matchPlan;
+    const matchSearch = !q || a.name.toLowerCase().includes(q) || a.email.toLowerCase().includes(q) || (a.customDomain ?? "").toLowerCase().includes(q) || (a.agencySlug ?? "").toLowerCase().includes(q);
+    return matchSearch && (filterPlan === "all" || a.plan === filterPlan);
   });
 
-  const withDomain    = agencies.filter(a => a.customDomain).length;
-  const activeCount   = agencies.filter(a => a.customDomainStatus === "active").length;
-  const pendingCount  = agencies.filter(a => a.customDomainStatus === "pending_dns" || a.customDomainStatus === "verifying" || a.customDomainStatus === "ssl_provisioning").length;
+  const totalPaid        = agencies.filter(a => isPaid(a.plan)).length;
+  const totalTrialActive = agencies.filter(a => !isPaid(a.plan) && isTrialActive(a.trialEndsAt)).length;
+  const totalExpired     = agencies.filter(a => !isPaid(a.plan) && a.trialEndsAt && !isTrialActive(a.trialEndsAt)).length;
+  const withDomain       = agencies.filter(a => a.customDomain).length;
+
+  const COLS = "minmax(160px,1.6fr) minmax(150px,1.4fr) 90px 100px minmax(150px,1.2fr) 110px 80px";
+
+  const inputBase: React.CSSProperties = { background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "9px 14px", color: DA_INK1, fontSize: 13, fontFamily: SANS, outline: "none" };
 
   return (
     <>
-      {/* Page header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.3px" }}>Agencies</div>
-        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
-          {agencies.length} total · {withDomain} with custom domain · {activeCount} live · {pendingCount} pending
+      {/* Title row */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap" as const, gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 26, fontWeight: 400, color: DA_INK1, fontFamily: DISPLAY, letterSpacing: -0.3 }}>Agencies</div>
+          <div style={{ fontSize: 13, color: DA_INK3, marginTop: 4, fontFamily: SANS }}>{agencies.length} total</div>
         </div>
+        <button
+          onClick={() => setWiping(true)}
+          style={{ padding: "9px 18px", borderRadius: 10, background: DA_DANGER_SOFT, border: "1px solid rgba(192,83,58,0.2)", color: DA_DANGER, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: SANS }}
+        >
+          Wipe test data
+        </button>
+      </div>
+
+      {wipeMsg && (
+        <div style={{ marginBottom: 20, padding: "12px 16px", borderRadius: 12, background: DA_GREEN_SOFT, border: "1px solid rgba(77,138,94,0.25)", fontSize: 13, color: DA_GREEN, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {wipeMsg}
+          <button onClick={() => setWipeMsg(null)} style={{ background: "none", border: "none", color: DA_GREEN, cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 12, marginBottom: 28 }}>
+        <StatCard value={agencies.length} label="Total" />
+        <StatCard value={totalPaid} label="Paid" accent={DA_GOLD} />
+        <StatCard value={totalTrialActive} label="Trial active" accent={DA_GREEN} />
+        <StatCard value={totalExpired} label="Trial expired" accent={DA_DANGER} />
+        <StatCard value={withDomain} label="Custom domains" accent={BLUE} />
       </div>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" as const }}>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name, email or domain…"
-          style={{ flex: 1, minWidth: 220, background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}`, borderRadius: 9, padding: "9px 14px", color: "#fdfcf9", fontSize: 13, fontFamily: "inherit", outline: "none" }}
-        />
-        <select
-          value={filterPlan}
-          onChange={e => setFilterPlan(e.target.value)}
-          style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}`, borderRadius: 9, padding: "9px 12px", color: "#fdfcf9", fontSize: 13, fontFamily: "inherit", outline: "none", cursor: "pointer" }}
-        >
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" as const }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, domain, slug…" style={{ ...inputBase, flex: 1, minWidth: 220 }} />
+        <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)} style={{ ...inputBase, cursor: "pointer" }}>
           <option value="all">All plans</option>
+          <option value="founding">Founding</option>
+          <option value="standard">Standard</option>
           <option value="free">Free</option>
           <option value="start">Start</option>
           <option value="grow">Grow</option>
           <option value="scale">Scale</option>
         </select>
-        <button
-          onClick={() => token && loadAgencies(token)}
-          style={{ padding: "9px 14px", borderRadius: 9, background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}`, color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-        >
+        <button onClick={() => token && loadAgencies(token)} style={{ ...inputBase, cursor: "pointer", fontWeight: 600, color: DA_INK2 }}>
           ↻ Refresh
         </button>
       </div>
 
       {/* Table */}
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
-          <span className="spinner" />
-        </div>
+        <div style={{ display: "flex", justifyContent: "center", padding: "80px 0" }}><span className="spinner" /></div>
       ) : error ? (
-        <div style={{ color: "#f87171", fontSize: 13 }}>{error}</div>
+        <div style={{ color: DA_DANGER, fontSize: 13, padding: "20px 0" }}>{error}</div>
       ) : (
-        <div style={{ borderRadius: 12, border: `1px solid ${BORDER}`, overflow: "hidden" }}>
-          {/* Table header */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 180px 70px 180px 130px 40px", padding: "10px 16px", background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${BORDER}`, gap: 12 }}>
-            {["Agency", "Email", "Plan", "Custom Domain", "Status", ""].map((h, i) => (
-              <div key={i} style={{ fontSize: 10.5, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
+        <div style={{ borderRadius: 16, border: `1px solid ${DA_RULE}`, overflow: "hidden", overflowX: "auto" as const, background: DA_SURFACE2 }}>
+          {/* Header */}
+          <div style={{ display: "grid", gridTemplateColumns: COLS, padding: "11px 20px", background: DA_BG, borderBottom: `1px solid ${DA_RULE}`, gap: 12, minWidth: 820 }}>
+            {["Agency", "Email", "Plan", "Trial", "Custom Domain", "Joined", ""].map((h, i) => (
+              <div key={i} style={{ fontSize: 10.5, fontWeight: 700, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: 0.6, fontFamily: SANS }}>{h}</div>
             ))}
           </div>
 
           {filtered.length === 0 ? (
-            <div style={{ padding: "40px 16px", textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: 13 }}>No agencies found</div>
-          ) : (
-            filtered.map((agency, idx) => (
-              <div
-                key={agency.uid}
-                style={{ display: "grid", gridTemplateColumns: "1fr 180px 70px 180px 130px 40px", padding: "13px 16px", borderTop: idx === 0 ? "none" : `1px solid ${BORDER}`, gap: 12, alignItems: "center", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.01)" }}
-              >
-                {/* Agency name + slug */}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{agency.name || "—"}</div>
-                  {agency.agencySlug && (
-                    <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.3)", fontFamily: "monospace", marginTop: 1 }}>/{agency.agencySlug}</div>
-                  )}
-                </div>
-
-                {/* Email */}
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{agency.email}</div>
-
-                {/* Plan */}
-                <div><PlanBadge plan={agency.plan} /></div>
-
-                {/* Custom domain */}
-                <div style={{ fontSize: 12, fontFamily: "monospace", color: agency.customDomain ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
-                  {agency.customDomain ?? "—"}
-                </div>
-
-                {/* Status */}
-                <div>{agency.customDomain ? <StatusBadge status={agency.customDomainStatus} /> : <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 12 }}>—</span>}</div>
-
-                {/* Delete */}
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <button
-                    onClick={() => setDeleting(agency)}
-                    title="Delete agency"
-                    style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 7, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", color: "#f87171", fontSize: 14, cursor: "pointer", lineHeight: 1, padding: 0 }}
-                  >
-                    🗑
-                  </button>
-                </div>
+            <div style={{ padding: "56px 20px", textAlign: "center" as const, color: DA_INK3, fontSize: 13, fontFamily: SANS }}>No agencies found</div>
+          ) : filtered.map((agency, idx) => (
+            <div
+              key={agency.uid}
+              style={{ display: "grid", gridTemplateColumns: COLS, padding: "14px 20px", borderTop: idx === 0 ? "none" : `1px solid ${DA_RULE}`, gap: 12, alignItems: "center", minWidth: 820, background: idx % 2 === 0 ? DA_SURFACE2 : DA_SURFACE }}
+            >
+              {/* Agency */}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: DA_INK1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, fontFamily: SANS }}>{agency.name || "—"}</div>
+                {agency.agencySlug && <div style={{ fontSize: 10.5, color: DA_INK3, fontFamily: "monospace", marginTop: 2 }}>/{agency.agencySlug}</div>}
               </div>
-            ))
-          )}
+
+              {/* Email */}
+              <div style={{ fontSize: 12.5, color: DA_INK2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, fontFamily: SANS }}>{agency.email}</div>
+
+              {/* Plan */}
+              <div>{(() => { const m = PLAN_CHIP[agency.plan] ?? PLAN_CHIP.free; return <Chip label={m.label} color={m.color} bg={m.bg} border={m.border} />; })()}</div>
+
+              {/* Trial */}
+              <div><TrialChip trialEndsAt={agency.trialEndsAt} plan={agency.plan} /></div>
+
+              {/* Domain */}
+              <div style={{ minWidth: 0 }}>
+                {agency.customDomain ? (
+                  <>
+                    <div style={{ fontSize: 12, fontFamily: "monospace", color: DA_INK2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{agency.customDomain}</div>
+                    <div style={{ marginTop: 3 }}><DomainChip status={agency.customDomainStatus} /></div>
+                  </>
+                ) : <span style={{ color: DA_INK3, fontSize: 12 }}>—</span>}
+              </div>
+
+              {/* Joined */}
+              <div style={{ fontSize: 12, color: DA_INK3, fontFamily: SANS }}>{fmtDate(agency.createdAt)}</div>
+
+              {/* Actions */}
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <IconBtn onClick={() => setExtending(agency)} title="Extend trial" icon="⏱" />
+                <IconBtn onClick={() => setDeleting(agency)} title="Delete agency" icon="🗑" danger />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Delete confirmation modal */}
+      {/* Modals */}
+      {extending && token && (
+        <ExtendTrialModal agency={extending} token={token} onClose={() => setExtending(null)} onExtended={(uid, ts) => { handleExtended(uid, ts); setExtending(null); }} />
+      )}
       {deleting && token && (
-        <DeleteAgencyModal
-          agency={deleting}
-          token={token}
-          onClose={() => setDeleting(null)}
-          onDeleted={(uid) => { handleDeleted(uid); setDeleting(null); }}
-        />
+        <DeleteAgencyModal agency={deleting} token={token} onClose={() => setDeleting(null)} onDeleted={(uid) => { handleDeleted(uid); setDeleting(null); }} />
+      )}
+      {wiping && token && (
+        <WipeModal token={token} onClose={() => setWiping(null!)} onWiped={handleWiped} />
       )}
     </>
   );

@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import {
+  DA_BG, DA_SURFACE, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT,
+} from "@/lib/tokens";
 
-const NAVY = "#0d1b2e";
-const SAND = "#e8c97b";
-const BORDER = "rgba(255,255,255,0.08)";
+const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -36,29 +39,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: NAVY, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: DA_BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <span className="spinner" />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: NAVY, color: "#fdfcf9", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: DA_BG, color: DA_INK1, fontFamily: SANS }}>
       {/* Header */}
-      <div style={{ height: 52, borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", background: "rgba(255,255,255,0.02)", position: "sticky", top: 0, zIndex: 50 }}>
+      <div style={{ height: 54, borderBottom: `1px solid ${DA_RULE}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", background: DA_SURFACE, position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${SAND}, #c4a84f)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: 14, fontWeight: 900, color: NAVY }}>P</span>
+          <div style={{ width: 30, height: 30, borderRadius: 9, background: `linear-gradient(135deg, ${DA_GOLD}, ${DA_GOLD_DEEP})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", fontFamily: DISPLAY }}>P</span>
           </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#fdfcf9" }}>PackMetrix</span>
-          <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 5, background: "rgba(232,201,123,0.12)", border: `1px solid rgba(232,201,123,0.25)`, color: SAND }}>Admin</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: DA_INK1, letterSpacing: -0.2, fontFamily: SANS }}>PackMetrix</span>
+          <span style={{ fontSize: 10.5, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: DA_GOLD_SOFT, border: `1px solid rgba(176,138,62,0.25)`, color: DA_GOLD_DEEP, letterSpacing: 0.5, textTransform: "uppercase" as const }}>Admin</span>
         </div>
         {email && (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>{email}</span>
+            <span style={{ fontSize: 12, color: DA_INK3 }}>{email}</span>
             <button
               onClick={handleSignOut}
-              style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 12px", borderRadius: 7, background: "rgba(255,255,255,0.05)", border: `1px solid ${BORDER}`, color: "rgba(255,255,255,0.5)", cursor: "pointer", fontFamily: "inherit" }}
+              style={{ fontSize: 12, fontWeight: 600, padding: "6px 14px", borderRadius: 8, background: "transparent", border: `1px solid ${DA_RULE}`, color: DA_INK2, cursor: "pointer", fontFamily: SANS }}
             >
               Sign out
             </button>
@@ -67,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       {/* Page content */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px" }}>
+      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "32px 28px" }}>
         {children}
       </div>
     </div>
