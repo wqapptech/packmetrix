@@ -155,6 +155,7 @@ export default function PackagesPage() {
   const [sortLabel] = useState(isAr ? "ترتيب حسب: التحويل" : "Sort: conversion");
   const [confirmAction, setConfirmAction] = useState<{ type: "delete" | "duplicate"; pkg: Package } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [deleteLeadCount, setDeleteLeadCount] = useState(0);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -478,7 +479,11 @@ export default function PackagesPage() {
                       ? () => navigator.clipboard?.writeText(pkgUrl(pkg.agencySlug!, pkg.id))
                       : undefined
                   }
-                  onDelete={() => setConfirmAction({ type: "delete", pkg })}
+                  onDelete={async () => {
+                    const leadsSnap = await getDocs(query(collection(db, "leads"), where("packageId", "==", pkg.id)));
+                    setDeleteLeadCount(leadsSnap.size);
+                    setConfirmAction({ type: "delete", pkg });
+                  }}
                   onToggleActive={async () => {
                     const next = pkg.isActive === false ? true : false;
                     posthog.capture("package_toggled_active", { destination: pkg.destination, is_active: next });
@@ -510,7 +515,13 @@ export default function PackagesPage() {
       }
       message={
         confirmAction?.type === "delete"
-          ? (isAr ? "سيتم حذف هذه الباقة نهائياً ولا يمكن التراجع." : "This package will be permanently deleted. This cannot be undone.")
+          ? isAr
+            ? deleteLeadCount > 0
+              ? `سيتم حذف هذه الباقة و${deleteLeadCount} ${deleteLeadCount === 1 ? "عميل محتمل" : "عملاء محتملون"} نهائياً. لا يمكن التراجع عن هذا الإجراء.`
+              : "سيتم حذف هذه الباقة نهائياً ولا يمكن التراجع."
+            : deleteLeadCount > 0
+              ? `This will permanently delete the package and its ${deleteLeadCount} ${deleteLeadCount === 1 ? "lead" : "leads"}. This cannot be undone.`
+              : "This package will be permanently deleted. This cannot be undone."
           : (isAr ? "سيتم إنشاء نسخة جديدة كمسودة غير نشطة." : "A copy will be created as an inactive draft.")
       }
       confirmLabel={
@@ -524,8 +535,13 @@ export default function PackagesPage() {
         setConfirmLoading(true);
         try {
           if (confirmAction.type === "delete") {
-            posthog.capture("package_deleted", { destination: confirmAction.pkg.destination, views: confirmAction.pkg.views });
-            await deleteDoc(doc(db, "packages", confirmAction.pkg.id));
+            posthog.capture("package_deleted", { destination: confirmAction.pkg.destination, views: confirmAction.pkg.views, leads_deleted: deleteLeadCount });
+            // Cascade-delete associated leads in parallel with the package
+            const leadsSnap = await getDocs(query(collection(db, "leads"), where("packageId", "==", confirmAction.pkg.id)));
+            await Promise.all([
+              deleteDoc(doc(db, "packages", confirmAction.pkg.id)),
+              ...leadsSnap.docs.map(d => deleteDoc(d.ref)),
+            ]);
             setPackages(prev => prev.filter(p => p.id !== confirmAction.pkg.id));
           } else {
             const res = await fetch("/api/duplicate", {

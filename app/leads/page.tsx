@@ -305,9 +305,18 @@ export default function LeadsPage() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
       setUserId(user.uid);
-      const q = query(collection(db, "leads"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
-      const snap = await getDocs(q);
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Lead));
+
+      // Fetch packages and leads in parallel; only keep leads for existing packages
+      const [pkgSnap, leadsSnap] = await Promise.all([
+        getDocs(query(collection(db, "packages"), where("userId", "==", user.uid))),
+        getDocs(query(collection(db, "leads"), where("userId", "==", user.uid), orderBy("createdAt", "desc"))),
+      ]);
+
+      const activePackageIds = new Set(pkgSnap.docs.map(d => d.id));
+      const list = leadsSnap.docs
+        .map(d => ({ id: d.id, ...d.data() } as Lead))
+        .filter(l => activePackageIds.has(l.packageId));
+
       setLeads(list);
       if (list.length > 0) setSelected(list[0]);
       setAuthLoading(false);
@@ -381,9 +390,12 @@ export default function LeadsPage() {
       <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ padding: isMobile ? "16px 16px 40px" : "28px 32px 60px", maxWidth: 1240 }}>
 
         {/* Page head */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+          marginBottom: 22, flexWrap: "wrap", gap: 12,
+        }}>
           <div>
-            <div style={{ fontSize: 26, fontWeight: 400, color: DA_INK1, fontFamily: DISPLAY }}>{t.leadsPageTitle}</div>
+            <div style={{ fontSize: isMobile ? 24 : 26, fontWeight: 400, color: DA_INK1, fontFamily: DISPLAY }}>{t.leadsPageTitle}</div>
             <div style={{ fontSize: 13, color: DA_INK3, marginTop: 4, fontFamily: SANS }}>
               {leads.length} {leads.length !== 1 ? t.activeConversations : t.activeConversation}
               {leads.length > 0 && ` · ${t.updatedJustNow}`}
@@ -404,21 +416,31 @@ export default function LeadsPage() {
         </div>
 
         {/* Status tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: `1px solid ${DA_RULE}` }}>
+        <div style={{
+          display: "flex", gap: isMobile ? 4 : 8, marginBottom: 20,
+          borderBottom: `1px solid ${DA_RULE}`,
+          overflowX: isMobile ? "auto" : undefined,
+          scrollbarWidth: "none",
+        }}>
           {tabs.map(tab => (
             <button
               key={tab.k}
               onClick={() => setActiveTab(tab.k)}
               style={{
-                padding: "10px 16px", border: "none", background: "none",
+                padding: isMobile ? "8px 12px" : "10px 16px",
+                border: "none", background: "none",
                 color: activeTab === tab.k ? DA_GOLD : DA_INK3,
-                fontSize: 13, fontWeight: activeTab === tab.k ? 600 : 500,
+                fontSize: isMobile ? 12 : 13,
+                fontWeight: activeTab === tab.k ? 600 : 500,
                 cursor: "pointer", fontFamily: "inherit",
                 borderBottom: activeTab === tab.k ? `2px solid ${DA_GOLD}` : "2px solid transparent",
                 marginBottom: -1, transition: "all .15s",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
               }}
             >
-              {statusLabel(tab.k)} <span style={{ marginLeft: 5, fontSize: 11, color: DA_INK3 }}>{tab.count}</span>
+              {statusLabel(tab.k)}{" "}
+              <span style={{ marginLeft: 4, fontSize: 10.5, color: DA_INK3 }}>{tab.count}</span>
             </button>
           ))}
         </div>
@@ -440,17 +462,19 @@ export default function LeadsPage() {
             }}>
               {/* Column headers */}
               <div style={{
-                padding: "12px 20px", borderBottom: `1px solid ${DA_RULE}`,
+                padding: isMobile ? "10px 14px" : "12px 20px",
+                borderBottom: `1px solid ${DA_RULE}`,
                 display: "flex", fontSize: 10.5, fontWeight: 700,
-                color: DA_INK3, textTransform: "uppercase", letterSpacing: ".5px", gap: 14,
+                color: DA_INK3, textTransform: "uppercase", letterSpacing: ".5px",
+                gap: isMobile ? 10 : 14,
                 background: DA_BG,
               }}>
-                <div style={{ width: 38 }} />
+                <div style={{ width: isMobile ? 32 : 38 }} />
                 <div style={{ flex: 2 }}>{t.colLead}</div>
-                <div style={{ flex: 1.4 }}>{t.colPackage}</div>
-                <div style={{ width: 70 }}>{t.colHeat}</div>
-                <div style={{ width: 80 }}>{t.colStatus}</div>
-                <div style={{ width: 60, textAlign: lang === "ar" ? "left" : "right" }}>{t.colWhen}</div>
+                {!isMobile && <div style={{ flex: 1.4 }}>{t.colPackage}</div>}
+                {!isMobile && <div style={{ width: 70 }}>{t.colHeat}</div>}
+                <div style={{ width: isMobile ? 72 : 80 }}>{t.colStatus}</div>
+                {!isMobile && <div style={{ width: 60, textAlign: lang === "ar" ? "left" : "right" }}>{t.colWhen}</div>}
               </div>
 
               {filtered.length === 0 ? (
@@ -470,7 +494,9 @@ export default function LeadsPage() {
                     key={lead.id}
                     onClick={() => setSelected(lead)}
                     style={{
-                      display: "flex", alignItems: "center", gap: 14, padding: "14px 20px",
+                      display: "flex", alignItems: "center",
+                      gap: isMobile ? 10 : 14,
+                      padding: isMobile ? "12px 14px" : "14px 20px",
                       borderBottom: `1px solid ${DA_RULE}`,
                       cursor: "pointer",
                       background: isSelected ? DA_GOLD_SOFT : "transparent",
@@ -482,28 +508,35 @@ export default function LeadsPage() {
                     onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
                   >
                     <div style={{
-                      width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
+                      width: isMobile ? 32 : 38, height: isMobile ? 32 : 38,
+                      borderRadius: "50%", flexShrink: 0,
                       background: avatarColor, display: "flex", alignItems: "center",
-                      justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff",
+                      justifyContent: "center", fontSize: isMobile ? 11 : 13, fontWeight: 700, color: "#fff",
                     }}>
                       {initials}
                     </div>
                     <div style={{ flex: 2, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: DA_INK1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.destination}</div>
+                      <div style={{ fontSize: isMobile ? 13 : 13.5, fontWeight: 600, color: DA_INK1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.destination}</div>
                       <div style={{ fontSize: 11, color: DA_INK3 }}>{t.viaChannel} {lead.channel === "whatsapp" ? "WhatsApp" : "Messenger"}</div>
                     </div>
-                    <div style={{ flex: 1.4, fontSize: 12, color: DA_INK2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {lead.price || lead.destination}
-                    </div>
-                    <div style={{ width: 70 }}>
-                      <HeatDots level={heat} hot={t.heatHot} warm={t.heatWarm} cool={t.heatCool} />
-                    </div>
-                    <div style={{ width: 80 }}>
+                    {!isMobile && (
+                      <div style={{ flex: 1.4, fontSize: 12, color: DA_INK2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {lead.price || lead.destination}
+                      </div>
+                    )}
+                    {!isMobile && (
+                      <div style={{ width: 70 }}>
+                        <HeatDots level={heat} hot={t.heatHot} warm={t.heatWarm} cool={t.heatCool} />
+                      </div>
+                    )}
+                    <div style={{ width: isMobile ? 72 : 80 }}>
                       <StatusPill status={lead.status} label={sLabel} />
                     </div>
-                    <div style={{ width: 60, textAlign: lang === "ar" ? "left" : "right", fontSize: 11, color: DA_INK3 }}>
-                      {new Date(lead.createdAt).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short" })}
-                    </div>
+                    {!isMobile && (
+                      <div style={{ width: 60, textAlign: lang === "ar" ? "left" : "right", fontSize: 11, color: DA_INK3 }}>
+                        {new Date(lead.createdAt).toLocaleDateString(t.dateLocale, { day: "numeric", month: "short" })}
+                      </div>
+                    )}
                   </div>
                 );
               })}

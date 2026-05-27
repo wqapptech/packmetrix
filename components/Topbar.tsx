@@ -1,15 +1,14 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
 import Icon from "./Icon";
 import { T } from "@/lib/translations";
+import { useLang, switchLang } from "@/hooks/useLang";
 import {
   DA_BG, DA_INK1, DA_INK2, DA_INK3,
   DA_RULE, DA_RULE2, DA_SURFACE, DA_GOLD,
 } from "@/lib/tokens";
 
-const LANG_KEY = "packmetrix_lang";
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
 export default function Topbar({
@@ -21,21 +20,7 @@ export default function Topbar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [lang, setLang] = useState<"en" | "ar">("en");
-
-  useEffect(() => {
-    const stored = localStorage.getItem(LANG_KEY) as "en" | "ar" | null;
-    if (stored) {
-      setLang(stored);
-      document.body.setAttribute("data-lang", stored);
-    }
-  }, []);
-
-  const toggleLang = (l: "en" | "ar") => {
-    setLang(l);
-    document.body.setAttribute("data-lang", l);
-    localStorage.setItem(LANG_KEY, l);
-  };
+  const lang = useLang();
 
   const t = T[lang];
   const isAr = lang === "ar";
@@ -126,7 +111,7 @@ export default function Topbar({
           return (
             <button
               key={l}
-              onClick={() => toggleLang(l)}
+              onClick={() => switchLang(l)}
               style={{
                 padding: isMobile ? "4px 9px" : "5px 12px",
                 borderRadius: 999,

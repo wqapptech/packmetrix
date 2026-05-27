@@ -404,9 +404,9 @@ function TemplateCard({
         transition: "border-color .15s, box-shadow .15s",
       }}
     >
-      {/* Preview area */}
+      {/* Preview area — height adapts via CSS aspect-ratio trick */}
       <div style={{
-        height: 260,
+        aspectRatio: "3 / 4",
         background: DA_BG,
         position: "relative",
         overflow: "hidden",
@@ -682,52 +682,59 @@ export function VisualTemplatePicker({
       {!isEditMode && <div style={{
         background: DA_SURFACE,
         border: `1px solid ${DA_RULE}`,
-        borderRadius: 14, padding: 20, marginBottom: 28,
-        display: "flex", gap: 18, alignItems: "flex-start",
+        borderRadius: 14, padding: isMobile ? 16 : 20, marginBottom: 28,
       }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: DA_GOLD_SOFT, color: DA_GOLD,
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-        }}>
-          <Icon name="sparkle" size={18} color={DA_GOLD} />
+        {/* Header row */}
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 9,
+            background: DA_GOLD_SOFT, color: DA_GOLD,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <Icon name="sparkle" size={16} color={DA_GOLD} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: SANS, fontSize: isMobile ? 13.5 : 14, fontWeight: 600, color: DA_INK1 }}>{L.aiTitle}</div>
+            <div style={{ fontSize: 12, color: DA_INK2, marginTop: 2, lineHeight: 1.5 }}>{L.aiSub}</div>
+          </div>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 600, color: DA_INK1 }}>{L.aiTitle}</div>
-          <div style={{ fontSize: 12.5, color: DA_INK2, marginTop: 3, lineHeight: 1.5 }}>{L.aiSub}</div>
-          <textarea
-            value={aiText}
-            onChange={e => { setAiText(e.target.value); setAiError(null); }}
-            placeholder={L.aiPlaceholder}
-            rows={3}
-            style={{
-              marginTop: 12, padding: 12,
-              background: DA_SURFACE2,
-              border: `1px solid ${aiError ? "#c0533a" : DA_RULE2}`,
-              borderRadius: 9,
-              fontFamily: MONO, fontSize: 11.5, color: DA_INK1, lineHeight: 1.5,
-              width: "100%", resize: "vertical", outline: "none",
-              boxSizing: "border-box",
-            }}
-            onFocus={e => { e.currentTarget.style.borderColor = DA_GOLD; }}
-            onBlur={e => { e.currentTarget.style.borderColor = aiError ? "#c0533a" : DA_RULE2; }}
-          />
-          {aiError && (
-            <div style={{ fontSize: 11.5, color: "#c0533a", marginTop: 5 }}>{aiError}</div>
-          )}
-        </div>
+
+        {/* Textarea */}
+        <textarea
+          value={aiText}
+          onChange={e => { setAiText(e.target.value); setAiError(null); }}
+          placeholder={L.aiPlaceholder}
+          rows={isMobile ? 4 : 3}
+          style={{
+            padding: 12,
+            background: DA_SURFACE2,
+            border: `1px solid ${aiError ? "#c0533a" : DA_RULE2}`,
+            borderRadius: 9,
+            fontFamily: MONO, fontSize: 11.5, color: DA_INK1, lineHeight: 1.5,
+            width: "100%", resize: "vertical", outline: "none",
+            boxSizing: "border-box",
+          }}
+          onFocus={e => { e.currentTarget.style.borderColor = DA_GOLD; }}
+          onBlur={e => { e.currentTarget.style.borderColor = aiError ? "#c0533a" : DA_RULE2; }}
+        />
+        {aiError && (
+          <div style={{ fontSize: 11.5, color: "#c0533a", marginTop: 5 }}>{aiError}</div>
+        )}
+
+        {/* Extract button */}
         <button
           onClick={handleExtract}
           disabled={!aiText.trim() || aiLoading}
           style={{
-            padding: "9px 14px",
+            marginTop: 10,
+            width: isMobile ? "100%" : "auto",
+            padding: isMobile ? "11px 14px" : "9px 14px",
             background: !aiText.trim() || aiLoading ? DA_SURFACE : DA_GOLD,
             color: !aiText.trim() || aiLoading ? DA_INK3 : "#fff",
             border: `1px solid ${!aiText.trim() || aiLoading ? DA_RULE2 : "transparent"}`,
             borderRadius: 9, fontFamily: SANS, fontSize: 12.5, fontWeight: 600,
             cursor: !aiText.trim() || aiLoading ? "not-allowed" : "pointer",
-            display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
-            alignSelf: "flex-start", marginTop: 2,
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
           }}
         >
           {aiLoading ? (
@@ -862,13 +869,15 @@ export function VisualTemplatePicker({
 
       {/* CTA */}
       <div style={{
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+        display: "flex", flexDirection: "column",
+        alignItems: isMobile ? "stretch" : "center",
+        gap: 10,
         paddingTop: 24, paddingBottom: 8,
       }}>
         <button
           onClick={handleStart}
           style={{
-            padding: "12px 32px",
+            padding: isMobile ? "13px 24px" : "12px 32px",
             background: DA_GOLD,
             border: "none",
             borderRadius: 10,
@@ -877,7 +886,8 @@ export function VisualTemplatePicker({
             fontSize: 14,
             fontWeight: 600,
             cursor: "pointer",
-            display: "inline-flex", alignItems: "center", gap: 7,
+            display: "inline-flex", alignItems: "center",
+            justifyContent: "center", gap: 7,
           }}
         >
           <Icon name="sparkle" size={14} color="#fff" />
@@ -889,12 +899,14 @@ export function VisualTemplatePicker({
               onClick={onCancel}
               style={{
                 background: "none",
-                border: "none",
+                border: `1px solid ${DA_RULE}`,
+                borderRadius: 9,
                 color: DA_INK3,
                 fontFamily: SANS,
                 fontSize: 12,
                 cursor: "pointer",
-                padding: "4px 8px",
+                padding: isMobile ? "11px 24px" : "4px 8px",
+                textAlign: "center",
               }}
             >
               {L.backToEditing}
@@ -905,12 +917,14 @@ export function VisualTemplatePicker({
             onClick={() => onStart(localTemplateId, null, null)}
             style={{
               background: "none",
-              border: "none",
+              border: isMobile ? `1px solid ${DA_RULE}` : "none",
+              borderRadius: isMobile ? 9 : 0,
               color: DA_INK3,
               fontFamily: SANS,
               fontSize: 12,
               cursor: "pointer",
-              padding: "4px 8px",
+              padding: isMobile ? "11px 24px" : "4px 8px",
+              textAlign: "center",
             }}
           >
             {L.startBlank}

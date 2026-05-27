@@ -106,6 +106,9 @@ export async function POST(req: Request) {
           docSnap.ref.update({
             plan,
             stripeSubscriptionId: sub.id,
+            cancelAtPeriodEnd: sub.cancel_at_period_end,
+            // cancel_at is set by Stripe when cancel_at_period_end=true; null otherwise
+            currentPeriodEnd: sub.cancel_at ? sub.cancel_at * 1000 : null,
             updatedAt: Date.now(),
           })
         );

@@ -61,10 +61,11 @@ function slugify(text: string): string {
 // ── Onboarding stepper ─────────────────────────────────────────────────────────
 
 function OnboardingStepper({
-  state, lang, onBranding, onBuild, onPublish,
+  state, lang, isMobile = false, onBranding, onBuild, onPublish,
 }: {
   state: OnboardingState;
   lang: "en" | "ar";
+  isMobile?: boolean;
   onBranding: () => void;
   onBuild: () => void;
   onPublish: () => void;
@@ -89,12 +90,12 @@ function OnboardingStepper({
     }}>
       {/* Header band */}
       <div style={{
-        padding: "24px 28px",
+        padding: isMobile ? "18px 16px" : "24px 28px",
         background: DA_GOLD_SOFT,
         borderBottom: `1px solid ${DA_RULE}`,
         display: "flex", alignItems: "flex-end",
         justifyContent: "space-between",
-        gap: 24, flexWrap: "wrap",
+        gap: 16, flexWrap: "wrap",
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
@@ -104,17 +105,19 @@ function OnboardingStepper({
             {t.onboardingEyebrow}
           </div>
           <div style={{
-            fontFamily: DISPLAY, fontSize: 30, fontWeight: 400,
-            color: DA_INK1, marginTop: 10, letterSpacing: -0.5, lineHeight: 1.15,
+            fontFamily: DISPLAY, fontSize: isMobile ? 24 : 30, fontWeight: 400,
+            color: DA_INK1, marginTop: 8, letterSpacing: -0.5, lineHeight: 1.15,
           }}>
             {t.onboardingTitle}
           </div>
-          <div style={{
-            fontFamily: SANS, fontSize: 13.5, color: DA_INK2,
-            marginTop: 8, maxWidth: 520, lineHeight: 1.55,
-          }}>
-            {t.onboardingSub}
-          </div>
+          {!isMobile && (
+            <div style={{
+              fontFamily: SANS, fontSize: 13.5, color: DA_INK2,
+              marginTop: 8, maxWidth: 520, lineHeight: 1.55,
+            }}>
+              {t.onboardingSub}
+            </div>
+          )}
         </div>
         <div style={{ textAlign: isAr ? "left" : "right" }}>
           <div style={{
@@ -126,7 +129,7 @@ function OnboardingStepper({
           <div style={{ display: "flex", gap: 4, justifyContent: isAr ? "flex-start" : "flex-end" }}>
             {steps.map((_, i) => (
               <div key={i} style={{
-                width: 44, height: 4, borderRadius: 2,
+                width: isMobile ? 32 : 44, height: 4, borderRadius: 2,
                 background: i < completed ? DA_GOLD : "rgba(176,138,62,.25)",
                 opacity: i === completed && i >= completed ? 0.55 : 1,
               }} />
@@ -142,8 +145,10 @@ function OnboardingStepper({
         const isLocked  = i > completed;
         return (
           <div key={i} style={{
-            display: "flex", alignItems: "flex-start", gap: 18,
-            padding: isCurrent ? "22px 28px" : "18px 28px",
+            display: "flex", alignItems: "flex-start", gap: isMobile ? 12 : 18,
+            padding: isMobile
+              ? (isCurrent ? "16px 16px" : "14px 16px")
+              : (isCurrent ? "22px 28px" : "18px 28px"),
             borderBottom: i < steps.length - 1 ? `1px solid ${DA_RULE}` : "none",
             background: isCurrent ? DA_SURFACE : "transparent",
           }}>
@@ -233,13 +238,14 @@ function OnboardingStepper({
 // ── Stat tile ──────────────────────────────────────────────────────────────────
 
 function StatTile({
-  eyebrow, value, sub, trend, ghosted = false,
+  eyebrow, value, sub, trend, ghosted = false, compact = false,
 }: {
   eyebrow: string;
   value: string;
   sub: string;
   trend?: string;
   ghosted?: boolean;
+  compact?: boolean;
 }) {
   return (
     <div style={{
@@ -247,25 +253,25 @@ function StatTile({
       border: `1px solid ${DA_RULE}`,
       borderStyle: ghosted ? "dashed" : "solid",
       borderRadius: 12,
-      padding: 20,
+      padding: compact ? "14px 14px" : 20,
       opacity: ghosted ? 0.65 : 1,
     }}>
       <div style={{
-        fontFamily: SANS, fontSize: 10.5, fontWeight: 600,
+        fontFamily: SANS, fontSize: compact ? 9.5 : 10.5, fontWeight: 600,
         letterSpacing: 1.2, textTransform: "uppercase", color: DA_INK3,
       }}>
         {eyebrow}
       </div>
       <div style={{
-        fontFamily: DISPLAY, fontSize: 40, fontWeight: 400,
+        fontFamily: DISPLAY, fontSize: compact ? 30 : 40, fontWeight: 400,
         color: ghosted ? DA_INK3 : DA_INK1,
-        marginTop: 10, letterSpacing: -1, lineHeight: 1,
+        marginTop: compact ? 6 : 10, letterSpacing: -1, lineHeight: 1,
       }}>
         {value}
       </div>
       <div style={{
-        marginTop: 8, display: "flex", alignItems: "center", gap: 6,
-        fontSize: 12, color: DA_INK2,
+        marginTop: 6, display: "flex", alignItems: "center", gap: 6,
+        fontSize: compact ? 10.5 : 12, color: DA_INK2,
       }}>
         {trend && (
           <span style={{ color: DA_GREEN, fontFamily: MONO, fontSize: 11, letterSpacing: -0.2 }}>
@@ -448,6 +454,7 @@ function DashboardFirstRun({
         <OnboardingStepper
           state={onboardingState}
           lang={lang}
+          isMobile={isMobile}
           onBranding={onBranding}
           onBuild={onBuild}
           onPublish={onPublish}
@@ -471,7 +478,7 @@ function DashboardFirstRun({
         marginBottom: 32,
       }}>
         {ghostMetrics.map((m, i) => (
-          <StatTile key={i} {...m} ghosted />
+          <StatTile key={i} {...m} ghosted compact={isMobile} />
         ))}
       </div>
 
@@ -705,7 +712,7 @@ function DashboardPopulated({
         gap: 14,
         marginBottom: 24,
       }}>
-        {metrics.map((m, i) => <StatTile key={i} {...m} />)}
+        {metrics.map((m, i) => <StatTile key={i} {...m} compact={isMobile} />)}
       </div>
 
       {/* Two-col: packages + leads */}

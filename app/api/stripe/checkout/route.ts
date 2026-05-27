@@ -59,8 +59,11 @@ export async function POST(req: Request) {
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: process.env.STRIPE_SUCCESS_URL!,
-      cancel_url: process.env.STRIPE_CANCEL_URL!,
+      // {CHECKOUT_SESSION_ID} is replaced by Stripe with the real session ID at redirect time.
+      // The paywall page reads this param and calls /api/stripe/confirm-session to update
+      // Firestore immediately, making subscription display webhook-independent.
+      success_url: `${origin}/paywall?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/paywall`,
       metadata: { userId, plan: resolvedPlan },
       subscription_data: {
         metadata: { userId, plan: resolvedPlan },

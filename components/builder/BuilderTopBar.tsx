@@ -19,6 +19,7 @@ export function BuilderTopBar({
   isEditMode,
   onBack,
   onDiscard,
+  isMobile = false,
 }: {
   pkgName?: string;
   templateName?: string;
@@ -29,6 +30,7 @@ export function BuilderTopBar({
   isEditMode?: boolean;
   onBack?: () => void;
   onDiscard?: () => void;
+  isMobile?: boolean;
 }) {
   const lang = useLang();
   const isAr = lang === "ar";
@@ -38,21 +40,138 @@ export function BuilderTopBar({
     builder: "المنشئ",
     back: "الباقات",
     discard: "تجاهل",
-    draftSaved: "تم حفظ المسودة",
+    draftSaved: "تم الحفظ",
     changeTemplate: "تغيير القالب",
-    publish: isEditMode ? "حفظ التغييرات" : "نشر الصفحة",
+    publish: isEditMode ? "حفظ" : "نشر",
+    publishFull: isEditMode ? "حفظ التغييرات" : "نشر الصفحة",
     publishing: isEditMode ? "جاري الحفظ…" : "جاري النشر…",
   } : {
     workspace: "Workspace",
     builder: "Builder",
     back: "Packages",
     discard: "Discard",
-    draftSaved: "Draft saved",
+    draftSaved: "Saved",
     changeTemplate: "Change template",
-    publish: isEditMode ? "Save changes" : "Publish page",
+    publish: isEditMode ? "Save" : "Publish",
+    publishFull: isEditMode ? "Save changes" : "Publish page",
     publishing: isEditMode ? "Saving…" : "Publishing…",
   };
 
+  // ── Mobile layout ───────────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div dir={isAr ? "rtl" : "ltr"} style={{
+        height: 56, paddingInline: 12,
+        borderBottom: `1px solid ${DA_RULE}`,
+        background: DA_BG,
+        display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
+      }}>
+        {/* Back / Discard */}
+        {isEditMode && onBack ? (
+          <button
+            onClick={onBack}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "6px 10px",
+              background: "transparent",
+              border: `1px solid ${DA_RULE2}`,
+              borderRadius: 7,
+              color: DA_INK2,
+              fontFamily: SANS,
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points={isAr ? "9 18 15 12 9 6" : "15 18 9 12 15 6"} />
+            </svg>
+            {L.back}
+          </button>
+        ) : !isEditMode && onDiscard ? (
+          <button
+            onClick={onDiscard}
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              width: 34, height: 34,
+              background: "transparent",
+              border: `1px solid ${DA_RULE2}`,
+              borderRadius: 8,
+              color: DA_INK3,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            <Icon name="x" size={16} color={DA_INK3} />
+          </button>
+        ) : null}
+
+        {/* Package name / builder label */}
+        <div style={{
+          flex: 1, minWidth: 0,
+          fontFamily: SANS, fontSize: 13.5, fontWeight: 500,
+          color: DA_INK1,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {pkgName || L.builder}
+        </div>
+
+        {/* Draft saved indicator */}
+        {draftSaved && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, color: DA_GREEN, flexShrink: 0 }}>
+            <Icon name="check" size={12} color={DA_GREEN} strokeWidth={2.5} />
+            <span style={{ fontFamily: SANS, fontSize: 11 }}>{L.draftSaved}</span>
+          </div>
+        )}
+
+        {/* Change template — icon only on mobile */}
+        <button
+          onClick={onChangeTemplate}
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            width: 34, height: 34,
+            background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+            borderRadius: 8, color: DA_INK2,
+            cursor: "pointer", flexShrink: 0,
+          }}
+          title={L.changeTemplate}
+        >
+          <Icon name="image" size={15} color={DA_INK2} />
+        </button>
+
+        {/* Publish CTA */}
+        <button
+          onClick={onPublish}
+          disabled={publishing}
+          style={{
+            padding: "8px 14px",
+            background: publishing ? DA_SURFACE : DA_GOLD,
+            border: publishing ? `1px solid ${DA_RULE2}` : "none",
+            borderRadius: 9, color: publishing ? DA_INK3 : "#fff",
+            fontFamily: SANS, fontSize: 12.5, fontWeight: 600,
+            cursor: publishing ? "not-allowed" : "pointer",
+            display: "inline-flex", alignItems: "center", gap: 5,
+            flexShrink: 0,
+          }}
+        >
+          {publishing ? (
+            <>
+              <span className="spinner" style={{ width: 11, height: 11, borderWidth: 1.5, borderTopColor: DA_GOLD }} />
+              {L.publishing}
+            </>
+          ) : (
+            <>
+              <Icon name="sparkle" size={13} color="#fff" />
+              {L.publish}
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Desktop layout ──────────────────────────────────────────────────────────
   return (
     <div dir={isAr ? "rtl" : "ltr"} style={{
       height: 60, paddingInline: 28,
@@ -214,7 +333,7 @@ export function BuilderTopBar({
         ) : (
           <>
             <Icon name="sparkle" size={14} color="#fff" />
-            {L.publish}
+            {L.publishFull}
           </>
         )}
       </button>

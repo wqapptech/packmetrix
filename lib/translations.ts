@@ -379,6 +379,21 @@ const en = {
   navAiOptimizer: "AI Optimizer",
   navBranding: "Profile",
   navBilling: "Billing",
+  planFoundingMember: "Founding member",
+  planSubscribed: "Subscribed",
+  planFreeTrial: "Free trial",
+
+  // Shared modal defaults
+  modalConfirm: "Confirm",
+  modalCancel: "Cancel",
+
+  // Domain management (profile page)
+  domainRemoveTitle: "Remove custom domain?",
+  domainRetryTitle: "Remove & try a different domain?",
+  domainRemoveActiveMsg: "Your site will stop working immediately. You can connect a new domain after removing this one.",
+  domainRemoveInactiveMsg: "This will remove the domain registration. You can connect a new domain straight away.",
+  domainRemoveConfirm: "Yes, remove domain",
+  domainRemovingLabel: "Removing…",
 
   // Topbar
   crumbWorkspace: "Workspace",
@@ -726,6 +741,18 @@ const en = {
   // Paywall — fine print
   billingFinePrint1: "Cancel anytime · 7-day money-back guarantee · Billed securely via Stripe",
   billingFinePrint2: "All plans include unlimited leads and views · Prices in EUR (VAT may apply)",
+
+  // Invoices
+  invoicesTitle: "Invoices",
+  invoicesLoading: "Loading invoices…",
+  invoicesNone: "No invoices yet. Your first invoice will appear here after payment.",
+  invoicesDownloadPdf: "Download PDF",
+  invoicesView: "View",
+  invoiceStatusPaid: "Paid",
+  invoiceStatusOpen: "Open",
+  invoiceStatusVoid: "Void",
+  invoiceStatusDraft: "Draft",
+  invoiceStatusUncollectible: "Failed",
 
   // Paywall — plan features
   feat10PackagePages: "10 package pages",
@@ -1856,6 +1883,21 @@ const ar: typeof en = {
   navAiOptimizer: "محسّن الذكاء الاصطناعي",
   navBranding: "الملف الشخصي",
   navBilling: "الفواتير",
+  planFoundingMember: "عضو مؤسس",
+  planSubscribed: "مشترك",
+  planFreeTrial: "تجربة مجانية",
+
+  // Shared modal defaults
+  modalConfirm: "تأكيد",
+  modalCancel: "إلغاء",
+
+  // Domain management (profile page)
+  domainRemoveTitle: "إزالة النطاق المخصص؟",
+  domainRetryTitle: "إزالة وتجربة نطاق آخر؟",
+  domainRemoveActiveMsg: "سيتوقف موقعك فوراً. يمكنك ربط نطاق جديد بعد إتمام الإزالة.",
+  domainRemoveInactiveMsg: "سيُزال تسجيل النطاق. يمكنك ربط نطاق جديد مباشرةً بعد ذلك.",
+  domainRemoveConfirm: "نعم، إزالة النطاق",
+  domainRemovingLabel: "جارٍ الإزالة...",
 
   // Topbar
   crumbWorkspace: "مساحة العمل",
@@ -2434,6 +2476,18 @@ const ar: typeof en = {
   // Paywall — fine print
   billingFinePrint1: "إلغاء في أي وقت · ضمان استرداد 7 أيام · دفع آمن عبر Stripe",
   billingFinePrint2: "جميع الخطط تشمل عملاء ومشاهدات غير محدودة · الأسعار بالليرة الأوروبية (قد تُطبَّق ضريبة القيمة المضافة)",
+
+  // Invoices
+  invoicesTitle: "الفواتير",
+  invoicesLoading: "جارٍ تحميل الفواتير...",
+  invoicesNone: "لا توجد فواتير بعد. ستظهر فاتورتك الأولى هنا بعد الدفع.",
+  invoicesDownloadPdf: "تنزيل PDF",
+  invoicesView: "عرض",
+  invoiceStatusPaid: "مدفوعة",
+  invoiceStatusOpen: "مفتوحة",
+  invoiceStatusVoid: "ملغاة",
+  invoiceStatusDraft: "مسودة",
+  invoiceStatusUncollectible: "فاشلة",
 
   // Paywall — plan features
   feat10PackagePages: "١٠ صفحات باقات",

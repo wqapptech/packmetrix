@@ -91,9 +91,9 @@ export default function Sidebar({
   };
 
   const planLabel = (plan: string) => {
-    if (plan === "founding") return isAr ? "عضو مؤسس" : "Founding member";
-    if (plan === "paid" || plan === "pro") return isAr ? "مشترك" : "Subscribed";
-    return isAr ? "تجربة مجانية" : "Free trial";
+    if (plan === "founding") return t.planFoundingMember;
+    if (["standard", "paid", "pro", "start", "grow", "scale"].includes(plan)) return t.planSubscribed;
+    return t.planFreeTrial;
   };
 
   const renderItem = (item: NavItem) => {

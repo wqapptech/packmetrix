@@ -24,6 +24,7 @@ import { VisualTemplatePicker } from "@/components/builder/TemplatePicker";
 import { LivePreviewPhone } from "@/components/builder/LivePreviewPhone";
 import { TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/components/templates";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_GREEN, DA_GREEN_SOFT, DA_DANGER } from "@/lib/tokens";
+import type { TopbarRenderProps } from "@/components/AppLayout";
 import { ConfirmModal } from "@/components/ConfirmModal";
 
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
@@ -772,54 +773,94 @@ function BuilderPageInner() {
   }
 
   // ── Discard bar (template + preset phases) ───────────────────────────────────
+  // Render-function so AppLayout can inject `isMobile` and `onMenuClick`.
 
-  const DiscardTopBar = !isEditMode ? (
-    <div dir={l ? "rtl" : "ltr"} style={{
-      height: 52, paddingInline: 24,
-      borderBottom: `1px solid ${DA_RULE}`,
-      background: DA_BG,
-      display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-end",
-      flexShrink: 0,
-    }}>
-      {/* Language toggle */}
-      <div style={{ display: "flex", background: DA_SURFACE2, border: `1px solid ${DA_RULE2}`, borderRadius: 999, padding: 2 }}>
-        {(["en", "ar"] as const).map(code => {
-          const active = lang === code;
-          return (
-            <button
-              key={code}
-              onClick={() => switchLang(code)}
-              style={{
-                padding: "4px 11px", borderRadius: 999, border: "none",
-                background: active ? DA_INK1 : "transparent",
-                color: active ? DA_BG : DA_INK2,
-                fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
-                fontSize: 11.5, fontWeight: 500, cursor: "pointer", transition: "all .15s",
-              }}
-            >
-              {code === "en" ? "EN" : "عربي"}
-            </button>
-          );
-        })}
+  const DiscardTopBar = !isEditMode
+    ? ({ isMobile: mob, onMenuClick }: TopbarRenderProps) => (
+      <div dir={l ? "rtl" : "ltr"} style={{
+        height: mob ? 56 : 52,
+        paddingInline: mob ? 12 : 24,
+        borderBottom: `1px solid ${DA_RULE}`,
+        background: DA_BG,
+        display: "flex", alignItems: "center", gap: mob ? 8 : 10,
+        flexShrink: 0,
+      }}>
+        {/* Hamburger — mobile only */}
+        {mob && (
+          <button
+            onClick={onMenuClick}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              padding: 4, color: DA_INK3,
+              display: "flex", alignItems: "center", flexShrink: 0,
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        )}
+
+        {/* Title — mobile only */}
+        {mob && (
+          <span style={{
+            flex: 1,
+            fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
+            fontSize: 14, fontWeight: 500, color: DA_INK1,
+          }}>
+            {l ? "اختر قالباً" : "Choose template"}
+          </span>
+        )}
+
+        {/* Spacer — desktop only */}
+        {!mob && <div style={{ flex: 1 }} />}
+
+        {/* Language toggle */}
+        <div style={{ display: "flex", background: DA_SURFACE2, border: `1px solid ${DA_RULE2}`, borderRadius: 999, padding: 2, flexShrink: 0 }}>
+          {(["en", "ar"] as const).map(code => {
+            const active = lang === code;
+            return (
+              <button
+                key={code}
+                onClick={() => switchLang(code)}
+                style={{
+                  padding: mob ? "3px 9px" : "4px 11px", borderRadius: 999, border: "none",
+                  background: active ? DA_INK1 : "transparent",
+                  color: active ? DA_BG : DA_INK2,
+                  fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
+                  fontSize: mob ? 11 : 11.5, fontWeight: 500, cursor: "pointer", transition: "all .15s",
+                }}
+              >
+                {code === "en" ? "EN" : "عربي"}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Discard button */}
+        <button
+          onClick={handleDiscard}
+          style={{
+            padding: mob ? "6px 10px" : "6px 14px",
+            background: "transparent",
+            border: `1px solid ${DA_RULE2}`,
+            borderRadius: 8,
+            color: DA_INK3,
+            fontSize: mob ? 12 : 12.5,
+            fontWeight: 500,
+            cursor: "pointer",
+            fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
+            flexShrink: 0,
+          }}
+        >
+          {l ? "تجاهل" : "Discard"}
+        </button>
       </div>
-      <button
-        onClick={handleDiscard}
-        style={{
-          padding: "6px 14px",
-          background: "transparent",
-          border: `1px solid ${DA_RULE2}`,
-          borderRadius: 8,
-          color: DA_INK3,
-          fontSize: 12.5,
-          fontWeight: 500,
-          cursor: "pointer",
-          fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
-        }}
-      >
-        {l ? "تجاهل" : "Discard"}
-      </button>
-    </div>
-  ) : undefined;
+    )
+    : undefined;
 
   // ── Template + trip-type step ────────────────────────────────────────────────
 
@@ -911,6 +952,7 @@ function BuilderPageInner() {
         isEditMode={isEditMode}
         onBack={isEditMode ? () => router.push("/packages") : undefined}
         onDiscard={!isEditMode ? handleDiscard : undefined}
+        isMobile={isMobile}
       />
     }>
       <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "20px 16px 80px" : "28px 40px 60px" }}>
@@ -945,28 +987,29 @@ function BuilderPageInner() {
         )}
 
         {/* Tab bar + secondary actions */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
-          <div style={{ display: "inline-flex", background: DA_SURFACE, border: `1px solid ${DA_RULE2}`, borderRadius: 10, padding: 4, gap: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: isMobile ? undefined : "wrap", gap: 10, overflow: isMobile ? "hidden" : undefined }}>
+          <div style={{ display: "inline-flex", background: DA_SURFACE, border: `1px solid ${DA_RULE2}`, borderRadius: 10, padding: 4, gap: 4, flexShrink: 0, overflow: isMobile ? "auto" : undefined, scrollbarWidth: "none" }}>
             {(["core", "sections", "seo"] as Tab[]).map((tabKey) => {
               const active = tab === tabKey;
               const tabLabel = tabKey === "core"
-                ? (l ? "المعلومات الأساسية" : "Core info")
+                ? (l ? (isMobile ? "الأساسي" : "المعلومات الأساسية") : (isMobile ? "Core" : "Core info"))
                 : tabKey === "sections"
                   ? (l ? "الأقسام" : "Sections")
-                  : (l ? "SEO والمشاركة" : "SEO & social");
+                  : (l ? "SEO" : "SEO");
               const count = tabKey === "sections" ? sections.length : undefined;
               return (
                 <button
                   key={tabKey}
                   onClick={() => setTab(tabKey)}
                   style={{
-                    padding: "7px 14px", borderRadius: 7, border: "none",
+                    padding: isMobile ? "7px 12px" : "7px 14px", borderRadius: 7, border: "none",
                     background: active ? DA_INK1 : "transparent",
                     color: active ? DA_BG : DA_INK2,
-                    fontSize: 13, fontWeight: active ? 500 : 400,
+                    fontSize: isMobile ? 12 : 13, fontWeight: active ? 500 : 400,
                     fontFamily: "inherit", cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 7,
+                    display: "flex", alignItems: "center", gap: 6,
                     transition: "all 0.15s",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {tabLabel}
@@ -981,14 +1024,16 @@ function BuilderPageInner() {
           </div>
 
           {/* Secondary actions */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {sections.length > 0 && (
-              <button onClick={() => { setSaveAsOpen(true); setSaveName(""); setSaveAsStatus("idle"); }} style={{ fontSize: 12, color: DA_INK3, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
-                <Icon name="copy" size={11} color={DA_INK3} />
-                {t.saveAsTemplateBtn}
-              </button>
-            )}
-          </div>
+          {!isMobile && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {sections.length > 0 && (
+                <button onClick={() => { setSaveAsOpen(true); setSaveName(""); setSaveAsStatus("idle"); }} style={{ fontSize: 12, color: DA_INK3, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
+                  <Icon name="copy" size={11} color={DA_INK3} />
+                  {t.saveAsTemplateBtn}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Content + preview rail */}

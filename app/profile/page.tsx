@@ -448,7 +448,7 @@ export default function BrandingPage() {
               <Input value={tagline} onChange={setTagline} placeholder="Curated Mediterranean journeys · est. 2014" />
 
               <FieldLabel>{t.contactLabel}</FieldLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
                 <Input value={email} onChange={setEmail} placeholder="hello@agency.com" />
                 <Input value={phone} onChange={setPhone} placeholder="+1 555 000 1234" />
               </div>
@@ -585,7 +585,8 @@ export default function BrandingPage() {
                         <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 8 }}>
                           {t.customDomainRecordsTitle}
                         </div>
-                        <div style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${DA_RULE}`, background: DA_SURFACE }}>
+                        <div style={{ overflowX: "auto", borderRadius: 8, border: `1px solid ${DA_RULE}`, background: DA_SURFACE }}>
+                        <div style={{ minWidth: 420 }}>
                           <div style={{ display: "grid", gridTemplateColumns: "55px 1fr 1fr auto", background: DA_BG, padding: "6px 10px", gap: 8 }}>
                             {[t.customDomainRecordType, t.customDomainRecordName, t.customDomainRecordValue, ""].map((h, i) => (
                               <div key={i} style={{ fontSize: 10, fontWeight: 700, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
@@ -604,7 +605,8 @@ export default function BrandingPage() {
                               </button>
                             </div>
                           ))}
-                        </div>
+                        </div>{/* end minWidth wrapper */}
+                        </div>{/* end overflow-x container */}
                         <div style={{ marginTop: 8, fontSize: 11, color: DA_INK3 }}>
                           Need help? Check your registrar&apos;s documentation for adding DNS records.
                         </div>
@@ -717,14 +719,11 @@ export default function BrandingPage() {
         loading={domainRemoving}
         variant="warning"
         icon="globe"
-        title={domainStatus === "failed" ? "Remove & try a different domain?" : "Remove custom domain?"}
-        message={
-          domainStatus === "active"
-            ? `Your site at https://${customDomain} will stop working immediately. You can connect a new domain after removing this one.`
-            : `This will remove the domain registration. You can connect a new domain straight away.`
-        }
-        confirmLabel={domainRemoving ? "Removing…" : "Yes, remove domain"}
-        cancelLabel="Cancel"
+        dir={lang === "ar" ? "rtl" : "ltr"}
+        title={domainStatus === "failed" ? t.domainRetryTitle : t.domainRemoveTitle}
+        message={domainStatus === "active" ? t.domainRemoveActiveMsg : t.domainRemoveInactiveMsg}
+        confirmLabel={domainRemoving ? t.domainRemovingLabel : t.domainRemoveConfirm}
+        cancelLabel={t.modalCancel}
         onConfirm={async () => {
           if (domainStatus === "failed") {
             await handleResetDomain();

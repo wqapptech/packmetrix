@@ -7,6 +7,8 @@ import {
 } from "@/lib/tokens";
 import Icon from "@/components/Icon";
 import type { IconName } from "@/components/Icon";
+import { useLang } from "@/hooks/useLang";
+import { T } from "@/lib/translations";
 
 const SANS    = `var(--font-inter-tight), system-ui, sans-serif`;
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
@@ -60,14 +62,19 @@ export function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   loading = false,
   variant = "default",
   icon,
   children,
-  dir = "ltr",
+  dir,
 }: ConfirmModalProps) {
+  const lang = useLang();
+  const t = T[lang];
+  const resolvedDir = dir ?? (lang === "ar" ? "rtl" : "ltr");
+  const resolvedConfirmLabel = confirmLabel ?? t.modalConfirm;
+  const resolvedCancelLabel = cancelLabel ?? t.modalCancel;
   const cfg = VARIANT_CFG[variant];
   const iconName: IconName = icon ?? cfg.icon;
 
@@ -101,7 +108,7 @@ export function ConfirmModal({
       `}</style>
 
       <div
-        dir={dir}
+        dir={resolvedDir}
         style={{
           position: "relative",
           width: "100%", maxWidth: 400,
@@ -187,7 +194,7 @@ export function ConfirmModal({
               transition: "opacity .12s",
             }}
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
 
           <button
@@ -212,7 +219,7 @@ export function ConfirmModal({
                 style={{ width: 13, height: 13, borderTopColor: "#fff", flexShrink: 0 }}
               />
             )}
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </button>
         </div>
       </div>

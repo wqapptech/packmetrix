@@ -19,6 +19,17 @@ import {
 
 type TDict = typeof T["en"];
 
+type Invoice = {
+  id: string;
+  number: string | null;
+  created: number;
+  amount_paid: number;
+  currency: string;
+  status: string;
+  invoice_pdf: string | null;
+  hosted_invoice_url: string | null;
+};
+
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
@@ -81,6 +92,8 @@ export default function PaywallPage() {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [packageCount, setPackageCount] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
   const [totalClicks, setTotalClicks] = useState(0);
@@ -89,7 +102,14 @@ export default function PaywallPage() {
   const [trialEndsAt, setTrialEndsAt] = useState<number | null>(null);
   const [userPlan, setUserPlan] = useState<string>("free");
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
+  const [stripeSubscriptionId, setStripeSubscriptionId] = useState<string | null>(null);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [justSubscribed, setJustSubscribed] = useState(false);
+  const [confirmingSession, setConfirmingSession] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -97,9 +117,13 @@ export default function PaywallPage() {
       setUserId(u.uid);
       const userSnap = await getDoc(doc(db, "users", u.uid));
       if (userSnap.exists()) {
-        setTrialEndsAt(userSnap.data()?.trialEndsAt ?? null);
-        setUserPlan(userSnap.data()?.plan ?? "free");
-        setStripeCustomerId(userSnap.data()?.stripeCustomerId ?? null);
+        const d = userSnap.data()!;
+        setTrialEndsAt(d.trialEndsAt ?? null);
+        setUserPlan(d.plan ?? "free");
+        setStripeCustomerId(d.stripeCustomerId ?? null);
+        setStripeSubscriptionId(d.stripeSubscriptionId ?? null);
+        setCancelAtPeriodEnd(d.cancelAtPeriodEnd ?? false);
+        setCurrentPeriodEnd(d.currentPeriodEnd ?? null);
       }
       const snap = await getDocs(query(collection(db, "packages"), where("userId", "==", u.uid)));
       const pkgs = snap.docs.map(d => d.data());
@@ -122,6 +146,53 @@ export default function PaywallPage() {
       .catch(() => setSpotsRemaining(0));
   }, []);
 
+  // Confirm a just-completed Stripe checkout session.
+  // Stripe redirects back to /paywall?session_id=cs_xxx — we verify it server-side
+  // and write to Firestore immediately, making the subscription visible without
+  // waiting for the webhook.
+  useEffect(() => {
+    if (!userId) return;
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    if (!sessionId) return;
+
+    // Clean the URL right away so a refresh doesn't re-run the confirm
+    router.replace("/paywall");
+    setConfirmingSession(true);
+
+    fetch("/api/stripe/confirm-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, userId }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.plan && data.stripeCustomerId) {
+          setUserPlan(data.plan);
+          setStripeCustomerId(data.stripeCustomerId);
+          setStripeSubscriptionId(data.stripeSubscriptionId ?? null);
+          setJustSubscribed(true);
+        }
+      })
+      .catch(err => console.error("Session confirmation error:", err))
+      .finally(() => setConfirmingSession(false));
+  }, [userId, router]);
+
+  useEffect(() => {
+    const paidPlans = ["founding", "standard", "start", "grow", "scale"];
+    if (!userId || !stripeCustomerId || !paidPlans.includes(userPlan)) return;
+    setInvoicesLoading(true);
+    fetch("/api/stripe/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    })
+      .then(r => r.json())
+      .then(data => setInvoices(data.invoices ?? []))
+      .catch(err => console.error("Invoices fetch error", err))
+      .finally(() => setInvoicesLoading(false));
+  }, [userId, stripeCustomerId, userPlan]);
+
   const handleCheckout = async (plan: "founding" | "standard") => {
     if (!userId) { router.push("/login"); return; }
     setLoading(true);
@@ -142,21 +213,76 @@ export default function PaywallPage() {
     }
   };
 
-  const handleManage = async () => {
+  const handleCancel = async () => {
     if (!userId) { router.push("/login"); return; }
     setLoading(true);
-    posthog.capture("manage_subscription_clicked", { current_plan: userPlan });
+    setPortalError(null);
+    setShowCancelConfirm(false);
+    posthog.capture("subscription_cancel_requested", { current_plan: userPlan });
     try {
-      const res = await fetch("/api/stripe/portal", {
+      if (stripeSubscriptionId) {
+        // Stripe-managed subscription: cancel at period end
+        const res = await fetch("/api/stripe/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          setCancelAtPeriodEnd(true);
+          if (json.endsAt) setCurrentPeriodEnd(json.endsAt);
+        } else {
+          throw new Error(json.error ?? "cancel failed");
+        }
+      } else {
+        // Manually-granted plan: downgrade Firestore directly
+        const { doc: firestoreDoc, updateDoc } = await import("firebase/firestore");
+        await updateDoc(firestoreDoc(db, "users", userId), { plan: "free" });
+        setUserPlan("free");
+      }
+    } catch (err) {
+      posthog.captureException(err);
+      console.error("Cancel error", err);
+      setPortalError(
+        isAr
+          ? "حدث خطأ. يرجى المحاولة مجدداً أو التواصل مع الدعم."
+          : "Something went wrong. Please try again or contact support."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!userId) { router.push("/login"); return; }
+    setLoading(true);
+    setPortalError(null);
+    posthog.capture("subscription_reactivated", { current_plan: userPlan });
+    try {
+      const res = await fetch("/api/stripe/reactivate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
       const json = await res.json();
-      if (json.url) window.location.href = json.url;
+      if (json.success) {
+        setCancelAtPeriodEnd(false);
+        setCurrentPeriodEnd(null);
+      } else {
+        setPortalError(
+          isAr
+            ? "تعذّر إعادة تفعيل الاشتراك. يرجى التواصل مع الدعم."
+            : "Could not reactivate subscription. Please contact support."
+        );
+      }
     } catch (err) {
       posthog.captureException(err);
-      console.error("Portal error", err);
+      console.error("Reactivate error", err);
+      setPortalError(
+        isAr
+          ? "حدث خطأ. يرجى المحاولة مجدداً أو التواصل مع الدعم."
+          : "Something went wrong. Please try again or contact support."
+      );
     } finally {
       setLoading(false);
     }
@@ -218,48 +344,149 @@ export default function PaywallPage() {
     );
   }
 
+  // Derived helpers
+  const endsAtFormatted = currentPeriodEnd
+    ? new Date(currentPeriodEnd).toLocaleDateString(t.dateLocale, { day: "numeric", month: "long", year: "numeric" })
+    : null;
+
   return (
     <AppLayout>
+      {/* Cancel confirmation modal */}
+      {showCancelConfirm && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 200,
+          background: "rgba(0,0,0,0.55)", backdropFilter: "blur(3px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 20,
+        }}>
+          <div dir={dir} style={{
+            background: DA_SURFACE, borderRadius: 18, padding: "28px 28px 24px",
+            maxWidth: 400, width: "100%",
+            boxShadow: "0 24px 64px -12px rgba(0,0,0,.35)",
+            border: `1px solid ${DA_RULE}`,
+          }}>
+            <div style={{ fontSize: 28, textAlign: "center", marginBottom: 16 }}>⚠️</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: DA_INK1, textAlign: "center", marginBottom: 10 }}>
+              {isAr ? "تأكيد إلغاء الاشتراك" : "Cancel subscription?"}
+            </div>
+            <div style={{ fontSize: 13.5, color: DA_INK2, textAlign: "center", lineHeight: 1.6, marginBottom: 24 }}>
+              {isAr
+                ? "ستبقى لديك كامل الصلاحيات حتى نهاية دورة الفوترة الحالية. بعدها سيتحول حسابك إلى الخطة المجانية ولن تُجدَّد الرسوم."
+                : "You'll keep full access until the end of your current billing cycle. After that your account moves to the free plan and no further charges will be made."
+              }
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                style={{
+                  flex: 1, padding: "11px", borderRadius: 9, fontSize: 13.5, fontWeight: 600,
+                  border: `1px solid ${DA_RULE2}`, background: DA_SURFACE, color: DA_INK1,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                {isAr ? "تراجع" : "Keep subscription"}
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={loading}
+                style={{
+                  flex: 1, padding: "11px", borderRadius: 9, fontSize: 13.5, fontWeight: 600,
+                  border: "none", background: DA_DANGER, color: "#fff",
+                  cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                }}
+              >
+                {loading
+                  ? <><span className="spinner-warm" style={{ width: 13, height: 13, borderTopColor: "#fff" }} /> {isAr ? "جارٍ..." : "Processing…"}</>
+                  : (isAr ? "نعم، إلغاء" : "Yes, cancel")
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div dir={dir} style={{ background: DA_BG, padding: isMobile ? "16px 16px 60px" : "28px 32px 80px", maxWidth: 640, margin: "0 auto" }}>
+
+        {/* Confirming session — full-width loader */}
+        {confirmingSession && (
+          <div style={{
+            marginBottom: 20, padding: "14px 20px", borderRadius: 14,
+            background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE2}`,
+            display: "flex", alignItems: "center", gap: 12,
+          }}>
+            <span className="spinner-warm" style={{ width: 16, height: 16 }} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: DA_GOLD }}>
+              {isAr ? "جارٍ تأكيد الاشتراك..." : "Confirming your subscription…"}
+            </span>
+          </div>
+        )}
+
+        {/* Just-subscribed success banner */}
+        {justSubscribed && (
+          <div style={{
+            marginBottom: 20, padding: "14px 20px", borderRadius: 14,
+            background: DA_GREEN_SOFT, border: `1px solid ${DA_GREEN}`,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: DA_GREEN }}>
+              {isAr ? "🎉 اشتراكك مفعّل الآن! مرحباً بك في باك‌ميتريكس." : "🎉 You're subscribed! Welcome to Packmetrix."}
+            </div>
+            <button
+              onClick={() => setJustSubscribed(false)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: DA_GREEN, fontSize: 18, padding: "0 2px", lineHeight: 1 }}
+            >×</button>
+          </div>
+        )}
 
         {/* Trial / plan status banner */}
         <div style={{
           marginBottom: 28, padding: "14px 20px", borderRadius: 14,
-          background: isPaid
-            ? DA_GOLD_SOFT
-            : trialActive
-              ? DA_SURFACE
-              : DA_DANGER_SOFT,
-          border: isPaid
-            ? `1px solid ${DA_RULE2}`
-            : trialActive
-              ? `1px solid ${DA_RULE}`
-              : `1px solid ${DA_DANGER}`,
+          background: cancelAtPeriodEnd
+            ? DA_DANGER_SOFT
+            : isPaid
+              ? DA_GOLD_SOFT
+              : trialActive
+                ? DA_SURFACE
+                : DA_DANGER_SOFT,
+          border: cancelAtPeriodEnd
+            ? `1px solid ${DA_DANGER}`
+            : isPaid
+              ? `1px solid ${DA_RULE2}`
+              : trialActive
+                ? `1px solid ${DA_RULE}`
+                : `1px solid ${DA_DANGER}`,
           display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: isPaid ? DA_GOLD_SOFT : trialActive ? DA_BG : DA_DANGER_SOFT,
+              background: cancelAtPeriodEnd ? DA_DANGER_SOFT : isPaid ? DA_GOLD_SOFT : trialActive ? DA_BG : DA_DANGER_SOFT,
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17,
             }}>
-              {isPaid ? "✦" : trialActive ? "⏳" : "⚠️"}
+              {cancelAtPeriodEnd ? "🔔" : isPaid ? "✦" : trialActive ? "⏳" : "⚠️"}
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: isPaid ? DA_GOLD : trialActive ? DA_INK1 : DA_DANGER }}>
-                {isPaid
-                  ? `${t.youreOnPlanPrefix} ${userPlan.charAt(0).toUpperCase() + userPlan.slice(1)}${t.youreOnPlanSuffix ? ` ${t.youreOnPlanSuffix}` : ""}`
-                  : trialActive
-                    ? `${daysLeft} ${t.trialDaysLeftSuffix}`
-                    : t.trialExpiredTitle
+              <div style={{ fontSize: 14, fontWeight: 700, color: cancelAtPeriodEnd ? DA_DANGER : isPaid ? DA_GOLD : trialActive ? DA_INK1 : DA_DANGER }}>
+                {cancelAtPeriodEnd
+                  ? (isAr ? "الاشتراك مجدول للإلغاء" : "Cancellation scheduled")
+                  : isPaid
+                    ? `${t.youreOnPlanPrefix} ${userPlan.charAt(0).toUpperCase() + userPlan.slice(1)}${t.youreOnPlanSuffix ? ` ${t.youreOnPlanSuffix}` : ""}`
+                    : trialActive
+                      ? `${daysLeft} ${t.trialDaysLeftSuffix}`
+                      : t.trialExpiredTitle
                 }
               </div>
               <div style={{ fontSize: 12, color: DA_INK3, marginTop: 2 }}>
-                {isPaid
-                  ? t.manageSubscription
-                  : trialActive
-                    ? t.trialSubscribeBeforeEnds
-                    : t.trialSubscribeNowRestore
+                {cancelAtPeriodEnd
+                  ? endsAtFormatted
+                    ? (isAr ? `وصولك يستمر حتى ${endsAtFormatted}` : `Access continues until ${endsAtFormatted}`)
+                    : (isAr ? "وصولك يستمر حتى نهاية دورة الفوترة" : "Access continues until end of billing cycle")
+                  : isPaid
+                    ? t.manageSubscription
+                    : trialActive
+                      ? t.trialSubscribeBeforeEnds
+                      : t.trialSubscribeNowRestore
                 }
               </div>
             </div>
@@ -277,21 +504,52 @@ export default function PaywallPage() {
                 }
               </div>
             )}
-            {isPaid && !!stripeCustomerId && (
-              <button
-                onClick={handleManage}
-                disabled={loading}
-                style={{
-                  padding: "7px 16px", borderRadius: 99, fontSize: 12, fontWeight: 700,
-                  background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE2}`, color: DA_GOLD,
-                  cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
-                }}
-              >
-                {loading ? t.redirectingBtn : t.manageSubscriptionBtn}
-              </button>
+            {isPaid && (
+              cancelAtPeriodEnd ? (
+                <button
+                  onClick={handleReactivate}
+                  disabled={loading}
+                  style={{
+                    padding: "7px 16px", borderRadius: 99, fontSize: 12, fontWeight: 700,
+                    background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE2}`, color: DA_GOLD,
+                    cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
+                  }}
+                >
+                  {loading
+                    ? (isAr ? "جارٍ..." : "Processing…")
+                    : (isAr ? "إعادة التفعيل" : "Reactivate")
+                  }
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  style={{
+                    padding: "7px 16px", borderRadius: 99, fontSize: 12, fontWeight: 600,
+                    background: "transparent", border: `1px solid ${DA_RULE2}`, color: DA_INK3,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}
+                >
+                  {isAr ? "إلغاء الاشتراك" : "Cancel subscription"}
+                </button>
+              )
             )}
           </div>
         </div>
+
+        {/* Portal error banner */}
+        {portalError && (
+          <div style={{
+            marginBottom: 20, padding: "12px 16px", borderRadius: 10,
+            background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`,
+            display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10,
+          }}>
+            <div style={{ fontSize: 13, color: DA_DANGER, lineHeight: 1.5 }}>{portalError}</div>
+            <button
+              onClick={() => setPortalError(null)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: DA_DANGER, flexShrink: 0, fontSize: 16, padding: "0 2px", lineHeight: 1 }}
+            >×</button>
+          </div>
+        )}
 
         {/* Stats row */}
         {(packageCount > 0 || totalViews > 0) && (
@@ -466,21 +724,49 @@ export default function PaywallPage() {
             </div>
 
             {isPaid ? (
-              <button
-                onClick={handleManage}
-                disabled={loading}
-                style={{
-                  width: "100%", padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                  border: `1px solid ${DA_RULE2}`, background: DA_SURFACE, color: DA_GOLD,
-                  cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                }}
-              >
-                {loading
-                  ? <><span className="spinner-warm" style={{ width: 13, height: 13 }} /> {t.redirectingBtn}</>
-                  : t.manageSubscriptionBtn
-                }
-              </button>
+              cancelAtPeriodEnd ? (
+                /* Scheduled to cancel — show reactivate + end date */
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{
+                    padding: "12px 16px", borderRadius: 10,
+                    background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`,
+                    fontSize: 13, color: DA_DANGER, textAlign: "center", lineHeight: 1.5,
+                  }}>
+                    {endsAtFormatted
+                      ? (isAr ? `⚠️ اشتراكك سينتهي في ${endsAtFormatted}` : `⚠️ Your subscription ends on ${endsAtFormatted}`)
+                      : (isAr ? "⚠️ الاشتراك مجدول للإلغاء" : "⚠️ Subscription scheduled to cancel")
+                    }
+                  </div>
+                  <button
+                    onClick={handleReactivate}
+                    disabled={loading}
+                    style={{
+                      width: "100%", padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                      border: "none", background: DA_GOLD, color: "#fff",
+                      cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                    }}
+                  >
+                    {loading
+                      ? <><span className="spinner-warm" style={{ width: 13, height: 13, borderTopColor: "#fff" }} /> {isAr ? "جارٍ..." : "Processing…"}</>
+                      : (isAr ? "✦ إعادة تفعيل الاشتراك" : "✦ Reactivate subscription")
+                    }
+                  </button>
+                </div>
+              ) : (
+                /* Active paid plan — show cancel option */
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  style={{
+                    width: "100%", padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+                    border: `1px solid ${DA_RULE2}`, background: DA_SURFACE, color: DA_INK2,
+                    cursor: "pointer", fontFamily: "inherit",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                  }}
+                >
+                  {isAr ? "إلغاء الاشتراك" : "Cancel subscription"}
+                </button>
+              )
             ) : (
               <button
                 onClick={() => handleCheckout(activePlan)}
@@ -557,6 +843,102 @@ export default function PaywallPage() {
             <FaqItem key={item.q} q={item.q} a={item.a} />
           ))}
         </div>
+
+        {/* Invoices — only shown to paid users */}
+        {isPaid && (
+          <div style={{ marginBottom: 40 }}>
+            <div style={{ fontFamily: SANS, fontSize: 15, fontWeight: 600, color: DA_INK1, marginBottom: 16 }}>
+              {t.invoicesTitle}
+            </div>
+            {invoicesLoading ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "16px 0", fontSize: 13, color: DA_INK3 }}>
+                <span className="spinner-warm" style={{ width: 14, height: 14 }} />
+                {t.invoicesLoading}
+              </div>
+            ) : invoices.length === 0 ? (
+              <div style={{
+                padding: "16px 20px", borderRadius: 12,
+                background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
+                fontSize: 13, color: DA_INK3,
+              }}>
+                {t.invoicesNone}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {invoices.map(inv => {
+                  const statusLabelMap: Record<string, string> = {
+                    paid: t.invoiceStatusPaid,
+                    open: t.invoiceStatusOpen,
+                    void: t.invoiceStatusVoid,
+                    draft: t.invoiceStatusDraft,
+                    uncollectible: t.invoiceStatusUncollectible,
+                  };
+                  const statusLabel = statusLabelMap[inv.status] ?? inv.status;
+                  const statusColors: Record<string, { bg: string; color: string }> = {
+                    paid:           { bg: DA_GREEN_SOFT, color: DA_GREEN },
+                    open:           { bg: DA_GOLD_SOFT,  color: DA_GOLD },
+                    void:           { bg: DA_SURFACE2,   color: DA_INK3 },
+                    draft:          { bg: DA_SURFACE2,   color: DA_INK3 },
+                    uncollectible:  { bg: DA_DANGER_SOFT, color: DA_DANGER },
+                  };
+                  const sc = statusColors[inv.status] ?? { bg: DA_SURFACE2, color: DA_INK3 };
+                  const dateStr = new Date(inv.created * 1000).toLocaleDateString(
+                    t.dateLocale,
+                    { day: "numeric", month: "short", year: "numeric" },
+                  );
+                  const currSymbol = (inv.currency ?? "").toLowerCase() === "eur" ? "€" : inv.currency?.toUpperCase();
+                  const amountStr = `${currSymbol}${(inv.amount_paid / 100).toFixed(2)}`;
+
+                  return (
+                    <div key={inv.id} style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "14px 16px", flexWrap: "wrap",
+                      background: DA_SURFACE, borderRadius: 12, border: `1px solid ${DA_RULE}`,
+                    }}>
+                      {/* Number + date */}
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: DA_INK1 }}>
+                          {inv.number ?? (isAr ? "فاتورة" : "Invoice")}
+                        </div>
+                        <div style={{ fontSize: 11, color: DA_INK3, marginTop: 2 }}>{dateStr}</div>
+                      </div>
+                      {/* Amount */}
+                      <div style={{ fontSize: 14, fontWeight: 700, color: DA_INK1, fontFamily: DISPLAY }}>
+                        {amountStr}
+                      </div>
+                      {/* Status badge */}
+                      <div style={{
+                        padding: "3px 10px", borderRadius: 99,
+                        fontSize: 11, fontWeight: 700,
+                        background: sc.bg, color: sc.color,
+                      }}>
+                        {statusLabel}
+                      </div>
+                      {/* PDF download */}
+                      {inv.invoice_pdf && (
+                        <a
+                          href={inv.invoice_pdf}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: "6px 12px", borderRadius: 8,
+                            fontSize: 12, fontWeight: 600,
+                            background: DA_SURFACE2, border: `1px solid ${DA_RULE2}`,
+                            color: DA_INK1, textDecoration: "none",
+                            display: "flex", alignItems: "center", gap: 5,
+                            flexShrink: 0,
+                          }}
+                        >
+                          ↓ {t.invoicesDownloadPdf}
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Fine print */}
         <div style={{ textAlign: "center", fontSize: 11.5, color: DA_INK3, lineHeight: 1.8 }}>

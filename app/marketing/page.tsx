@@ -379,7 +379,7 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
     : L.eyebrowFallback;
 
   return (
-    <div style={{ padding: "28px 18px 36px", position: "relative", overflow: "hidden" }}>
+    <div id="product" style={{ padding: "28px 18px 36px", position: "relative", overflow: "hidden" }}>
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         background: "radial-gradient(ellipse at 50% 0%, rgba(176,138,62,.08), transparent 50%)",
@@ -680,7 +680,7 @@ function MobileLandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
   };
 
   return (
-    <div style={{ padding: "44px 18px", background: DA_BG }}>
+    <div id="how-it-works" style={{ padding: "44px 18px", background: DA_BG }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
         <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: DA_GOLD }}>{L.eyebrow}</div>
         <h2 style={{ margin: "10px 0 0", fontFamily: DISPLAY, fontSize: 28, fontWeight: 400, color: DA_INK1, letterSpacing: -0.8, lineHeight: 1.05 }}>
@@ -931,7 +931,7 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
   };
 
   return (
-    <div style={{ padding: "44px 18px", background: DA_BG }}>
+    <div id="pricing" style={{ padding: "44px 18px", background: DA_BG }}>
       <div style={{ textAlign: "center", marginBottom: 22 }}>
         <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: DA_GOLD }}>{L.eyebrow}</div>
         <h2 style={{ margin: "10px 0 0", fontFamily: DISPLAY, fontSize: 28, fontWeight: 400, color: DA_INK1, letterSpacing: -0.8, lineHeight: 1.05 }}>

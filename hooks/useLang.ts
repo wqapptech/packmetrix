@@ -30,8 +30,23 @@ export function useLang(): "en" | "ar" {
 
 export const LANG_STORAGE_KEY = STORAGE_KEY;
 
+/** Persist lang to the signed-in user's Firestore doc (best-effort, fire-and-forget). */
+async function persistLangToAccount(lang: "en" | "ar") {
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const { db } = await import("@/lib/firebase");
+    const { doc, updateDoc } = await import("firebase/firestore");
+    const user = auth.currentUser;
+    if (!user) return;
+    await updateDoc(doc(db, "users", user.uid), { lang });
+  } catch {
+    // Never block the UI for a Firestore write failure
+  }
+}
+
 export function switchLang(lang: "en" | "ar") {
   localStorage.setItem(STORAGE_KEY, lang);
   document.body.setAttribute("data-lang", lang);
   window.dispatchEvent(new CustomEvent<"en" | "ar">(LANG_EVENT, { detail: lang }));
+  void persistLangToAccount(lang);
 }
