@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 
-const PEXELS_KEY = "DxWXtvmCjPBoFQkdBblsoccf4vy5BCAZx5oivI3s7ilAlB7vsoKCBpeB";
-const PIXABAY_KEY = "55851792-94951ecdbde103e9452c25a2a";
+const PEXELS_KEY = process.env.PEXELS_API_KEY ?? "";
+const PIXABAY_KEY = process.env.PIXABAY_API_KEY ?? "";
 
 function interleave<T>(a: T[], b: T[]): T[] {
   const out: T[] = [];

@@ -1,6 +1,8 @@
 import posthog from "posthog-js";
 
-posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
+// Analytics are suppressed on non-production environments to avoid polluting
+// the production PostHog project with staging events.
+if (process.env.NEXT_PUBLIC_ENV === "production") posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
   api_host: "/ingest",
   ui_host: "https://us.posthog.com",
   defaults: "2026-01-30",

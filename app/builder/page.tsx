@@ -649,6 +649,8 @@ function BuilderPageInner() {
   const shareUrl = finalPackageId && agencySlug
     ? process.env.NODE_ENV === "development"
       ? `http://localhost:3000/${agencySlug}/${finalPackageId}`
+      : process.env.NEXT_PUBLIC_ENV !== "production"
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/${agencySlug}/${finalPackageId}`
       : `https://${agencySlug}.packmetrix.com/${finalPackageId}`
     : "";
 

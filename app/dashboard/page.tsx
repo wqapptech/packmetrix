@@ -786,13 +786,13 @@ function DashboardPopulated({
                 pkg={pkg}
                 lang={lang}
                 isMobile={isMobile}
-                onView={() =>
-                  window.open(
-                    `https://${pkg.agencySlug || userAgencySlug}.packmetrix.com/${pkg.id}`,
-                    "_blank",
-                    "noopener,noreferrer",
-                  )
-                }
+                onView={() => {
+                  const slug = pkg.agencySlug || userAgencySlug;
+                  const url = process.env.NEXT_PUBLIC_ENV !== "production"
+                    ? `${process.env.NEXT_PUBLIC_APP_URL}/${slug}/${pkg.id}`
+                    : `https://${slug}.packmetrix.com/${pkg.id}`;
+                  window.open(url, "_blank", "noopener,noreferrer");
+                }}
                 onEdit={() => router.push(`/builder?id=${pkg.id}`)}
                 onDeleteRequest={() => setPendingDelete(pkg)}
                 isLast={i === arr.length - 1}

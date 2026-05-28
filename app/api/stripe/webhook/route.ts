@@ -17,7 +17,11 @@ function getPlanFromPriceId(priceId: string | undefined): string | null {
 }
 
 export async function POST(req: Request) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
+  if (process.env.NEXT_PUBLIC_ENV === "staging" && !stripeKey.startsWith("sk_test_")) {
+    throw new Error("SAFETY: staging environment has a non-test Stripe key. Refusing to process webhook.");
+  }
+  const stripe = new Stripe(stripeKey);
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
   const buf = await req.arrayBuffer();
   const body = Buffer.from(buf);

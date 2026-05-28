@@ -1,6 +1,10 @@
 import { Resend } from "resend";
 import type { DnsRecord } from "./domain-sync";
 
+// Emails are suppressed on non-production environments to avoid sending real
+// messages during staging tests. Set NEXT_PUBLIC_ENV=production in apphosting.yaml.
+const IS_PRODUCTION = process.env.NEXT_PUBLIC_ENV === "production";
+
 function client() {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error("RESEND_API_KEY is not set");
@@ -15,7 +19,8 @@ export async function sendDomainAddedEmail(opts: {
   cnameRecord?: { name: string; value: string };
   verificationRecords: DnsRecord[];
   sslRecords: DnsRecord[];
-}) {
+}): Promise<void> {
+  if (!IS_PRODUCTION) return;
   const { to, hostname, cnameRecord, verificationRecords, sslRecords } = opts;
 
   const allRecords = [
@@ -63,7 +68,8 @@ export async function sendDomainAddedEmail(opts: {
 export async function sendDomainActiveEmail(opts: {
   to: string;
   hostname: string;
-}) {
+}): Promise<void> {
+  if (!IS_PRODUCTION) return;
   const { to, hostname } = opts;
   await client().emails.send({
     from: FROM,
@@ -84,7 +90,8 @@ export async function sendDomainFailedEmail(opts: {
   to: string;
   hostname: string;
   errorMessage?: string;
-}) {
+}): Promise<void> {
+  if (!IS_PRODUCTION) return;
   const { to, hostname, errorMessage } = opts;
   await client().emails.send({
     from: FROM,
