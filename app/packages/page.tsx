@@ -37,9 +37,11 @@ const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
 function pkgUrl(slug: string, id: string): string {
-  return process.env.NODE_ENV === "development"
-    ? `http://localhost:3000/${slug}/${id}`
-    : `https://${slug}.packmetrix.com/${id}`;
+  if (process.env.NODE_ENV === "development") return `http://localhost:3000/${slug}/${id}`;
+  if (process.env.NEXT_PUBLIC_ENV !== "production") {
+    return `${process.env.NEXT_PUBLIC_APP_URL}/${slug}/${id}`;
+  }
+  return `https://${slug}.packmetrix.com/${id}`;
 }
 
 type Package = {

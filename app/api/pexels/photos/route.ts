@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 
-const PEXELS_KEY = "DxWXtvmCjPBoFQkdBblsoccf4vy5BCAZx5oivI3s7ilAlB7vsoKCBpeB";
+const PEXELS_KEY = process.env.PEXELS_API_KEY ?? "";
 
 export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get("query") || "";

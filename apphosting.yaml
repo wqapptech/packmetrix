@@ -2,6 +2,11 @@ runConfig:
   minInstances: 0
 
 env:
+  # Environment identifier — "production" | "staging" | "development"
+  # Override this to "staging" in the staging App Hosting backend via Firebase Console → Environment.
+  - variable: NEXT_PUBLIC_ENV
+    value: "production"
+
   # Public Firebase config (safe to commit)
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     value: "AIzaSyCga-8ZVe_1-X1t8V5L0LxqAFkr1t_lHEg"
@@ -75,3 +80,13 @@ env:
   # Resend — transactional emails
   - variable: RESEND_API_KEY
     secret: RESEND_API_KEY
+
+  # Photo APIs (Pexels/Pixabay keys are free-tier; Unsplash keys are per ToS)
+  - variable: PEXELS_API_KEY
+    value: "DxWXtvmCjPBoFQkdBblsoccf4vy5BCAZx5oivI3s7ilAlB7vsoKCBpeB"
+  - variable: PIXABAY_API_KEY
+    value: "55851792-94951ecdbde103e9452c25a2a"
+  - variable: UNSPLASH_ACCESS_KEY
+    secret: UNSPLASH_ACCESS_KEY
+  - variable: UNSPLASH_SECRET_KEY
+    secret: UNSPLASH_SECRET_KEY

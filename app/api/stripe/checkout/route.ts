@@ -16,7 +16,11 @@ const PRICE_IDS: Record<string, Record<string, string>> = {
 };
 
 export async function POST(req: Request) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
+  if (process.env.NEXT_PUBLIC_ENV === "staging" && !stripeKey.startsWith("sk_test_")) {
+    throw new Error("SAFETY: staging environment has a non-test Stripe key. Refusing to create checkout session.");
+  }
+  const stripe = new Stripe(stripeKey);
   try {
     const { userId, plan = "founding", billingPeriod = "monthly" } = await req.json();
 

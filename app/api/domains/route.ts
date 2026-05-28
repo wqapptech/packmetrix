@@ -22,6 +22,13 @@ function isApexDomain(hostname: string): boolean {
 }
 
 export async function POST(req: Request) {
+  if (process.env.NEXT_PUBLIC_ENV !== "production") {
+    return NextResponse.json(
+      { error: "Custom domain registration is disabled on non-production environments" },
+      { status: 503 }
+    );
+  }
+
   const user = await verifyUser(req.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
