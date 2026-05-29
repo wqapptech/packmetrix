@@ -259,7 +259,7 @@ function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaini
   };
 
   const eyebrow = spotsRemaining !== null
-    ? `${spotsRemaining} ${L.eyebrowSuffix}`
+    ? L.eyebrowSuffix
     : L.eyebrowFallback;
 
   return (
@@ -398,7 +398,7 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
   };
 
   const eyebrow = spotsRemaining !== null
-    ? `${spotsRemaining} ${L.eyebrowSuffix}`
+    ? L.eyebrowSuffix
     : L.eyebrowFallback;
 
   return (
@@ -1334,7 +1334,7 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
     spotsLine: spotsRemaining !== null ? `${spotsRemaining} من ٥٠ مكاناً بسعر الإطلاق` : "٤٩ من ٥٠ مكاناً بسعر الإطلاق",
     monthly: "شهري", annual: "سنوي", annualSave: "وفّر ١٧٪",
     included: "كل المزايا مشمولة",
-    items: ["صفحات باقات غير محدودة", "كل القوالب العشرة", "نطاق مخصص بشهادة SSL", "صندوق عملاء واتساب وماسنجر", "تصدير العملاء (CSV)", "محرر محتوى بالذكاء الاصطناعي", "تحليلات بدون حد زمني", "حتى عضوَين في الفريق", "دعم بأولوية"],
+    items: ["صفحات باقات غير محدودة", "كل القوالب العشرة", "نطاق مخصص بشهادة SSL", "صندوق عملاء واتساب وماسنجر", "تصدير العملاء (CSV)", "تحليلات بدون حد زمني", "بحث في الصور والفيديو"],
     cta: "ثبّت سعر ٣٩ € مدى الحياة",
     trust: `تجربة ${TRIAL_DAYS} يوم · بدون بطاقة ائتمان · إلغاء في أيّ وقت`,
     after: "بعد انتهاء سعر الإطلاق: ٧٩ €/شهر للوكالات الجديدة. ثبّت سعرك الآن ولن يتغيّر أبداً.",
@@ -1346,7 +1346,7 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
     spotsLine: spotsRemaining !== null ? `${spotsRemaining} of 50 launch spots left` : "49 of 50 launch spots left",
     monthly: "Monthly", annual: "Annual", annualSave: "Save 17%",
     included: "Everything included",
-    items: ["Unlimited package pages", "All 10 templates", "Custom domain + SSL", "WhatsApp + Messenger lead inbox", "Lead export (CSV)", "AI-powered content writing", "Unlimited analytics history", "Up to 2 team members", "Priority support"],
+    items: ["Unlimited package pages", "All 10 templates", "Custom domain + SSL", "WhatsApp + Messenger lead inbox", "Lead export (CSV)", "Unlimited analytics history", "Photo & video search"],
     cta: "Lock in €39 forever",
     trust: `${TRIAL_DAYS}-day trial · no credit card · cancel anytime`,
     after: "After launch pricing ends: €79/mo for new agencies. Lock in now and your price never changes.",
@@ -1456,7 +1456,7 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
     spotsLine: spotsRemaining !== null ? `${spotsRemaining} من ٥٠ مكاناً بسعر الإطلاق` : "٤٩ من ٥٠ مكاناً بسعر الإطلاق",
     chip: "سعر الإطلاق · ٥٠ مكاناً", planName: "سعر الإطلاق", perMonth: "/شهر",
     locked: "ثابت مدى الحياة · ٧٩ € لاحقاً",
-    items: ["صفحات باقات غير محدودة", "كل القوالب العشرة", "نطاق مخصص بشهادة SSL", "صندوق عملاء واتساب وماسنجر", "تصدير العملاء (CSV)", "محرر محتوى بالذكاء الاصطناعي", "تحليلات بدون حد زمني", "حتى عضوَين في الفريق", "دعم بأولوية"],
+    items: ["صفحات باقات غير محدودة", "كل القوالب العشرة", "نطاق مخصص بشهادة SSL", "صندوق عملاء واتساب وماسنجر", "تصدير العملاء (CSV)", "تحليلات بدون حد زمني", "بحث في الصور والفيديو"],
     cta: "ثبّت سعر ٣٩ € مدى الحياة",
     trust: `تجربة ${TRIAL_DAYS} يوم · بدون بطاقة ائتمان · إلغاء في أيّ وقت`,
   } : {
@@ -1464,7 +1464,7 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
     spotsLine: spotsRemaining !== null ? `${spotsRemaining} of 50 launch spots left` : "49 of 50 launch spots left",
     chip: "Launch price · 50 spots", planName: "Launch price", perMonth: "/mo",
     locked: "Locked for life · €79 later",
-    items: ["Unlimited package pages", "All 10 templates", "Custom domain + SSL", "WhatsApp + Messenger inbox", "Lead export (CSV)", "AI-powered content writing", "Unlimited analytics history", "Up to 2 team members", "Priority support"],
+    items: ["Unlimited package pages", "All 10 templates", "Custom domain + SSL", "WhatsApp + Messenger lead inbox", "Lead export (CSV)", "Unlimited analytics history", "Photo & video search"],
     cta: "Lock in €39 forever",
     trust: `${TRIAL_DAYS}-day trial · no credit card · cancel anytime`,
   };
@@ -1594,15 +1594,103 @@ function MobileLandingFinalCta({ lang }: { lang: "en" | "ar" }) {
   );
 }
 
+// ── Contact Modal ─────────────────────────────────────────────────────────────
+
+function ContactModal({ open, onClose, isAr }: { open: boolean; onClose: () => void; isAr: boolean }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  if (!open) return null;
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, email }),
+      });
+      if (!res.ok) throw new Error();
+      setStatus("sent");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "10px 12px", fontFamily: SANS, fontSize: 13.5,
+    color: DA_INK1, background: DA_BG, border: `1px solid ${DA_RULE2}`,
+    borderRadius: 8, outline: "none", boxSizing: "border-box",
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(13,27,46,0.55)", backdropFilter: "blur(2px)" }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: DA_SURFACE, borderRadius: 16, padding: 32, maxWidth: 460, width: "calc(100% - 36px)", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }}
+      >
+        {status === "sent" ? (
+          <div style={{ textAlign: "center", padding: "12px 0" }}>
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: DA_GREEN_SOFT, color: DA_GREEN, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 16 }}>✓</div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 22, color: DA_INK1, marginBottom: 8 }}>{isAr ? "تم الإرسال!" : "Message sent!"}</div>
+            <p style={{ fontFamily: SANS, fontSize: 13.5, color: DA_INK2, margin: "0 0 24px" }}>{isAr ? "سنرد عليك في أقرب وقت ممكن." : "We'll get back to you as soon as possible."}</p>
+            <button onClick={onClose} style={{ padding: "10px 28px", background: DA_INK1, color: DA_BG, border: "none", borderRadius: 8, fontFamily: SANS, fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
+              {isAr ? "إغلاق" : "Close"}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div style={{ fontFamily: DISPLAY, fontSize: 22, color: DA_INK1, marginBottom: 6 }}>{isAr ? "تواصل معنا" : "Contact us"}</div>
+            <p style={{ fontFamily: SANS, fontSize: 13, color: DA_INK2, margin: "0 0 22px" }}>{isAr ? "أرسل لنا رسالة وسنرد عليك." : "Send us a message and we'll get back to you."}</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "الموضوع" : "Subject"}</div>
+                <input style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} placeholder={isAr ? "موضوع رسالتك" : "What's this about?"} required />
+              </div>
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "الرسالة" : "Message"}</div>
+                <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 100 }} value={description} onChange={e => setDescription(e.target.value)} placeholder={isAr ? "اكتب رسالتك هنا..." : "Tell us more..."} required />
+              </div>
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "بريدك الإلكتروني" : "Your email"}</div>
+                <input type="email" style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+              </div>
+            </div>
+            {status === "error" && (
+              <p style={{ fontFamily: SANS, fontSize: 12.5, color: "#c0392b", margin: "12px 0 0" }}>{isAr ? "حدث خطأ، يرجى المحاولة مجدداً." : "Something went wrong, please try again."}</p>
+            )}
+            <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+              <button type="button" onClick={onClose} style={{ flex: 1, padding: "11px 0", background: "transparent", border: `1px solid ${DA_RULE2}`, borderRadius: 8, fontFamily: SANS, fontSize: 13.5, color: DA_INK2, cursor: "pointer" }}>
+                {isAr ? "إلغاء" : "Cancel"}
+              </button>
+              <button type="submit" disabled={status === "sending"} style={{ flex: 2, padding: "11px 0", background: DA_GOLD, color: "#fff", border: "none", borderRadius: 8, fontFamily: SANS, fontSize: 13.5, fontWeight: 600, cursor: "pointer", opacity: status === "sending" ? 0.7 : 1 }}>
+                {status === "sending" ? (isAr ? "جارٍ الإرسال..." : "Sending...") : (isAr ? "إرسال" : "Send message")}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Footer ────────────────────────────────────────────────────────────────────
 
 function LandingFooter({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
+  const [contactOpen, setContactOpen] = useState(false);
+
   const L = isAr ? {
     tagline: "صفحات هبوط احترافية لوكالات السفر — تنشر، تتبّع، تحوّل.",
     cols: [
       { head: "المنتج", links: [{ label: "الميزات", href: "#product" }, { label: "القوالب", href: "/templates" }, { label: "الأسعار", href: "#pricing" }, { label: "تطبيق الوكالة", href: `${AGENCY_URL}/login` }] },
-      { head: "موارد", links: [{ label: "كيف يعمل", href: "#how-it-works" }, { label: "مركز المساعدة", href: "#" }, { label: "تواصل معنا", href: "mailto:hello@packmetrix.com" }] },
+      { head: "موارد", links: [{ label: "كيف يعمل", href: "#how-it-works" }, { label: "تواصل معنا", contact: true }] },
       // TODO: native AR speaker to verify tone for "اتفاقية معالجة البيانات"
       { head: "قانوني", links: [{ label: "سياسة الخصوصية", href: "/privacy" }, { label: "الشروط", href: "/terms" }, { label: "اتفاقية معالجة البيانات", href: "/dpa" }] },
     ],
@@ -1613,7 +1701,7 @@ function LandingFooter({ lang }: { lang: "en" | "ar" }) {
     tagline: "Professional landing pages for travel agencies — publish, track, convert.",
     cols: [
       { head: "Product", links: [{ label: "Features", href: "#product" }, { label: "Templates", href: "/templates" }, { label: "Pricing", href: "#pricing" }, { label: "Agency app", href: `${AGENCY_URL}/login` }] },
-      { head: "Resources", links: [{ label: "How it works", href: "#how-it-works" }, { label: "Help centre", href: "#" }, { label: "Contact", href: "mailto:hello@packmetrix.com" }] },
+      { head: "Resources", links: [{ label: "How it works", href: "#how-it-works" }, { label: "Contact us", contact: true }] },
       { head: "Legal", links: [{ label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }, { label: "DPA", href: "/dpa" }] },
     ],
     operator: "Operated by · WQ AppTech",
@@ -1621,48 +1709,57 @@ function LandingFooter({ lang }: { lang: "en" | "ar" }) {
     copy: "© 2026 Packmetrix. All rights reserved.",
   };
 
+  const linkStyle: React.CSSProperties = { fontFamily: SANS, fontSize: 13, color: DA_INK1, cursor: "pointer", textDecoration: "none" };
+
   return (
-    <div style={{ padding: "56px 48px 32px", background: DA_SURFACE2, borderTop: `1px solid ${DA_RULE}`, fontFamily: SANS }}>
-      <div style={{ maxWidth: 1280, marginInline: "auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1fr", gap: 36 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 7, background: DA_INK1, color: DA_GOLD, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 13 }}>P</div>
-              <div style={{ fontFamily: DISPLAY, fontSize: 18, color: DA_INK1, letterSpacing: -0.2 }}>Packmetrix</div>
-            </div>
-            <p style={{ margin: 0, fontFamily: SANS, fontSize: 13, color: DA_INK2, maxWidth: 280, lineHeight: 1.55 }}>{L.tagline}</p>
-          </div>
-          {L.cols.map((col, i) => (
-            <div key={i}>
-              <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase", color: DA_INK3, marginBottom: 14 }}>{col.head}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {col.links.map((link, j) => (
-                  <a key={j} href={link.href} style={{ fontFamily: SANS, fontSize: 13, color: DA_INK1, cursor: "pointer", textDecoration: "none" }}>{link.label}</a>
-                ))}
+    <>
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} isAr={isAr} />
+      <div style={{ padding: "56px 48px 32px", background: DA_SURFACE2, borderTop: `1px solid ${DA_RULE}`, fontFamily: SANS }}>
+        <div style={{ maxWidth: 1280, marginInline: "auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1fr", gap: 36 }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 7, background: DA_INK1, color: DA_GOLD, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 13 }}>P</div>
+                <div style={{ fontFamily: DISPLAY, fontSize: 18, color: DA_INK1, letterSpacing: -0.2 }}>Packmetrix</div>
               </div>
+              <p style={{ margin: 0, fontFamily: SANS, fontSize: 13, color: DA_INK2, maxWidth: 280, lineHeight: 1.55 }}>{L.tagline}</p>
             </div>
-          ))}
-        </div>
-        <div style={{ marginTop: 48, paddingTop: 22, borderTop: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-          <div style={{ fontFamily: SANS, fontSize: 12, color: DA_INK3 }}>{L.copy}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, fontFamily: SANS, fontSize: 12, color: DA_INK3 }}>
-            <span style={{ color: DA_INK2, fontWeight: 500 }}>{L.operator}</span>
-            <span style={{ color: DA_RULE2 }}>·</span>
-            <span>{L.operatorSub}</span>
+            {L.cols.map((col, i) => (
+              <div key={i}>
+                <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase", color: DA_INK3, marginBottom: 14 }}>{col.head}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {col.links.map((link, j) => (
+                    link.contact
+                      ? <button key={j} onClick={() => setContactOpen(true)} style={{ ...linkStyle, background: "none", border: "none", padding: 0, textAlign: isAr ? "right" : "left" }}>{link.label}</button>
+                      : <a key={j} href={link.href} style={linkStyle}>{link.label}</a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 48, paddingTop: 22, borderTop: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+            <div style={{ fontFamily: SANS, fontSize: 12, color: DA_INK3 }}>{L.copy}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, fontFamily: SANS, fontSize: 12, color: DA_INK3 }}>
+              <span style={{ color: DA_INK2, fontWeight: 500 }}>{L.operator}</span>
+              <span style={{ color: DA_RULE2 }}>·</span>
+              <span>{L.operatorSub}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
 function MobileLandingFooter({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
+  const [contactOpen, setContactOpen] = useState(false);
+
   const L = isAr ? {
     tagline: "صفحات هبوط احترافية لوكالات السفر",
     cols: [
       { head: "المنتج", links: [{ label: "الميزات", href: "#product" }, { label: "القوالب", href: "/templates" }, { label: "الأسعار", href: "#pricing" }] },
-      { head: "موارد", links: [{ label: "كيف يعمل", href: "#how-it-works" }, { label: "المساعدة", href: "#" }, { label: "تواصل", href: "mailto:hello@packmetrix.com" }] },
+      { head: "موارد", links: [{ label: "كيف يعمل", href: "#how-it-works" }, { label: "تواصل معنا", contact: true }] },
       { head: "قانوني", links: [{ label: "الخصوصية", href: "/privacy" }, { label: "الشروط", href: "/terms" }] },
     ],
     copy: "© ٢٠٢٦ باكميتركس · مسجَّل في هولندا · KvK 91019001",
@@ -1670,32 +1767,38 @@ function MobileLandingFooter({ lang }: { lang: "en" | "ar" }) {
     tagline: "Professional landing pages for travel agencies",
     cols: [
       { head: "Product", links: [{ label: "Features", href: "#product" }, { label: "Templates", href: "/templates" }, { label: "Pricing", href: "#pricing" }] },
-      { head: "Resources", links: [{ label: "How it works", href: "#how-it-works" }, { label: "Help", href: "#" }, { label: "Contact", href: "mailto:hello@packmetrix.com" }] },
+      { head: "Resources", links: [{ label: "How it works", href: "#how-it-works" }, { label: "Contact us", contact: true }] },
       { head: "Legal", links: [{ label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }] },
     ],
     copy: "© 2026 Packmetrix · Registered in the Netherlands · KvK 91019001",
   };
+
   return (
-    <div style={{ padding: "32px 18px 22px", background: DA_SURFACE2, borderTop: `1px solid ${DA_RULE}`, fontFamily: SANS }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10 }}>
-        <div style={{ width: 24, height: 24, borderRadius: 6, background: DA_INK1, color: DA_GOLD, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 11 }}>P</div>
-        <div style={{ fontFamily: DISPLAY, fontSize: 16, color: DA_INK1, letterSpacing: -0.2 }}>Packmetrix</div>
-      </div>
-      <p style={{ margin: 0, fontSize: 12, color: DA_INK2, lineHeight: 1.5 }}>{L.tagline}</p>
-      <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 18 }}>
-        {L.cols.map((col, i) => (
-          <div key={i}>
-            <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", color: DA_INK3, marginBottom: 9 }}>{col.head}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {col.links.map((link, j) => (
-                <a key={j} href={link.href} style={{ fontSize: 12, color: DA_INK1, textDecoration: "none" }}>{link.label}</a>
-              ))}
+    <>
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} isAr={isAr} />
+      <div style={{ padding: "32px 18px 22px", background: DA_SURFACE2, borderTop: `1px solid ${DA_RULE}`, fontFamily: SANS }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10 }}>
+          <div style={{ width: 24, height: 24, borderRadius: 6, background: DA_INK1, color: DA_GOLD, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 11 }}>P</div>
+          <div style={{ fontFamily: DISPLAY, fontSize: 16, color: DA_INK1, letterSpacing: -0.2 }}>Packmetrix</div>
+        </div>
+        <p style={{ margin: 0, fontSize: 12, color: DA_INK2, lineHeight: 1.5 }}>{L.tagline}</p>
+        <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 18 }}>
+          {L.cols.map((col, i) => (
+            <div key={i}>
+              <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", color: DA_INK3, marginBottom: 9 }}>{col.head}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {col.links.map((link, j) => (
+                  link.contact
+                    ? <button key={j} onClick={() => setContactOpen(true)} style={{ fontSize: 12, color: DA_INK1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: isAr ? "right" : "left", fontFamily: SANS }}>{link.label}</button>
+                    : <a key={j} href={link.href} style={{ fontSize: 12, color: DA_INK1, textDecoration: "none" }}>{link.label}</a>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <div style={{ marginTop: 22, paddingTop: 14, borderTop: `1px solid ${DA_RULE}`, fontSize: 10.5, color: DA_INK3, textAlign: "center" }}>{L.copy}</div>
       </div>
-      <div style={{ marginTop: 22, paddingTop: 14, borderTop: `1px solid ${DA_RULE}`, fontSize: 10.5, color: DA_INK3, textAlign: "center" }}>{L.copy}</div>
-    </div>
+    </>
   );
 }
 
