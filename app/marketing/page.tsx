@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useLang, switchLang } from "@/hooks/useLang";
 import { TRIAL_DAYS } from "@/lib/trial";
@@ -1072,7 +1074,63 @@ type ExampleItem = {
   kind: string; ar: boolean;
   destination: string; title: string; tag: string;
   price: string; was?: string; agency: string; lang: string;
+  coverImage?: string; // real photo URL — gradient fallback when absent
+  url?: string;        // live page href — disables link when absent
 };
+
+const DEMO_TEMPLATE_TAGS: Record<string, { en: string; ar: string }> = {
+  sakina:  { en: "Umrah",    ar: "عمرة"      },
+  family:  { en: "Family",   ar: "عائلي"     },
+  pulse:   { en: "Deal",     ar: "عرض"       },
+  petal:   { en: "Boutique", ar: "بوتيك"     },
+  aurora:  { en: "Luxury",   ar: "فاخر"      },
+  tribe:   { en: "Group",    ar: "مجموعات"   },
+  compass: { en: "Trek",     ar: "مشي"       },
+  voyage:  { en: "Voyage",   ar: "بحري"      },
+  atlas:   { en: "Explorer", ar: "مستكشف"    },
+  smart:   { en: "Smart",    ar: "ذكي"       },
+};
+
+async function fetchDemoPackages(lang: "en" | "ar"): Promise<ExampleItem[]> {
+  const snap = await getDocs(
+    query(collection(db, "packages"), where("isDemo", "==", true))
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pkgs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
+    .filter(p => (p.primaryLanguage || p.language) === lang && p.status === "active");
+
+  // Fetch agency display name once (all demo packages share a userId)
+  let agencyName = lang === "ar" ? "مرايا للأسفار" : "Maraya Journeys";
+  if (pkgs.length > 0 && pkgs[0].userId) {
+    try {
+      const userSnap = await getDoc(doc(db, "users", pkgs[0].userId));
+      if (userSnap.exists()) agencyName = userSnap.data().name || agencyName;
+    } catch { /* keep default */ }
+  }
+
+  return pkgs.slice(0, 6).map(p => {
+    const tagObj = DEMO_TEMPLATE_TAGS[p.templateId as string] ?? { en: "Travel", ar: "سفر" };
+    const rawTitle = p.title;
+    const title = rawTitle && typeof rawTitle === "object"
+      ? (rawTitle[lang] || rawTitle.en || rawTitle.ar || "")
+      : String(rawTitle || "");
+
+    return {
+      kind:       String(p.templateId || "travel"),
+      ar:         lang === "ar",
+      destination: String(p.destination || ""),
+      title,
+      tag:        tagObj[lang],
+      price:      String(p.price || ""),
+      was:        p.priceWas || undefined,
+      agency:     agencyName,
+      lang:       lang === "ar" ? "AR" : "EN",
+      coverImage: p.coverImage || undefined,
+      url:        p.agencySlug && p.id ? `/${p.agencySlug}/${p.id}` : undefined,
+    };
+  });
+}
 
 function exampleData(isAr: boolean): ExampleItem[] {
   return [
@@ -1145,7 +1203,10 @@ function ExampleCard({ ex, lang }: { ex: ExampleItem; lang: "en" | "ar" }) {
     }}>
       {/* Cover */}
       <div style={{ position: "relative", height: 168 }}>
-        <div style={{ position: "absolute", inset: 0, background: exampleCover(ex.kind) }} />
+        {ex.coverImage
+          ? <img src={ex.coverImage} alt={ex.destination} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          : <div style={{ position: "absolute", inset: 0, background: exampleCover(ex.kind) }} />
+        }
         <div style={{
           position: "absolute", inset: 0,
           backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0, rgba(255,255,255,.05) 1px, transparent 1px, transparent 9px)",
@@ -1203,22 +1264,24 @@ function ExampleCard({ ex, lang }: { ex: ExampleItem; lang: "en" | "ar" }) {
           }}>{ex.agency}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-          {/* Coming soon badge */}
-          <span style={{
-            padding: "2px 7px", background: DA_GOLD_SOFT, color: DA_GOLD_DEEP,
-            borderRadius: 999, fontFamily: SANS, fontSize: 9.5, fontWeight: 600, letterSpacing: .3,
-          }}>{comingSoon}</span>
-          {/* Visibly disabled "See live page" button — real URL goes in data-todo */}
+          {!ex.url && (
+            <span style={{
+              padding: "2px 7px", background: DA_GOLD_SOFT, color: DA_GOLD_DEEP,
+              borderRadius: 999, fontFamily: SANS, fontSize: 9.5, fontWeight: 600, letterSpacing: .3,
+            }}>{comingSoon}</span>
+          )}
           <a
-            href="#"
-            data-todo="real-url"
-            onClick={e => e.preventDefault()}
+            href={ex.url ?? "#"}
+            target={ex.url ? "_blank" : undefined}
+            rel={ex.url ? "noopener noreferrer" : undefined}
+            onClick={ex.url ? undefined : e => e.preventDefault()}
             style={{
               display: "inline-flex", alignItems: "center", gap: 5,
               padding: "7px 12px", background: DA_SURFACE2, border: `1px solid ${DA_RULE2}`,
               borderRadius: 8, fontFamily: SANS, fontSize: 12, fontWeight: 500, color: DA_INK1,
               textDecoration: "none",
-              opacity: 0.45, pointerEvents: "none",
+              opacity: ex.url ? 1 : 0.45,
+              pointerEvents: ex.url ? undefined : "none",
             }}
           >
             {seeLive}
@@ -1234,7 +1297,12 @@ function ExampleCard({ ex, lang }: { ex: ExampleItem; lang: "en" | "ar" }) {
 
 function LandingExamples({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
-  const data = exampleData(isAr);
+  const [liveData, setLiveData] = useState<ExampleItem[] | null>(null);
+  useEffect(() => {
+    setLiveData(null);
+    fetchDemoPackages(lang).then(setLiveData).catch(() => {/* keep static fallback */});
+  }, [lang]);
+  const data = liveData ?? exampleData(isAr);
   // TODO: native AR speaker to verify tone — "ثبّت" / launch-price phrasing
   const L = isAr ? {
     eyebrow: "أمثلة حقيقية",
@@ -1280,7 +1348,12 @@ function LandingExamples({ lang }: { lang: "en" | "ar" }) {
 
 function MobileLandingExamples({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
-  const data = exampleData(isAr);
+  const [liveData, setLiveData] = useState<ExampleItem[] | null>(null);
+  useEffect(() => {
+    setLiveData(null);
+    fetchDemoPackages(lang).then(setLiveData).catch(() => {/* keep static fallback */});
+  }, [lang]);
+  const data = liveData ?? exampleData(isAr);
   // TODO: native AR speaker to verify tone — "ثبّت" / launch-price phrasing
   const L = isAr ? {
     eyebrow: "أمثلة حقيقية",

@@ -1,0 +1,3225 @@
+[
+  {
+    "_README_LINE_1": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "_README_LINE_2": "PACKMETRIX SAMPLE PACKAGES — 12 packages (6 concepts × EN + AR)",
+    "_README_LINE_3": "Demo agency: Maraya Journeys, on hello@packmetrix.com.",
+    "_README_LINE_4": "Phone numbers (+971500000000, +966500000000) are PLACEHOLDERS — swap before publishing publicly so WhatsApp CTAs reach a real number.",
+    "_README_LINE_5": "Arabic content is a FIRST DRAFT — needs native-speaker review before going on a public landing page.",
+    "_README_LINE_6": "External image URLs are Unsplash CDN — checklist at end of this comment block.",
+    "_README_LINE_7": "",
+    "_IMAGES_CHECKLIST": [
+      "Cover images used (Unsplash) — re-host through app storage later if desired:",
+      "  sakina-en-1 / sakina-ar-1: Kaaba",
+      "  pulse-en-1: Sardinia / Costa Smeralda beach",
+      "  pulse-ar-1: Cappadocia balloons",
+      "  petal-en-1 / petal-ar-1: Maldives overwater villa",
+      "  family-en-1 / family-ar-1: Salalah / Wadi Darbat waterfall",
+      "  aurora-en-1 / aurora-ar-1: Cappadocia cave hotel",
+      "  tribe-en-1 / tribe-ar-1: Wadi Rum red desert",
+      "Gallery images: 2 per package, varied per destination."
+    ],
+    "_REMOVE_THIS_ENTRY_BEFORE_SEEDING": true
+  },
+  {
+    "demoSampleId": "sakina-en-1",
+    "templateId": "sakina",
+    "primaryLanguage": "en",
+    "titleEn": "Ramadan Umrah · 10 nights",
+    "titleAr": "عمرة رمضان · ١٠ ليالٍ",
+    "descriptionEn": "A 10-night Ramadan Umrah package combining the spiritual significance of Ramadan with thoughtful logistics — hotels within walking distance of the Haram, an experienced mutawif throughout, and a quiet, well-paced itinerary that respects the rhythm of the days.",
+    "descriptionAr": "باقة عمرة رمضان لمدة ١٠ ليالٍ تجمع بين روحانية الشهر الفضيل والترتيبات المدروسة — فنادق على بُعد خطوات من الحرم، ومُطوِّف متمرس طوال الرحلة، وبرنامج هادئ يحترم إيقاع الأيام.",
+    "destination": "Makkah & Madinah",
+    "price": "€1,180",
+    "currency": "EUR",
+    "nights": "10",
+    "whatsapp": "+966500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=1600&q=80",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "Hotels within walking distance of the Haram in both cities",
+            "Experienced mutawif speaking Arabic, English, and Urdu",
+            "Direct flights, visa included, breakfast daily"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "Arrival in Madinah",
+              "desc": "Welcome at Madinah airport, transfer to hotel near Masjid Al-Nabawi. Rest and Maghrib prayer at the Prophet's Mosque.",
+              "chapter": "Madinah",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "Madinah — Ziyarat",
+              "desc": "Morning visit to historical sites including Quba Mosque, Qiblatain, and the martyrs of Uhud. Free afternoon for prayer and reflection.",
+              "chapter": "Madinah",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "Madinah — Free day",
+              "desc": "A full day at your own pace at the Prophet's Mosque. Optional group session with the mutawif on the Umrah rituals.",
+              "chapter": "Madinah",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "Transfer to Makkah",
+              "desc": "After Fajr, depart for Makkah in ihram. Arrival, check-in, and the first Umrah together as a group.",
+              "chapter": "Makkah",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "Makkah — Tawaf & Sa'i guidance",
+              "desc": "Guided session with the mutawif on the inner meaning of Tawaf and Sa'i. Time at the Haram throughout the day.",
+              "chapter": "Makkah",
+              "img": ""
+            },
+            {
+              "day": 6,
+              "title": "Makkah — Historical sites",
+              "desc": "Optional morning tour to Jabal al-Nour, Jabal Thawr, and Mina. Evening at the Haram.",
+              "chapter": "Makkah",
+              "img": ""
+            },
+            {
+              "day": 7,
+              "title": "Makkah — Reflection",
+              "desc": "Free day in Makkah. Suggested second Umrah from Tan'eem for those wishing.",
+              "chapter": "Makkah",
+              "img": ""
+            },
+            {
+              "day": 8,
+              "title": "Makkah — Open day",
+              "desc": "Time at the Haram. Final group gathering with the mutawif for du'as and farewell.",
+              "chapter": "Makkah",
+              "img": ""
+            },
+            {
+              "day": 9,
+              "title": "Tawaf al-Wada",
+              "desc": "Farewell Tawaf in the early hours. Final morning at the Haram.",
+              "chapter": "Makkah",
+              "img": ""
+            },
+            {
+              "day": 10,
+              "title": "Departure",
+              "desc": "Transfer to Jeddah airport. Safe travels and Hajj-mabrur du'as from the group.",
+              "chapter": "Departure",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "Madinah (3 nights): Dar Al Taqwa Hotel, 5-star, directly facing the Prophet's Mosque. Walking distance to the Haram. Daily breakfast included. Makkah (6 nights): Pullman ZamZam Makkah, 5-star, in the Abraj Al Bait complex, approximately 100m from the Haram clock tower entrance."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "Umrah visa",
+            "Round-trip flights from Riyadh or Jeddah",
+            "Hotels in Madinah and Makkah",
+            "Ground transfers throughout",
+            "Mutawif throughout the journey",
+            "Daily breakfast",
+            "Ihram garments for men"
+          ],
+          "excludes": [
+            "Lunch and dinner",
+            "Personal expenses",
+            "Optional ziyarat tours",
+            "Travel insurance"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "breakfast",
+          "notes": "Daily breakfast included at both hotels. Lunch and dinner at your own pace — many local options near both Harams."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "Umrah visa included in the package price. We process the visa application on your behalf — you provide a passport copy and a recent photo."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-03-08",
+              "returnDate": "2026-03-18",
+              "spots": 18,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-03-15",
+              "returnDate": "2026-03-25",
+              "spots": 22,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "Quad share",
+              "price": "€1,180"
+            },
+            {
+              "label": "Triple share",
+              "price": "€1,290"
+            },
+            {
+              "label": "Twin share",
+              "price": "€1,490"
+            }
+          ],
+          "cancellation": "Full refund up to 45 days before departure. 50% refund 30–45 days. After 30 days, the visa and flight portion are non-refundable; hotel may be partially refundable depending on the property.",
+          "paymentContent": "30% deposit to confirm your seat. Remaining balance due 30 days before departure.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "All ground transfers are by air-conditioned coach with our team accompanying. Airport pickups in Madinah and drop-offs in Jeddah are scheduled in line with group arrival times.",
+          "items": [
+            "Madinah airport → hotel",
+            "Madinah → Makkah",
+            "Daily Haram transfers if hotel is farther than walking",
+            "Makkah → Jeddah airport"
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "Passport must be valid for at least 6 months beyond return date."
+            },
+            {
+              "text": "Meningitis vaccination (ACWY) required — certificate issued within the past 3 years."
+            },
+            {
+              "text": "Women under 45 should travel with a mahram. Women 45+ may travel in an organized group; please confirm with us."
+            },
+            {
+              "text": "Ramadan timing means longer Haram crowds at iftar and tarawih — the itinerary respects this rhythm."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "Maraya Journeys is a Riyadh-based travel agency specializing in spiritual journeys and curated Gulf-region travel. We've accompanied over 2,000 pilgrims on Umrah and Hajj. Every group is led by an experienced mutawif and a coordinator who travel with you throughout.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "mutawif",
+              "name": "Shaikh Abdulrahman Al-Faisal",
+              "bio": "A licensed mutawif for over 12 years. Leads all our Umrah groups personally. Calm, knowledgeable, and patient with first-time pilgrims.",
+              "photo": "",
+              "languages": [
+                "Arabic",
+                "English",
+                "Urdu"
+              ],
+              "years": 12,
+              "repliesIn": "30 min"
+            },
+            {
+              "id": "p2",
+              "role": "agent",
+              "name": "Layla Al-Rashid",
+              "bio": "Your trip coordinator. Available throughout planning and during the trip for any logistical needs.",
+              "photo": "",
+              "languages": [
+                "Arabic",
+                "English"
+              ],
+              "years": 6,
+              "repliesIn": "1 hour"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=1200&q=80",
+            "https://images.pexels.com/photos/28209449/pexels-photo-28209449.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1693590614566-1d3ea9ef32f7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHx1bXJhaHxlbnwwfDB8fHwxNzgwMTQ4MzgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/26436662/pexels-photo-26436662.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1511652019870-fbd8713560bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwzfHx1bXJhaHxlbnwwfDB8fHwxNzgwMTQ4MzgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/26436656/pexels-photo-26436656.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/31281542/13358265_640_360_60fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "Ahmed F.",
+              "text": "Our family's first Umrah. The mutawif's patience with my elderly mother was beyond what we hoped for. Hotels were exactly as described.",
+              "rating": 5,
+              "country": "Saudi Arabia",
+              "partyType": "family"
+            },
+            {
+              "id": "r2",
+              "name": "Khadija M.",
+              "text": "Well-organized, calm, no rushing. The Ramadan timing was respected — long evenings at the Haram and time to rest during the day.",
+              "rating": 5,
+              "country": "Kuwait",
+              "partyType": "couple"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "sakina-ar-1",
+    "templateId": "sakina",
+    "primaryLanguage": "ar",
+    "titleEn": "Ramadan Umrah · 10 nights",
+    "titleAr": "عمرة رمضان · ١٠ ليالٍ",
+    "descriptionEn": "A Ramadan Umrah package combining spiritual significance with thoughtful logistics.",
+    "descriptionAr": "باقة عمرة رمضان لمدة ١٠ ليالٍ تجمع بين روحانية الشهر الفضيل والترتيبات المدروسة. فنادق على بُعد خطوات من الحرم في مكة المكرمة والمدينة المنورة، ومُطوِّف متمرس يرافق المجموعة طوال الرحلة، وبرنامج هادئ يحترم إيقاع أيام رمضان.",
+    "destination": "مكة المكرمة والمدينة المنورة",
+    "price": "٤٬٢٠٠ ر.س",
+    "currency": "SAR",
+    "nights": "10",
+    "whatsapp": "+966500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=1600&q=80",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "فنادق على بُعد خطوات من الحرم في كلتا المدينتين",
+            "مُطوِّف متمرس يتحدث العربية والإنجليزية والأردية",
+            "تذاكر طيران مباشرة، تأشيرة العمرة مشمولة، إفطار يومي"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "الوصول إلى المدينة المنورة",
+              "desc": "استقبال في مطار المدينة المنورة، والانتقال إلى الفندق قرب المسجد النبوي. الراحة وصلاة المغرب في الحرم النبوي.",
+              "chapter": "المدينة المنورة",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "المدينة المنورة — زيارات",
+              "desc": "زيارة المعالم التاريخية صباحاً: مسجد قباء، ومسجد القبلتين، وشهداء أحد. وقت حر بعد الظهر للصلاة والتأمل.",
+              "chapter": "المدينة المنورة",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "المدينة المنورة — يوم حر",
+              "desc": "يوم كامل بإيقاعك الخاص في المسجد النبوي. جلسة اختيارية مع المُطوِّف حول مناسك العمرة.",
+              "chapter": "المدينة المنورة",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "الانتقال إلى مكة المكرمة",
+              "desc": "بعد صلاة الفجر، الانتقال إلى مكة المكرمة بالإحرام. الوصول وتسجيل الدخول وأداء العمرة معاً.",
+              "chapter": "مكة المكرمة",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "مكة المكرمة — إرشاد الطواف والسعي",
+              "desc": "جلسة إرشادية مع المُطوِّف عن المعاني الباطنة للطواف والسعي. وقت في الحرم طوال اليوم.",
+              "chapter": "مكة المكرمة",
+              "img": ""
+            },
+            {
+              "day": 6,
+              "title": "مكة المكرمة — المعالم التاريخية",
+              "desc": "جولة صباحية اختيارية إلى جبل النور وجبل ثور ومنى. أمسية في الحرم.",
+              "chapter": "مكة المكرمة",
+              "img": ""
+            },
+            {
+              "day": 7,
+              "title": "مكة المكرمة — تأمل",
+              "desc": "يوم حر في مكة المكرمة. عمرة ثانية من التنعيم لمن يرغب.",
+              "chapter": "مكة المكرمة",
+              "img": ""
+            },
+            {
+              "day": 8,
+              "title": "مكة المكرمة — يوم مفتوح",
+              "desc": "وقت في الحرم. اللقاء الختامي مع المُطوِّف للدعاء والتوديع.",
+              "chapter": "مكة المكرمة",
+              "img": ""
+            },
+            {
+              "day": 9,
+              "title": "طواف الوداع",
+              "desc": "طواف الوداع في الساعات الأولى. آخر صباح في الحرم.",
+              "chapter": "مكة المكرمة",
+              "img": ""
+            },
+            {
+              "day": 10,
+              "title": "المغادرة",
+              "desc": "الانتقال إلى مطار جدة. سفر آمن ودعاء الحج المبرور من المجموعة.",
+              "chapter": "المغادرة",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "المدينة المنورة (٣ ليالٍ): فندق دار التقوى، ٥ نجوم، مقابل المسجد النبوي مباشرة. على بُعد دقائق سيراً من الحرم. إفطار يومي. مكة المكرمة (٦ ليالٍ): فندق بولمان زمزم مكة، ٥ نجوم، في مجمع أبراج البيت، على بُعد حوالي ١٠٠ متر من ساحات الحرم."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "تأشيرة العمرة",
+            "تذاكر طيران ذهاباً وإياباً من الرياض أو جدة",
+            "فنادق في المدينة المنورة ومكة المكرمة",
+            "الانتقالات البرية",
+            "مُطوِّف طوال الرحلة",
+            "إفطار يومي",
+            "ملابس إحرام للرجال"
+          ],
+          "excludes": [
+            "الغداء والعشاء",
+            "المصروفات الشخصية",
+            "جولات الزيارة الاختيارية",
+            "تأمين السفر"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "breakfast",
+          "notes": "إفطار يومي مشمول في كلا الفندقين. الغداء والعشاء بإيقاعك الخاص — خيارات محلية كثيرة قرب الحرمين."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "تأشيرة العمرة مشمولة في سعر الباقة. نتولى إجراءات التأشيرة نيابة عنك — يكفي إرسال نسخة من الجواز وصورة حديثة."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-03-08",
+              "returnDate": "2026-03-18",
+              "spots": 18,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-03-15",
+              "returnDate": "2026-03-25",
+              "spots": 22,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "غرفة رباعية",
+              "price": "٤٬٢٠٠ ر.س"
+            },
+            {
+              "label": "غرفة ثلاثية",
+              "price": "٤٬٥٩٠ ر.س"
+            },
+            {
+              "label": "غرفة ثنائية",
+              "price": "٥٬٣٠٠ ر.س"
+            }
+          ],
+          "cancellation": "استرداد كامل قبل ٤٥ يوماً من المغادرة. استرداد ٥٠٪ بين ٣٠ و٤٥ يوماً. بعد ٣٠ يوماً، التأشيرة والطيران غير قابلين للاسترداد؛ الفندق قد يكون قابلاً للاسترداد جزئياً.",
+          "paymentContent": "عربون ٣٠٪ لتأكيد الحجز. الرصيد المتبقي قبل ٣٠ يوماً من المغادرة.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "جميع الانتقالات بحافلات مكيفة مع فريقنا المرافق. استقبال المطار والتوصيل وفقاً لمواعيد المجموعة.",
+          "items": [
+            "مطار المدينة → الفندق",
+            "المدينة → مكة المكرمة",
+            "انتقالات يومية إلى الحرم إذا كان الفندق بعيداً",
+            "مكة → مطار جدة"
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "يجب أن يكون الجواز صالحاً لمدة ٦ أشهر على الأقل بعد تاريخ العودة."
+            },
+            {
+              "text": "تطعيم الحمى الشوكية (ACWY) مطلوب — شهادة صادرة خلال السنوات الـ٣ الماضية."
+            },
+            {
+              "text": "النساء دون ٤٥ سنة يسافرن مع محرم. النساء فوق ٤٥ سنة يمكنهن السفر ضمن مجموعة منظمة؛ يُرجى التأكد معنا."
+            },
+            {
+              "text": "توقيت رمضان يعني ازدحاماً أطول في الحرم وقت الإفطار والتراويح — البرنامج يحترم هذا الإيقاع."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "مرايا للرحلات وكالة سفر مقرها الرياض، متخصصة في الرحلات الروحية والسفر الخليجي المُنتقى. رافقنا أكثر من ٢٬٠٠٠ معتمر وحاج. كل مجموعة بقيادة مُطوِّف ومنسق رحلة يرافقانك طوال الوقت.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "mutawif",
+              "name": "الشيخ عبدالرحمن الفيصل",
+              "bio": "مُطوِّف مرخص لأكثر من ١٢ سنة. يقود جميع مجموعات العمرة بنفسه. هادئ، عليم، صبور مع المعتمرين لأول مرة.",
+              "photo": "",
+              "languages": [
+                "العربية",
+                "الإنجليزية",
+                "الأردية"
+              ],
+              "years": 12,
+              "repliesIn": "٣٠ دقيقة"
+            },
+            {
+              "id": "p2",
+              "role": "agent",
+              "name": "ليلى الراشد",
+              "bio": "منسقة الرحلة. متاحة طوال فترة التخطيط وأثناء الرحلة لأي احتياج لوجستي.",
+              "photo": "",
+              "languages": [
+                "العربية",
+                "الإنجليزية"
+              ],
+              "years": 6,
+              "repliesIn": "ساعة"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=1200&q=80",
+            "https://images.pexels.com/photos/28209449/pexels-photo-28209449.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1693590614566-1d3ea9ef32f7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHx1bXJhaHxlbnwwfDB8fHwxNzgwMTQ4MzgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/26436662/pexels-photo-26436662.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1511652019870-fbd8713560bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwzfHx1bXJhaHxlbnwwfDB8fHwxNzgwMTQ4MzgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/26436656/pexels-photo-26436656.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/31281542/13358265_640_360_60fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "أحمد ف.",
+              "text": "أول عمرة لعائلتنا. صبر المُطوِّف مع والدتي المسنة فاق ما تمنينا. الفنادق كانت تماماً كما وُصفت.",
+              "rating": 5,
+              "country": "السعودية",
+              "partyType": "family"
+            },
+            {
+              "id": "r2",
+              "name": "خديجة م.",
+              "text": "منظمة، هادئة، بلا استعجال. توقيت رمضان كان محترماً — أمسيات طويلة في الحرم ووقت للراحة نهاراً.",
+              "rating": 5,
+              "country": "الكويت",
+              "partyType": "couple"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "pulse-en-1",
+    "templateId": "pulse",
+    "primaryLanguage": "en",
+    "titleEn": "Sardinia weekend escape — last-minute",
+    "titleAr": "هروبة نهاية الأسبوع — سردينيا",
+    "descriptionEn": "Three nights in Costa Smeralda at almost half the usual price. Direct flights, a beachfront hotel in Porto Cervo, and time to do absolutely nothing. Departing in 11 days. Four spots left.",
+    "descriptionAr": "ثلاث ليالٍ في كوستا سميرالدا بنصف السعر المعتاد تقريباً.",
+    "destination": "Costa Smeralda, Sardinia",
+    "price": "€499",
+    "currency": "EUR",
+    "nights": "3",
+    "whatsapp": "+971500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1591103000599-50f5b4ec7d3d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHxTYXJkaW5pYXxlbnwwfDB8fHwxNzgwMTUzMDMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+    "sections": [
+      {
+        "type": "scarcity",
+        "data": {
+          "wasPrice": "€919",
+          "spotsRemaining": 4,
+          "totalSpots": 12,
+          "firstDepartureDate": "2026-06-11"
+        }
+      },
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "Direct flights from Dubai, no stopovers",
+            "Beachfront 4-star hotel in Porto Cervo",
+            "Save €420 vs the same trip in peak season"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "Arrival & beach",
+              "desc": "Direct flight from Dubai lands at Olbia in the early afternoon. 25-minute transfer to your beachfront hotel. Welcome drink, beach time, dinner at the hotel.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "Coast or sea",
+              "desc": "Open day. Optional boat trip to La Maddalena archipelago (additional). Or just stay on the beach — that's the whole point.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "Coastal villages",
+              "desc": "Morning visit to Porto Cervo old village and the marina. Free afternoon. Final dinner at the hotel.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "Departure",
+              "desc": "Late-morning transfer to Olbia airport. Direct flight back to Dubai.",
+              "chapter": "",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "Hotel Le Ginestre, Porto Cervo — 4-star beachfront property with private beach access, two pools, and a spa. All rooms have terraces; most face the sea."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "Direct return flights from Dubai",
+            "3 nights at Hotel Le Ginestre",
+            "Half-board (breakfast + dinner)",
+            "Airport transfers",
+            "Beach access and pool use"
+          ],
+          "excludes": [
+            "Lunch",
+            "Drinks at meals",
+            "Optional boat trip",
+            "Travel insurance"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "half_board",
+          "notes": "Breakfast and dinner included at the hotel. Lunch on your own — many beach clubs and seafood spots nearby."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "no",
+          "content": "UAE/GCC residents may need a Schengen visa. We can recommend a visa-processing partner; expedited applications take 7–10 working days."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-06-11",
+              "returnDate": "2026-06-14",
+              "spots": 4,
+              "price": "",
+              "deal": true
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "Per person, twin share",
+              "price": "€499",
+              "was": "€919"
+            }
+          ],
+          "cancellation": "Because this is a last-minute deal at heavily discounted rates, all components are non-refundable from confirmation. Travel insurance strongly recommended.",
+          "paymentContent": "Full payment to confirm — this is a last-minute deal and seats release fast.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "Private airport transfers in both directions included.",
+          "items": [
+            "Olbia airport → hotel (25 min)",
+            "Hotel → Olbia airport"
+          ]
+        }
+      },
+      {
+        "type": "extras",
+        "data": {
+          "items": [
+            {
+              "name": "La Maddalena boat day",
+              "description": "Full-day boat trip to the archipelago, lunch on board.",
+              "price": "€90"
+            },
+            {
+              "name": "Spa package",
+              "description": "60-minute massage + steam room access.",
+              "price": "€110"
+            }
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "Schengen visa required for most non-EU passport holders."
+            },
+            {
+              "text": "Only 4 seats remain on this departure — this exact deal will not be repeated."
+            },
+            {
+              "text": "Travel insurance strongly recommended given the non-refundable terms."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "Maraya Journeys curates short-format escapes for Gulf travellers who want quality without the long planning window. Every last-minute deal is one we'd take ourselves.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "agent",
+              "name": "Omar Saleh",
+              "bio": "Last-minute deals specialist. Knows the seasonal patterns and which hotels release blocks late.",
+              "photo": "",
+              "languages": [
+                "Arabic",
+                "English"
+              ],
+              "years": 7,
+              "repliesIn": "15 min"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.pexels.com/photos/33992262/pexels-photo-33992262.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/29489683/pexels-photo-29489683.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1591103000599-50f5b4ec7d3d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHxTYXJkaW5pYXxlbnwwfDB8fHwxNzgwMTUzMDMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.unsplash.com/photo-1712060775370-a549fdd58ac4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwyfHxTYXJkaW5pYXxlbnwwfDB8fHwxNzgwMTUzMDMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/5379562/pexels-photo-5379562.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1608538810980-d29299cfbd6b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHw3fHxTYXJkaW5pYXxlbnwwfDB8fHwxNzgwMTUzMDMwfDA&ixlib=rb-4.1.0&q=80&w=1080"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/18052869/18052869-hd_1280_720_30fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "Yousef A.",
+              "text": "Booked Tuesday, flew Thursday. The price felt too good to be real — it was real. Hotel was as good as the photos.",
+              "rating": 5,
+              "country": "UAE",
+              "partyType": "couple"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "pulse-ar-1",
+    "templateId": "pulse",
+    "primaryLanguage": "ar",
+    "titleEn": "Sardinia weekend escape — last-minute",
+    "titleAr": "هروبة نهاية الأسبوع — سردينيا",
+    "descriptionEn": "Three nights in Costa Smeralda at almost half the usual price. Direct flights, a beachfront hotel in Porto Cervo, half-board included.",
+    "descriptionAr": "ثلاث ليالٍ في كوستا سمرالدا بأقل من نصف السعر المعتاد. رحلات مباشرة، فندق على الشاطئ في بورتو سيرفو، ونصف إقامة مشمول.",
+    "destination": "كوستا سمرالدا، سردينيا",
+    "price": "€499",
+    "currency": "EUR",
+    "nights": "3",
+    "whatsapp": "+971500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1591103000599-50f5b4ec7d3d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHxTYXJkaW5pYXxlbnwwfDB8fHwxNzgwMTUzMDMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+    "sections": [
+      {
+        "type": "scarcity",
+        "data": {
+          "firstDepartureDate": "2026-06-11",
+          "wasPrice": "€919",
+          "spotsRemaining": 4,
+          "totalSpots": 12
+        }
+      },
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "رحلات مباشرة من دبي بدون توقف",
+            "فندق ٤ نجوم على شاطئ بورتو سيرفو",
+            "وفّر ٤٢٠ يورو مقارنةً بنفس الرحلة في موسم الذروة"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "الوصول والشاطئ",
+              "chapter": "",
+              "img": "",
+              "desc": "رحلة مباشرة من دبي تصل إلى أولبيا في فترة بعد الظهر. نقل ٢٥ دقيقة إلى الفندق المطل على الشاطئ. مشروب ترحيبي، وقت على الشاطئ، وعشاء في الفندق."
+            },
+            {
+              "day": 2,
+              "title": "الساحل أو البحر",
+              "chapter": "",
+              "img": "",
+              "desc": "يوم حر. رحلة بحرية اختيارية إلى أرخبيل لا ماداليّنا (بتكلفة إضافية). أو استرخِ على الشاطئ — هذا هو جوهر الرحلة."
+            },
+            {
+              "day": 3,
+              "title": "قرى ساحلية",
+              "chapter": "",
+              "img": "",
+              "desc": "زيارة صباحية لقرية بورتو سيرفو القديمة ومرساها. بعد ظهر حر. عشاء أخير في الفندق."
+            },
+            {
+              "day": 4,
+              "title": "المغادرة",
+              "chapter": "",
+              "img": "",
+              "desc": "نقل إلى مطار أولبيا في منتصف الصباح. رحلة عودة مباشرة إلى دبي."
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "فندق لو جينيستري، بورتو سيرفو — فندق ٤ نجوم على الشاطئ الخاص، يضم حمامَي سباحة ومنتجعاً صحياً. لجميع الغرف شرفات، ومعظمها يطل على البحر."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "رحلات طيران مباشرة ذهاباً وإياباً من دبي",
+            "٣ ليالٍ في فندق لو جينيستري",
+            "نصف إقامة (إفطار + عشاء)",
+            "نقلات المطار",
+            "الوصول إلى الشاطئ والمسبح"
+          ],
+          "excludes": [
+            "وجبة الغداء",
+            "المشروبات مع الوجبات",
+            "الرحلة البحرية الاختيارية",
+            "تأمين السفر"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "half_board",
+          "notes": "الإفطار والعشاء مشمولان في الفندق. الغداء على حسابك الخاص — نوادي شاطئ ومطاعم مأكولات بحرية كثيرة بالقرب منك."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "no",
+          "content": "قد يحتاج مقيمو الإمارات ودول الخليج إلى تأشيرة شنغن. نستطيع توصيتك بشريك لمعالجة التأشيرات؛ الطلبات المستعجلة تستغرق ٧–١٠ أيام عمل."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-06-11",
+              "returnDate": "2026-06-14",
+              "spots": 4,
+              "deal": true,
+              "price": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "للشخص الواحد، غرفة مشتركة",
+              "was": "€919",
+              "price": "€499"
+            }
+          ],
+          "cancellation": "نظراً لأن هذا عرض اللحظة الأخيرة بأسعار مخفضة، جميع المكونات غير قابلة للاسترداد من لحظة التأكيد. يُنصح بشدة بالتأمين على السفر.",
+          "paymentContent": "الدفع الكامل لتأكيد الحجز — هذا عرض اللحظة الأخيرة والمقاعد تُفرج عنها بسرعة.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "نقلات خاصة من وإلى المطار مشمولة في الاتجاهين.",
+          "items": [
+            "مطار أولبيا ← الفندق (٢٥ دقيقة)",
+            "الفندق ← مطار أولبيا"
+          ]
+        }
+      },
+      {
+        "type": "extras",
+        "data": {
+          "items": [
+            {
+              "name": "رحلة بحرية ليوم كامل — لا ماداليّنا",
+              "price": "€90",
+              "description": "رحلة بحرية طوال اليوم إلى الأرخبيل مع الغداء على متن القارب."
+            },
+            {
+              "name": "باقة المنتجع الصحي",
+              "price": "€110",
+              "description": "مساج لمدة ٦٠ دقيقة + الوصول إلى غرفة البخار."
+            }
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "تأشيرة شنغن مطلوبة لمعظم حاملي الجوازات غير الأوروبية."
+            },
+            {
+              "text": "٤ مقاعد فقط متبقية في هذه الرحلة — هذا العرض بالذات لن يتكرر."
+            },
+            {
+              "text": "يُنصح بشدة بالتأمين على السفر نظراً للشروط غير القابلة للاسترداد."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "مرايا للرحلات تُصمّم إجازات قصيرة المدة لمسافري الخليج الذين يريدون الجودة دون نافذة تخطيط طويلة. كل عرض اللحظة الأخيرة هو عرض نأخذه بأنفسنا.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "agent",
+              "name": "عمر صالح",
+              "years": 7,
+              "repliesIn": "١٥ دقيقة",
+              "languages": [
+                "العربية",
+                "الإنجليزية"
+              ],
+              "photo": "",
+              "bio": "متخصص في عروض اللحظة الأخيرة. يعرف الأنماط الموسمية والفنادق التي تُطلق أسعارها في اللحظة الأخيرة."
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.pexels.com/photos/33992262/pexels-photo-33992262.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/29489683/pexels-photo-29489683.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1591103000599-50f5b4ec7d3d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHxTYXJkaW5pYXxlbnwwfDB8fHwxNzgwMTUzMDMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.unsplash.com/photo-1712060775370-a549fdd58ac4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwyfHxTYXJkaW5pYXxlbnwwfDB8fHwxNzgwMTUzMDMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/5379562/pexels-photo-5379562.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1608538810980-d29299cfbd6b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHw3fHxTYXJkaW5pYXxlbnwwfDB8fHwxNzgwMTUzMDMwfDA&ixlib=rb-4.1.0&q=80&w=1080"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/18052869/18052869-hd_1280_720_30fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "rating": 5,
+              "name": "يوسف أ.",
+              "country": "الإمارات",
+              "partyType": "couple",
+              "text": "حجزنا يوم الثلاثاء وسافرنا يوم الخميس. بدا السعر جيداً لدرجة لا تصدق — لكنه كان حقيقياً. الفندق كان بمستوى الصور تماماً."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "petal-en-1",
+    "templateId": "petal",
+    "primaryLanguage": "en",
+    "titleEn": "Maldives — Just the two of you",
+    "titleAr": "المالديف — لكما وحدكما",
+    "descriptionEn": "Seven nights in an overwater villa with a private deck and direct lagoon access. Half-board, seaplane transfer, and the world quietly forgetting about you. Designed for couples — no kids' club anywhere in sight.",
+    "descriptionAr": "سبع ليالٍ في فيلا فوق الماء.",
+    "destination": "North Malé Atoll, Maldives",
+    "price": "€4,200",
+    "currency": "EUR",
+    "nights": "7",
+    "whatsapp": "+971500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1600&q=80",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "Overwater villa with private deck and direct lagoon access",
+            "Couples spa package included — 60-minute massage for two",
+            "Sunset dolphin cruise on a private dhoni"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "Arrival & welcome",
+              "desc": "International arrival at Malé. Seaplane transfer over the atolls to your resort. Welcome with chilled coconut, room champagne, and rose-petal turndown.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "Settle in",
+              "desc": "Breakfast in bed if you'd like. Lagoon swim. Slow afternoon on the deck.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "Spa & sunset",
+              "desc": "Your included couples spa session in the afternoon. Sunset dhoni cruise — usually you'll see dolphins.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "Snorkel day",
+              "desc": "Optional reef snorkel trip (extra), or stay close and use the house reef right off your villa.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "Beach day",
+              "desc": "Move to a sandbank for a half-day picnic — chef-prepared lunch on a private sandbar.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 6,
+              "title": "Private dinner",
+              "desc": "Five-course dinner on your villa deck under candle light. Wine pairing optional.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 7,
+              "title": "Final morning",
+              "desc": "Slow breakfast. One last lagoon swim. Check-out by midday.",
+              "chapter": "",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "Conrad Maldives Rangali Island — overwater villa, North Malé Atoll, accessed by seaplane from Malé (40 minutes). Half-board across the resort's restaurants, including the underwater restaurant if booked in advance."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "Round-trip seaplane transfers from Malé",
+            "7 nights in an overwater villa",
+            "Half-board (breakfast + dinner)",
+            "Couples spa session (60 min)",
+            "Sunset dhoni cruise",
+            "Welcome champagne and rose-petal turndown",
+            "All taxes and service charges"
+          ],
+          "excludes": [
+            "International flights",
+            "Lunch",
+            "Drinks at meals",
+            "Optional excursions"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "half_board",
+          "notes": "Breakfast and dinner across the resort's restaurants. Romantic in-villa dining can be arranged for a small surcharge."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "Free 30-day visa on arrival for most nationalities including GCC. Just bring proof of accommodation and a return ticket."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-04-12",
+              "returnDate": "2026-04-19",
+              "spots": 4,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-05-10",
+              "returnDate": "2026-05-17",
+              "spots": 6,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "Per couple",
+              "price": "€4,200"
+            }
+          ],
+          "cancellation": "Full refund up to 60 days before arrival. 50% refund 30–60 days. After 30 days, non-refundable.",
+          "paymentContent": "30% deposit to confirm. Balance 30 days before arrival.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "Scenic seaplane transfer included — one of the most photographed flights in the world.",
+          "items": [
+            "Malé international airport → resort seaplane terminal (15 min by buggy)",
+            "Seaplane to Rangali (40 min)",
+            "Return seaplane and airport transfer"
+          ]
+        }
+      },
+      {
+        "type": "extras",
+        "data": {
+          "items": [
+            {
+              "name": "Private sandbank picnic",
+              "description": "Chef-prepared lunch on a private sandbar, just the two of you.",
+              "price": "€350"
+            },
+            {
+              "name": "Underwater restaurant",
+              "description": "Six-course dinner at the resort's signature underwater restaurant.",
+              "price": "€520"
+            },
+            {
+              "name": "Couples diving introduction",
+              "description": "PADI Discover Scuba session with an instructor.",
+              "price": "€280"
+            }
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "Seaplane transfers operate during daylight only — late arrivals require an overnight in Malé."
+            },
+            {
+              "text": "Honeymooners receive a complimentary in-villa romantic setup once during the stay."
+            },
+            {
+              "text": "Snorkeling gear is provided free at the watersports centre."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "Maraya Journeys specializes in honeymoons and milestone-anniversary trips for Gulf-region couples. We've sent over 400 couples to the Maldives. Every booking includes a pre-departure briefing with our honeymoon coordinator.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "agent",
+              "name": "Mariam Hassan",
+              "bio": "Our honeymoon coordinator. Personally checks every room category and seaplane schedule before booking.",
+              "photo": "",
+              "languages": [
+                "Arabic",
+                "English"
+              ],
+              "years": 9,
+              "repliesIn": "1 hour"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1200&q=80",
+            "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=1200&q=80",
+            "https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwyfHxtYWxkaXZlc3xlbnwwfDB8fHwxNzgwMTQ4MTgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.unsplash.com/photo-1576158831003-d41033ec31fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwzfHxtYWxkaXZlc3xlbnwwfDB8fHwxNzgwMTQ4MTgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/9149367/pexels-photo-9149367.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1467377791767-c929b5dc9a23?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHw1fHxtYWxkaXZlc3xlbnwwfDB8fHwxNzgwMTQ4MTgxfDA&ixlib=rb-4.1.0&q=80&w=1080"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/4010511/4010511-hd_1920_1080_25fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "Salma & Tarek",
+              "text": "We picked this for our honeymoon and Mariam thought of details we wouldn't have. The candle-lit deck dinner is etched into us.",
+              "rating": 5,
+              "country": "UAE",
+              "partyType": "couple"
+            },
+            {
+              "id": "r2",
+              "name": "Fatima A.",
+              "text": "Our tenth anniversary. The seaplane alone was worth it. The villa exceeded the photos.",
+              "rating": 5,
+              "country": "Kuwait",
+              "partyType": "couple"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "petal-ar-1",
+    "templateId": "petal",
+    "primaryLanguage": "ar",
+    "titleEn": "Maldives — Just the two of you",
+    "titleAr": "المالديف — لكما وحدكما",
+    "descriptionEn": "Seven nights in an overwater villa.",
+    "descriptionAr": "سبع ليالٍ في فيلا فوق الماء بشرفة خاصة ومدخل مباشر للبحيرة. نصف إقامة، انتقال بالطائرة المائية، والعالم ينساكما بهدوء. مصممة للأزواج — لا أطفال ولا نوادي صاخبة.",
+    "destination": "أتول مالي الشمالي، المالديف",
+    "price": "١٧٬٥٠٠ ر.س",
+    "currency": "SAR",
+    "nights": "7",
+    "whatsapp": "+966500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1600&q=80",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "فيلا فوق الماء بشرفة خاصة ومدخل مباشر للبحيرة",
+            "جلسة سبا للزوجين مشمولة — ٦٠ دقيقة لكليكما",
+            "رحلة دلافين عند الغروب على مركب خاص"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "الوصول والترحيب",
+              "desc": "وصول دولي في مالي. انتقال بالطائرة المائية فوق الجزر إلى المنتجع. ترحيب بجوز هند بارد، شامبانيا في الغرفة، وبتلات ورد على السرير.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "الاستقرار",
+              "desc": "إفطار في السرير إن أحببتما. سباحة في البحيرة. وقت بطيء على الشرفة بعد الظهر.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "سبا وغروب",
+              "desc": "جلسة السبا للزوجين بعد الظهر. رحلة المركب التقليدي عند الغروب — عادةً ترون الدلافين.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "يوم غطس",
+              "desc": "رحلة غطس اختيارية في الشعاب البعيدة (إضافي)، أو غطس في الشعاب أمام الفيلا مباشرة.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "يوم شاطئ",
+              "desc": "نزهة نصف يوم على جزيرة رملية معزولة — غداء يحضره طاهٍ خاص على شاطئ كله لكما.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 6,
+              "title": "عشاء خاص",
+              "desc": "عشاء من خمسة أطباق على شرفة الفيلا تحت ضوء الشموع. أزواج النبيذ اختيارية.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 7,
+              "title": "صباح أخير",
+              "desc": "إفطار بطيء. سباحة أخيرة في البحيرة. تسجيل الخروج ظهراً.",
+              "chapter": "",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "كونراد المالديف رنغالي أيلاند — فيلا فوق الماء، أتول مالي الشمالي، يُوصل إليها بطائرة مائية من مالي (٤٠ دقيقة). نصف إقامة في مطاعم المنتجع، بما فيها المطعم تحت الماء بحجز مسبق."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "انتقالات طائرة مائية ذهاباً وإياباً من مالي",
+            "٧ ليالٍ في فيلا فوق الماء",
+            "نصف إقامة (إفطار وعشاء)",
+            "جلسة سبا للزوجين (٦٠ دقيقة)",
+            "رحلة مركب عند الغروب",
+            "شامبانيا الترحيب وبتلات الورد",
+            "جميع الضرائب والرسوم"
+          ],
+          "excludes": [
+            "تذاكر الطيران الدولية",
+            "الغداء",
+            "المشروبات مع الوجبات",
+            "الرحلات الاختيارية"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "half_board",
+          "notes": "إفطار وعشاء عبر مطاعم المنتجع. عشاء رومانسي في الفيلا متاح برسم بسيط."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "تأشيرة مجانية ٣٠ يوماً عند الوصول لمعظم الجنسيات بما فيها دول الخليج. يكفي إثبات الإقامة وتذكرة العودة."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-04-12",
+              "returnDate": "2026-04-19",
+              "spots": 4,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-05-10",
+              "returnDate": "2026-05-17",
+              "spots": 6,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "للزوجين",
+              "price": "١٧٬٥٠٠ ر.س"
+            }
+          ],
+          "cancellation": "استرداد كامل قبل ٦٠ يوماً. استرداد ٥٠٪ بين ٣٠ و٦٠ يوماً. بعد ٣٠ يوماً، غير قابل للاسترداد.",
+          "paymentContent": "عربون ٣٠٪ للتأكيد. الرصيد قبل ٣٠ يوماً من الوصول.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "انتقال طائرة مائية مشمول — من أكثر الرحلات المُصوَّرة في العالم.",
+          "items": [
+            "مطار مالي → محطة الطائرات المائية (١٥ دقيقة بعربة)",
+            "طائرة مائية إلى رنغالي (٤٠ دقيقة)",
+            "العودة بطائرة مائية وانتقال للمطار"
+          ]
+        }
+      },
+      {
+        "type": "extras",
+        "data": {
+          "items": [
+            {
+              "name": "نزهة جزيرة رملية خاصة",
+              "description": "غداء يحضره طاهٍ على شاطئ معزول، لكما وحدكما.",
+              "price": "١٬٤٥٠ ر.س"
+            },
+            {
+              "name": "المطعم تحت الماء",
+              "description": "عشاء من ستة أطباق في المطعم الموقع تحت الماء.",
+              "price": "٢٬١٥٠ ر.س"
+            },
+            {
+              "name": "تجربة غطس للزوجين",
+              "description": "جلسة استكشاف الغطس PADI مع مدرب.",
+              "price": "١٬١٥٠ ر.س"
+            }
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "الطائرات المائية تعمل في النهار فقط — الوصول المتأخر يستلزم مبيت في مالي."
+            },
+            {
+              "text": "المتزوجون حديثاً يحصلون على ترتيب رومانسي مجاني داخل الفيلا مرة خلال الإقامة."
+            },
+            {
+              "text": "معدات الغطس متوفرة مجاناً في مركز الرياضات المائية."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "مرايا للرحلات متخصصة في رحلات شهر العسل والذكريات السنوية للأزواج الخليجيين. أرسلنا أكثر من ٤٠٠ زوج إلى المالديف. كل حجز يشمل لقاء تحضيري مع منسقة شهر العسل.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "agent",
+              "name": "مريم حسن",
+              "bio": "منسقة شهر العسل لدينا. تتأكد بنفسها من فئة الغرفة وجدول الطائرة المائية قبل كل حجز.",
+              "photo": "",
+              "languages": [
+                "العربية",
+                "الإنجليزية"
+              ],
+              "years": 9,
+              "repliesIn": "ساعة"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1200&q=80",
+            "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=1200&q=80",
+            "https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwyfHxtYWxkaXZlc3xlbnwwfDB8fHwxNzgwMTQ4MTgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.unsplash.com/photo-1576158831003-d41033ec31fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwzfHxtYWxkaXZlc3xlbnwwfDB8fHwxNzgwMTQ4MTgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/9149367/pexels-photo-9149367.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1467377791767-c929b5dc9a23?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHw1fHxtYWxkaXZlc3xlbnwwfDB8fHwxNzgwMTQ4MTgxfDA&ixlib=rb-4.1.0&q=80&w=1080"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/4010511/4010511-hd_1920_1080_25fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "سلمى وطارق",
+              "text": "اخترنا هذه الرحلة لشهر عسلنا، ومريم فكّرت في تفاصيل ما كنا لنتذكرها. عشاء الشموع على الشرفة محفور في ذاكرتنا.",
+              "rating": 5,
+              "country": "الإمارات",
+              "partyType": "couple"
+            },
+            {
+              "id": "r2",
+              "name": "فاطمة أ.",
+              "text": "ذكرى زواجنا العاشرة. الطائرة المائية وحدها كانت تستحق. الفيلا فاقت الصور.",
+              "rating": 5,
+              "country": "الكويت",
+              "partyType": "couple"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "family-en-1",
+    "templateId": "family",
+    "primaryLanguage": "en",
+    "titleEn": "Salalah khareef — for the family",
+    "titleAr": "خريف صلالة — للعائلة",
+    "descriptionEn": "Five nights in Salalah during khareef season. Misty mountains, child-safe beaches, drive times under 60 minutes everywhere, and afternoons free by design — because nobody, including the kids, wants a tour from 8am to 8pm.",
+    "descriptionAr": "خمس ليالٍ في صلالة في موسم الخريف.",
+    "destination": "Salalah, Oman",
+    "price": "€2,950",
+    "currency": "EUR",
+    "nights": "5",
+    "whatsapp": "+971500000000",
+    "messenger": "",
+    "coverImage": "https://images.pexels.com/photos/35774330/pexels-photo-35774330.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "No drive longer than 60 minutes — the whole trip stays within easy range",
+            "Family-fit activities for ages 3–14, with afternoons free by design",
+            "Family-friendly resort with shallow pool and kids' menu"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "Arrival in Salalah",
+              "desc": "Flight lands in Salalah. 20-minute transfer to the resort. Check-in, pool, and dinner at the hotel. Early bedtime — kids will be tired.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "Wadi Darbat",
+              "desc": "Morning visit to Wadi Darbat — green wadi with waterfall and boat ride. About 45 minutes from the resort. Picnic lunch. Back to the hotel by 2pm. Afternoon free by design.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "Mughsail beach",
+              "desc": "Morning at Mughsail Beach (40 min drive) — child-safe coast, blowholes nearby. Lunch at the beach. Back by 2pm. Afternoon free.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "Free day",
+              "desc": "Full free day at the resort. Pool, kids' club, optional banana boat at the resort beach.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "Old Salalah + departure",
+              "desc": "Slow morning. Quick visit to the souq for souvenirs. Afternoon transfer to the airport.",
+              "chapter": "",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "Salalah Rotana Resort — family-friendly 5-star. Two pools (one shallow for under-6s, depth 60cm), kids' club (ages 4–12), kids' menu in restaurants. All-day dining included."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "Round-trip flights from Dubai or Riyadh",
+            "5 nights at Salalah Rotana",
+            "Daily breakfast and dinner",
+            "Two excursions: Wadi Darbat + Mughsail Beach",
+            "All ground transfers in family-sized vehicle"
+          ],
+          "excludes": [
+            "Lunch (except on excursion days)",
+            "Optional activities",
+            "Personal expenses"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "half_board",
+          "notes": "Breakfast and dinner at the resort buffet. Kids' menu available. Lunch on excursion days only."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "Free Oman e-visa for most GCC and many other nationalities. We process it on your behalf."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-08-05",
+              "returnDate": "2026-08-10",
+              "spots": 16,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-08-19",
+              "returnDate": "2026-08-24",
+              "spots": 20,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "Family of 4 (2 adults + 2 kids under 12)",
+              "price": "€2,950"
+            },
+            {
+              "label": "Adult, extra",
+              "price": "€450"
+            },
+            {
+              "label": "Child 5–11, extra",
+              "price": "€280"
+            },
+            {
+              "label": "Child under 5, extra",
+              "price": "Free"
+            }
+          ],
+          "cancellation": "Full refund 45+ days. 50% refund 30–45 days. Non-refundable inside 30 days.",
+          "paymentContent": "30% to confirm. Balance 30 days before departure.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "Family-sized vehicles with child seats provided on request. All drive times under 60 minutes.",
+          "items": [
+            "Airport → resort: 20 min",
+            "Resort → Wadi Darbat: 45 min",
+            "Resort → Mughsail: 40 min"
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "Pool depths at the resort: shallow 60cm (kids under 6), main 1.4m. Lifeguards on duty 10am–6pm."
+            },
+            {
+              "text": "Khareef season can mean light drizzle daily — pack a light jacket for the kids."
+            },
+            {
+              "text": "Wadi Darbat boat ride is not life-jacketed for very young children — confirm comfort before booking."
+            },
+            {
+              "text": "Drive days are honest in the brief: nothing over 60 minutes one-way."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "Maraya Journeys runs family trips that families actually enjoy — short drive times, afternoons free, age-appropriate activities. We send 60+ Gulf families to Salalah each khareef season.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "agent",
+              "name": "Reem Al-Zahrani",
+              "bio": "Family-travel specialist with three kids of her own. Knows which hotels really mean 'family-friendly' and which just say so.",
+              "photo": "",
+              "languages": [
+                "Arabic",
+                "English"
+              ],
+              "years": 8,
+              "repliesIn": "1 hour"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.pexels.com/photos/13036011/pexels-photo-13036011.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/15206807/pexels-photo-15206807.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/12860209/pexels-photo-12860209.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/36497142/pexels-photo-36497142.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/33678250/pexels-photo-33678250.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/36189556/pexels-photo-36189556.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/29278953/12628595_640_360_30fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "Nora A. (kids: 7, 9)",
+              "text": "Most family trips overbook the days. This one didn't. Afternoons free at the pool saved us all.",
+              "rating": 5,
+              "country": "Saudi Arabia",
+              "partyType": "family"
+            },
+            {
+              "id": "r2",
+              "name": "Hassan & family (kids: 4, 11)",
+              "text": "The drive times were exactly as promised. Wadi Darbat was the kids' favourite day.",
+              "rating": 5,
+              "country": "UAE",
+              "partyType": "family"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "family-ar-1",
+    "templateId": "family",
+    "primaryLanguage": "ar",
+    "titleEn": "Salalah khareef — for the family",
+    "titleAr": "خريف صلالة — للعائلة",
+    "descriptionEn": "Five nights in Salalah during khareef season.",
+    "descriptionAr": "خمس ليالٍ في صلالة في موسم الخريف. جبال ضبابية، شواطئ آمنة للأطفال، مدد قيادة أقل من ٦٠ دقيقة لكل الوجهات، وأمسيات حرة بالتصميم — لأنه لا أحد، خصوصاً الأطفال، يريد جولات من الفجر للمغرب.",
+    "destination": "صلالة، سلطنة عُمان",
+    "price": "١٢٬٣٠٠ ر.س",
+    "currency": "SAR",
+    "nights": "5",
+    "whatsapp": "+966500000000",
+    "messenger": "",
+    "coverImage": "https://images.pexels.com/photos/35774330/pexels-photo-35774330.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "لا قيادة تتجاوز ٦٠ دقيقة — الرحلة كلها في نطاق مريح",
+            "أنشطة عائلية للأعمار ٣–١٤، وأمسيات حرة بالتصميم",
+            "منتجع عائلي بمسبح ضحل وقائمة طعام أطفال"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "الوصول إلى صلالة",
+              "desc": "هبوط في صلالة، انتقال ٢٠ دقيقة إلى المنتجع. تسجيل الدخول، مسبح، وعشاء في الفندق. نوم مبكر — الأطفال سيكونون متعبين.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "وادي دربات",
+              "desc": "زيارة صباحية لوادي دربات — وادٍ أخضر بشلال ورحلة قارب. حوالي ٤٥ دقيقة من المنتجع. غداء نزهة. العودة قبل الـ٢ مساءً. الأمسية حرة.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "شاطئ المغسيل",
+              "desc": "صباح في المغسيل (٤٠ دقيقة قيادة) — شاطئ آمن للأطفال، وثقوب المياه قريبة. غداء على الشاطئ. عودة قبل الـ٢. الأمسية حرة.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "يوم حر",
+              "desc": "يوم كامل في المنتجع. مسبح، نادي أطفال، رحلة موزة اختيارية على شاطئ المنتجع.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "صلالة القديمة والمغادرة",
+              "desc": "صباح هادئ. زيارة قصيرة للسوق للهدايا. انتقال بعد الظهر إلى المطار.",
+              "chapter": "",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "منتجع روتانا صلالة — عائلي ٥ نجوم. مسبحان (واحد ضحل للأطفال دون ٦ سنوات بعمق ٦٠ سم)، نادي أطفال (٤–١٢)، قوائم أطفال في المطاعم."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "تذاكر طيران ذهاباً وإياباً من الرياض أو دبي",
+            "٥ ليالٍ في روتانا صلالة",
+            "إفطار وعشاء يومي",
+            "جولتان: وادي دربات + شاطئ المغسيل",
+            "انتقالات أرضية بمركبة عائلية"
+          ],
+          "excludes": [
+            "الغداء (إلا أيام الجولات)",
+            "الأنشطة الاختيارية",
+            "المصروفات الشخصية"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "half_board",
+          "notes": "إفطار وعشاء بوفيه في المنتجع. قوائم أطفال متوفرة. غداء أيام الجولات فقط."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "تأشيرة عُمان الإلكترونية مجانية لأغلب جنسيات الخليج. نُجهّزها نيابة عنك."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-08-05",
+              "returnDate": "2026-08-10",
+              "spots": 16,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-08-19",
+              "returnDate": "2026-08-24",
+              "spots": 20,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "عائلة من ٤ (بالغان + طفلان دون ١٢)",
+              "price": "١٢٬٣٠٠ ر.س"
+            },
+            {
+              "label": "بالغ إضافي",
+              "price": "١٬٨٨٠ ر.س"
+            },
+            {
+              "label": "طفل ٥–١١، إضافي",
+              "price": "١٬١٧٠ ر.س"
+            },
+            {
+              "label": "طفل دون ٥، إضافي",
+              "price": "مجاناً"
+            }
+          ],
+          "cancellation": "استرداد كامل قبل ٤٥ يوماً. ٥٠٪ بين ٣٠ و٤٥ يوماً. غير قابل للاسترداد خلال ٣٠ يوماً.",
+          "paymentContent": "عربون ٣٠٪ للتأكيد. الرصيد قبل ٣٠ يوماً.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "مركبات عائلية مع كراسي أطفال عند الطلب. كل مدد القيادة أقل من ٦٠ دقيقة.",
+          "items": [
+            "المطار → المنتجع: ٢٠ دقيقة",
+            "المنتجع → وادي دربات: ٤٥ دقيقة",
+            "المنتجع → المغسيل: ٤٠ دقيقة"
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "أعماق المسابح: ضحل ٦٠ سم (أطفال دون ٦)، رئيسي ١.٤ متر. منقذون من ١٠ صباحاً إلى ٦ مساءً."
+            },
+            {
+              "text": "موسم الخريف قد يعني رذاذاً يومياً — يُنصح بسترة خفيفة للأطفال."
+            },
+            {
+              "text": "رحلة القارب في وادي دربات بلا سترات نجاة للأطفال الصغار — تأكدوا من راحتكم قبل الحجز."
+            },
+            {
+              "text": "أيام القيادة واضحة: لا شيء يتجاوز ٦٠ دقيقة باتجاه واحد."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "مرايا للرحلات تنظم رحلات عائلية تستمتع بها العائلات فعلاً — مدد قيادة قصيرة، أمسيات حرة، أنشطة مناسبة لكل عمر. نرسل أكثر من ٦٠ عائلة خليجية إلى صلالة كل موسم خريف.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "agent",
+              "name": "ريم الزهراني",
+              "bio": "متخصصة سفر عائلي ولديها ثلاثة أطفال. تعرف الفنادق التي تعني فعلاً «عائلية» من تلك التي تكتفي بقول ذلك.",
+              "photo": "",
+              "languages": [
+                "العربية",
+                "الإنجليزية"
+              ],
+              "years": 8,
+              "repliesIn": "ساعة"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.pexels.com/photos/13036011/pexels-photo-13036011.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/15206807/pexels-photo-15206807.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/12860209/pexels-photo-12860209.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/36497142/pexels-photo-36497142.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/33678250/pexels-photo-33678250.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/36189556/pexels-photo-36189556.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/29278953/12628595_640_360_30fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "نورة أ. (طفلان: ٧ و٩)",
+              "text": "معظم الرحلات العائلية تحشو الأيام. هذه لا. الأمسيات الحرة بالمسبح أنقذتنا.",
+              "rating": 5,
+              "country": "السعودية",
+              "partyType": "family"
+            },
+            {
+              "id": "r2",
+              "name": "حسن وعائلته (طفلان: ٤ و١١)",
+              "text": "مدد القيادة كانت كما وُعدنا تماماً. وادي دربات كان اليوم المفضل للأطفال.",
+              "rating": 5,
+              "country": "الإمارات",
+              "partyType": "family"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "aurora-en-1",
+    "templateId": "aurora",
+    "primaryLanguage": "en",
+    "titleEn": "Cappadocia — Hot-air balloons & boutique stay",
+    "titleAr": "كبادوكيا — مناطيد الفجر وفندق الكهوف",
+    "descriptionEn": "Four nights in a cave hotel in Göreme. Sunrise hot-air balloons, underground cities, slow walks through valleys at the agency's own pace. Curated, not packaged.",
+    "descriptionAr": "أربع ليالٍ في فندق كهفي في غوريم.",
+    "destination": "Cappadocia, Türkiye",
+    "price": "€549",
+    "currency": "EUR",
+    "nights": "4",
+    "whatsapp": "+971500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?w=1600&q=80",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "Sunrise hot-air balloon ride over the fairy chimneys",
+            "Cave hotel in Göreme with valley-view terrace",
+            "Private guide on the day you choose — not a fixed group tour"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "Arrival in Cappadocia",
+              "desc": "Direct flight from Dubai to Kayseri. 45-minute transfer to Göreme. Check-in to the cave hotel — afternoon free to wander the village. Welcome dinner at the hotel rooftop.",
+              "chapter": "Arrival",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "Balloons at first light",
+              "desc": "Pickup at 4:30am. Hot-air balloon flight over the valleys at sunrise (about an hour). Back to the hotel for late breakfast. Free afternoon. Pace of the day is yours.",
+              "chapter": "The sky",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "Underground and overland",
+              "desc": "Morning visit to Kaymakli underground city — well-lit, accessible, surprisingly moving. Afternoon walk through the Love Valley with your private guide. Sunset at Uchisar Castle.",
+              "chapter": "The earth",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "Free day",
+              "desc": "Yours entirely. Suggested: walk to Pasabag, lunch in a village restaurant, slow afternoon. Optional pottery workshop in Avanos (extra).",
+              "chapter": "Stillness",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "Departure",
+              "desc": "Slow morning. Transfer to Kayseri airport. Direct flight back to Dubai.",
+              "chapter": "Departure",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "Museum Hotel, Cappadocia — Relais & Châteaux property in Uchisar, cave-style rooms with antique furnishings. Includes a heated outdoor pool with valley views and an awarded restaurant. Each room has its own character; we'll match you to the right one based on your party."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "Direct round-trip flights from Dubai",
+            "4 nights at Museum Hotel",
+            "Daily breakfast",
+            "Sunrise balloon flight (1 hour)",
+            "Private guide for one full day",
+            "Airport transfers"
+          ],
+          "excludes": [
+            "Lunch and dinner (except welcome dinner)",
+            "Optional workshops",
+            "Personal expenses",
+            "Travel insurance"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "breakfast",
+          "notes": "Daily breakfast at the hotel. Welcome dinner on the first night. Other meals on your own — Göreme has a dozen excellent local restaurants."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "Turkish e-visa processed on your behalf within 48 hours. Free for most GCC nationals."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-05-04",
+              "returnDate": "2026-05-08",
+              "spots": 10,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-05-18",
+              "returnDate": "2026-05-22",
+              "spots": 8,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "Per person, twin share",
+              "price": "€549"
+            },
+            {
+              "label": "Single supplement",
+              "price": "€220"
+            }
+          ],
+          "cancellation": "Full refund up to 30 days. 50% refund 14–30 days. Non-refundable inside 14 days.",
+          "paymentContent": "30% to confirm. Balance 21 days before departure.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "Private airport transfers in both directions.",
+          "items": [
+            "Kayseri airport → Göreme (45 min)",
+            "Göreme → Kayseri airport"
+          ]
+        }
+      },
+      {
+        "type": "extras",
+        "data": {
+          "items": [
+            {
+              "name": "Pottery workshop in Avanos",
+              "description": "Half-day at a master potter's studio. Make your own piece, fired and shipped to your home.",
+              "price": "€85"
+            },
+            {
+              "name": "Whirling dervish ceremony",
+              "description": "Evening ceremony at a 13th-century caravanserai.",
+              "price": "€60"
+            }
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "Balloon flight is weather-dependent; if cancelled by the operator for safety, the cost is refunded but no other change to the itinerary."
+            },
+            {
+              "text": "Mornings start before sunrise on balloon day — bring layers, it's cold even in May."
+            },
+            {
+              "text": "Cave rooms can be cool; the hotel provides extra blankets if needed."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "Maraya Journeys curates editorial-style trips — places we'd send our own family. Cappadocia is a place we've visited many times; we know which valley to walk when, which cave hotel suits whom.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "agent",
+              "name": "Hala Boutros",
+              "bio": "Our travel designer for the Türkiye and Caucasus region. Has stayed in 14 cave hotels in Cappadocia personally. Will match you to the right one.",
+              "photo": "",
+              "languages": [
+                "Arabic",
+                "English",
+                "French"
+              ],
+              "years": 11,
+              "repliesIn": "1 hour"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?w=1200&q=80",
+            "https://images.unsplash.com/photo-1604156789095-3348604c0f43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHxjYXBhZG9jaWF8ZW58MHwwfHx8MTc4MDE0ODI0MXww&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.unsplash.com/photo-1631152282084-b8f1b380ccab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwyfHxjYXBhZG9jaWF8ZW58MHwwfHx8MTc4MDE0ODI0MXww&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.unsplash.com/photo-1664733580167-c173c66db392?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHw0fHxjYXBhZG9jaWF8ZW58MHwwfHx8MTc4MDE0ODI0MXww&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/27164778/pexels-photo-27164778.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/7284346/pexels-photo-7284346.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/17385037/17385037-hd_1080_1920_60fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "Hadi M.",
+              "text": "I'd been to Cappadocia twice before. This was the first time it felt curated — not just visited.",
+              "rating": 5,
+              "country": "UAE",
+              "partyType": "couple"
+            },
+            {
+              "id": "r2",
+              "name": "Rana K.",
+              "text": "The hotel was a story unto itself. Hala matched us to a room with a stone arch we still talk about.",
+              "rating": 5,
+              "country": "Lebanon",
+              "partyType": "couple"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "aurora-ar-1",
+    "templateId": "aurora",
+    "primaryLanguage": "ar",
+    "titleEn": "Cappadocia — Hot-air balloons & boutique stay",
+    "titleAr": "كبادوكيا — مناطيد الفجر وفندق الكهوف",
+    "descriptionEn": "Four nights in a cave hotel in Göreme.",
+    "descriptionAr": "أربع ليالٍ في فندق كهفي في غوريم. رحلة منطاد عند الفجر، مدن تحت الأرض، ومشي هادئ في الوديان بإيقاع الوكالة. رحلة مُنتقاة، لا مُعلَّبة.",
+    "destination": "كبادوكيا، تركيا",
+    "price": "٢٬٢٩٠ ر.س",
+    "currency": "SAR",
+    "nights": "4",
+    "whatsapp": "+966500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?w=1600&q=80",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "رحلة منطاد فجراً فوق المداخن الجنية",
+            "فندق كهفي في غوريم بشرفة تطل على الوديان",
+            "مرشد خاص في اليوم الذي تختاره — لا جولة جماعية محددة"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "الوصول إلى كبادوكيا",
+              "desc": "رحلة مباشرة من الرياض إلى قيصري. انتقال ٤٥ دقيقة إلى غوريم. تسجيل الدخول في الفندق الكهفي — وقت حر بعد الظهر للتجول في القرية. عشاء ترحيبي على سطح الفندق.",
+              "chapter": "الوصول",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "مناطيد عند أول ضوء",
+              "desc": "الاستقلال الساعة ٤:٣٠ صباحاً. رحلة منطاد فوق الوديان عند شروق الشمس (حوالي ساعة). العودة للفندق لإفطار متأخر. أمسية حرة. إيقاع اليوم لك.",
+              "chapter": "السماء",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "تحت الأرض وفوقها",
+              "desc": "زيارة صباحية لمدينة كايماكلي تحت الأرض — مضيئة، قابلة للوصول، ومؤثرة بشكل غير متوقع. بعد الظهر مشي في وادي الحب مع المرشد الخاص. غروب من قلعة أوتشيسار.",
+              "chapter": "الأرض",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "يوم حر",
+              "desc": "لك بالكامل. اقتراح: مشي إلى باشاباغ، غداء في مطعم قروي، أمسية بطيئة. ورشة فخار في أفانوس اختيارية (إضافي).",
+              "chapter": "السكون",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "المغادرة",
+              "desc": "صباح هادئ. انتقال إلى مطار قيصري. رحلة عودة مباشرة للرياض.",
+              "chapter": "المغادرة",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "فندق المتحف، كبادوكيا — عضو في Relais & Châteaux في أوتشيسار، غرف بطراز الكهوف بأثاث عتيق. مسبح خارجي مُسخّن بإطلالة على الوديان، ومطعم حائز على جوائز. كل غرفة بشخصيتها؛ نختار لك المناسبة."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "تذاكر طيران مباشرة ذهاباً وإياباً من الرياض",
+            "٤ ليالٍ في فندق المتحف",
+            "إفطار يومي",
+            "رحلة منطاد عند الفجر (ساعة)",
+            "مرشد خاص ليوم كامل",
+            "انتقالات المطار"
+          ],
+          "excludes": [
+            "الغداء والعشاء (عدا عشاء الترحيب)",
+            "الورش الاختيارية",
+            "المصروفات الشخصية",
+            "تأمين السفر"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "breakfast",
+          "notes": "إفطار يومي في الفندق. عشاء ترحيبي في الليلة الأولى. باقي الوجبات حسب الرغبة — غوريم فيها عشرات المطاعم المحلية الممتازة."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "تأشيرة تركيا الإلكترونية تُجهَّز نيابة عنك خلال ٤٨ ساعة. مجانية لمعظم مواطني الخليج."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-05-04",
+              "returnDate": "2026-05-08",
+              "spots": 10,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-05-18",
+              "returnDate": "2026-05-22",
+              "spots": 8,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "للشخص، غرفة ثنائية",
+              "price": "٢٬٢٩٠ ر.س"
+            },
+            {
+              "label": "مكمل غرفة فردية",
+              "price": "٩٢٠ ر.س"
+            }
+          ],
+          "cancellation": "استرداد كامل قبل ٣٠ يوماً. ٥٠٪ بين ١٤ و٣٠ يوماً. غير قابل للاسترداد خلال ١٤ يوماً.",
+          "paymentContent": "عربون ٣٠٪ للتأكيد. الرصيد قبل ٢١ يوماً.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "انتقالات مطار خاصة في الاتجاهين.",
+          "items": [
+            "مطار قيصري → غوريم (٤٥ دقيقة)",
+            "غوريم → مطار قيصري"
+          ]
+        }
+      },
+      {
+        "type": "extras",
+        "data": {
+          "items": [
+            {
+              "name": "ورشة فخار في أفانوس",
+              "description": "نصف يوم في ورشة فخاري ماهر. اصنع قطعتك، تُحرَق وتُشحن لبيتك.",
+              "price": "٣٥٠ ر.س"
+            },
+            {
+              "name": "حضرة الدراويش المولوية",
+              "description": "حضرة مسائية في خان قوافل من القرن الـ١٣.",
+              "price": "٢٥٠ ر.س"
+            }
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "رحلة المنطاد مشروطة بالطقس؛ إن أُلغيت لأسباب أمنية يُسترد ثمنها دون تغيير في باقي البرنامج."
+            },
+            {
+              "text": "الصباح يبدأ قبل شروق الشمس يوم المنطاد — احملوا طبقات، الجو بارد حتى في مايو."
+            },
+            {
+              "text": "غرف الكهف قد تكون باردة؛ الفندق يوفر بطانيات إضافية عند الحاجة."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "مرايا للرحلات تختار رحلات بأسلوب مُنتقى — أماكن قد نرسل إليها عائلتنا. كبادوكيا مكان زرناه مراراً؛ نعرف أي وادٍ نمشي فيه ومتى، وأي فندق كهفي يناسب من.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "agent",
+              "name": "هلا بطرس",
+              "bio": "مصممة الرحلات لدينا لمنطقة تركيا والقوقاز. أقامت في ١٤ فندقاً كهفياً في كبادوكيا بنفسها. ستختار لك المناسب.",
+              "photo": "",
+              "languages": [
+                "العربية",
+                "الإنجليزية",
+                "الفرنسية"
+              ],
+              "years": 11,
+              "repliesIn": "ساعة"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?w=1200&q=80",
+            "https://images.unsplash.com/photo-1604156789095-3348604c0f43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHxjYXBhZG9jaWF8ZW58MHwwfHx8MTc4MDE0ODI0MXww&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.unsplash.com/photo-1631152282084-b8f1b380ccab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwyfHxjYXBhZG9jaWF8ZW58MHwwfHx8MTc4MDE0ODI0MXww&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.unsplash.com/photo-1664733580167-c173c66db392?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHw0fHxjYXBhZG9jaWF8ZW58MHwwfHx8MTc4MDE0ODI0MXww&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/27164778/pexels-photo-27164778.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.pexels.com/photos/7284346/pexels-photo-7284346.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/17385037/17385037-hd_1080_1920_60fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "هادي م.",
+              "text": "زرت كبادوكيا مرتين قبل. كانت هذه أول مرة تشعر فيها أن الرحلة مُنتقاة — لا مجرد زيارة.",
+              "rating": 5,
+              "country": "الإمارات",
+              "partyType": "couple"
+            },
+            {
+              "id": "r2",
+              "name": "رنا ك.",
+              "text": "الفندق كان قصة بحد ذاته. هلا اختارت لنا غرفة بقوس حجري لا نزال نتحدث عنه.",
+              "rating": 5,
+              "country": "لبنان",
+              "partyType": "couple"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "tribe-en-1",
+    "templateId": "tribe",
+    "primaryLanguage": "en",
+    "titleEn": "Wadi Rum desert — group trip",
+    "titleAr": "وادي رم — رحلة جماعية",
+    "descriptionEn": "Four nights in Wadi Rum with a small group capped at 12. Bedouin camp, jeep tour, stargazing, sunrise hikes. Solo travellers welcome and 60% of past trips have been solo — you won't be the only one.",
+    "descriptionAr": "أربع ليالٍ في وادي رم مع مجموعة صغيرة بحد أقصى ١٢ مسافراً.",
+    "destination": "Wadi Rum, Jordan",
+    "price": "€699",
+    "currency": "EUR",
+    "nights": "4",
+    "whatsapp": "+971500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1558985040-ed4d5029dd50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHx3YWRpJTIwcnVtfGVufDB8MHx8fDE3ODAxNDgwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "Small group, capped at 12 — you'll know everyone by night two",
+            "Solo-friendly — 60% of past trips were solo travellers",
+            "Opt-out of any activity, no pressure — afternoon naps absolutely allowed"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "Arrive in Amman & drive south",
+              "desc": "Group meets at Amman airport mid-morning. Drive south to Wadi Rum (3.5 hours) with a lunch stop. Arrive at the Bedouin camp by mid-afternoon. Welcome tea, sunset over the dunes, group dinner around the fire.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "Jeep day",
+              "desc": "Full-day jeep tour through the protected area — Lawrence's Spring, Khazali canyon, the Burdah rock bridge. Lunch in the desert. Stargazing back at the camp — no light pollution for hundreds of kilometres.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "Climb or rest",
+              "desc": "Optional sunrise climb of Jebel Burdah (moderate, 4-hour return) — bring water. Those who prefer can stay at camp for a slow morning. Afternoon at the rock pools.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "Camels and quiet",
+              "desc": "Morning camel ride through the central valley (about 2 hours, optional). Free afternoon. Final group dinner, music from the Bedouin team, last night under the stars.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "Drive back & farewell",
+              "desc": "Slow morning, breakfast at the camp. Drive back to Amman by mid-afternoon. Farewell at the airport for evening flights.",
+              "chapter": "",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "Wadi Rum Sky Camp — Bedouin-run camp with bubble tents for stargazing (4 nights). En-suite bathrooms in each bubble. Shared dining tent with traditional meals."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "Airport transfers in Amman",
+            "Return transport Amman ↔ Wadi Rum",
+            "4 nights at the camp",
+            "All meals (traditional Bedouin cooking)",
+            "Full-day jeep tour",
+            "Stargazing with telescopes",
+            "Trip lead + Bedouin co-host throughout"
+          ],
+          "excludes": [
+            "International flights",
+            "Optional camel ride",
+            "Travel insurance",
+            "Tips for the Bedouin team"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "full_board",
+          "notes": "All meals at the camp. Traditional zarb (underground-cooked) dinner one night. Dietary needs accommodated with notice."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "Jordan e-visa or visa-on-arrival, included via our partner. Free for many GCC nationals."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-03-22",
+              "returnDate": "2026-03-26",
+              "spots": 4,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-04-12",
+              "returnDate": "2026-04-16",
+              "spots": 8,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-10-04",
+              "returnDate": "2026-10-08",
+              "spots": 12,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "Per person, shared bubble",
+              "price": "€699"
+            },
+            {
+              "label": "Solo bubble",
+              "price": "€890"
+            }
+          ],
+          "cancellation": "Full refund 30+ days. 50% 14–30 days. Non-refundable inside 14 days.",
+          "paymentContent": "30% to confirm. Balance 14 days before departure.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "Group transport throughout. The drive from Amman is part of the trip — desert highway with photo stops.",
+          "items": [
+            "Amman airport → group meeting point",
+            "Amman → Wadi Rum (3.5h)",
+            "Wadi Rum → Amman",
+            "Amman → airport"
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "Group is capped at 12 travellers. We confirm departure once 6 people are booked."
+            },
+            {
+              "text": "Solo travellers very welcome — about 60% of past trips were solo. You won't be the only one."
+            },
+            {
+              "text": "Nights are cold in the desert even in summer — pack layers."
+            },
+            {
+              "text": "The Jebel Burdah climb is optional; afternoons are always free at the camp."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "Maraya Journeys runs small-group trips to underrated regional destinations. We cap groups so everyone fits around one fire. Most of our travellers come back for the next one.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "trip_lead",
+              "name": "Karim Asfour",
+              "bio": "Your trip lead for Wadi Rum. Born in Aqaba, spent his childhood in the desert. Quiet, knows every star.",
+              "photo": "",
+              "languages": [
+                "Arabic",
+                "English"
+              ],
+              "years": 9,
+              "repliesIn": "1 hour"
+            },
+            {
+              "id": "p2",
+              "role": "guide",
+              "name": "Salem Al-Zalabia",
+              "bio": "Bedouin co-host from the local tribe. Cooks, navigates, tells stories.",
+              "photo": "",
+              "languages": [
+                "Arabic",
+                "English"
+              ],
+              "years": 18,
+              "repliesIn": "2 hours"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.unsplash.com/photo-1602679480654-79bc06608aaf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwyfHx3YWRpJTIwcnVtfGVufDB8MHx8fDE3ODAxNDgwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/36721973/pexels-photo-36721973.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1547234935-80c7145ec969?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwzfHx3YWRpJTIwcnVtfGVufDB8MHx8fDE3ODAxNDgwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/4780783/pexels-photo-4780783.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1612892483236-52d32a0e0ac1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHw0fHx3YWRpJTIwcnVtfGVufDB8MHx8fDE3ODAxNDgwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/17472767/pexels-photo-17472767.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/10981184/10981184-hd_1280_720_30fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "Lina H.",
+              "text": "Came solo, knew nobody. By night two everyone was around the fire and I didn't want it to end.",
+              "rating": 5,
+              "country": "Jordan",
+              "partyType": "solo"
+            },
+            {
+              "id": "r2",
+              "name": "Faisal & Reema",
+              "text": "Couple of us, group of 10. Karim made the trip — quiet, knowledgeable, never rushed.",
+              "rating": 5,
+              "country": "Saudi Arabia",
+              "partyType": "couple"
+            },
+            {
+              "id": "r3",
+              "name": "Hadeel A.",
+              "text": "Stars in Wadi Rum are unreal. The bubble tent was the best worst sleep of my life.",
+              "rating": 5,
+              "country": "UAE",
+              "partyType": "solo"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "demoSampleId": "tribe-ar-1",
+    "templateId": "tribe",
+    "primaryLanguage": "ar",
+    "titleEn": "Wadi Rum desert — group trip",
+    "titleAr": "وادي رم — رحلة جماعية",
+    "descriptionEn": "Four nights in Wadi Rum with a small group of 12.",
+    "descriptionAr": "أربع ليالٍ في وادي رم مع مجموعة صغيرة بحد أقصى ١٢ مسافراً. مخيم بدوي، جولة جيب، رصد نجوم، صعود فجر. المسافرون الأفراد مرحب بهم — ٦٠٪ من رحلاتنا السابقة كانت أفراداً، لن تكون وحدك.",
+    "destination": "وادي رم، الأردن",
+    "price": "٢٬٩٢٠ ر.س",
+    "currency": "SAR",
+    "nights": "4",
+    "whatsapp": "+966500000000",
+    "messenger": "",
+    "coverImage": "https://images.unsplash.com/photo-1558985040-ed4d5029dd50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwxfHx3YWRpJTIwcnVtfGVufDB8MHx8fDE3ODAxNDgwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    "sections": [
+      {
+        "type": "highlights",
+        "data": {
+          "items": [
+            "مجموعة صغيرة بحد أقصى ١٢ — ستعرف الجميع بحلول الليلة الثانية",
+            "ودودة للأفراد — ٦٠٪ من الرحلات السابقة كانت أفراداً",
+            "حرية الانسحاب من أي نشاط، بلا ضغط — قيلولة بعد الظهر مسموح بها تماماً"
+          ]
+        }
+      },
+      {
+        "type": "itinerary",
+        "data": {
+          "days": [
+            {
+              "day": 1,
+              "title": "الوصول إلى عمّان والقيادة جنوباً",
+              "desc": "تجتمع المجموعة في مطار عمّان منتصف الصباح. قيادة جنوباً إلى وادي رم (٣.٥ ساعة) مع وقفة غداء. الوصول إلى المخيم البدوي بعد الظهر. شاي ترحيب، غروب فوق الكثبان، عشاء جماعي حول النار.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 2,
+              "title": "يوم الجيب",
+              "desc": "جولة جيب يوم كامل في المحمية — عين لورنس، وادي خزعلي، جسر بُردة الصخري. غداء في الصحراء. رصد نجوم في المخيم — لا تلوث ضوئي لمئات الكيلومترات.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 3,
+              "title": "صعود أو راحة",
+              "desc": "صعود اختياري عند الفجر لجبل بُردة (متوسط، ٤ ساعات ذهاباً وإياباً) — احملوا الماء. من يفضّل يبقى في المخيم لصباح بطيء. بعد الظهر عند البِرَك الصخرية.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 4,
+              "title": "جِمال وهدوء",
+              "desc": "ركوب جِمال صباحاً في الوادي المركزي (حوالي ساعتين، اختياري). أمسية حرة. عشاء جماعي ختامي، موسيقى من الفريق البدوي، آخر ليلة تحت النجوم.",
+              "chapter": "",
+              "img": ""
+            },
+            {
+              "day": 5,
+              "title": "العودة والوداع",
+              "desc": "صباح هادئ، إفطار في المخيم. القيادة عودة إلى عمّان بعد الظهر. توديع في المطار لرحلات المساء.",
+              "chapter": "",
+              "img": ""
+            }
+          ]
+        }
+      },
+      {
+        "type": "hotel",
+        "data": {
+          "description": "مخيم سكاي وادي رم — مخيم تديره عائلة بدوية بخيام فقاعية لرصد النجوم (٤ ليالٍ). حمام داخلي في كل فقاعة. خيمة طعام مشتركة بوجبات تقليدية."
+        }
+      },
+      {
+        "type": "inclusions",
+        "data": {
+          "includes": [
+            "انتقالات مطار في عمّان",
+            "نقل ذهاب وإياب عمّان ↔ وادي رم",
+            "٤ ليالٍ في المخيم",
+            "جميع الوجبات (طبخ بدوي تقليدي)",
+            "جولة جيب يوم كامل",
+            "رصد نجوم بالتلسكوبات",
+            "قائد رحلة + مضيف بدوي"
+          ],
+          "excludes": [
+            "تذاكر الطيران الدولية",
+            "ركوب الجِمال الاختياري",
+            "تأمين السفر",
+            "إكراميات الفريق البدوي"
+          ]
+        }
+      },
+      {
+        "type": "meals",
+        "data": {
+          "plan": "full_board",
+          "notes": "جميع الوجبات في المخيم. عشاء «زرب» (مطبوخ تحت الأرض) في إحدى الليالي. الاحتياجات الغذائية تُؤخذ بعين الاعتبار عند الإبلاغ."
+        }
+      },
+      {
+        "type": "visa",
+        "data": {
+          "included": "yes",
+          "content": "تأشيرة الأردن الإلكترونية أو عند الوصول، مشمولة عبر شريكنا. مجانية لكثير من مواطني الخليج."
+        }
+      },
+      {
+        "type": "departures",
+        "data": {
+          "entries": [
+            {
+              "date": "2026-03-22",
+              "returnDate": "2026-03-26",
+              "spots": 4,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-04-12",
+              "returnDate": "2026-04-16",
+              "spots": 8,
+              "price": "",
+              "deal": false
+            },
+            {
+              "date": "2026-10-04",
+              "returnDate": "2026-10-08",
+              "spots": 12,
+              "price": "",
+              "deal": false
+            }
+          ]
+        }
+      },
+      {
+        "type": "pricing",
+        "data": {
+          "tiers": [
+            {
+              "label": "للشخص، فقاعة مشتركة",
+              "price": "٢٬٩٢٠ ر.س"
+            },
+            {
+              "label": "فقاعة فردية",
+              "price": "٣٬٧٢٠ ر.س"
+            }
+          ],
+          "cancellation": "استرداد كامل قبل ٣٠ يوماً. ٥٠٪ بين ١٤ و٣٠ يوماً. غير قابل للاسترداد خلال ١٤ يوماً.",
+          "paymentContent": "عربون ٣٠٪ للتأكيد. الرصيد قبل ١٤ يوماً.",
+          "paymentSteps": [],
+          "termsContent": ""
+        }
+      },
+      {
+        "type": "transfers",
+        "data": {
+          "description": "نقل جماعي طوال الرحلة. القيادة من عمّان جزء من الرحلة — طريق الصحراء بمحطات تصوير.",
+          "items": [
+            "مطار عمّان → نقطة لقاء المجموعة",
+            "عمّان → وادي رم (٣.٥ ساعة)",
+            "وادي رم → عمّان",
+            "عمّان → المطار"
+          ]
+        }
+      },
+      {
+        "type": "important_notes",
+        "data": {
+          "items": [
+            {
+              "text": "المجموعة بحد أقصى ١٢ مسافراً. نؤكد المغادرة بمجرد حجز ٦ أشخاص."
+            },
+            {
+              "text": "المسافرون الأفراد مرحب بهم جداً — حوالي ٦٠٪ من الرحلات السابقة كانت أفراداً."
+            },
+            {
+              "text": "ليالي الصحراء باردة حتى في الصيف — احملوا طبقات."
+            },
+            {
+              "text": "صعود جبل بُردة اختياري؛ بعد الظهر حر دائماً في المخيم."
+            }
+          ]
+        }
+      },
+      {
+        "type": "about_agency",
+        "data": {
+          "content": "مرايا للرحلات تنظم رحلات جماعية صغيرة إلى وجهات إقليمية لا تأخذ حقها. نحدد العدد ليجلس الجميع حول نار واحدة. أغلب مسافرينا يعودون للرحلة التالية.",
+          "image": ""
+        }
+      },
+      {
+        "type": "people",
+        "data": {
+          "people": [
+            {
+              "id": "p1",
+              "role": "trip_lead",
+              "name": "كريم عصفور",
+              "bio": "قائد رحلتك إلى وادي رم. من مواليد العقبة، أمضى طفولته في الصحراء. هادئ، يعرف كل نجم.",
+              "photo": "",
+              "languages": [
+                "العربية",
+                "الإنجليزية"
+              ],
+              "years": 9,
+              "repliesIn": "ساعة"
+            },
+            {
+              "id": "p2",
+              "role": "guide",
+              "name": "سالم الزلابية",
+              "bio": "مضيف بدوي من القبيلة المحلية. يطبخ، يعرف الطرق، يحكي القصص.",
+              "photo": "",
+              "languages": [
+                "العربية",
+                "الإنجليزية"
+              ],
+              "years": 18,
+              "repliesIn": "ساعتان"
+            }
+          ]
+        }
+      },
+      {
+        "type": "media",
+        "data": {
+          "images": [
+            "https://images.unsplash.com/photo-1602679480654-79bc06608aaf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwyfHx3YWRpJTIwcnVtfGVufDB8MHx8fDE3ODAxNDgwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/36721973/pexels-photo-36721973.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1547234935-80c7145ec969?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHwzfHx3YWRpJTIwcnVtfGVufDB8MHx8fDE3ODAxNDgwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/4780783/pexels-photo-4780783.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+            "https://images.unsplash.com/photo-1612892483236-52d32a0e0ac1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NTQ2MTh8MHwxfHNlYXJjaHw0fHx3YWRpJTIwcnVtfGVufDB8MHx8fDE3ODAxNDgwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+            "https://images.pexels.com/photos/17472767/pexels-photo-17472767.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          ],
+          "videoUrl": "https://videos.pexels.com/video-files/10981184/10981184-hd_1280_720_30fps.mp4",
+          "mapImage": "",
+          "mapCaption": ""
+        }
+      },
+      {
+        "type": "reviews",
+        "data": {
+          "reviews": [
+            {
+              "id": "r1",
+              "name": "لينا ه.",
+              "text": "أتيت بمفردي، لم أعرف أحداً. بحلول الليلة الثانية كنا جميعاً حول النار ولم أرد للرحلة أن تنتهي.",
+              "rating": 5,
+              "country": "الأردن",
+              "partyType": "solo"
+            },
+            {
+              "id": "r2",
+              "name": "فيصل وريما",
+              "text": "نحن زوجان في مجموعة من ١٠. كريم صنع الرحلة — هادئ، عليم، بلا استعجال.",
+              "rating": 5,
+              "country": "السعودية",
+              "partyType": "couple"
+            },
+            {
+              "id": "r3",
+              "name": "هديل أ.",
+              "text": "نجوم وادي رم لا تُصدَّق. الخيمة الفقاعية كانت أفضل أسوأ نوم في حياتي.",
+              "rating": 5,
+              "country": "الإمارات",
+              "partyType": "solo"
+            }
+          ]
+        }
+      }
+    ]
+  }
+]
