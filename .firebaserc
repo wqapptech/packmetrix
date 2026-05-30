@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "packmetrics-77450"
+    "default": "packmetrix-staging",
+    "production": "packmetrics-77450",
+    "staging": "packmetrix-staging"
   }
 }

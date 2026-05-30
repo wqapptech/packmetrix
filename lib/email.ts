@@ -86,6 +86,54 @@ export async function sendDomainActiveEmail(opts: {
   });
 }
 
+export async function sendVerificationEmail(opts: {
+  to: string;
+  verificationUrl: string;
+  name?: string;
+}): Promise<void> {
+  const { to, verificationUrl, name } = opts;
+  const greeting = name ? `Hi ${name},` : "Hi there,";
+  await client().emails.send({
+    from: FROM,
+    to,
+    subject: "Verify your Packmetrix email address",
+    html: `
+<div style="font-family:system-ui,-apple-system,sans-serif;background:#f4f1eb;padding:40px 0;min-height:100vh">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+
+    <!-- Header -->
+    <div style="background:#0d1b2e;padding:32px 40px;display:flex;align-items:center;gap:12px">
+      <div style="width:36px;height:36px;border-radius:8px;background:#b08a3e;display:inline-flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:16px;font-weight:700;color:#fff;vertical-align:middle">P</div>
+      <span style="font-family:Georgia,serif;font-size:22px;color:#f5f0e8;letter-spacing:-0.4px;vertical-align:middle">Packmetrix</span>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:40px">
+      <div style="width:56px;height:56px;border-radius:50%;background:#fef9ec;display:flex;align-items:center;justify-content:center;margin-bottom:24px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b08a3e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </div>
+
+      <p style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#b08a3e;margin:0 0 12px">&nbsp;Verify your email</p>
+      <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0d1b2e;margin:0 0 16px;letter-spacing:-0.5px;line-height:1.1">One quick step,<br/>then you're in.</h1>
+      <p style="font-size:14px;color:#5a6170;line-height:1.6;margin:0 0 32px">${greeting} Click the button below to verify your email address and activate your Packmetrix account.</p>
+
+      <a href="${verificationUrl}" style="display:inline-block;padding:14px 32px;background:#b08a3e;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:15px;letter-spacing:-0.2px;box-shadow:0 1px 3px rgba(176,138,62,.35)">Verify my email address →</a>
+
+      <p style="font-size:12px;color:#9ca3af;margin:28px 0 0;line-height:1.6">If the button doesn't work, copy and paste this link into your browser:<br/>
+        <a href="${verificationUrl}" style="color:#b08a3e;word-break:break-all">${verificationUrl}</a>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 40px 28px;border-top:1px solid #f0ece4">
+      <p style="font-size:11.5px;color:#9ca3af;margin:0;line-height:1.6">If you didn't create a Packmetrix account, you can safely ignore this email.<br/>© 2026 Packmetrix · <a href="https://packmetrix.com/privacy" style="color:#9ca3af;text-decoration:none">Privacy</a> · <a href="mailto:hello@packmetrix.com" style="color:#9ca3af;text-decoration:none">Contact</a></p>
+    </div>
+
+  </div>
+</div>`,
+  });
+}
+
 export async function sendDomainFailedEmail(opts: {
   to: string;
   hostname: string;

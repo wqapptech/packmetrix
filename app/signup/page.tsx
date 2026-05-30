@@ -6,12 +6,12 @@ import { useLang, switchLang } from "@/hooks/useLang";
 import { T } from "@/lib/translations";
 import {
   createUserWithEmailAndPassword,
-  sendEmailVerification,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
   linkWithCredential,
   EmailAuthProvider,
+  sendEmailVerification,
   OAuthCredential,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -283,7 +283,16 @@ function SignupPageInner() {
     try {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
       await setDoc(doc(db, "users", userCred.user.uid), newUserDoc(userCred.user.uid, userCred.user.email));
-      await sendEmailVerification(userCred.user, { url: `${window.location.origin}/builder` });
+      try {
+        const res = await fetch("/api/send-verification-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, redirectUrl: `${window.location.origin}/builder` }),
+        });
+        if (!res.ok) throw new Error("api-failed");
+      } catch {
+        await sendEmailVerification(userCred.user, { url: `${window.location.origin}/builder` });
+      }
       posthog.identify(userCred.user.uid, { email: userCred.user.email, name });
       posthog.capture("user_signed_up", { method: "email", trial_days: TRIAL_DAYS, from_gate: fromGate });
       setStep("verify");
@@ -376,14 +385,29 @@ function SignupPageInner() {
   };
 
   const handleResendVerification = async () => {
-    if (!auth.currentUser || resendLoading) return;
+    const user = auth.currentUser;
+    if (!user || resendLoading) return;
     setResendLoading(true);
     setResendSent(false);
     try {
-      await sendEmailVerification(auth.currentUser, { url: `${window.location.origin}/builder` });
+      if (user.email) {
+        const res = await fetch("/api/send-verification-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: user.email, redirectUrl: `${window.location.origin}/builder` }),
+        });
+        if (!res.ok) throw new Error("api-failed");
+      } else {
+        await sendEmailVerification(user, { url: `${window.location.origin}/builder` });
+      }
       setResendSent(true);
     } catch {
-      setVerifyError(t.authVerifyResendError);
+      try {
+        await sendEmailVerification(user, { url: `${window.location.origin}/builder` });
+        setResendSent(true);
+      } catch {
+        setVerifyError(t.authVerifyResendError);
+      }
     } finally {
       setResendLoading(false);
     }
