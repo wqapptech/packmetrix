@@ -3,7 +3,16 @@ import admin from "firebase-admin";
 if (!admin.apps.length) {
   const key = process.env.FIREBASE_ADMIN_KEY;
   if (key) {
-    const serviceAccount = JSON.parse(key);
+    let serviceAccount: any;
+    try {
+      serviceAccount = JSON.parse(key);
+    } catch (e) {
+      throw new Error(
+        "FIREBASE_ADMIN_KEY is set but could not be parsed as JSON. " +
+        "Make sure it is stored as a single-line minified JSON string in .env.local " +
+        "(run: node -e \"console.log(JSON.stringify(require('./service-account.json')))\" to get the correct format)."
+      );
+    }
     serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),

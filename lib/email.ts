@@ -134,6 +134,42 @@ export async function sendVerificationEmail(opts: {
   });
 }
 
+export async function sendDemoRequestEmail(opts: {
+  name: string;
+  agencyName: string;
+  whatsapp: string;
+  email: string;
+  message: string;
+}): Promise<void> {
+  const { name, agencyName, whatsapp, email, message } = opts;
+  const replyTo = email || undefined;
+  const messageRow = message
+    ? `<tr><td style="padding:8px 0;color:#666;font-size:13px;vertical-align:top;white-space:nowrap;padding-right:16px">Message</td><td style="padding:8px 0;font-size:13px;color:#0d1b2e;white-space:pre-wrap">${message}</td></tr>`
+    : "";
+  const emailRow = email
+    ? `<tr><td style="padding:8px 0;color:#666;font-size:13px;vertical-align:top;padding-right:16px">Email</td><td style="padding:8px 0;font-size:13px"><a href="mailto:${email}" style="color:#1f5f8e">${email}</a></td></tr>`
+    : "";
+
+  await client().emails.send({
+    from: FROM,
+    to: "hello@packmetrix.com",
+    ...(replyTo ? { replyTo } : {}),
+    subject: `Demo request: ${name} — ${agencyName}`,
+    html: `
+<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#0d1b2e">
+  <h2 style="font-size:18px;font-weight:700;margin:0 0 6px">New demo request</h2>
+  <p style="color:#888;font-size:12px;margin:0 0 24px">Submitted via packmetrix.com · source: demo_request</p>
+  <table style="width:100%;border-collapse:collapse">
+    <tr><td style="padding:8px 0;color:#666;font-size:13px;padding-right:16px;vertical-align:top">Name</td><td style="padding:8px 0;font-size:13px;font-weight:600;color:#0d1b2e">${name}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;font-size:13px;padding-right:16px;vertical-align:top">Agency</td><td style="padding:8px 0;font-size:13px;color:#0d1b2e">${agencyName}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;font-size:13px;padding-right:16px;vertical-align:top">WhatsApp</td><td style="padding:8px 0;font-size:13px"><a href="https://wa.me/${whatsapp.replace(/[^\d+]/g, "")}" style="color:#25d366;font-weight:600">${whatsapp}</a></td></tr>
+    ${emailRow}
+    ${messageRow}
+  </table>
+</div>`,
+  });
+}
+
 export async function sendDomainFailedEmail(opts: {
   to: string;
   hostname: string;
