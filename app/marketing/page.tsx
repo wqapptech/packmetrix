@@ -13,7 +13,7 @@ import type { CoreForm } from "@/lib/sections/types";
 import {
   DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT,
-  DA_GREEN, DA_GREEN_SOFT, DA_DARK,
+  DA_GREEN, DA_GREEN_SOFT, DA_DARK, DA_DANGER,
 } from "@/lib/tokens";
 
 const DISPLAY = "var(--font-instrument-serif), Georgia, serif";
@@ -181,52 +181,86 @@ function LandingNav({ lang }: { lang: "en" | "ar" }) {
 
 function MobileLandingNav({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
+  const [menuOpen, setMenuOpen] = useState(false);
   // TODO: native AR speaker to verify tone — "ثبّت" / launch-price phrasing
-  const L = isAr ? { claim: "ثبّت ٣٩ €" } : { claim: "Lock in €39" };
+  const L = isAr
+    ? { nav: ["المنتج", "القوالب", "أمثلة", "الأسعار"], login: "تسجيل الدخول", claim: "ثبّت ٣٩ €" }
+    : { nav: ["Product", "Templates", "Examples", "Pricing"], login: "Login", claim: "Lock in €39" };
   return (
-    <div style={{
-      position: "sticky", top: 0, zIndex: 50,
-      background: "rgba(244,240,232,.9)",
-      backdropFilter: "saturate(160%) blur(10px)",
-      borderBottom: `1px solid ${DA_RULE}`,
-      padding: "12px 16px",
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      fontFamily: SANS,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{
-          width: 26, height: 26, borderRadius: 6,
-          background: DA_INK1, color: DA_GOLD,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: DISPLAY, fontSize: 12, fontWeight: 400,
-        }}>P</div>
-        <div style={{ fontFamily: DISPLAY, fontSize: 17, color: DA_INK1, letterSpacing: -0.2 }}>Packmetrix</div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{
-          display: "flex", padding: 2, background: DA_SURFACE,
-          border: `1px solid ${DA_RULE2}`, borderRadius: 999,
-          fontSize: 10.5, fontWeight: 500, fontFamily: SANS,
-        }}>
-          {(["EN", "عربي"] as const).map((l, i) => {
-            const active = (lang === "en" && i === 0) || (lang === "ar" && i === 1);
-            return (
-              <div key={l} onClick={() => switchLang(i === 0 ? "en" : "ar")} style={{
-                padding: "3px 8px", borderRadius: 999,
-                background: active ? DA_INK1 : "transparent",
-                color: active ? DA_BG : DA_INK2,
-                cursor: "pointer", userSelect: "none",
-              }}>{l}</div>
-            );
-          })}
+    <div style={{ position: "sticky", top: 0, zIndex: 50, fontFamily: SANS }}>
+      <div style={{
+        background: "rgba(244,240,232,.9)",
+        backdropFilter: "saturate(160%) blur(10px)",
+        borderBottom: `1px solid ${DA_RULE}`,
+        padding: "12px 16px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label="Menu"
+            style={{
+              background: "none", border: "none", padding: 4, cursor: "pointer",
+              display: "flex", flexDirection: "column", gap: 4.5, justifyContent: "center",
+            }}
+          >
+            <span style={{ display: "block", width: 20, height: 1.5, background: DA_INK1, borderRadius: 2 }} />
+            <span style={{ display: "block", width: 20, height: 1.5, background: DA_INK1, borderRadius: 2 }} />
+            <span style={{ display: "block", width: 20, height: 1.5, background: DA_INK1, borderRadius: 2 }} />
+          </button>
+          <div style={{ fontFamily: DISPLAY, fontSize: 17, color: DA_INK1, letterSpacing: -0.2 }}>Packmetrix</div>
         </div>
-        <a href={`${AGENCY_URL}/signup`} style={{
-          padding: "6px 12px", background: DA_GOLD, color: "#fff",
-          border: "none", borderRadius: 7,
-          fontFamily: SANS, fontSize: 12, fontWeight: 600,
-          textDecoration: "none", cursor: "pointer",
-        }}>{L.claim}</a>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            display: "flex", padding: 2, background: DA_SURFACE,
+            border: `1px solid ${DA_RULE2}`, borderRadius: 999,
+            fontSize: 10.5, fontWeight: 500, fontFamily: SANS,
+          }}>
+            {(["EN", "عربي"] as const).map((l, i) => {
+              const active = (lang === "en" && i === 0) || (lang === "ar" && i === 1);
+              return (
+                <div key={l} onClick={() => switchLang(i === 0 ? "en" : "ar")} style={{
+                  padding: "3px 8px", borderRadius: 999,
+                  background: active ? DA_INK1 : "transparent",
+                  color: active ? DA_BG : DA_INK2,
+                  cursor: "pointer", userSelect: "none",
+                }}>{l}</div>
+              );
+            })}
+          </div>
+          <a href={`${AGENCY_URL}/login`} style={{
+            fontFamily: SANS, fontSize: 12, color: DA_INK1, fontWeight: 500,
+            textDecoration: "none",
+          }}>{L.login}</a>
+          <a href={`${AGENCY_URL}/signup`} style={{
+            padding: "6px 12px", background: DA_GOLD, color: "#fff",
+            border: "none", borderRadius: 7,
+            fontFamily: SANS, fontSize: 12, fontWeight: 600,
+            textDecoration: "none", cursor: "pointer",
+          }}>{L.claim}</a>
+        </div>
       </div>
+      {menuOpen && (
+        <div style={{
+          background: "rgba(244,240,232,.97)",
+          backdropFilter: "saturate(160%) blur(10px)",
+          borderBottom: `1px solid ${DA_RULE}`,
+          padding: "8px 0",
+        }}>
+          {L.nav.map((n, i) => (
+            <a
+              key={i}
+              href={`#${["product","templates","examples","pricing"][i]}`}
+              onClick={() => setMenuOpen(false)}
+              style={{
+                display: "block", padding: "11px 20px",
+                fontFamily: SANS, fontSize: 15, color: DA_INK1, fontWeight: 500,
+                textDecoration: "none", borderBottom: i < L.nav.length - 1 ? `1px solid ${DA_RULE}` : "none",
+              }}
+            >{n}</a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -243,6 +277,8 @@ function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaini
     titleB: "لكلّ باقة سفر تبيعها.",
     sub: "ألصق برنامج رحلتك في باكميتركس. اختر قالباً. انشر صفحة احترافية على نطاقك الخاص — جاهزة للمشاركة على واتساب وإنستغرام وتيك توك. تتبّع المشاهدات والعملاء من صندوق واحد.",
     primary: "ثبّت سعر ٣٩ € مدى الحياة",
+    // TODO: native AR speaker to verify tone — "احجز عرضاً" phrasing
+    demo: "احجز عرضاً",
     secondary: "شاهد صفحة حقيقية",
     proofA: `تجربة ${TRIAL_DAYS} يوم`,
     proofB: "ثبّت ٣٩ €/شهر مدى الحياة",
@@ -254,6 +290,7 @@ function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaini
     titleB: "for every travel package you sell.",
     sub: "Paste your itinerary into Packmetrix. Pick a template. Publish a polished, branded page at your own domain — ready for WhatsApp, Instagram, and TikTok. Track views and leads in one inbox.",
     primary: "Lock in €39 forever",
+    demo: "Book a demo",
     secondary: "See a real landing page",
     proofA: `${TRIAL_DAYS}-day trial`,
     proofB: "Lock €39/mo for life",
@@ -298,6 +335,13 @@ function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaini
               cursor: "pointer", textDecoration: "none",
               boxShadow: "0 2px 4px rgba(26,22,17,.08), 0 8px 24px -8px rgba(176,138,62,.4), inset 0 1px 0 rgba(255,255,255,.18)",
             }}>{L.primary}<ArrowSVG size={15} /></a>
+            <a href="#demo" style={{
+              padding: "13px 18px", background: "transparent",
+              border: `1.5px solid ${DA_INK1}`, color: DA_INK1, borderRadius: 10,
+              fontFamily: SANS, fontSize: 14.5, fontWeight: 600,
+              display: "inline-flex", alignItems: "center", gap: 8,
+              cursor: "pointer", textDecoration: "none",
+            }}>{L.demo}<ArrowSVG size={13} /></a>
             <a href="#examples" style={{
               padding: "14px 6px", fontFamily: SANS, fontSize: 14, color: DA_INK1, fontWeight: 500,
               cursor: "pointer", textDecoration: "none",
@@ -386,6 +430,8 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
     titleB: "لكلّ باقة تبيعها.",
     sub: "ألصق برنامج رحلتك. اختر قالباً. انشر على نطاقك. تتبّع العملاء.",
     primary: "ثبّت سعر ٣٩ € مدى الحياة",
+    // TODO: native AR speaker to verify tone — "احجز عرضاً" phrasing
+    demo: "احجز عرضاً",
     secondary: "شاهد صفحة حقيقية",
     proof: [`تجربة ${TRIAL_DAYS} يوم`, "٣٩ €/شهر مدى الحياة", "بدون بطاقة ائتمان"],
   } : {
@@ -395,6 +441,7 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
     titleB: "for every travel package.",
     sub: "Paste your itinerary. Pick a template. Publish at your domain. Track every lead.",
     primary: "Lock in €39 forever",
+    demo: "Book a demo",
     secondary: "See a real landing page",
     proof: [`${TRIAL_DAYS}-day trial`, "€39/mo for life", "No credit card"],
   };
@@ -431,6 +478,15 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
           cursor: "pointer", textDecoration: "none", boxSizing: "border-box",
           boxShadow: "0 2px 4px rgba(26,22,17,.08), 0 8px 20px -6px rgba(176,138,62,.4), inset 0 1px 0 rgba(255,255,255,.18)",
         }}>{L.primary}<ArrowSVG size={14} /></a>
+
+        <a href="#demo-m" style={{
+          display: "flex", width: "100%", marginTop: 10, padding: "13px 0",
+          background: "transparent", border: `1.5px solid ${DA_INK1}`,
+          color: DA_INK1, borderRadius: 10,
+          fontFamily: SANS, fontSize: 14, fontWeight: 600,
+          alignItems: "center", justifyContent: "center", gap: 7,
+          cursor: "pointer", textDecoration: "none", boxSizing: "border-box",
+        }}>{L.demo}<ArrowSVG size={14} /></a>
 
         <a href="#examples" style={{
           display: "block", marginTop: 12, textAlign: "center",
@@ -1365,7 +1421,7 @@ function MobileLandingExamples({ lang }: { lang: "en" | "ar" }) {
     titleAccent: "example pages.",
   };
   return (
-    <div style={{ padding: "44px 18px", background: DA_BG }}>
+    <div id="examples" style={{ padding: "44px 18px", background: DA_BG }}>
       <div style={{ marginBottom: 22 }}>
         <div style={{
           fontFamily: SANS, fontSize: 10, fontWeight: 600,
@@ -1410,6 +1466,9 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
     items: ["صفحات باقات غير محدودة", "كل القوالب العشرة", "نطاق مخصص بشهادة SSL", "صندوق عملاء واتساب وماسنجر", "تصدير العملاء (CSV)", "تحليلات بدون حد زمني", "بحث في الصور والفيديو"],
     cta: "ثبّت سعر ٣٩ € مدى الحياة",
     trust: `تجربة ${TRIAL_DAYS} يوم · بدون بطاقة ائتمان · إلغاء في أيّ وقت`,
+    // TODO: native AR speaker to verify tone
+    notReady: "لست مستعداً بعد؟",
+    demoLink: "احجز عرضاً أولاً",
     after: "بعد انتهاء سعر الإطلاق: ٧٩ €/شهر للوكالات الجديدة. ثبّت سعرك الآن ولن يتغيّر أبداً.",
   } : {
     eyebrow: "Pricing", title: "One plan.", titleAccent: "Launch price, locked for life.",
@@ -1422,6 +1481,8 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
     items: ["Unlimited package pages", "All 10 templates", "Custom domain + SSL", "WhatsApp + Messenger lead inbox", "Lead export (CSV)", "Unlimited analytics history", "Photo & video search"],
     cta: "Lock in €39 forever",
     trust: `${TRIAL_DAYS}-day trial · no credit card · cancel anytime`,
+    notReady: "Not ready yet?",
+    demoLink: "Book a demo first",
     after: "After launch pricing ends: €79/mo for new agencies. Lock in now and your price never changes.",
   };
 
@@ -1508,6 +1569,9 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
               boxShadow: "0 1px 2px rgba(0,0,0,.06), 0 12px 28px -10px rgba(176,138,62,.45), inset 0 1px 0 rgba(255,255,255,.18)",
             }}>{L.cta}<ArrowSVG size={15} /></a>
             <div style={{ marginTop: 12, textAlign: "center", fontFamily: SANS, fontSize: 12, color: DA_INK3 }}>{L.trust}</div>
+            <div style={{ marginTop: 8, textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: DA_INK2 }}>
+              {L.notReady}{" "}<a href="#demo" style={{ color: DA_INK1, fontWeight: 600 }}>{L.demoLink}</a>
+            </div>
           </div>
         </div>
 
@@ -1532,6 +1596,9 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
     items: ["صفحات باقات غير محدودة", "كل القوالب العشرة", "نطاق مخصص بشهادة SSL", "صندوق عملاء واتساب وماسنجر", "تصدير العملاء (CSV)", "تحليلات بدون حد زمني", "بحث في الصور والفيديو"],
     cta: "ثبّت سعر ٣٩ € مدى الحياة",
     trust: `تجربة ${TRIAL_DAYS} يوم · بدون بطاقة ائتمان · إلغاء في أيّ وقت`,
+    // TODO: native AR speaker to verify tone
+    notReady: "لست مستعداً بعد؟",
+    demoLink: "احجز عرضاً أولاً",
   } : {
     eyebrow: "Pricing", title: "One plan.", titleAccent: "Launch price, locked for life.",
     spotsLine: spotsRemaining !== null ? `${spotsRemaining} of 50 launch spots left` : "49 of 50 launch spots left",
@@ -1540,6 +1607,8 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
     items: ["Unlimited package pages", "All 10 templates", "Custom domain + SSL", "WhatsApp + Messenger lead inbox", "Lead export (CSV)", "Unlimited analytics history", "Photo & video search"],
     cta: "Lock in €39 forever",
     trust: `${TRIAL_DAYS}-day trial · no credit card · cancel anytime`,
+    notReady: "Not ready yet?",
+    demoLink: "Book a demo first",
   };
 
   return (
@@ -1587,8 +1656,429 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
             boxShadow: "0 1px 2px rgba(0,0,0,.06), 0 8px 20px -6px rgba(176,138,62,.45), inset 0 1px 0 rgba(255,255,255,.18)",
           }}>{L.cta}<ArrowSVG size={14} /></a>
           <div style={{ marginTop: 10, textAlign: "center", fontFamily: SANS, fontSize: 11, color: DA_INK3 }}>{L.trust}</div>
+          <div style={{ marginTop: 8, textAlign: "center", fontFamily: SANS, fontSize: 12, color: DA_INK2 }}>
+            {L.notReady}{" "}<a href="#demo-m" style={{ color: DA_INK1, fontWeight: 600 }}>{L.demoLink}</a>
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Book-a-demo section ───────────────────────────────────────────────────────
+
+function WASvg() {
+  return (
+    <svg width={15} height={15} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  );
+}
+
+function DemoSuccessCard({ lang }: { lang: "en" | "ar" }) {
+  const isAr = lang === "ar";
+  // TODO: native AR speaker to verify tone
+  const t = isAr ? {
+    title: "تم الحجز!",
+    sub: "سنتواصل معك على واتساب خلال ٢٤ ساعة لتحديد موعد العرض الشخصي.",
+  } : {
+    title: "You're booked!",
+    sub: "We'll reach out on WhatsApp within 24 hours to schedule your personal walkthrough.",
+  };
+  return (
+    <div style={{
+      background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
+      borderRadius: 16, padding: "44px 32px", textAlign: "center",
+    }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: "50%",
+        background: DA_GREEN_SOFT, color: DA_GREEN,
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        marginBottom: 20,
+      }}>
+        <CheckSVG size={22} />
+      </div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 30, color: DA_INK1, marginBottom: 10, letterSpacing: -0.6 }}>{t.title}</div>
+      <p style={{ margin: 0, fontFamily: SANS, fontSize: 14, color: DA_INK2, lineHeight: 1.6, maxWidth: 380, marginInline: "auto" }}>{t.sub}</p>
+    </div>
+  );
+}
+
+function LandingDemo({ lang }: { lang: "en" | "ar" }) {
+  const isAr = lang === "ar";
+  const [name, setName] = useState("");
+  const [agencyName, setAgencyName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot — must stay empty
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
+  const [serverError, setServerError] = useState("");
+
+  // TODO: native AR speaker to verify tone — "احجز عرضاً" / demo section phrasing
+  const L = isAr ? {
+    eyebrow: "عرض توضيحي",
+    title: "شاهد باكميتركس",
+    titleAccent: "وهي تعمل.",
+    sub: "سنريك كيف تنشر أول صفحة باقة سفر مميزة في أقل من ١٠ دقائق — مباشرةً، على محتواك الخاص.",
+    labelName: "اسمك", labelAgency: "اسم الوكالة",
+    labelWA: "رقم واتساب", labelEmail: "البريد الإلكتروني", labelMessage: "رسالة",
+    optional: "(اختياري)",
+    placeholderName: "محمد أحمد", placeholderAgency: "وكالة النجوم",
+    placeholderWA: "+966 55 123 4567", placeholderEmail: "you@agency.com",
+    placeholderMessage: "أخبرنا عن وكالتك ونوع الباقات التي تبيعها...",
+    cta: "احجز العرض", submitting: "جارٍ الإرسال...",
+    errRequired: "هذا الحقل مطلوب", errPhone: "أدخل رقم واتساب صحيحاً",
+    errEmail: "أدخل بريداً إلكترونياً صحيحاً", errServer: "حدث خطأ. يرجى المحاولة مجدداً.",
+  } : {
+    eyebrow: "Book a demo",
+    title: "See Packmetrix",
+    titleAccent: "in action.",
+    sub: "We'll show you how to publish your first branded package page in under 10 minutes — live, on your own content.",
+    labelName: "Your name", labelAgency: "Agency name",
+    labelWA: "WhatsApp number", labelEmail: "Email", labelMessage: "Message",
+    optional: "(optional)",
+    placeholderName: "Jane Smith", placeholderAgency: "Desert Tours",
+    placeholderWA: "+31 6 1234 5678", placeholderEmail: "you@agency.com",
+    placeholderMessage: "Tell us about your agency and what packages you sell...",
+    cta: "Book my demo", submitting: "Sending...",
+    errRequired: "This field is required", errPhone: "Enter a valid WhatsApp number",
+    errEmail: "Enter a valid email address", errServer: "Something went wrong. Please try again.",
+  };
+
+  function isValidPhone(val: string) { return /^\d{7,15}$/.test(val.replace(/[^\d]/g, "")); }
+  function isValidEmail(val: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val); }
+
+  function validate(): Record<string, string> {
+    const e: Record<string, string> = {};
+    if (!name.trim()) e.name = L.errRequired;
+    if (!agencyName.trim()) e.agencyName = L.errRequired;
+    if (!whatsapp.trim()) e.whatsapp = L.errRequired;
+    else if (!isValidPhone(whatsapp)) e.whatsapp = L.errPhone;
+    if (email && !isValidEmail(email)) e.email = L.errEmail;
+    return e;
+  }
+
+  async function handleDemoSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    setErrors({});
+    setStatus("submitting");
+    try {
+      const res = await fetch("/api/submit-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, agencyName, whatsapp, email, message, website }),
+      });
+      if (!res.ok) throw new Error();
+      setStatus("success");
+    } catch {
+      setStatus("idle");
+      setServerError(L.errServer);
+    }
+  }
+
+  const inputSt: React.CSSProperties = {
+    width: "100%", padding: "10px 12px",
+    fontFamily: SANS, fontSize: 13.5, color: DA_INK1,
+    background: DA_BG, borderRadius: 8, outline: "none", boxSizing: "border-box",
+  };
+  const fieldSt = (key: string): React.CSSProperties => ({
+    ...inputSt, border: `1px solid ${errors[key] ? DA_DANGER : DA_RULE2}`,
+  });
+
+  return (
+    <div id="demo" style={{ padding: "80px 48px", background: DA_BG }}>
+      <div style={{ maxWidth: 640, marginInline: "auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: DA_GOLD }}>{L.eyebrow}</div>
+          <h2 style={{ margin: "12px 0 0", fontFamily: DISPLAY, fontSize: 40, fontWeight: 400, color: DA_INK1, letterSpacing: -1, lineHeight: 1.05 }}>
+            {L.title} <span style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleAccent}</span>
+          </h2>
+          <p style={{ margin: "16px auto 0", maxWidth: 480, fontFamily: SANS, fontSize: 14.5, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
+        </div>
+
+        {status === "success" ? <DemoSuccessCard lang={lang} /> : (
+          <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 16, padding: "28px 32px" }}>
+            <form onSubmit={handleDemoSubmit} noValidate>
+              {/* Honeypot — invisible to users; bots fill it, we discard server-side */}
+              <input
+                type="text" tabIndex={-1} aria-hidden="true" autoComplete="off"
+                value={website} onChange={e => setWebsite(e.target.value)}
+                style={{ position: "absolute", opacity: 0, pointerEvents: "none", width: 0, height: 0 }}
+              />
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+                <div>
+                  <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{L.labelName}</div>
+                  <input style={fieldSt("name")} value={name} placeholder={L.placeholderName}
+                    onChange={e => { setName(e.target.value); setErrors(er => ({ ...er, name: "" })); }} />
+                  {errors.name && <div style={{ fontFamily: SANS, fontSize: 11, color: DA_DANGER, marginTop: 4 }}>{errors.name}</div>}
+                </div>
+
+                <div>
+                  <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{L.labelAgency}</div>
+                  <input style={fieldSt("agencyName")} value={agencyName} placeholder={L.placeholderAgency}
+                    onChange={e => { setAgencyName(e.target.value); setErrors(er => ({ ...er, agencyName: "" })); }} />
+                  {errors.agencyName && <div style={{ fontFamily: SANS, fontSize: 11, color: DA_DANGER, marginTop: 4 }}>{errors.agencyName}</div>}
+                </div>
+
+                <div>
+                  <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{L.labelWA}</div>
+                  <div dir="ltr" style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#25d366", display: "flex", alignItems: "center", pointerEvents: "none" }}>
+                      <WASvg />
+                    </span>
+                    <input
+                      type="tel" dir="ltr"
+                      style={{ ...fieldSt("whatsapp"), paddingLeft: 34 }}
+                      value={whatsapp} placeholder={L.placeholderWA}
+                      onChange={e => { setWhatsapp(e.target.value); setErrors(er => ({ ...er, whatsapp: "" })); }}
+                    />
+                  </div>
+                  {errors.whatsapp && <div style={{ fontFamily: SANS, fontSize: 11, color: DA_DANGER, marginTop: 4 }}>{errors.whatsapp}</div>}
+                </div>
+
+                <div>
+                  <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>
+                    {L.labelEmail} <span style={{ fontWeight: 400, color: DA_INK3 }}>{L.optional}</span>
+                  </div>
+                  <input type="email" style={fieldSt("email")} value={email} placeholder={L.placeholderEmail}
+                    onChange={e => { setEmail(e.target.value); setErrors(er => ({ ...er, email: "" })); }} />
+                  {errors.email && <div style={{ fontFamily: SANS, fontSize: 11, color: DA_DANGER, marginTop: 4 }}>{errors.email}</div>}
+                </div>
+
+                <div>
+                  <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>
+                    {L.labelMessage} <span style={{ fontWeight: 400, color: DA_INK3 }}>{L.optional}</span>
+                  </div>
+                  <textarea
+                    style={{ ...fieldSt("message"), resize: "vertical", minHeight: 80 }}
+                    value={message} placeholder={L.placeholderMessage}
+                    onChange={e => setMessage(e.target.value)}
+                  />
+                </div>
+
+                {serverError && <div style={{ fontFamily: SANS, fontSize: 12.5, color: DA_DANGER }}>{serverError}</div>}
+
+                <button
+                  type="submit"
+                  disabled={status === "submitting"}
+                  style={{
+                    width: "100%", padding: "13px 0",
+                    background: "transparent", border: `1.5px solid ${DA_INK1}`,
+                    color: DA_INK1, borderRadius: 10,
+                    fontFamily: SANS, fontSize: 14, fontWeight: 600,
+                    cursor: status === "submitting" ? "not-allowed" : "pointer",
+                    opacity: status === "submitting" ? 0.65 : 1,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    boxSizing: "border-box",
+                  }}
+                >
+                  {status === "submitting" ? L.submitting : <>{L.cta}<ArrowSVG size={13} /></>}
+                </button>
+
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MobileLandingDemo({ lang }: { lang: "en" | "ar" }) {
+  const isAr = lang === "ar";
+  const [name, setName] = useState("");
+  const [agencyName, setAgencyName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot — must stay empty
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
+  const [serverError, setServerError] = useState("");
+
+  // TODO: native AR speaker to verify tone — "احجز عرضاً" / demo section phrasing
+  const L = isAr ? {
+    eyebrow: "عرض توضيحي",
+    title: "شاهد باكميتركس",
+    titleAccent: "وهي تعمل.",
+    sub: "سنريك كيف تنشر أول صفحة باقة سفر مميزة في أقل من ١٠ دقائق.",
+    labelName: "اسمك", labelAgency: "اسم الوكالة",
+    labelWA: "رقم واتساب", labelEmail: "البريد الإلكتروني", labelMessage: "رسالة",
+    optional: "(اختياري)",
+    placeholderName: "محمد أحمد", placeholderAgency: "وكالة النجوم",
+    placeholderWA: "+966 55 123 4567", placeholderEmail: "you@agency.com",
+    placeholderMessage: "أخبرنا عن وكالتك...",
+    cta: "احجز العرض", submitting: "جارٍ الإرسال...",
+    errRequired: "هذا الحقل مطلوب", errPhone: "أدخل رقم واتساب صحيحاً",
+    errEmail: "أدخل بريداً إلكترونياً صحيحاً", errServer: "حدث خطأ. يرجى المحاولة مجدداً.",
+  } : {
+    eyebrow: "Book a demo",
+    title: "See Packmetrix",
+    titleAccent: "in action.",
+    sub: "We'll show you how to publish your first branded package page in under 10 minutes.",
+    labelName: "Your name", labelAgency: "Agency name",
+    labelWA: "WhatsApp number", labelEmail: "Email", labelMessage: "Message",
+    optional: "(optional)",
+    placeholderName: "Jane Smith", placeholderAgency: "Desert Tours",
+    placeholderWA: "+31 6 1234 5678", placeholderEmail: "you@agency.com",
+    placeholderMessage: "Tell us about your agency...",
+    cta: "Book my demo", submitting: "Sending...",
+    errRequired: "This field is required", errPhone: "Enter a valid WhatsApp number",
+    errEmail: "Enter a valid email address", errServer: "Something went wrong. Please try again.",
+  };
+
+  function isValidPhone(val: string) { return /^\d{7,15}$/.test(val.replace(/[^\d]/g, "")); }
+  function isValidEmail(val: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val); }
+
+  function validate(): Record<string, string> {
+    const e: Record<string, string> = {};
+    if (!name.trim()) e.name = L.errRequired;
+    if (!agencyName.trim()) e.agencyName = L.errRequired;
+    if (!whatsapp.trim()) e.whatsapp = L.errRequired;
+    else if (!isValidPhone(whatsapp)) e.whatsapp = L.errPhone;
+    if (email && !isValidEmail(email)) e.email = L.errEmail;
+    return e;
+  }
+
+  async function handleDemoSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    setErrors({});
+    setStatus("submitting");
+    try {
+      const res = await fetch("/api/submit-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, agencyName, whatsapp, email, message, website }),
+      });
+      if (!res.ok) throw new Error();
+      setStatus("success");
+    } catch {
+      setStatus("idle");
+      setServerError(L.errServer);
+    }
+  }
+
+  const inputSt: React.CSSProperties = {
+    width: "100%", padding: "10px 12px",
+    fontFamily: SANS, fontSize: 13.5, color: DA_INK1,
+    background: DA_BG, borderRadius: 8, outline: "none", boxSizing: "border-box",
+  };
+  const fieldSt = (key: string): React.CSSProperties => ({
+    ...inputSt, border: `1px solid ${errors[key] ? DA_DANGER : DA_RULE2}`,
+  });
+
+  return (
+    <div id="demo-m" style={{ padding: "44px 18px", background: DA_BG }}>
+      <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: DA_GOLD }}>{L.eyebrow}</div>
+        <h2 style={{ margin: "10px 0 0", fontFamily: DISPLAY, fontSize: 28, fontWeight: 400, color: DA_INK1, letterSpacing: -0.8, lineHeight: 1.05 }}>
+          {L.title} <span style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleAccent}</span>
+        </h2>
+        <p style={{ margin: "12px 0 0", fontFamily: SANS, fontSize: 13.5, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
+      </div>
+
+      {status === "success" ? (
+        <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "32px 20px", textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: DA_GREEN_SOFT, color: DA_GREEN, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+            <CheckSVG size={18} />
+          </div>
+          <div style={{ fontFamily: DISPLAY, fontSize: 24, color: DA_INK1, marginBottom: 8 }}>
+            {isAr ? "تم الحجز!" : "You're booked!"}
+          </div>
+          <p style={{ margin: 0, fontFamily: SANS, fontSize: 13, color: DA_INK2, lineHeight: 1.6 }}>
+            {isAr ? "سنتواصل معك على واتساب خلال ٢٤ ساعة." : "We'll reach out on WhatsApp within 24 hours."}
+          </p>
+        </div>
+      ) : (
+        <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 18px" }}>
+          <form onSubmit={handleDemoSubmit} noValidate>
+            <input
+              type="text" tabIndex={-1} aria-hidden="true" autoComplete="off"
+              value={website} onChange={e => setWebsite(e.target.value)}
+              style={{ position: "absolute", opacity: 0, pointerEvents: "none", width: 0, height: 0 }}
+            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{L.labelName}</div>
+                <input style={fieldSt("name")} value={name} placeholder={L.placeholderName}
+                  onChange={e => { setName(e.target.value); setErrors(er => ({ ...er, name: "" })); }} />
+                {errors.name && <div style={{ fontFamily: SANS, fontSize: 11, color: DA_DANGER, marginTop: 4 }}>{errors.name}</div>}
+              </div>
+
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{L.labelAgency}</div>
+                <input style={fieldSt("agencyName")} value={agencyName} placeholder={L.placeholderAgency}
+                  onChange={e => { setAgencyName(e.target.value); setErrors(er => ({ ...er, agencyName: "" })); }} />
+                {errors.agencyName && <div style={{ fontFamily: SANS, fontSize: 11, color: DA_DANGER, marginTop: 4 }}>{errors.agencyName}</div>}
+              </div>
+
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{L.labelWA}</div>
+                <div dir="ltr" style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#25d366", display: "flex", alignItems: "center", pointerEvents: "none" }}>
+                    <WASvg />
+                  </span>
+                  <input
+                    type="tel" dir="ltr"
+                    style={{ ...fieldSt("whatsapp"), paddingLeft: 34 }}
+                    value={whatsapp} placeholder={L.placeholderWA}
+                    onChange={e => { setWhatsapp(e.target.value); setErrors(er => ({ ...er, whatsapp: "" })); }}
+                  />
+                </div>
+                {errors.whatsapp && <div style={{ fontFamily: SANS, fontSize: 11, color: DA_DANGER, marginTop: 4 }}>{errors.whatsapp}</div>}
+              </div>
+
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>
+                  {L.labelEmail} <span style={{ fontWeight: 400, color: DA_INK3 }}>{L.optional}</span>
+                </div>
+                <input type="email" style={fieldSt("email")} value={email} placeholder={L.placeholderEmail}
+                  onChange={e => { setEmail(e.target.value); setErrors(er => ({ ...er, email: "" })); }} />
+                {errors.email && <div style={{ fontFamily: SANS, fontSize: 11, color: DA_DANGER, marginTop: 4 }}>{errors.email}</div>}
+              </div>
+
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>
+                  {L.labelMessage} <span style={{ fontWeight: 400, color: DA_INK3 }}>{L.optional}</span>
+                </div>
+                <textarea
+                  style={{ ...fieldSt("message"), resize: "vertical", minHeight: 80 }}
+                  value={message} placeholder={L.placeholderMessage}
+                  onChange={e => setMessage(e.target.value)}
+                />
+              </div>
+
+              {serverError && <div style={{ fontFamily: SANS, fontSize: 12.5, color: DA_DANGER }}>{serverError}</div>}
+
+              <button
+                type="submit"
+                disabled={status === "submitting"}
+                style={{
+                  width: "100%", padding: "13px 0",
+                  background: "transparent", border: `1.5px solid ${DA_INK1}`,
+                  color: DA_INK1, borderRadius: 10,
+                  fontFamily: SANS, fontSize: 14, fontWeight: 600,
+                  cursor: status === "submitting" ? "not-allowed" : "pointer",
+                  opacity: status === "submitting" ? 0.65 : 1,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  boxSizing: "border-box",
+                }}
+              >
+                {status === "submitting" ? L.submitting : <>{L.cta}<ArrowSVG size={13} /></>}
+              </button>
+
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
@@ -1902,6 +2392,7 @@ export default function MarketingPage() {
           <TemplateShowcase lang={lang} mobile />
           <MobileLandingExamples lang={lang} />
           <MobileLandingPricing lang={lang} spotsRemaining={spotsRemaining} />
+          <MobileLandingDemo lang={lang} />
           <MobileLandingFinalCta lang={lang} />
           <MobileLandingFooter lang={lang} />
         </>
@@ -1914,6 +2405,7 @@ export default function MarketingPage() {
           <TemplateShowcase lang={lang} />
           <LandingExamples lang={lang} />
           <LandingPricing lang={lang} spotsRemaining={spotsRemaining} />
+          <LandingDemo lang={lang} />
           <LandingFinalCta lang={lang} />
           <LandingFooter lang={lang} />
         </>
