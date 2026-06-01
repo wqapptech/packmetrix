@@ -78,7 +78,7 @@ export async function createCustomHostname(hostname: string): Promise<CFCustomHo
     body: JSON.stringify({
       hostname,
       ssl: {
-        method: "http",
+        method: "txt",
         type: "dv",
         settings: { min_tls_version: "1.2" },
       },
