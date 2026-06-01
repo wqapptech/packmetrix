@@ -11,6 +11,7 @@ import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import { canUseCustomDomain } from "@/lib/limits";
+import { toSlug } from "@/lib/trial";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT, DA_GREEN, DA_GREEN_SOFT, DA_DANGER, DA_DANGER_SOFT } from "@/lib/tokens";
 import { ConfirmModal } from "@/components/ConfirmModal";
 
@@ -97,6 +98,17 @@ export default function BrandingPage() {
   const [enableReviews, setEnableReviews] = useState(false);
   const [showReviews, setShowReviews] = useState(true);
 
+  const savedState = useRef({ name: "", tagline: "", email: "", phone: "", logoUrl: "", enableReviews: false, showReviews: true });
+  const hasChanges = (
+    name !== savedState.current.name ||
+    tagline !== savedState.current.tagline ||
+    email !== savedState.current.email ||
+    phone !== savedState.current.phone ||
+    logoUrl !== savedState.current.logoUrl ||
+    enableReviews !== savedState.current.enableReviews ||
+    showReviews !== savedState.current.showReviews
+  );
+
   const [plan, setPlan] = useState<string>("");
   const [agencySlug, setAgencySlug] = useState<string>("");
   const [customDomain, setCustomDomain] = useState<string>("");
@@ -132,15 +144,27 @@ export default function BrandingPage() {
       const snap = await getDoc(doc(db, "users", u.uid));
       if (snap.exists()) {
         const d = snap.data();
-        setName(d.name || "");
-        setTagline(d.tagline || "");
-        setEmail(d.email || "");
-        setPhone(d.phone || "");
-        setLogoUrl(d.logoUrl || "");
-        setEnableReviews(d.enableReviews === true);
-        setShowReviews(d.showReviews !== false); // default true
+        const _name = d.name || "";
+        const _tagline = d.tagline || "";
+        const _email = d.email || "";
+        const _phone = d.phone || "";
+        const _logoUrl = d.logoUrl || "";
+        const _enableReviews = d.enableReviews === true;
+        const _showReviews = d.showReviews !== false;
+        setName(_name);
+        setTagline(_tagline);
+        setEmail(_email);
+        setPhone(_phone);
+        setLogoUrl(_logoUrl);
+        setEnableReviews(_enableReviews);
+        setShowReviews(_showReviews);
+        savedState.current = { name: _name, tagline: _tagline, email: _email, phone: _phone, logoUrl: _logoUrl, enableReviews: _enableReviews, showReviews: _showReviews };
         setPlan(d.plan || "");
-        setAgencySlug(d.agencySlug || d.name || "");
+        const _slug = d.agencySlug ? d.agencySlug : toSlug(d.name || "");
+        setAgencySlug(_slug);
+        if (!d.agencySlug && _slug) {
+          updateDoc(doc(db, "users", u.uid), { agencySlug: _slug }).catch(() => {});
+        }
         const savedDomain = d.customDomain || "";
         setCustomDomain(savedDomain);
         setDomainInput(savedDomain);
@@ -181,6 +205,7 @@ export default function BrandingPage() {
     if (!uid) return;
     setSaving(true);
     await updateDoc(doc(db, "users", uid), { name, tagline, email, phone, logoUrl, enableReviews, showReviews });
+    savedState.current = { name, tagline, email, phone, logoUrl, enableReviews, showReviews };
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -375,14 +400,15 @@ export default function BrandingPage() {
           </div>
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !hasChanges}
             style={{
               padding: "9px 20px", borderRadius: 9, fontSize: 13, fontWeight: 700, fontFamily: SANS,
               background: saved ? DA_GREEN_SOFT : DA_GOLD,
               border: saved ? `1px solid ${DA_GREEN}` : "none",
               color: saved ? DA_GREEN : "#fff",
-              cursor: saving ? "not-allowed" : "pointer",
+              cursor: (saving || !hasChanges) ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", gap: 8, transition: "all .2s",
+              opacity: hasChanges || saved ? 1 : 0.35,
             }}
           >
             {saving

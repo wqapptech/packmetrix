@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { QueryDocumentSnapshot, DocumentReference } from "firebase-admin/firestore";
 import { db, adminAuth } from "@/lib/firebase-admin";
 import { verifyAdminToken } from "@/lib/admin-auth";
+import { toSlug } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ export async function GET(req: Request) {
       name: d.name || "",
       email: d.email || "",
       plan: d.plan || "free",
-      agencySlug: d.agencySlug || d.name || "",
+      agencySlug: d.agencySlug || toSlug(d.name || ""),
       customDomain: d.customDomain || null,
       customDomainStatus: d.customDomainStatus || null,
       trialEndsAt: d.trialEndsAt || null,

@@ -4,6 +4,7 @@ import { verifyUser } from "@/lib/verify-user";
 import { createCustomHostname, deleteCustomHostname } from "@/lib/cloudflare";
 import { mapCFStatus, extractDnsRecords, upsertDomainState } from "@/lib/domain-sync";
 import { sendDomainAddedEmail } from "@/lib/email";
+import { toSlug } from "@/lib/trial";
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  const agencySlug: string = userData.agencySlug || userData.name || user.uid;
+  const agencySlug: string = userData.agencySlug || toSlug(userData.name || "") || user.uid;
   const status = mapCFStatus(cfResult);
   const { verification_records, ssl_records } = extractDnsRecords(cfResult);
   const now = Date.now();

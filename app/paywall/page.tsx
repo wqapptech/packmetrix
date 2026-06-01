@@ -310,7 +310,6 @@ export default function PaywallPage() {
     "تاريخ تحليلات غير محدود",
     "نطاق مخصص",
     "كتابة محتوى بالذكاء الاصطناعي",
-    "حتى عضوَين في الفريق",
   ] : [
     "Unlimited package pages",
     "All templates",
@@ -319,7 +318,6 @@ export default function PaywallPage() {
     "Unlimited analytics history",
     "Custom domain",
     "AI-powered content writing",
-    "Up to 2 team members",
   ];
 
   const faqs = isAr ? [
