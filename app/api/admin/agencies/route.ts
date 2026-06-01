@@ -73,16 +73,30 @@ export async function GET(req: Request) {
   return NextResponse.json({ agencies });
 }
 
+const VALID_PLANS = ["free", "founding", "standard", "start", "grow", "scale"] as const;
+
 export async function PATCH(req: Request) {
   const admin = await verifyAdminToken(req.headers.get("authorization"));
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  const { uid, trialEndsAt } = await req.json();
-  if (!uid || typeof trialEndsAt !== "number") {
-    return NextResponse.json({ error: "Missing uid or trialEndsAt" }, { status: 400 });
+  const body = await req.json();
+  const { uid } = body;
+  if (!uid) return NextResponse.json({ error: "Missing uid" }, { status: 400 });
+
+  if (typeof body.trialEndsAt === "number") {
+    await db.collection("users").doc(uid).update({ trialEndsAt: body.trialEndsAt });
+    return NextResponse.json({ success: true, trialEndsAt: body.trialEndsAt });
   }
 
-  await db.collection("users").doc(uid).update({ trialEndsAt });
+  if (typeof body.plan === "string" && (VALID_PLANS as readonly string[]).includes(body.plan)) {
+    const updates: Record<string, unknown> = { plan: body.plan };
+    if (body.plan !== "free") {
+      updates.cancelAtPeriodEnd = false;
+      updates.currentPeriodEnd = null;
+    }
+    await db.collection("users").doc(uid).update(updates);
+    return NextResponse.json({ success: true, plan: body.plan });
+  }
 
-  return NextResponse.json({ success: true, trialEndsAt });
+  return NextResponse.json({ error: "Missing trialEndsAt or valid plan" }, { status: 400 });
 }

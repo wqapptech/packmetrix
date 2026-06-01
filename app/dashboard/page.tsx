@@ -35,6 +35,7 @@ type Package = {
   images?: string[];
   agencySlug?: string;
   isActive?: boolean;
+  primaryLanguage?: "en" | "ar";
 };
 
 type Lead = {

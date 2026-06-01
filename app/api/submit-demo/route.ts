@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
 import { sendDemoRequestEmail } from "@/lib/email";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 // ── Lightweight per-IP rate limiter ───────────────────────────────────────────
 // In-memory; resets on cold start. Sufficient for a low-traffic landing page.
@@ -103,6 +104,17 @@ export async function POST(req: Request) {
     // Fire-and-forget — a mail failure should not fail the user's submission
     sendDemoRequestEmail({ name: name.trim(), agencyName: agencyName.trim(), whatsapp: whatsapp.trim(), email: email?.trim() ?? "", message: message?.trim() ?? "" })
       .catch(e => console.error("submit-demo mail error:", e));
+
+    const distinctId = email?.trim() || `demo_${whatsapp.trim().replace(/[^\d]/g, "")}`;
+    getPostHogClient().capture({
+      distinctId,
+      event: "demo_request_received",
+      properties: {
+        agency_name: agencyName.trim(),
+        has_email: !!email?.trim(),
+        has_message: !!(message?.trim()),
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

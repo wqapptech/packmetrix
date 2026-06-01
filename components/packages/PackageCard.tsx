@@ -10,6 +10,7 @@ import {
   DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK3,
   DA_RULE, DA_RULE2, DA_GOLD, DA_GREEN, DA_GREEN_SOFT,
 } from "@/lib/tokens";
+import { ExportMenu } from "@/components/export/ExportMenu";
 
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
@@ -32,7 +33,7 @@ type Props = {
 };
 
 export function PackageCard({
-  pkg, lang,
+  pkg, agency, lang,
   onView, onEdit, onDelete, onToggleActive, onDuplicate, onCopyLink,
   templateName, nights,
 }: Props) {
@@ -73,13 +74,12 @@ export function PackageCard({
       background: DA_SURFACE,
       border: `1px solid ${DA_RULE}`,
       borderRadius: 14,
-      overflow: "hidden",
       display: "flex",
       flexDirection: "column",
       opacity: isPublished && !isActive ? 0.72 : 1,
     }}>
-      {/* Cover */}
-      <div style={{ position: "relative", height: 170, flexShrink: 0 }}>
+      {/* Cover — overflow:hidden here (not root) so the export dropdown can float above */}
+      <div style={{ position: "relative", height: 170, flexShrink: 0, overflow: "hidden", borderRadius: "14px 14px 0 0" }}>
         {pkg.coverImage ? (
           <img
             src={pkg.coverImage}
@@ -215,6 +215,16 @@ export function PackageCard({
             <button onClick={onCopyLink} style={{ ...btnBase, width: 32, height: 30 }} title={t.copyLink}>
               <Icon name="copy" size={12} color="currentColor" />
             </button>
+          )}
+          {isPublished && (
+            <ExportMenu
+              pkgId={pkg.id}
+              agencySlug={pkg.agencySlug || agency.agencySlug || ""}
+              pkgLang={pkg.primaryLanguage ?? "en"}
+              uiLang={lang}
+              dropdownDir="above"
+              compact
+            />
           )}
         </div>
 

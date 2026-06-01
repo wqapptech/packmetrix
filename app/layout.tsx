@@ -11,6 +11,8 @@ import {
   IBM_Plex_Mono,
   IBM_Plex_Sans,
   Source_Serif_4,
+  Noto_Sans_Arabic,
+  Noto_Naskh_Arabic,
 } from "next/font/google";
 import "./globals.css";
 
@@ -87,6 +89,18 @@ const sourceSerif = Source_Serif_4({
   style: ["normal", "italic"],
 });
 
+const notoSansArabic = Noto_Sans_Arabic({
+  variable: "--font-noto-sans-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600"],
+});
+
+const notoNaskhArabic = Noto_Naskh_Arabic({
+  variable: "--font-noto-naskh-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "PackMetrix — Travel Package Intelligence",
   description:
@@ -99,8 +113,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} h-full`}
-      style={{ fontFamily: "var(--font-dm-sans), 'DM Sans', sans-serif" }}
+      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} ${notoSansArabic.variable} ${notoNaskhArabic.variable} h-full`}
+      style={{ fontFamily: "var(--font-inter-tight), 'Inter Tight', system-ui, sans-serif" }}
     >
       <body className="h-full" style={{ fontFamily: "inherit" }}>
         {children}
