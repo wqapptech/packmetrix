@@ -249,6 +249,101 @@ function ExtendTrialModal({ agency, token, onClose, onExtended }: {
   );
 }
 
+// ─── Grant Plan Modal ─────────────────────────────────────────────────────────
+
+const PLAN_OPTIONS: { value: string; label: string }[] = [
+  { value: "founding", label: "Founding" },
+  { value: "standard", label: "Standard" },
+  { value: "start",    label: "Start" },
+  { value: "grow",     label: "Grow" },
+  { value: "scale",    label: "Scale" },
+  { value: "free",     label: "Free (downgrade)" },
+];
+
+function GrantPlanModal({ agency, token, onClose, onGranted }: {
+  agency: Agency; token: string; onClose: () => void; onGranted: (uid: string, plan: string) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+  const [plan, setPlan]     = useState<string>("founding");
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/agencies", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ uid: agency.uid, plan }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
+      onGranted(agency.uid, plan);
+      onClose();
+    } catch (err: any) { setError(err.message); }
+    finally { setSaving(false); }
+  };
+
+  const currentChip = PLAN_CHIP[agency.plan] ?? PLAN_CHIP.free;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(26,22,17,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ width: "100%", maxWidth: 440, background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 20px 60px rgba(26,22,17,0.15)" }}>
+        {/* Header */}
+        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: DA_INK1, fontFamily: DISPLAY }}>Grant Subscription</div>
+            <div style={{ fontSize: 12.5, color: DA_INK2, marginTop: 3 }}>{agency.name || agency.email}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: DA_INK3, fontSize: 22, cursor: "pointer", lineHeight: 1, padding: "0 4px" }}>×</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column" as const, gap: 18 }}>
+          {/* Current plan */}
+          <div style={{ padding: "12px 16px", borderRadius: 12, background: DA_BG, border: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 12, color: DA_INK3, fontWeight: 600 }}>Current plan</div>
+            <Chip label={currentChip.label} color={currentChip.color} bg={currentChip.bg} border={currentChip.border} />
+          </div>
+
+          {/* Plan picker */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: DA_INK3, letterSpacing: 0.6, textTransform: "uppercase" as const, marginBottom: 10, fontFamily: SANS }}>Grant plan</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              {PLAN_OPTIONS.map(opt => {
+                const chip = PLAN_CHIP[opt.value] ?? PLAN_CHIP.free;
+                const selected = plan === opt.value;
+                return (
+                  <button key={opt.value} onClick={() => setPlan(opt.value)} style={{ padding: "10px 6px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: SANS, transition: "all .12s",
+                    background: selected ? chip.bg : "transparent",
+                    border: `1px solid ${selected ? chip.border : DA_RULE}`,
+                    color: selected ? chip.color : DA_INK2,
+                  }}>
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ padding: "12px 16px", borderRadius: 12, background: DA_GOLD_SOFT, border: "1px solid rgba(176,138,62,0.25)", fontSize: 12.5, color: DA_GOLD_DEEP, lineHeight: 1.55 }}>
+            This bypasses Stripe and sets the plan directly. No charge is applied. Use for internal accounts, demos, or manual exceptions.
+          </div>
+
+          {error && <div style={{ fontSize: 12.5, color: DA_DANGER, padding: "10px 14px", borderRadius: 10, background: DA_DANGER_SOFT, border: "1px solid rgba(192,83,58,0.2)" }}>{error}</div>}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} disabled={saving} style={{ padding: "10px 20px", borderRadius: 10, background: "transparent", border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: SANS }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ padding: "10px 24px", borderRadius: 10, background: saving ? DA_GOLD_SOFT : DA_GOLD, color: saving ? DA_GOLD_DEEP : "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: saving ? "not-allowed" : "pointer", fontFamily: SANS }}>
+            {saving ? "Saving…" : "Grant plan"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 
 function DeleteAgencyModal({ agency, token, onClose, onDeleted }: {
@@ -371,6 +466,7 @@ export default function AdminPage() {
   const [filterPlan, setFilterPlan] = useState("all");
   const [deleting, setDeleting]   = useState<Agency | null>(null);
   const [extending, setExtending] = useState<Agency | null>(null);
+  const [granting, setGranting]   = useState<Agency | null>(null);
   const [wiping, setWiping]       = useState(false);
   const [wipeMsg, setWipeMsg]     = useState<string | null>(null);
 
@@ -399,6 +495,7 @@ export default function AdminPage() {
 
   const handleDeleted  = (uid: string) => setAgencies(prev => prev.filter(a => a.uid !== uid));
   const handleExtended = (uid: string, ts: number) => setAgencies(prev => prev.map(a => a.uid === uid ? { ...a, trialEndsAt: ts } : a));
+  const handleGranted  = (uid: string, plan: string) => setAgencies(prev => prev.map(a => a.uid === uid ? { ...a, plan } : a));
   const handleWiped    = (count: number) => {
     setWipeMsg(`Deleted ${count} test ${count === 1 ? "agency" : "agencies"}.`);
     if (token) loadAgencies(token);
@@ -415,7 +512,7 @@ export default function AdminPage() {
   const totalExpired     = agencies.filter(a => !isPaid(a.plan) && a.trialEndsAt && !isTrialActive(a.trialEndsAt)).length;
   const withDomain       = agencies.filter(a => a.customDomain).length;
 
-  const COLS = "minmax(160px,1.6fr) minmax(150px,1.4fr) 90px 100px minmax(150px,1.2fr) 110px 80px";
+  const COLS = "minmax(160px,1.6fr) minmax(150px,1.4fr) 90px 100px minmax(150px,1.2fr) 110px 114px";
 
   const inputBase: React.CSSProperties = { background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "9px 14px", color: DA_INK1, fontSize: 13, fontFamily: SANS, outline: "none" };
 
@@ -519,6 +616,7 @@ export default function AdminPage() {
 
               {/* Actions */}
               <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <IconBtn onClick={() => setGranting(agency)} title="Grant plan" icon="⭐" />
                 <IconBtn onClick={() => setExtending(agency)} title="Extend trial" icon="⏱" />
                 <IconBtn onClick={() => setDeleting(agency)} title="Delete agency" icon="🗑" danger />
               </div>
@@ -528,6 +626,9 @@ export default function AdminPage() {
       )}
 
       {/* Modals */}
+      {granting && token && (
+        <GrantPlanModal agency={granting} token={token} onClose={() => setGranting(null)} onGranted={(uid, plan) => { handleGranted(uid, plan); setGranting(null); }} />
+      )}
       {extending && token && (
         <ExtendTrialModal agency={extending} token={token} onClose={() => setExtending(null)} onExtended={(uid, ts) => { handleExtended(uid, ts); setExtending(null); }} />
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import posthog from "posthog-js";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -16,8 +17,8 @@ import {
   DA_GREEN, DA_GREEN_SOFT, DA_DARK, DA_DANGER,
 } from "@/lib/tokens";
 
-const DISPLAY = "var(--font-instrument-serif), Georgia, serif";
-const SANS    = "var(--font-inter-tight), system-ui, sans-serif";
+const DISPLAY = "var(--lp-display, var(--font-instrument-serif), Georgia, serif)";
+const SANS    = "var(--lp-sans, var(--font-inter-tight), system-ui, sans-serif)";
 const MONO    = '"JetBrains Mono", ui-monospace, monospace';
 
 const AGENCY_URL =
@@ -324,10 +325,10 @@ function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaini
             <div style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleB}</div>
           </h1>
 
-          <p style={{ marginTop: 22, maxWidth: 540, fontFamily: SANS, fontSize: 16, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
+          <p style={{ marginTop: 22, maxWidth: 540, fontFamily: SANS, fontSize: 17, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
 
           <div style={{ marginTop: 28, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <a href={`${AGENCY_URL}/signup`} style={{
+            <a href={`${AGENCY_URL}/signup`} onClick={() => posthog.capture("cta_clicked", { cta: "signup", location: "hero", lang, device: "desktop" })} style={{
               padding: "14px 22px", background: DA_GOLD, color: "#fff",
               border: "none", borderRadius: 10,
               fontFamily: SANS, fontSize: 14.5, fontWeight: 600,
@@ -335,7 +336,7 @@ function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaini
               cursor: "pointer", textDecoration: "none",
               boxShadow: "0 2px 4px rgba(26,22,17,.08), 0 8px 24px -8px rgba(176,138,62,.4), inset 0 1px 0 rgba(255,255,255,.18)",
             }}>{L.primary}<ArrowSVG size={15} /></a>
-            <a href="#demo" style={{
+            <a href="#demo" onClick={() => posthog.capture("demo_cta_clicked", { location: "hero", lang, device: "desktop" })} style={{
               padding: "13px 18px", background: "transparent",
               border: `1.5px solid ${DA_INK1}`, color: DA_INK1, borderRadius: 10,
               fontFamily: SANS, fontSize: 14.5, fontWeight: 600,
@@ -467,9 +468,9 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
           <div style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleB}</div>
         </h1>
 
-        <p style={{ margin: "16px 0 0", fontFamily: SANS, fontSize: 14, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
+        <p style={{ margin: "16px 0 0", fontFamily: SANS, fontSize: 16, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
 
-        <a href={`${AGENCY_URL}/signup`} style={{
+        <a href={`${AGENCY_URL}/signup`} onClick={() => posthog.capture("cta_clicked", { cta: "signup", location: "hero", lang, device: "mobile" })} style={{
           display: "flex", width: "100%", marginTop: 22, padding: "13px 0",
           background: DA_GOLD, color: "#fff",
           border: "none", borderRadius: 10,
@@ -479,7 +480,7 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
           boxShadow: "0 2px 4px rgba(26,22,17,.08), 0 8px 20px -6px rgba(176,138,62,.4), inset 0 1px 0 rgba(255,255,255,.18)",
         }}>{L.primary}<ArrowSVG size={14} /></a>
 
-        <a href="#demo-m" style={{
+        <a href="#demo-m" onClick={() => posthog.capture("demo_cta_clicked", { location: "hero", lang, device: "mobile" })} style={{
           display: "flex", width: "100%", marginTop: 10, padding: "13px 0",
           background: "transparent", border: `1.5px solid ${DA_INK1}`,
           color: DA_INK1, borderRadius: 10,
@@ -566,7 +567,7 @@ function LandingFeatures({ lang }: { lang: "en" | "ar" }) {
           <h2 style={{ margin: "12px 0 0", fontFamily: DISPLAY, fontSize: 48, fontWeight: 400, color: DA_INK1, letterSpacing: -1.2, lineHeight: 1.05 }}>
             {L.title}<br /><span style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleAccent}</span>
           </h2>
-          <p style={{ margin: "18px auto 0", maxWidth: 600, fontFamily: SANS, fontSize: 15, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
+          <p style={{ margin: "18px auto 0", maxWidth: 600, fontFamily: SANS, fontSize: 17, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
@@ -583,7 +584,7 @@ function LandingFeatures({ lang }: { lang: "en" | "ar" }) {
               }}>{featureIcons[i]}</div>
               <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase", color: DA_GOLD, marginTop: 4 }}>{c.eyebrow}</div>
               <h3 style={{ margin: 0, fontFamily: DISPLAY, fontSize: 22, fontWeight: 400, color: DA_INK1, letterSpacing: -0.4, lineHeight: 1.15 }}>{c.title}</h3>
-              <p style={{ margin: 0, fontFamily: SANS, fontSize: 13.5, color: DA_INK2, lineHeight: 1.6 }}>{c.body}</p>
+              <p style={{ margin: 0, fontFamily: SANS, fontSize: 15, color: DA_INK2, lineHeight: 1.6 }}>{c.body}</p>
             </div>
           ))}
         </div>
@@ -639,7 +640,7 @@ function MobileLandingFeatures({ lang }: { lang: "en" | "ar" }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: SANS, fontSize: 9.5, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", color: DA_GOLD }}>{c.eyebrow}</div>
               <h3 style={{ margin: "4px 0 0", fontFamily: DISPLAY, fontSize: 17, fontWeight: 400, color: DA_INK1, letterSpacing: -0.3, lineHeight: 1.2 }}>{c.title}</h3>
-              <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: 12.5, color: DA_INK2, lineHeight: 1.55 }}>{c.body}</p>
+              <p style={{ margin: "6px 0 0", fontFamily: SANS, fontSize: 14, color: DA_INK2, lineHeight: 1.55 }}>{c.body}</p>
             </div>
           </div>
         ))}
@@ -930,7 +931,7 @@ function LandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
           <h2 style={{ margin: "12px 0 0", fontFamily: DISPLAY, fontSize: 48, fontWeight: 400, color: DA_INK1, letterSpacing: -1.2, lineHeight: 1.05 }}>
             {L.title} <span style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleAccent}</span>
           </h2>
-          <p style={{ margin: "18px auto 0", maxWidth: 520, fontFamily: SANS, fontSize: 15, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
+          <p style={{ margin: "18px auto 0", maxWidth: 520, fontFamily: SANS, fontSize: 17, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
@@ -953,7 +954,7 @@ function LandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
                   }}>{`0${i + 1}`}</div>
                   <h3 style={{ margin: 0, fontFamily: DISPLAY, fontSize: 28, fontWeight: 400, color: DA_INK1, letterSpacing: -0.6, lineHeight: 1.1 }}>{s.title}</h3>
                 </div>
-                <p style={{ margin: 0, paddingInlineStart: 54, fontFamily: SANS, fontSize: 15, color: DA_INK2, lineHeight: 1.6, maxWidth: 420 }}>{s.body}</p>
+                <p style={{ margin: 0, paddingInlineStart: 54, fontFamily: SANS, fontSize: 16, color: DA_INK2, lineHeight: 1.6, maxWidth: 420 }}>{s.body}</p>
               </div>
             );
             return (
@@ -1016,7 +1017,7 @@ function MobileLandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
                 }}>{`0${i + 1}`}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h3 style={{ margin: 0, fontFamily: DISPLAY, fontSize: 18, fontWeight: 400, color: DA_INK1, letterSpacing: -0.3, lineHeight: 1.2 }}>{s.title}</h3>
-                  <p style={{ margin: "5px 0 0", fontFamily: SANS, fontSize: 12.5, color: DA_INK2, lineHeight: 1.55 }}>{s.body}</p>
+                  <p style={{ margin: "5px 0 0", fontFamily: SANS, fontSize: 14, color: DA_INK2, lineHeight: 1.55 }}>{s.body}</p>
                 </div>
               </div>
             </div>
@@ -1052,7 +1053,7 @@ function TemplateShowcase({ lang, mobile }: { lang: "en" | "ar"; mobile?: boolea
             <h2 style={{ margin: "10px 0 0", fontFamily: DISPLAY, fontSize: mobile ? 26 : 44, fontWeight: 400, color: DA_INK1, letterSpacing: mobile ? -0.7 : -1, lineHeight: 1.1 }}>
               {L.title} <span style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleAccent}</span>
             </h2>
-            {!mobile && <p style={{ margin: "16px 0 0", fontFamily: SANS, fontSize: 15, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>}
+            {!mobile && <p style={{ margin: "16px 0 0", fontFamily: SANS, fontSize: 17, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>}
           </div>
           {!mobile && (
             <a href="/templates" style={{
@@ -1388,7 +1389,7 @@ function LandingExamples({ lang }: { lang: "en" | "ar" }) {
           </h2>
           <p style={{
             margin: "18px auto 0", maxWidth: 560,
-            fontFamily: SANS, fontSize: 15, color: DA_INK2, lineHeight: 1.55,
+            fontFamily: SANS, fontSize: 17, color: DA_INK2, lineHeight: 1.55,
           }}>{L.sub}</p>
         </div>
 
@@ -1494,7 +1495,7 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
           <h2 style={{ margin: "12px 0 0", fontFamily: DISPLAY, fontSize: 48, fontWeight: 400, color: DA_INK1, letterSpacing: -1.2, lineHeight: 1.05 }}>
             {L.title} <span style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleAccent}</span>
           </h2>
-          <p style={{ margin: "18px auto 0", maxWidth: 580, fontFamily: SANS, fontSize: 15, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
+          <p style={{ margin: "18px auto 0", maxWidth: 580, fontFamily: SANS, fontSize: 17, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
         </div>
 
         <div style={{
@@ -1560,7 +1561,7 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
               ))}
             </div>
 
-            <a href={`${AGENCY_URL}/signup`} style={{
+            <a href={`${AGENCY_URL}/signup`} onClick={() => posthog.capture("cta_clicked", { cta: "signup", location: "pricing", lang, device: "desktop" })} style={{
               display: "flex", width: "100%", padding: "14px 0",
               background: DA_GOLD, color: "#fff", border: "none", borderRadius: 10,
               fontFamily: SANS, fontSize: 14.5, fontWeight: 600,
@@ -1647,7 +1648,7 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
               </div>
             ))}
           </div>
-          <a href={`${AGENCY_URL}/signup`} style={{
+          <a href={`${AGENCY_URL}/signup`} onClick={() => posthog.capture("cta_clicked", { cta: "signup", location: "pricing", lang, device: "mobile" })} style={{
             display: "flex", width: "100%", marginTop: 22, padding: "13px 0",
             background: DA_GOLD, color: "#fff", border: "none", borderRadius: 10,
             fontFamily: SANS, fontSize: 14, fontWeight: 600,
@@ -1699,7 +1700,7 @@ function DemoSuccessCard({ lang }: { lang: "en" | "ar" }) {
         <CheckSVG size={22} />
       </div>
       <div style={{ fontFamily: DISPLAY, fontSize: 30, color: DA_INK1, marginBottom: 10, letterSpacing: -0.6 }}>{t.title}</div>
-      <p style={{ margin: 0, fontFamily: SANS, fontSize: 14, color: DA_INK2, lineHeight: 1.6, maxWidth: 380, marginInline: "auto" }}>{t.sub}</p>
+      <p style={{ margin: 0, fontFamily: SANS, fontSize: 15, color: DA_INK2, lineHeight: 1.6, maxWidth: 380, marginInline: "auto" }}>{t.sub}</p>
     </div>
   );
 }
@@ -1773,6 +1774,7 @@ function LandingDemo({ lang }: { lang: "en" | "ar" }) {
         body: JSON.stringify({ name, agencyName, whatsapp, email, message, website }),
       });
       if (!res.ok) throw new Error();
+      posthog.capture("demo_form_submitted", { has_email: !!email.trim(), lang: isAr ? "ar" : "en", device: "desktop" });
       setStatus("success");
     } catch {
       setStatus("idle");
@@ -1797,7 +1799,7 @@ function LandingDemo({ lang }: { lang: "en" | "ar" }) {
           <h2 style={{ margin: "12px 0 0", fontFamily: DISPLAY, fontSize: 40, fontWeight: 400, color: DA_INK1, letterSpacing: -1, lineHeight: 1.05 }}>
             {L.title} <span style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleAccent}</span>
           </h2>
-          <p style={{ margin: "16px auto 0", maxWidth: 480, fontFamily: SANS, fontSize: 14.5, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
+          <p style={{ margin: "16px auto 0", maxWidth: 480, fontFamily: SANS, fontSize: 16, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
         </div>
 
         {status === "success" ? <DemoSuccessCard lang={lang} /> : (
@@ -1958,6 +1960,7 @@ function MobileLandingDemo({ lang }: { lang: "en" | "ar" }) {
         body: JSON.stringify({ name, agencyName, whatsapp, email, message, website }),
       });
       if (!res.ok) throw new Error();
+      posthog.capture("demo_form_submitted", { has_email: !!email.trim(), lang: isAr ? "ar" : "en", device: "mobile" });
       setStatus("success");
     } catch {
       setStatus("idle");
@@ -1981,7 +1984,7 @@ function MobileLandingDemo({ lang }: { lang: "en" | "ar" }) {
         <h2 style={{ margin: "10px 0 0", fontFamily: DISPLAY, fontSize: 28, fontWeight: 400, color: DA_INK1, letterSpacing: -0.8, lineHeight: 1.05 }}>
           {L.title} <span style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleAccent}</span>
         </h2>
-        <p style={{ margin: "12px 0 0", fontFamily: SANS, fontSize: 13.5, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
+        <p style={{ margin: "12px 0 0", fontFamily: SANS, fontSize: 15, color: DA_INK2, lineHeight: 1.55 }}>{L.sub}</p>
       </div>
 
       {status === "success" ? (
@@ -1992,7 +1995,7 @@ function MobileLandingDemo({ lang }: { lang: "en" | "ar" }) {
           <div style={{ fontFamily: DISPLAY, fontSize: 24, color: DA_INK1, marginBottom: 8 }}>
             {isAr ? "تم الحجز!" : "You're booked!"}
           </div>
-          <p style={{ margin: 0, fontFamily: SANS, fontSize: 13, color: DA_INK2, lineHeight: 1.6 }}>
+          <p style={{ margin: 0, fontFamily: SANS, fontSize: 14, color: DA_INK2, lineHeight: 1.6 }}>
             {isAr ? "سنتواصل معك على واتساب خلال ٢٤ ساعة." : "We'll reach out on WhatsApp within 24 hours."}
           </p>
         </div>
@@ -2107,8 +2110,8 @@ function LandingFinalCta({ lang }: { lang: "en" | "ar" }) {
         <h2 style={{ margin: "14px 0 0", fontFamily: DISPLAY, fontSize: 56, fontWeight: 400, color: DA_BG, letterSpacing: -1.5, lineHeight: 1.02 }}>
           {L.title} <span style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleAccent}</span>
         </h2>
-        <p style={{ margin: "22px auto 0", maxWidth: 500, fontFamily: SANS, fontSize: 15.5, color: "rgba(244,240,232,.72)", lineHeight: 1.55 }}>{L.sub}</p>
-        <a href={`${AGENCY_URL}/signup`} style={{
+        <p style={{ margin: "22px auto 0", maxWidth: 500, fontFamily: SANS, fontSize: 16, color: "rgba(244,240,232,.72)", lineHeight: 1.55 }}>{L.sub}</p>
+        <a href={`${AGENCY_URL}/signup`} onClick={() => posthog.capture("cta_clicked", { cta: "signup", location: "final_cta", lang, device: "desktop" })} style={{
           display: "inline-flex", marginTop: 32, padding: "16px 30px",
           background: DA_GOLD, color: "#fff", border: "none", borderRadius: 12,
           fontFamily: SANS, fontSize: 15, fontWeight: 600,
@@ -2142,8 +2145,8 @@ function MobileLandingFinalCta({ lang }: { lang: "en" | "ar" }) {
           <div>{L.titleA}</div>
           <div style={{ fontStyle: "italic", color: DA_GOLD }}>{L.titleB}</div>
         </h2>
-        <p style={{ margin: "16px 0 0", fontFamily: SANS, fontSize: 14, color: "rgba(244,240,232,.72)", lineHeight: 1.55 }}>{L.sub}</p>
-        <a href={`${AGENCY_URL}/signup`} style={{
+        <p style={{ margin: "16px 0 0", fontFamily: SANS, fontSize: 16, color: "rgba(244,240,232,.72)", lineHeight: 1.55 }}>{L.sub}</p>
+        <a href={`${AGENCY_URL}/signup`} onClick={() => posthog.capture("cta_clicked", { cta: "signup", location: "final_cta", lang, device: "mobile" })} style={{
           display: "flex", width: "100%", marginTop: 22, padding: "14px 0",
           background: DA_GOLD, color: "#fff", border: "none", borderRadius: 10,
           fontFamily: SANS, fontSize: 14, fontWeight: 600,
@@ -2202,7 +2205,7 @@ function ContactModal({ open, onClose, isAr }: { open: boolean; onClose: () => v
           <div style={{ textAlign: "center", padding: "12px 0" }}>
             <div style={{ width: 48, height: 48, borderRadius: "50%", background: DA_GREEN_SOFT, color: DA_GREEN, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 16 }}>✓</div>
             <div style={{ fontFamily: DISPLAY, fontSize: 22, color: DA_INK1, marginBottom: 8 }}>{isAr ? "تم الإرسال!" : "Message sent!"}</div>
-            <p style={{ fontFamily: SANS, fontSize: 13.5, color: DA_INK2, margin: "0 0 24px" }}>{isAr ? "سنرد عليك في أقرب وقت ممكن." : "We'll get back to you as soon as possible."}</p>
+            <p style={{ fontFamily: SANS, fontSize: 14, color: DA_INK2, margin: "0 0 24px" }}>{isAr ? "سنرد عليك في أقرب وقت ممكن." : "We'll get back to you as soon as possible."}</p>
             <button onClick={onClose} style={{ padding: "10px 28px", background: DA_INK1, color: DA_BG, border: "none", borderRadius: 8, fontFamily: SANS, fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
               {isAr ? "إغلاق" : "Close"}
             </button>
@@ -2210,7 +2213,7 @@ function ContactModal({ open, onClose, isAr }: { open: boolean; onClose: () => v
         ) : (
           <form onSubmit={handleSubmit}>
             <div style={{ fontFamily: DISPLAY, fontSize: 22, color: DA_INK1, marginBottom: 6 }}>{isAr ? "تواصل معنا" : "Contact us"}</div>
-            <p style={{ fontFamily: SANS, fontSize: 13, color: DA_INK2, margin: "0 0 22px" }}>{isAr ? "أرسل لنا رسالة وسنرد عليك." : "Send us a message and we'll get back to you."}</p>
+            <p style={{ fontFamily: SANS, fontSize: 14, color: DA_INK2, margin: "0 0 22px" }}>{isAr ? "أرسل لنا رسالة وسنرد عليك." : "Send us a message and we'll get back to you."}</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "الموضوع" : "Subject"}</div>
@@ -2375,6 +2378,7 @@ export default function MarketingPage() {
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
 
   useEffect(() => {
+    posthog.capture("landing_page_viewed", { lang, device: isMobile ? "mobile" : "desktop" });
     fetch("/api/founding-spots")
       .then(r => r.json())
       .then(d => setSpotsRemaining(d.remaining ?? 0))
@@ -2382,7 +2386,7 @@ export default function MarketingPage() {
   }, []);
 
   return (
-    <div dir={isAr ? "rtl" : "ltr"} style={{ background: DA_BG, fontFamily: SANS, minHeight: "100vh" }}>
+    <div dir={isAr ? "rtl" : "ltr"} className={isAr ? "lp-ar" : undefined} style={{ background: DA_BG, fontFamily: SANS, minHeight: "100vh" }}>
       {isMobile ? (
         <>
           <MobileLandingNav lang={lang} />

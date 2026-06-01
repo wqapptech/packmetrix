@@ -49,13 +49,13 @@ env:
 
   # Stripe — price IDs (non-sensitive, safe to commit)
   - variable: STRIPE_PRICE_ID_FOUNDING_MONTHLY
-    value: "price_1TYYes1w5lYoLZrLAZ5rGHxp"
+    value: "price_1Td9Io0LOnYea6gwjOxggGZ6"
   - variable: STRIPE_PRICE_ID_FOUNDING_ANNUAL
-    value: "price_1TYYgP1w5lYoLZrLXPvrbK0G"
+    value: "price_1Td9In0LOnYea6gwEAxc03hE"
   - variable: STRIPE_PRICE_ID_STANDARD_MONTHLY
-    value: "price_1TYYiF1w5lYoLZrL1UcT3WFK"
+    value: "price_1Td9Ik0LOnYea6gwchAaJ1Up"
   - variable: STRIPE_PRICE_ID_STANDARD_ANNUAL
-    value: "price_1TYYiX1w5lYoLZrLEckLjEz5"
+    value: "price_1Td9Ik0LOnYea6gwBQIQcc9t"
 
   # Stripe — redirect URLs
   - variable: STRIPE_SUCCESS_URL

@@ -340,6 +340,7 @@ export type TListPackage = {
   status?: "draft" | "active" | "sold_out";
   title?: LocStr;
   templateId?: string;
+  primaryLanguage?: "en" | "ar";
 };
 
 export type TCardProps = {
