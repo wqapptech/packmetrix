@@ -2377,8 +2377,10 @@ export default function MarketingPage() {
 
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { posthog.capture("landing_page_viewed", { lang, device: isMobile ? "mobile" : "desktop" }); }, []);
+
   useEffect(() => {
-    posthog.capture("landing_page_viewed", { lang, device: isMobile ? "mobile" : "desktop" });
     fetch("/api/founding-spots")
       .then(r => r.json())
       .then(d => setSpotsRemaining(d.remaining ?? 0))

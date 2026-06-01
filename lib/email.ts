@@ -60,7 +60,7 @@ export async function sendDomainAddedEmail(opts: {
   </table>
 
   <p style="color:#555;margin:0 0 8px">We check your domain automatically every few minutes and will email you once it's live.</p>
-  <p style="color:#888;font-size:12px;margin:0">You can also check the current status anytime from your <a href="https://app.packmetrix.com/profile" style="color:#1f5f8e">profile page</a>.</p>
+  <p style="color:#888;font-size:12px;margin:0">You can also check the current status anytime from your <a href="https://packmetrix.com/profile" style="color:#1f5f8e">profile page</a>.</p>
 </div>`,
   });
 }
@@ -191,7 +191,7 @@ export async function sendDomainFailedEmail(opts: {
     <li>A proxy (e.g. Cloudflare orange-cloud) is interfering with the CNAME</li>
     <li>Your registrar cached stale records</li>
   </ul>
-  <p style="color:#555;margin:0 0 24px">You can remove this domain from your <a href="https://app.packmetrix.com/profile" style="color:#1f5f8e">profile page</a> and try again, or reply to this email and we'll help you troubleshoot.</p>
+  <p style="color:#555;margin:0 0 24px">You can remove this domain from your <a href="https://packmetrix.com/profile" style="color:#1f5f8e">profile page</a> and try again, or reply to this email and we'll help you troubleshoot.</p>
   <p style="color:#888;font-size:12px;margin:0">The Packmetrix team</p>
 </div>`,
   });

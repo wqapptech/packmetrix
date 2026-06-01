@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
-const NAVY  = "#0d1b2e";
-const SAND  = "#e8c97b";
-const ERROR = "#ef9090";
+const NAVY  = "#1a1611";
+const SAND  = "#b08a3e";
+const ERROR = "#c0392b";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -48,8 +48,8 @@ export default function AdminLoginPage() {
     <div style={{ minHeight: "calc(100vh - 52px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ marginBottom: 28, textAlign: "center" }}>
-          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.3px" }}>Admin Sign In</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>PackMetrix internal dashboard</div>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.3px", color: NAVY }}>Admin Sign In</div>
+          <div style={{ fontSize: 13, color: "#968d7c", marginTop: 6 }}>PackMetrix internal dashboard</div>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
           />
 
           {error && (
-            <div style={{ fontSize: 12.5, color: ERROR, padding: "8px 12px", borderRadius: 8, background: "rgba(239,144,144,0.08)", border: "1px solid rgba(239,144,144,0.2)" }}>
+            <div style={{ fontSize: 12.5, color: ERROR, padding: "8px 12px", borderRadius: 8, background: "rgba(192,57,43,0.07)", border: "1px solid rgba(192,57,43,0.2)" }}>
               {error}
             </div>
           )}
@@ -91,11 +91,11 @@ export default function AdminLoginPage() {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  background: "#ffffff",
+  border: "1px solid rgba(26,22,17,0.15)",
   borderRadius: 10,
   padding: "11px 14px",
-  color: "#fdfcf9",
+  color: "#1a1611",
   fontSize: 13,
   fontFamily: "inherit",
   outline: "none",

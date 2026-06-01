@@ -613,28 +613,38 @@ export default function BrandingPage() {
                         </div>
                         <div style={{ overflowX: "auto", borderRadius: 8, border: `1px solid ${DA_RULE}`, background: DA_SURFACE }}>
                         <div style={{ minWidth: 420 }}>
-                          <div style={{ display: "grid", gridTemplateColumns: "55px 1fr 1fr auto", background: DA_BG, padding: "6px 10px", gap: 8 }}>
-                            {[t.customDomainRecordType, t.customDomainRecordName, t.customDomainRecordValue, ""].map((h, i) => (
+                          <div style={{ display: "grid", gridTemplateColumns: "55px 1fr 1fr", background: DA_BG, padding: "6px 10px", gap: 8 }}>
+                            {[t.customDomainRecordType, t.customDomainRecordName, t.customDomainRecordValue].map((h, i) => (
                               <div key={i} style={{ fontSize: 10, fontWeight: 700, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
                             ))}
                           </div>
                           {allRecords.map((rec, idx) => (
-                            <div key={`${rec.type}:${rec.name}:${idx}`} style={{ display: "grid", gridTemplateColumns: "55px 1fr 1fr auto", padding: "8px 10px", gap: 8, alignItems: "center", borderTop: `1px solid ${DA_RULE}`, background: idx % 2 === 0 ? "transparent" : DA_BG }}>
-                              <div style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: meta.color }}>{rec.type}</div>
-                              <div style={{ fontFamily: "monospace", fontSize: 11, color: DA_INK2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{rec.name}</div>
-                              <div style={{ fontFamily: "monospace", fontSize: 10.5, color: DA_INK3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{rec.value}</div>
-                              <button
-                                onClick={() => { const k = `${rec.type}:${rec.name}:${idx}`; handleCopyRecord(k, rec.value); }}
-                                style={{ padding: "3px 9px", borderRadius: 5, background: copiedKey === `${rec.type}:${rec.name}:${idx}` ? DA_GREEN_SOFT : DA_SURFACE, border: `1px solid ${copiedKey === `${rec.type}:${rec.name}:${idx}` ? DA_GREEN : DA_RULE}`, color: copiedKey === `${rec.type}:${rec.name}:${idx}` ? DA_GREEN : DA_INK3, fontSize: 10.5, fontWeight: 600, fontFamily: SANS, cursor: "pointer", whiteSpace: "nowrap" as const, transition: "all .15s" }}
-                              >
-                                {copiedKey === `${rec.type}:${rec.name}:${idx}` ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
-                              </button>
+                            <div key={`${rec.type}:${rec.name}:${idx}`} style={{ display: "grid", gridTemplateColumns: "55px 1fr 1fr", padding: "8px 10px", gap: 8, alignItems: "start", borderTop: `1px solid ${DA_RULE}`, background: idx % 2 === 0 ? "transparent" : DA_BG }}>
+                              <div style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: meta.color, paddingTop: 2 }}>{rec.type}</div>
+                              <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+                                <div style={{ fontFamily: "monospace", fontSize: 11, color: DA_INK2, wordBreak: "break-all" as const }}>{rec.name}</div>
+                                <button
+                                  onClick={() => { const k = `name:${rec.type}:${idx}`; handleCopyRecord(k, rec.name); }}
+                                  style={{ alignSelf: "flex-start", padding: "2px 7px", borderRadius: 5, background: copiedKey === `name:${rec.type}:${idx}` ? DA_GREEN_SOFT : DA_SURFACE, border: `1px solid ${copiedKey === `name:${rec.type}:${idx}` ? DA_GREEN : DA_RULE}`, color: copiedKey === `name:${rec.type}:${idx}` ? DA_GREEN : DA_INK3, fontSize: 10, fontWeight: 600, fontFamily: SANS, cursor: "pointer", whiteSpace: "nowrap" as const, transition: "all .15s" }}
+                                >
+                                  {copiedKey === `name:${rec.type}:${idx}` ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
+                                </button>
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+                                <div style={{ fontFamily: "monospace", fontSize: 10.5, color: DA_INK3, wordBreak: "break-all" as const }}>{rec.value}</div>
+                                <button
+                                  onClick={() => { const k = `val:${rec.type}:${idx}`; handleCopyRecord(k, rec.value); }}
+                                  style={{ alignSelf: "flex-start", padding: "2px 7px", borderRadius: 5, background: copiedKey === `val:${rec.type}:${idx}` ? DA_GREEN_SOFT : DA_SURFACE, border: `1px solid ${copiedKey === `val:${rec.type}:${idx}` ? DA_GREEN : DA_RULE}`, color: copiedKey === `val:${rec.type}:${idx}` ? DA_GREEN : DA_INK3, fontSize: 10, fontWeight: 600, fontFamily: SANS, cursor: "pointer", whiteSpace: "nowrap" as const, transition: "all .15s" }}
+                                >
+                                  {copiedKey === `val:${rec.type}:${idx}` ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>{/* end minWidth wrapper */}
                         </div>{/* end overflow-x container */}
                         <div style={{ marginTop: 8, fontSize: 11, color: DA_INK3 }}>
-                          Need help? Check your registrar&apos;s documentation for adding DNS records.
+                          Need help? Contact us on WhatsApp — we&apos;ll walk you through adding the records at your registrar.
                         </div>
                       </div>
                     )}
@@ -708,6 +718,14 @@ export default function BrandingPage() {
                       <li style={{ fontSize: 11.5, color: DA_INK3 }}>{t.customDomainDnsStep4}</li>
                     </ol>
                     <div style={{ marginTop: 10, fontSize: 11, color: DA_INK3 }}>{t.customDomainDnsNote}</div>
+                    <div style={{ marginTop: 12, borderTop: `1px solid ${DA_RULE}`, paddingTop: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_INK2, marginBottom: 6 }}>{t.customDomainProviderTitle}</div>
+                      <ul style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 14, paddingRight: lang === "ar" ? 14 : 0, display: "flex", flexDirection: "column" as const, gap: 4 }}>
+                        {[t.customDomainProviderNamecheap, t.customDomainProviderCloudflare, t.customDomainProviderGodaddy, t.customDomainProviderGoogle].map((tip, i) => (
+                          <li key={i} style={{ fontSize: 11, color: DA_INK3, listStyle: "disc" }}>{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               )}
