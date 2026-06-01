@@ -509,7 +509,7 @@ function DashboardFirstRun({
           </div>
         </div>
         <a
-          href="https://wa.me/31687654321"
+          href="https://wa.me/31621339606"
           target="_blank"
           rel="noopener noreferrer"
           style={{
