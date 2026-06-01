@@ -1,5 +1,14 @@
 export const TRIAL_DAYS = 14;
 
+export function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function trialEndsAtFromNow(): number {
   return Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000;
 }

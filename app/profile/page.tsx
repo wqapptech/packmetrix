@@ -11,6 +11,7 @@ import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
 import { canUseCustomDomain } from "@/lib/limits";
+import { toSlug } from "@/lib/trial";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT, DA_GREEN, DA_GREEN_SOFT, DA_DANGER, DA_DANGER_SOFT } from "@/lib/tokens";
 import { ConfirmModal } from "@/components/ConfirmModal";
 
@@ -159,7 +160,11 @@ export default function BrandingPage() {
         setShowReviews(_showReviews);
         savedState.current = { name: _name, tagline: _tagline, email: _email, phone: _phone, logoUrl: _logoUrl, enableReviews: _enableReviews, showReviews: _showReviews };
         setPlan(d.plan || "");
-        setAgencySlug(d.agencySlug || d.name || "");
+        const _slug = d.agencySlug ? d.agencySlug : toSlug(d.name || "");
+        setAgencySlug(_slug);
+        if (!d.agencySlug && _slug) {
+          updateDoc(doc(db, "users", u.uid), { agencySlug: _slug }).catch(() => {});
+        }
         const savedDomain = d.customDomain || "";
         setCustomDomain(savedDomain);
         setDomainInput(savedDomain);
