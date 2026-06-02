@@ -63,15 +63,10 @@ env:
   - variable: STRIPE_CANCEL_URL
     value: "https://packmetrix.com/paywall"
 
-  # Cloudflare for SaaS — custom domain provisioning
-  - variable: CLOUDFLARE_ZONE_ID
-    value: "cf89d388191248b28e431ebe934c0ee1"
-  - variable: CLOUDFLARE_CUSTOM_HOSTNAME_TARGET
-    value: "cname.packmetrix.com"
-  - variable: CLOUDFLARE_FALLBACK_ORIGIN
-    value: "proxy.packmetrix.com"
-  - variable: CLOUDFLARE_API_TOKEN
-    secret: CLOUDFLARE_API_TOKEN
+  # Firebase App Hosting — custom domain provisioning via native App Hosting API
+  # Full resource name: projects/{id}/locations/{location}/backends/{backendId}
+  - variable: FIREBASE_APP_HOSTING_BACKEND_NAME
+    value: "projects/packmetrics-77450/locations/europe-west4/backends/packmetrix"
 
   # Cron authentication — Cloud Scheduler sends this as X-Cron-Secret
   - variable: CRON_SECRET

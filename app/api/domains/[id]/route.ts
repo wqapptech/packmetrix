@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
 import { verifyUser } from "@/lib/verify-user";
-import { deleteCustomHostname } from "@/lib/cloudflare";
 import { clearDomainState } from "@/lib/domain-sync";
 
 export const dynamic = "force-dynamic";
 
+// [id] is the hostname (URL-encoded). The profile page calls:
+//   DELETE /api/domains/packages.myagency.com
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,7 +14,8 @@ export async function DELETE(
   const user = await verifyUser(req.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id: cfHostnameId } = await params;
+  const { id } = await params;
+  const hostname = decodeURIComponent(id);
 
   const userSnap = await db.collection("users").doc(user.uid).get();
   if (!userSnap.exists) {
@@ -21,21 +23,9 @@ export async function DELETE(
   }
   const userData = userSnap.data()!;
 
-  // Scope: only the owning agency may delete their own hostname.
-  if (userData.customDomainCfId !== cfHostnameId) {
+  // Scope: only the owning agency may delete their own domain.
+  if (userData.customDomain !== hostname) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const hostname: string | null = userData.customDomain ?? null;
-  if (!hostname) {
-    return NextResponse.json({ error: "No domain found" }, { status: 404 });
-  }
-
-  try {
-    await deleteCustomHostname(cfHostnameId);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Cloudflare error";
-    return NextResponse.json({ error: msg }, { status: 502 });
   }
 
   await clearDomainState(user.uid, hostname);

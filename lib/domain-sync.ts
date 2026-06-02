@@ -1,68 +1,52 @@
 import { db } from "./firebase-admin";
-import type { CFCustomHostname } from "./cloudflare";
 
 export type DomainStatus =
-  | "pending_dns"
-  | "verifying"
-  | "ssl_provisioning"
-  | "active"
-  | "failed";
+  | "requested"       // agency submitted; admin must add to App Hosting + paste records
+  | "records_ready"   // admin entered records; agency must add to their registrar
+  | "verifying"       // App Hosting sees the records; cert provisioning in progress
+  | "active"          // HOST_ACTIVE + CERT_ACTIVE; domain is live
+  | "failed";         // timeout, HOST_CONFLICT, or CERT_ISSUE_FAILED
 
 export interface DnsRecord {
-  type: "CNAME" | "TXT";
+  type: "A" | "AAAA" | "CNAME" | "TXT";
   name: string;
   value: string;
 }
 
 export interface StoredDomain {
   hostname: string;
-  cf_hostname_id: string;
   status: DomainStatus;
-  verification_records: DnsRecord[];
-  ssl_records: DnsRecord[];
+  dns_records: DnsRecord[];  // records admin pastes after adding to App Hosting
   error_message: string;
   created_at: number;
   updated_at: number;
 }
 
-export function mapCFStatus(cf: CFCustomHostname): DomainStatus {
-  const hostStatus = cf.status;
-  const sslStatus = cf.ssl?.status ?? "";
-
-  if (hostStatus === "active" && sslStatus === "active") return "active";
-  if (hostStatus === "active") return "ssl_provisioning";
-  if (hostStatus === "moved") return "failed";
-  if (["validation_timed_out", "expired_certificate", "blocked"].includes(sslStatus)) {
+// Maps App Hosting host/cert states to our DomainStatus.
+// Returns null when status is ambiguous (permission error, domain not yet added)
+// so the caller can leave the existing status unchanged.
+export function mapAppHostingStatus(
+  hostState: string,
+  certState: string
+): DomainStatus | null {
+  if (
+    hostState === "HOST_CONFLICT" ||
+    certState === "CERT_EXPIRED" ||
+    certState === "CERT_ISSUE_FAILED"
+  ) {
     return "failed";
   }
-  if (["pending_validation", "pending_issuance", "pending_deployment"].includes(sslStatus)) {
+  if (hostState === "HOST_ACTIVE" && certState === "CERT_ACTIVE") {
+    return "active";
+  }
+  if (hostState === "HOST_ACTIVE") {
     return "verifying";
   }
-  return "pending_dns";
-}
-
-export function extractDnsRecords(cf: CFCustomHostname): {
-  verification_records: DnsRecord[];
-  ssl_records: DnsRecord[];
-} {
-  const verification_records: DnsRecord[] = [];
-  const ssl_records: DnsRecord[] = [];
-
-  if (cf.ownership_verification) {
-    verification_records.push({
-      type: "TXT",
-      name: cf.ownership_verification.name,
-      value: cf.ownership_verification.value,
-    });
+  if (hostState === "HOST_MISMATCH") {
+    return "failed";
   }
-
-  for (const r of cf.ssl?.validation_records ?? []) {
-    if (r.txt_name && r.txt_value) {
-      ssl_records.push({ type: "TXT", name: r.txt_name, value: r.txt_value });
-    }
-  }
-
-  return { verification_records, ssl_records };
+  // HOST_UNVERIFIED, HOST_NOT_FOUND, HOST_STATE_UNSPECIFIED — still waiting
+  return null;
 }
 
 // Single function that keeps the user doc and public routing index in sync.
@@ -77,10 +61,8 @@ export async function upsertDomainState(
 
   batch.update(db.collection("users").doc(userId), {
     customDomain: domain.hostname,
-    customDomainCfId: domain.cf_hostname_id,
     customDomainStatus: domain.status,
-    customDomainVerificationRecords: domain.verification_records,
-    customDomainSslRecords: domain.ssl_records,
+    customDomainDnsRecords: domain.dns_records,
     customDomainError: domain.error_message,
     customDomainCreatedAt: domain.created_at,
     customDomainUpdatedAt: now,
@@ -89,8 +71,8 @@ export async function upsertDomainState(
   batch.set(db.collection("customDomains").doc(domain.hostname), {
     agencySlug,
     userId,
-    cf_hostname_id: domain.cf_hostname_id,
     status: domain.status,
+    dns_records: domain.dns_records,
     updatedAt: now,
   });
 
@@ -106,10 +88,8 @@ export async function clearDomainState(
 
   batch.update(db.collection("users").doc(userId), {
     customDomain: null,
-    customDomainCfId: null,
     customDomainStatus: null,
-    customDomainVerificationRecords: [],
-    customDomainSslRecords: [],
+    customDomainDnsRecords: [],
     customDomainError: null,
     customDomainCreatedAt: null,
     customDomainUpdatedAt: Date.now(),
