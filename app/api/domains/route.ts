@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { db, adminAuth } from "@/lib/firebase-admin";
 import { verifyUser } from "@/lib/verify-user";
-import { upsertDomainState } from "@/lib/domain-sync";
-import { sendDomainRequestedAdminEmail } from "@/lib/email";
-import { toSlug } from "@/lib/trial";
+import { createCustomHostname, deleteCustomHostname } from "@/lib/cloudflare";
+import { mapCFStatus, extractDnsRecords, upsertDomainState } from "@/lib/domain-sync";
+import { sendDomainAddedEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +16,12 @@ function isValidHostname(hostname: string): boolean {
   );
 }
 
-export async function POST(req: Request) {
-  if (process.env.NEXT_PUBLIC_ENV !== "production") {
-    return NextResponse.json(
-      { error: "Custom domain registration is disabled on non-production environments" },
-      { status: 503 }
-    );
-  }
+// Apex = exactly two DNS labels (e.g. "acmetravel.com"). Subdomains have three or more.
+function isApexDomain(hostname: string): boolean {
+  return hostname.split(".").length === 2;
+}
 
+export async function POST(req: Request) {
   const user = await verifyUser(req.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -75,29 +73,65 @@ export async function POST(req: Request) {
     );
   }
 
-  const agencySlug: string = userData.agencySlug || toSlug(userData.name || "") || user.uid;
+  let cfResult;
+  try {
+    cfResult = await createCustomHostname(hostname);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Cloudflare error";
+    return NextResponse.json({ error: msg }, { status: 502 });
+  }
+
+  const agencySlug: string = userData.agencySlug || userData.name || user.uid;
+  const status = mapCFStatus(cfResult);
+  const { verification_records, ssl_records } = extractDnsRecords(cfResult);
   const now = Date.now();
 
-  await upsertDomainState(user.uid, agencySlug, {
-    hostname,
-    status: "requested",
-    dns_records: [],
-    error_message: "",
-    created_at: now,
-    updated_at: now,
-  });
+  try {
+    await upsertDomainState(user.uid, agencySlug, {
+      hostname,
+      cf_hostname_id: cfResult.id,
+      status,
+      verification_records,
+      ssl_records,
+      error_message: "",
+      created_at: now,
+      updated_at: now,
+    });
+  } catch {
+    // Roll back the Cloudflare hostname so the user can try again.
+    try { await deleteCustomHostname(cfResult.id); } catch { /* best-effort */ }
+    return NextResponse.json({ error: "Failed to save domain — please try again" }, { status: 502 });
+  }
 
-  // Email admin so they can add the domain to App Hosting + generate DNS records.
+  const apex = isApexDomain(hostname);
+  const cnameTarget = process.env.CLOUDFLARE_CUSTOM_HOSTNAME_TARGET ?? "cname.packmetrix.com";
+  const cnameRecord = apex ? undefined : { type: "CNAME" as const, name: hostname, value: cnameTarget };
+
   try {
     const userRecord = await adminAuth.getUser(user.uid);
-    const adminUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://packmetrix.com"}/admin`;
-    await sendDomainRequestedAdminEmail({
-      agencyName: userData.name || agencySlug,
-      agencyEmail: userRecord.email ?? userData.email ?? "",
-      hostname,
-      adminUrl,
-    });
+    if (userRecord.email) {
+      await sendDomainAddedEmail({
+        to: userRecord.email,
+        hostname,
+        cnameRecord,
+        verificationRecords: verification_records,
+        sslRecords: ssl_records,
+      });
+    }
   } catch { /* email failure must not block the response */ }
 
-  return NextResponse.json({ hostname, status: "requested" });
+  const apexGuidance = apex
+    ? `${hostname} is a root/apex domain. A plain CNAME is not valid at an apex per the DNS spec. Your DNS provider must support CNAME flattening (ALIAS records), or you must add A records pointing to Cloudflare's IP addresses. Check your registrar's documentation for ALIAS/CNAME flattening, or contact support@packmetrix.com for help.`
+    : undefined;
+
+  return NextResponse.json({
+    hostname,
+    cf_hostname_id: cfResult.id,
+    status,
+    is_apex: apex,
+    cname_record: cnameRecord ?? null,
+    verification_records,
+    ssl_records,
+    ...(apexGuidance ? { apex_guidance: apexGuidance } : {}),
+  });
 }
