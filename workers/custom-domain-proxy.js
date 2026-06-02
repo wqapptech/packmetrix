@@ -18,7 +18,7 @@ const APP_HOSTING_ORIGIN = "packmetrix--packmetrics-77450.europe-west4.hosted.ap
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const tenantDomain = url.hostname;
+    const tenantDomain = request.headers.get("host") ?? url.hostname;
 
     url.hostname = APP_HOSTING_ORIGIN;
     url.protocol = "https:";

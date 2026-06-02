@@ -11,7 +11,7 @@ const BLOCKED_ON_CUSTOM_DOMAIN = [
 const APP_ROOTS = [
   "/dashboard", "/builder", "/login", "/signup", "/profile",
   "/leads", "/packages", "/paywall", "/home", "/api", "/_next",
-  "/ingest", "/_sites",
+  "/ingest", "/sites",
 ];
 
 function isInfrastructureHost(hostname: string): boolean {
@@ -122,7 +122,7 @@ export function proxy(request: NextRequest) {
   // via Firestore (server-side, Admin SDK) and serves the published content.
   // The browser URL stays as the custom domain — no redirect.
   const url = request.nextUrl.clone();
-  url.pathname = `/_sites/${hostname}${pathname === "/" ? "" : pathname}`;
+  url.pathname = `/sites/${hostname}${pathname === "/" ? "" : pathname}`;
   return NextResponse.rewrite(url);
 }
 

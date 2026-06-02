@@ -801,32 +801,34 @@ function MutawifBand({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: 
       margin: "0 18px",
       background: `${SAGE}0c`, border: `1px solid ${SAGE}30`,
       borderRadius: 16, padding: "20px 20px",
-      display: "flex", gap: 16, alignItems: "center",
+      display: "flex", flexDirection: "column", gap: 14,
       direction: isRtl ? "rtl" : "ltr",
     }}>
-      {agent.avatar
-        ? <img src={agent.avatar} alt={agent.name} style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-        : (
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
-            background: `${SAGE}18`, border: `1px solid ${SAGE}40`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: SERIF, fontSize: 24, color: SAGE,
-          }}>
-            {agent.name[0]}
+      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        {agent.avatar
+          ? <img src={agent.avatar} alt={agent.name} style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+          : (
+            <div style={{
+              width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
+              background: `${SAGE}18`, border: `1px solid ${SAGE}40`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: SERIF, fontSize: 24, color: SAGE,
+            }}>
+              {agent.name[0]}
+            </div>
+          )
+        }
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: SAGE, marginBottom: 4 }}>
+            {t.mutawifLabel}
           </div>
-        )
-      }
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: SAGE, marginBottom: 4 }}>
-          {t.mutawifLabel}
-        </div>
-        <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, color: INK, lineHeight: 1.1, marginBottom: 3 }}>{agent.name}</div>
-        <div style={{ fontSize: 12, color: MUTED }}>
-          {agent.role}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
+          <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, color: INK, lineHeight: 1.1, marginBottom: 3 }}>{agent.name}</div>
+          <div style={{ fontSize: 12, color: MUTED }}>
+            {agent.role}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
+          </div>
         </div>
       </div>
-      <WAButton label={t.whatsAppTheOffice} size="sm" onClick={onWhatsApp} />
+      <WAButton label={t.whatsAppTheOffice} size="sm" full onClick={onWhatsApp} />
     </div>
   );
 }
