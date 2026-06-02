@@ -86,7 +86,7 @@ export default function PackagePage() {
   if (!pkg) return null;
 
   if (pkg.isActive === false) {
-    const lang = (pkg.language === "ar" ? "ar" : "en") as Lang;
+    const lang = (pkg.primaryLanguage === "ar" ? "ar" : "en") as Lang;
     const t = T[lang];
     const dir = lang === "ar" ? "rtl" : "ltr";
     return (
@@ -98,7 +98,7 @@ export default function PackagePage() {
     );
   }
 
-  const lang = (pkg.language === "ar" ? "ar" : "en") as Lang;
+  const lang = (pkg.primaryLanguage === "ar" ? "ar" : "en") as Lang;
   const effectiveAgency: TAgency = agency || {
     name: "Travel Agency",
     brandColor: DEFAULT_BRAND,
