@@ -12,7 +12,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type DomainStatus = "requested" | "records_ready" | "verifying" | "active" | "failed";
+type DomainStatus = "pending_dns" | "verifying" | "ssl_provisioning" | "active" | "failed";
 
 type Agency = {
   uid: string;
@@ -456,20 +456,18 @@ function WipeModal({ token, onClose, onWiped }: { token: string; onClose: () => 
 
 // ─── Domain Management Modal ──────────────────────────────────────────────────
 
-type DnsRow = { type: string; name: string; value: string };
-const EMPTY_ROW = (): DnsRow => ({ type: "CNAME", name: "", value: "" });
-
 function DomainModal({ agency, token, onClose, onUpdated }: {
   agency: Agency; token: string; onClose: () => void;
   onUpdated: (uid: string, status: string) => void;
 }) {
-  const [rows, setRows] = useState<DnsRow[]>([EMPTY_ROW(), EMPTY_ROW()]);
   const [saving, setSaving] = useState(false);
   const [error, setError]  = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const status = agency.customDomainStatus;
   const hostname = agency.customDomain;
+
+  const IN_PROGRESS: (DomainStatus | null)[] = ["pending_dns", "verifying", "ssl_provisioning"];
 
   const patchDomain = async (body: Record<string, unknown>) => {
     setSaving(true); setError(null); setSuccess(null);
@@ -487,23 +485,10 @@ function DomainModal({ agency, token, onClose, onUpdated }: {
     finally { setSaving(false); }
   };
 
-  const handleSetRecords = async () => {
-    const dns_records = rows.filter(r => r.name.trim() && r.value.trim()).map(r => ({
-      type: r.type, name: r.name.trim(), value: r.value.trim(),
-    }));
-    if (!dns_records.length) { setError("Add at least one record"); return; }
-    await patchDomain({ action: "set_records", dns_records });
-  };
-
-  const inputBase: React.CSSProperties = {
-    background: DA_BG, border: `1px solid ${DA_RULE}`, borderRadius: 8,
-    padding: "7px 10px", color: DA_INK1, fontSize: 12, fontFamily: "monospace", outline: "none", width: "100%",
-  };
-
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(26,22,17,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: "100%", maxWidth: 560, background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 20px 60px rgba(26,22,17,0.15)" }}>
+      <div style={{ width: "100%", maxWidth: 480, background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 20px 60px rgba(26,22,17,0.15)" }}>
         {/* Header */}
         <div style={{ padding: "18px 24px", borderBottom: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
@@ -522,57 +507,17 @@ function DomainModal({ agency, token, onClose, onUpdated }: {
             <div style={{ marginTop: 6 }}><DomainChip status={status} /></div>
           </div>
 
-          {/* ── requested: paste DNS records ── */}
-          {status === "requested" && (
-            <div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: DA_INK1, marginBottom: 4 }}>Steps</div>
-              <ol style={{ margin: "0 0 14px", paddingLeft: 18, color: DA_INK3, fontSize: 12, lineHeight: 1.9 }}>
-                <li>Add <strong style={{ color: DA_INK2 }}>{hostname}</strong> as a custom domain in <a href="https://console.firebase.google.com" target="_blank" rel="noopener" style={{ color: BLUE }}>Firebase App Hosting console</a></li>
-                <li>Copy the DNS records Firebase generates</li>
-                <li>Paste them below, then click Save</li>
-              </ol>
-              <div style={{ fontSize: 11, fontWeight: 700, color: DA_INK3, marginBottom: 8 }}>DNS RECORDS (from Firebase console)</div>
-              <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
-                {rows.map((row, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "70px 1fr 1fr 24px", gap: 6, alignItems: "center" }}>
-                    <select value={row.type} onChange={e => setRows(prev => prev.map((r, j) => j === i ? { ...r, type: e.target.value } : r))}
-                      style={{ ...inputBase, fontFamily: SANS, cursor: "pointer" }}>
-                      {["A", "AAAA", "CNAME", "TXT"].map(t => <option key={t}>{t}</option>)}
-                    </select>
-                    <input value={row.name} onChange={e => setRows(prev => prev.map((r, j) => j === i ? { ...r, name: e.target.value } : r))}
-                      placeholder="Name / Host" style={inputBase} />
-                    <input value={row.value} onChange={e => setRows(prev => prev.map((r, j) => j === i ? { ...r, value: e.target.value } : r))}
-                      placeholder="Value / Target" style={inputBase} />
-                    <button onClick={() => setRows(prev => prev.filter((_, j) => j !== i))}
-                      style={{ background: "none", border: "none", color: DA_INK3, fontSize: 16, cursor: "pointer", lineHeight: 1 }}>×</button>
-                  </div>
-                ))}
-                <button onClick={() => setRows(prev => [...prev, EMPTY_ROW()])}
-                  style={{ alignSelf: "flex-start", padding: "5px 12px", borderRadius: 7, background: "transparent", border: `1px solid ${DA_RULE}`, color: DA_INK3, fontSize: 11.5, cursor: "pointer", fontFamily: SANS }}>
-                  + Add row
-                </button>
-              </div>
+          {/* In-progress: CF is polling automatically */}
+          {IN_PROGRESS.includes(status) && (
+            <div style={{ padding: "10px 13px", borderRadius: 8, background: DA_BG, border: `1px solid ${DA_RULE}`, fontSize: 12, color: DA_INK3, lineHeight: 1.6 }}>
+              Cloudflare is verifying this domain automatically. DNS records were sent to the agency by email when they registered. Use the overrides below only if polling is stuck.
             </div>
           )}
 
-          {/* ── records_ready / verifying: show records + overrides ── */}
-          {(status === "records_ready" || status === "verifying") && (
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: DA_INK3, marginBottom: 8 }}>CURRENT DNS RECORDS</div>
-              {/* In a real refresh you'd load from the API; for now note the records are in Firestore */}
-              <div style={{ padding: "10px 13px", borderRadius: 8, background: DA_BG, border: `1px solid ${DA_RULE}`, fontSize: 12, color: DA_INK3 }}>
-                Records were set when advancing to <em>records_ready</em>. Check Firestore / agency profile for the values.
-              </div>
-              <div style={{ marginTop: 12, fontSize: 11, color: DA_INK3 }}>
-                If App Hosting API polling isn&apos;t advancing status automatically, use the manual overrides below.
-              </div>
-            </div>
-          )}
-
-          {/* ── active / failed: info only ── */}
+          {/* Terminal states */}
           {(status === "active" || status === "failed") && (
             <div style={{ fontSize: 12.5, color: DA_INK3, lineHeight: 1.6 }}>
-              {status === "active" ? "Domain is live. Agency can visit their site." : "Domain failed. Agency sees error and can remove + re-request."}
+              {status === "active" ? "Domain is live. The agency can visit their site." : "Domain failed. The agency sees an error and can remove and re-register."}
             </div>
           )}
 
@@ -582,8 +527,7 @@ function DomainModal({ agency, token, onClose, onUpdated }: {
 
         {/* Footer */}
         <div style={{ padding: "14px 24px", borderTop: `1px solid ${DA_RULE}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" as const }}>
-          {/* Manual overrides — always visible for in-flight statuses */}
-          {(status === "requested" || status === "records_ready" || status === "verifying") && (
+          {IN_PROGRESS.includes(status) && (
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => patchDomain({ action: "mark_active" })} disabled={saving}
                 style={{ padding: "8px 14px", borderRadius: 9, background: DA_GREEN_SOFT, border: "1px solid rgba(77,138,94,0.25)", color: DA_GREEN, fontSize: 12, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontFamily: SANS }}>
@@ -596,13 +540,7 @@ function DomainModal({ agency, token, onClose, onUpdated }: {
             </div>
           )}
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-            <button onClick={onClose} disabled={saving} style={{ padding: "9px 18px", borderRadius: 10, background: "transparent", border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: SANS }}>Cancel</button>
-            {status === "requested" && (
-              <button onClick={handleSetRecords} disabled={saving}
-                style={{ padding: "9px 22px", borderRadius: 10, background: saving ? DA_GOLD_SOFT : DA_GOLD, color: saving ? DA_GOLD_DEEP : "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: saving ? "not-allowed" : "pointer", fontFamily: SANS }}>
-                {saving ? "Saving…" : "Save DNS records"}
-              </button>
-            )}
+            <button onClick={onClose} disabled={saving} style={{ padding: "9px 18px", borderRadius: 10, background: "transparent", border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: SANS }}>Close</button>
           </div>
         </div>
       </div>
@@ -775,7 +713,7 @@ export default function AdminPage() {
               {/* Actions */}
               <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                 {agency.customDomain && (
-                  <IconBtn onClick={() => setManagingDomain(agency)} title="Manage domain" icon={agency.customDomainStatus === "requested" ? "🔔" : "🌐"} />
+                  <IconBtn onClick={() => setManagingDomain(agency)} title="Manage domain" icon={agency.customDomainStatus === "pending_dns" ? "🔔" : "🌐"} />
                 )}
                 <IconBtn onClick={() => setGranting(agency)} title="Grant plan" icon="⭐" />
                 <IconBtn onClick={() => setExtending(agency)} title="Extend trial" icon="⏱" />

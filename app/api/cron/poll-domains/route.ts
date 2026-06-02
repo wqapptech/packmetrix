@@ -1,6 +1,6 @@
 // Scheduled by GCP Cloud Scheduler — see setup instructions at the bottom of this file.
 //
-// Cloud Scheduler job config:
+// Cloud Scheduler job config (run once, then repeat as needed):
 //   Name:        poll-domains-5min
 //   Frequency:   */5 * * * *   (every 5 minutes)
 //   Target:      HTTP  POST  https://packmetrix.com/api/cron/poll-domains
@@ -11,28 +11,28 @@
 import { NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
 import { db, adminAuth } from "@/lib/firebase-admin";
-import { getAppHostingDomain } from "@/lib/app-hosting";
+import { getCustomHostname } from "@/lib/cloudflare";
 import {
-  mapAppHostingStatus,
+  mapCFStatus,
+  extractDnsRecords,
   upsertDomainState,
   type DomainStatus,
-  type DnsRecord,
 } from "@/lib/domain-sync";
 import {
+  sendDomainAddedEmail,
   sendDomainActiveEmail,
   sendDomainFailedEmail,
 } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
-// Statuses that are in-flight at the App Hosting API level and need polling.
-// "requested" is excluded — the domain hasn't been added to App Hosting yet.
-const PENDING_STATUSES: DomainStatus[] = ["records_ready", "verifying"];
+// Statuses that are still in-flight and need polling.
+const PENDING_STATUSES: DomainStatus[] = ["pending_dns", "verifying", "ssl_provisioning"];
 
-const FOUR_MIN_MS        = 4  * 60 * 1000;
-const FIFTY_FIVE_MIN_MS  = 55 * 60 * 1000;
-const H24_MS             = 24 * 60 * 60 * 1000;
-const H48_MS             = 48 * 60 * 60 * 1000;
+const FOUR_MIN_MS   = 4  * 60 * 1000;  // debounce: skip if updated within last 4 min
+const FIFTY_FIVE_MIN_MS = 55 * 60 * 1000; // hourly cadence threshold
+const H24_MS = 24 * 60 * 60 * 1000;
+const H48_MS = 48 * 60 * 60 * 1000;
 
 // Constant-time secret comparison — hashing normalises length before timingSafeEqual.
 function isValidCronSecret(provided: string | null): boolean {
@@ -58,15 +58,15 @@ export async function POST(req: Request) {
   const summary = { polled: 0, timed_out: 0, skipped: 0, errors: 0 };
 
   for (const doc of snap.docs) {
-    const data       = doc.data();
-    const hostname   = (data.customDomain        as string | null) ?? null;
-    const createdAt  = (data.customDomainCreatedAt as number | null) ?? now;
-    const updatedAt  = (data.customDomainUpdatedAt as number | null) ?? now;
+    const data      = doc.data();
+    const cfId      = (data.customDomainCfId   as string | null) ?? null;
+    const hostname  = (data.customDomain       as string | null) ?? null;
+    const createdAt = (data.customDomainCreatedAt as number | null) ?? now;
+    const updatedAt = (data.customDomainUpdatedAt as number | null) ?? now;
     const prevStatus = data.customDomainStatus as DomainStatus;
-    const dnsRecords: DnsRecord[] = data.customDomainDnsRecords ?? [];
     const agencySlug: string = data.agencySlug || data.name || doc.id;
 
-    if (!hostname) { summary.skipped++; continue; }
+    if (!cfId || !hostname) { summary.skipped++; continue; }
 
     const ageMs         = now - createdAt;
     const sinceUpdateMs = now - updatedAt;
@@ -75,8 +75,10 @@ export async function POST(req: Request) {
     if (ageMs > H48_MS) {
       await upsertDomainState(doc.id, agencySlug, {
         hostname,
+        cf_hostname_id: cfId,
         status: "failed",
-        dns_records: dnsRecords,
+        verification_records: data.customDomainVerificationRecords ?? [],
+        ssl_records: data.customDomainSslRecords ?? [],
         error_message: "Domain verification timed out after 48 hours.",
         created_at: createdAt,
         updated_at: now,
@@ -101,60 +103,51 @@ export async function POST(req: Request) {
       summary.skipped++;
       continue;
     }
-    // Under 24h: skip if already processed within the last 4 min to prevent
-    // double-polling from overlapping Cloud Scheduler runs.
+    // Under 24h: skip if this domain was already processed in the last 4 min,
+    // so overlapping Cloud Scheduler runs don't double-poll the same hostname.
     if (ageMs <= H24_MS && sinceUpdateMs < FOUR_MIN_MS) {
       summary.skipped++;
       continue;
     }
 
-    // ── Poll Firebase App Hosting ──────────────────────────────────────────────
+    // ── Poll Cloudflare ────────────────────────────────────────────────────────
     try {
-      const result = await getAppHostingDomain(hostname);
-
-      if (!result) {
-        // 403 — service account lacks IAM role; don't fail, just skip this tick.
-        summary.skipped++;
-        continue;
-      }
-
-      const newStatus = mapAppHostingStatus(result.hostState, result.certState);
-
-      // null means status is ambiguous (domain not yet in App Hosting, or still
-      // waiting for DNS propagation) — update updatedAt to reset cadence gate but
-      // keep existing status.
-      const effectiveStatus: DomainStatus = newStatus ?? prevStatus;
-      const errorMessage = newStatus === "failed"
-        ? `Host: ${result.hostState}, Cert: ${result.certState}`
-        : "";
+      const cfResult = await getCustomHostname(cfId);
+      const newStatus = mapCFStatus(cfResult);
+      const { verification_records, ssl_records } = extractDnsRecords(cfResult);
 
       await upsertDomainState(doc.id, agencySlug, {
         hostname,
-        status: effectiveStatus,
-        dns_records: dnsRecords,
-        error_message: errorMessage,
+        cf_hostname_id: cfId,
+        status: newStatus,
+        verification_records,
+        ssl_records,
+        error_message: cfResult.ssl?.validation_errors?.[0]?.message ?? "",
         created_at: createdAt,
         updated_at: now,
       });
 
-      // Send transition emails.
       try {
-        if (prevStatus !== "active" && effectiveStatus === "active") {
+        if (prevStatus !== "active" && newStatus === "active") {
           const userRecord = await adminAuth.getUser(doc.id);
           if (userRecord.email) {
             await sendDomainActiveEmail({ to: userRecord.email, hostname });
           }
-        } else if (prevStatus !== "failed" && effectiveStatus === "failed") {
+        } else if (prevStatus !== "failed" && newStatus === "failed") {
           const userRecord = await adminAuth.getUser(doc.id);
           if (userRecord.email) {
-            await sendDomainFailedEmail({ to: userRecord.email, hostname, errorMessage });
+            await sendDomainFailedEmail({
+              to: userRecord.email,
+              hostname,
+              errorMessage: cfResult.ssl?.validation_errors?.[0]?.message,
+            });
           }
         }
       } catch { /* email failure must not abort the batch */ }
 
       summary.polled++;
     } catch {
-      // Don't abort the batch on a single API failure; next run will retry.
+      // Don't abort the batch on a single CF API failure; next run will retry.
       summary.errors++;
     }
   }
