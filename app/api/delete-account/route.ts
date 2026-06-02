@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { QueryDocumentSnapshot, DocumentReference } from "firebase-admin/firestore";
 import { db, adminAuth } from "@/lib/firebase-admin";
 import { verifyUser } from "@/lib/verify-user";
-import { deleteCustomHostname } from "@/lib/cloudflare";
 
 async function batchDelete(refs: DocumentReference[]) {
   for (let i = 0; i < refs.length; i += 500) {
@@ -37,9 +36,6 @@ export async function DELETE(req: Request) {
 
   if (userData.customDomain) {
     await db.collection("customDomains").doc(userData.customDomain).delete().catch(() => {});
-  }
-  if (userData.customDomainCfId) {
-    await deleteCustomHostname(userData.customDomainCfId).catch(() => {});
   }
 
   await db.collection("users").doc(uid).delete();
