@@ -34,20 +34,11 @@ export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // ── Host resolution ────────────────────────────────────────────────────────
-  // Priority 1: Cloudflare Worker proxy — passes original custom-domain hostname via
-  // X-Tenant-Domain, authenticated with X-Proxy-Secret to prevent spoofing.
-  const proxySecret = request.headers.get("x-proxy-secret");
-  const tenantFromWorker =
-    proxySecret && proxySecret === process.env.PROXY_SECRET
-      ? request.headers.get("x-tenant-domain")
-      : null;
-
-  // Priority 2: X-Packmetrix-Host lets local dev simulate a custom domain without real DNS.
+  // X-Packmetrix-Host lets local dev simulate a custom domain without real DNS.
   // e.g. curl -H "X-Packmetrix-Host: packages.client.com" http://localhost:3000/
   const devOverride = request.headers.get("x-packmetrix-host");
 
   const rawHost =
-    tenantFromWorker ||
     devOverride ||
     request.headers.get("x-forwarded-host") ||
     request.headers.get("host") ||

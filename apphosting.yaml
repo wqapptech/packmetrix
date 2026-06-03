@@ -71,10 +71,6 @@ env:
   - variable: CLOUDFLARE_API_TOKEN
     secret: CLOUDFLARE_API_TOKEN
 
-  # Cloudflare Worker proxy — shared secret so app trusts X-Tenant-Domain header
-  - variable: PROXY_SECRET
-    secret: PROXY_SECRET
-
   # Cron authentication — Cloud Scheduler sends this as X-Cron-Secret
   - variable: CRON_SECRET
     secret: CRON_SECRET
