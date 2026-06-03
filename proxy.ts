@@ -40,6 +40,7 @@ export function proxy(request: NextRequest) {
 
   const rawHost =
     devOverride ||
+    request.headers.get("x-tenant-domain") ||
     request.headers.get("x-forwarded-host") ||
     request.headers.get("host") ||
     "";
