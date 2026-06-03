@@ -15,6 +15,7 @@ import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import posthog from "posthog-js";
 import { FREE_AI_LIMIT } from "@/lib/limits";
+import { trialEndsAtFromNow } from "@/lib/trial";
 import { useLang, switchLang } from "@/hooks/useLang";
 import { T } from "@/lib/translations";
 import {
@@ -281,6 +282,7 @@ export default function LoginPage() {
           email: user.email,
           name: user.displayName || "",
           plan: "free",
+          trialEndsAt: trialEndsAtFromNow(),
           aiUsage: 0,
           aiLimit: FREE_AI_LIMIT,
           stripeCustomerId: null,
