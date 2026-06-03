@@ -79,6 +79,139 @@ function Toggle({ enabled, onChange, label, sub }: { enabled: boolean; onChange:
 }
 
 
+// ─── DNS setup modal ─────────────────────────────────────────────────────────
+
+type DnsRecord2 = { purpose: string; type: string; name: string; value: string };
+
+function DnsSetupModal({
+  open, onClose, allRecords, apexGuidance, copiedKey, onCopy, lang, t,
+}: {
+  open: boolean;
+  onClose: () => void;
+  allRecords: DnsRecord2[];
+  apexGuidance: string | null;
+  copiedKey: string | null;
+  onCopy: (key: string, value: string) => void;
+  lang: string;
+  t: typeof import("@/lib/translations").T.en;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 600,
+        background: "rgba(26,22,17,0.52)",
+        backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 20, animation: "cmFadeIn .15s ease",
+      }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <style>{`
+        @keyframes cmFadeIn { from { opacity:0 } to { opacity:1 } }
+        @keyframes cmSlideUp { from { opacity:0; transform:translateY(12px) scale(.96) } to { opacity:1; transform:none } }
+      `}</style>
+      <div
+        dir={lang === "ar" ? "rtl" : "ltr"}
+        style={{
+          position: "relative", width: "100%", maxWidth: 580,
+          maxHeight: "88vh", overflowY: "auto",
+          background: DA_SURFACE, borderRadius: 18,
+          boxShadow: "0 24px 72px rgba(26,22,17,0.22), 0 4px 20px rgba(26,22,17,0.08)",
+          border: `1px solid ${DA_RULE}`,
+          animation: "cmSlideUp .22s cubic-bezier(.22,1,.36,1)",
+          padding: "24px 26px 28px",
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, fontFamily: SANS, color: DA_INK1 }}>
+            {lang === "ar" ? "تعليمات إعداد النطاق" : "Domain setup instructions"}
+          </div>
+          <button
+            onClick={onClose}
+            style={{ width: 30, height: 30, borderRadius: 9, background: "transparent", border: `1px solid ${DA_RULE}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+          >
+            <Icon name="x" size={13} color={DA_INK3} />
+          </button>
+        </div>
+
+        {/* Apex domain note */}
+        {apexGuidance && (
+          <div style={{ marginBottom: 14, padding: "11px 14px", borderRadius: 9, background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.25)", fontSize: 12, color: "#7a5c00", lineHeight: 1.6 }}>
+            <strong>{lang === "ar" ? "ملاحظة النطاق الجذر: " : "Apex domain note: "}</strong>{apexGuidance}
+          </div>
+        )}
+
+        {/* DNS records table */}
+        {allRecords.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 8 }}>{t.customDomainRecordsTitle}</div>
+            <div style={{ overflowX: "auto", borderRadius: 8, border: `1px solid ${DA_RULE}`, background: DA_SURFACE }}>
+              <div style={{ minWidth: 480 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "90px 52px 1fr 1fr", background: DA_BG, padding: "6px 10px", gap: 8 }}>
+                  {[lang === "ar" ? "الغرض" : "Purpose", t.customDomainRecordType, t.customDomainRecordName, t.customDomainRecordValue].map((h, i) => (
+                    <div key={i} style={{ fontSize: 10, fontWeight: 700, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
+                  ))}
+                </div>
+                {allRecords.map((rec, idx) => (
+                  <div key={`${rec.type}:${idx}`} style={{ display: "grid", gridTemplateColumns: "90px 52px 1fr 1fr", padding: "8px 10px", gap: 8, alignItems: "start", borderTop: `1px solid ${DA_RULE}`, background: idx % 2 === 0 ? "transparent" : DA_BG }}>
+                    <div style={{ fontSize: 10, color: DA_INK3, paddingTop: 2, lineHeight: 1.4 }}>{rec.purpose}</div>
+                    <div style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: "#2563eb", paddingTop: 2 }}>{rec.type}</div>
+                    <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+                      <div style={{ fontFamily: "monospace", fontSize: 11, color: DA_INK2, wordBreak: "break-all" as const }}>{rec.name}</div>
+                      <button onClick={() => onCopy(`n:${idx}`, rec.name)} style={{ alignSelf: "flex-start", padding: "2px 7px", borderRadius: 5, background: copiedKey === `n:${idx}` ? DA_GREEN_SOFT : DA_SURFACE, border: `1px solid ${copiedKey === `n:${idx}` ? DA_GREEN : DA_RULE}`, color: copiedKey === `n:${idx}` ? DA_GREEN : DA_INK3, fontSize: 10, fontWeight: 600, fontFamily: SANS, cursor: "pointer", whiteSpace: "nowrap" as const, transition: "all .15s" }}>
+                        {copiedKey === `n:${idx}` ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+                      <div style={{ fontFamily: "monospace", fontSize: 10.5, color: DA_INK3, wordBreak: "break-all" as const }}>{rec.value}</div>
+                      <button onClick={() => onCopy(`v:${idx}`, rec.value)} style={{ alignSelf: "flex-start", padding: "2px 7px", borderRadius: 5, background: copiedKey === `v:${idx}` ? DA_GREEN_SOFT : DA_SURFACE, border: `1px solid ${copiedKey === `v:${idx}` ? DA_GREEN : DA_RULE}`, color: copiedKey === `v:${idx}` ? DA_GREEN : DA_INK3, fontSize: 10, fontWeight: 600, fontFamily: SANS, cursor: "pointer", whiteSpace: "nowrap" as const, transition: "all .15s" }}>
+                        {copiedKey === `v:${idx}` ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* How to add DNS records */}
+        <div style={{ padding: "12px 14px", borderRadius: 9, background: DA_BG, border: `1px solid ${DA_RULE}` }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, fontFamily: SANS, color: DA_INK1, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name="link" size={12} color={DA_INK3} />
+            {t.customDomainDnsHowTo}
+          </div>
+          <ol style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 16, paddingRight: lang === "ar" ? 16 : 0, display: "flex", flexDirection: "column" as const, gap: 5 }}>
+            {[t.customDomainDnsStep1, t.customDomainDnsStep2, t.customDomainDnsStep3, t.customDomainDnsStep4].map((step, i) => (
+              <li key={i} style={{ fontSize: 11.5, color: DA_INK3, lineHeight: 1.55 }}>{step}</li>
+            ))}
+          </ol>
+          <div style={{ marginTop: 10, fontSize: 11, color: DA_INK3 }}>{t.customDomainDnsNote}</div>
+          <div style={{ marginTop: 10, borderTop: `1px solid ${DA_RULE}`, paddingTop: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_INK2, marginBottom: 5 }}>{t.customDomainProviderTitle}</div>
+            <ul style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 14, paddingRight: lang === "ar" ? 14 : 0, display: "flex", flexDirection: "column" as const, gap: 3 }}>
+              {[t.customDomainProviderNamecheap, t.customDomainProviderCloudflare, t.customDomainProviderGodaddy, t.customDomainProviderGoogle].map((tip, i) => (
+                <li key={i} style={{ fontSize: 11, color: DA_INK3, listStyle: "disc" }}>{tip}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function BrandingPage() {
@@ -127,6 +260,7 @@ export default function BrandingPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [dnsSetupOpen, setDnsSetupOpen] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
@@ -630,70 +764,15 @@ export default function BrandingPage() {
                       </div>
                     </div>
 
-                    <div style={{ fontSize: 12, color: DA_INK3, lineHeight: 1.65, marginBottom: 14 }}>{statusDesc}</div>
+                    <div style={{ fontSize: 12, color: DA_INK3, lineHeight: 1.65, marginBottom: 12 }}>{statusDesc}</div>
 
-                    {/* Apex domain guidance */}
-                    {apexGuidance && (
-                      <div style={{ marginBottom: 14, padding: "11px 14px", borderRadius: 9, background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.25)", fontSize: 12, color: "#7a5c00", lineHeight: 1.6 }}>
-                        <strong>{lang === "ar" ? "ملاحظة النطاق الجذر: " : "Apex domain note: "}</strong>{apexGuidance}
-                      </div>
-                    )}
-
-                    {/* DNS records table */}
-                    {allRecords.length > 0 && (
-                      <div style={{ marginBottom: 14 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 8 }}>{t.customDomainRecordsTitle}</div>
-                        <div style={{ overflowX: "auto", borderRadius: 8, border: `1px solid ${DA_RULE}`, background: DA_SURFACE }}>
-                          <div style={{ minWidth: 480 }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "90px 52px 1fr 1fr", background: DA_BG, padding: "6px 10px", gap: 8 }}>
-                              {[lang === "ar" ? "الغرض" : "Purpose", t.customDomainRecordType, t.customDomainRecordName, t.customDomainRecordValue].map((h, i) => (
-                                <div key={i} style={{ fontSize: 10, fontWeight: 700, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{h}</div>
-                              ))}
-                            </div>
-                            {allRecords.map((rec, idx) => (
-                              <div key={`${rec.type}:${idx}`} style={{ display: "grid", gridTemplateColumns: "90px 52px 1fr 1fr", padding: "8px 10px", gap: 8, alignItems: "start", borderTop: `1px solid ${DA_RULE}`, background: idx % 2 === 0 ? "transparent" : DA_BG }}>
-                                <div style={{ fontSize: 10, color: DA_INK3, paddingTop: 2, lineHeight: 1.4 }}>{rec.purpose}</div>
-                                <div style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: "#2563eb", paddingTop: 2 }}>{rec.type}</div>
-                                <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
-                                  <div style={{ fontFamily: "monospace", fontSize: 11, color: DA_INK2, wordBreak: "break-all" as const }}>{rec.name}</div>
-                                  <button onClick={() => handleCopyRecord(`n:${idx}`, rec.name)} style={{ alignSelf: "flex-start", padding: "2px 7px", borderRadius: 5, background: copiedKey === `n:${idx}` ? DA_GREEN_SOFT : DA_SURFACE, border: `1px solid ${copiedKey === `n:${idx}` ? DA_GREEN : DA_RULE}`, color: copiedKey === `n:${idx}` ? DA_GREEN : DA_INK3, fontSize: 10, fontWeight: 600, fontFamily: SANS, cursor: "pointer", whiteSpace: "nowrap" as const, transition: "all .15s" }}>
-                                    {copiedKey === `n:${idx}` ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
-                                  </button>
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
-                                  <div style={{ fontFamily: "monospace", fontSize: 10.5, color: DA_INK3, wordBreak: "break-all" as const }}>{rec.value}</div>
-                                  <button onClick={() => handleCopyRecord(`v:${idx}`, rec.value)} style={{ alignSelf: "flex-start", padding: "2px 7px", borderRadius: 5, background: copiedKey === `v:${idx}` ? DA_GREEN_SOFT : DA_SURFACE, border: `1px solid ${copiedKey === `v:${idx}` ? DA_GREEN : DA_RULE}`, color: copiedKey === `v:${idx}` ? DA_GREEN : DA_INK3, fontSize: 10, fontWeight: 600, fontFamily: SANS, cursor: "pointer", whiteSpace: "nowrap" as const, transition: "all .15s" }}>
-                                    {copiedKey === `v:${idx}` ? t.customDomainCopiedBtn : t.customDomainCopyBtn}
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* How to add DNS records */}
-                    <div style={{ marginBottom: 14, padding: "12px 14px", borderRadius: 9, background: DA_BG, border: `1px solid ${DA_RULE}` }}>
-                      <div style={{ fontSize: 11.5, fontWeight: 700, fontFamily: SANS, color: DA_INK1, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                        <Icon name="link" size={12} color={DA_INK3} />
-                        {t.customDomainDnsHowTo}
-                      </div>
-                      <ol style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 16, paddingRight: lang === "ar" ? 16 : 0, display: "flex", flexDirection: "column" as const, gap: 5 }}>
-                        {[t.customDomainDnsStep1, t.customDomainDnsStep2, t.customDomainDnsStep3, t.customDomainDnsStep4].map((step, i) => (
-                          <li key={i} style={{ fontSize: 11.5, color: DA_INK3, lineHeight: 1.55 }}>{step}</li>
-                        ))}
-                      </ol>
-                      <div style={{ marginTop: 10, fontSize: 11, color: DA_INK3 }}>{t.customDomainDnsNote}</div>
-                      <div style={{ marginTop: 10, borderTop: `1px solid ${DA_RULE}`, paddingTop: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_INK2, marginBottom: 5 }}>{t.customDomainProviderTitle}</div>
-                        <ul style={{ margin: 0, paddingLeft: lang === "ar" ? 0 : 14, paddingRight: lang === "ar" ? 14 : 0, display: "flex", flexDirection: "column" as const, gap: 3 }}>
-                          {[t.customDomainProviderNamecheap, t.customDomainProviderCloudflare, t.customDomainProviderGodaddy, t.customDomainProviderGoogle].map((tip, i) => (
-                            <li key={i} style={{ fontSize: 11, color: DA_INK3, listStyle: "disc" }}>{tip}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => setDnsSetupOpen(true)}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 8, background: DA_BG, border: `1px solid ${DA_RULE}`, color: DA_GOLD_DEEP, fontSize: 12, fontWeight: 600, fontFamily: SANS, cursor: "pointer", marginBottom: 14, textDecoration: "none" }}
+                    >
+                      <Icon name="link" size={12} color={DA_GOLD_DEEP} />
+                      {lang === "ar" ? "عرض سجلات DNS والتعليمات" : "View DNS records & instructions"}
+                    </button>
 
                     <div style={{ display: "flex", gap: 8 }}>
                       <button
@@ -752,12 +831,18 @@ export default function BrandingPage() {
                   </div>
                   <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6 }}>{t.customDomainSubdomainHint}</div>
                   {domainError && <div style={{ fontSize: 11.5, color: DA_DANGER, marginTop: 8 }}>{domainError}</div>}
-                  {/* How it works teaser */}
-                  <div style={{ marginTop: 14, padding: "11px 14px", borderRadius: 9, background: DA_BG, border: `1px solid ${DA_RULE}`, fontSize: 11.5, color: DA_INK3, lineHeight: 1.65 }}>
+                  <div style={{ marginTop: 12, fontSize: 11.5, color: DA_INK3, lineHeight: 1.6 }}>
                     {lang === "ar"
-                      ? "كيف يعمل: أدخل نطاقك واحفظه ← ستُرسَل إليك سجلات DNS فوراً ← تُضيف السجلات عند مسجّل النطاق ← يصبح نطاقك مباشراً."
-                      : "How it works: submit your domain → receive DNS records instantly → add them at your registrar → your domain goes live."
+                      ? "أدخل نطاقك ← احصل على سجلات DNS ← أضفها عند مسجّل النطاق ← يصبح نطاقك مباشراً."
+                      : "Submit your domain → get DNS records → add them at your registrar → go live."
                     }
+                    {" "}
+                    <button
+                      onClick={() => setDnsSetupOpen(true)}
+                      style={{ background: "none", border: "none", padding: 0, color: DA_GOLD_DEEP, fontSize: 11.5, fontWeight: 600, fontFamily: SANS, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
+                    >
+                      {lang === "ar" ? "تفاصيل الإعداد" : "Setup details"}
+                    </button>
                   </div>
                 </div>
               )}
@@ -859,6 +944,24 @@ export default function BrandingPage() {
           </div>
         )}
       </ConfirmModal>
+      {/* ── DNS setup modal ── */}
+      <DnsSetupModal
+        open={dnsSetupOpen}
+        onClose={() => setDnsSetupOpen(false)}
+        allRecords={(() => {
+          if (!customDomain) return [];
+          return [
+            ...(cnameRecord ? [{ purpose: lang === "ar" ? "توجيه الزيارات" : "Route traffic", type: cnameRecord.type, name: cnameRecord.name, value: cnameRecord.value }] : []),
+            ...verificationRecords.map(r => ({ purpose: lang === "ar" ? "التحقق من الملكية" : "Ownership verification", type: r.type, name: r.name, value: r.value })),
+            ...sslRecords.map(r => ({ purpose: lang === "ar" ? "شهادة SSL" : "SSL certificate", type: r.type, name: r.name, value: r.value })),
+          ];
+        })()}
+        apexGuidance={apexGuidance}
+        copiedKey={copiedKey}
+        onCopy={handleCopyRecord}
+        lang={lang}
+        t={t}
+      />
     </AppLayout>
   );
 }
