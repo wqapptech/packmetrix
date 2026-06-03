@@ -535,7 +535,7 @@ function DashboardFirstRun({
 type DateRange = "7" | "30" | "90" | "all";
 
 function DashboardPopulated({
-  agencyName, packages, leads, userId, lang, isMobile, loading, onDeletePackage,
+  agencyName, packages, leads, userId, lang, isMobile, loading, onDeletePackage, customDomain,
 }: {
   agencyName: string;
   packages: Package[];
@@ -545,6 +545,7 @@ function DashboardPopulated({
   isMobile: boolean;
   loading: boolean;
   onDeletePackage: (id: string) => void;
+  customDomain?: string;
 }) {
   const router = useRouter();
   const t = T[lang];
@@ -789,9 +790,11 @@ function DashboardPopulated({
                 isMobile={isMobile}
                 onView={() => {
                   const slug = pkg.agencySlug || userAgencySlug;
-                  const url = process.env.NEXT_PUBLIC_ENV !== "production"
-                    ? `${process.env.NEXT_PUBLIC_APP_URL}/${slug}/${pkg.id}`
-                    : `https://${slug}.packmetrix.com/${pkg.id}`;
+                  const url = customDomain
+                    ? `https://${customDomain}/${pkg.id}`
+                    : process.env.NEXT_PUBLIC_ENV !== "production"
+                      ? `${process.env.NEXT_PUBLIC_APP_URL}/${slug}/${pkg.id}`
+                      : `https://${slug}.packmetrix.com/${pkg.id}`;
                   window.open(url, "_blank", "noopener,noreferrer");
                 }}
                 onEdit={() => router.push(`/builder?id=${pkg.id}`)}
@@ -963,6 +966,7 @@ export default function Dashboard() {
   const [userId,      setUserId]      = useState<string | null>(null);
   const [agencyName,  setAgencyName]  = useState("Agency");
   const [hasBranding, setHasBranding] = useState(false);
+  const [customDomain, setCustomDomain] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -973,6 +977,9 @@ export default function Dashboard() {
         const data = snap.data();
         if (data.name) setAgencyName(data.name);
         setHasBranding(!!(data.name && data.logoUrl));
+        if (data.customDomainStatus === "active" && data.customDomain) {
+          setCustomDomain(data.customDomain);
+        }
       }
       setAuthLoading(false);
     });
@@ -1033,6 +1040,7 @@ export default function Dashboard() {
             isMobile={isMobile}
             loading={loading}
             onDeletePackage={(id) => setPackages(prev => prev.filter(p => p.id !== id))}
+            customDomain={customDomain}
           />
         ) : (
           <DashboardFirstRun

@@ -36,7 +36,8 @@ import {
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
-function pkgUrl(slug: string, id: string): string {
+function pkgUrl(slug: string, id: string, customDomain?: string): string {
+  if (customDomain) return `https://${customDomain}/${id}`;
   if (process.env.NODE_ENV === "development") return `http://localhost:3000/${slug}/${id}`;
   if (process.env.NEXT_PUBLIC_ENV !== "production") {
     return `${process.env.NEXT_PUBLIC_APP_URL}/${slug}/${id}`;
@@ -155,6 +156,7 @@ export default function PackagesPage() {
   const [agency, setAgency] = useState<TAgency>({ name: "Agency" });
   const [filter, setFilter] = useState<FilterTab>("all");
   const [sortLabel] = useState(isAr ? "ترتيب حسب: التحويل" : "Sort: conversion");
+  const [customDomain, setCustomDomain] = useState<string | undefined>(undefined);
   const [confirmAction, setConfirmAction] = useState<{ type: "delete" | "duplicate"; pkg: Package } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [deleteLeadCount, setDeleteLeadCount] = useState(0);
@@ -172,6 +174,9 @@ export default function PackagesPage() {
       setAgencySlug(slugify(name) || "agency");
       setCanCreate(hasFullAccess(data.plan, data.trialEndsAt));
       setAgency({ name, tagline: data.tagline || "", logoUrl: data.logoUrl || "" });
+      if (data.customDomainStatus === "active" && data.customDomain) {
+        setCustomDomain(data.customDomain);
+      }
       setAuthLoading(false);
 
       const pkgSnap = await getDocs(query(collection(db, "packages"), where("userId", "==", user.uid)));
@@ -470,7 +475,7 @@ export default function PackagesPage() {
                   templateName={tpl ? (isAr ? tpl.nameAr : tpl.name) : undefined}
                   onView={() =>
                     window.open(
-                      pkgUrl(pkg.agencySlug || agencySlug, pkg.id),
+                      pkgUrl(pkg.agencySlug || agencySlug, pkg.id, customDomain),
                       "_blank",
                       "noopener,noreferrer"
                     )
@@ -478,7 +483,7 @@ export default function PackagesPage() {
                   onEdit={() => router.push(`/builder?id=${pkg.id}`)}
                   onCopyLink={
                     pkg.agencySlug
-                      ? () => navigator.clipboard?.writeText(pkgUrl(pkg.agencySlug!, pkg.id))
+                      ? () => navigator.clipboard?.writeText(pkgUrl(pkg.agencySlug!, pkg.id, customDomain))
                       : undefined
                   }
                   onDelete={async () => {

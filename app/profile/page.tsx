@@ -25,13 +25,6 @@ function isApexDomain(hostname: string): boolean {
   return hostname.split(".").length === 2;
 }
 
-// App Hosting states that may exist in Firestore from the brief migration period.
-// Treat them as failed so agencies can clear and re-submit via the CF flow.
-const LEGACY_APP_HOSTING_STATUSES = new Set(["requested", "records_ready"]);
-function normalizeDomainStatus(raw: string): DomainStatus {
-  if (LEGACY_APP_HOSTING_STATUSES.has(raw)) return "failed";
-  return raw as DomainStatus;
-}
 
 // ─── Shared field components ─────────────────────────────────────────────────
 
@@ -177,7 +170,7 @@ export default function BrandingPage() {
         setCustomDomain(savedDomain);
         setDomainInput(savedDomain);
         setDomainCfId(d.customDomainCfId || "");
-        setDomainStatus(savedDomain ? normalizeDomainStatus(d.customDomainStatus || "") : "");
+        setDomainStatus(savedDomain ? (d.customDomainStatus || "") as DomainStatus : "");
         setVerificationRecords(d.customDomainVerificationRecords || []);
         setSslRecords(d.customDomainSslRecords || []);
         if (savedDomain && !isApexDomain(savedDomain)) {
@@ -261,7 +254,7 @@ export default function BrandingPage() {
       });
       if (!res.ok) return;
       const data = await res.json();
-      setDomainStatus(normalizeDomainStatus(data.status));
+      setDomainStatus(data.status as DomainStatus);
       setVerificationRecords(data.verification_records ?? []);
       setSslRecords(data.ssl_records ?? []);
       if (data.error_message) setDomainError(data.error_message);
@@ -360,7 +353,7 @@ export default function BrandingPage() {
       });
       if (!res.ok) return;
       const data = await res.json();
-      setDomainStatus(normalizeDomainStatus(data.status));
+      setDomainStatus(data.status as DomainStatus);
       setVerificationRecords(data.verification_records ?? []);
       setSslRecords(data.ssl_records ?? []);
       if (data.error_message) setDomainError(data.error_message);
