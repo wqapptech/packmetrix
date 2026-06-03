@@ -442,6 +442,7 @@ function BuilderPageInner() {
   const [done, setDone] = useState(false);
   const [packageId, setPackageId] = useState<string | null>(null);
   const [agencySlug, setAgencySlug] = useState<string | null>(null);
+  const [customDomain, setCustomDomain] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -465,6 +466,9 @@ function BuilderPageInner() {
 
       if (!editId) {
         const userData = userSnap.exists() ? userSnap.data() : {};
+        if (userData.customDomainStatus === "active" && userData.customDomain) {
+          setCustomDomain(userData.customDomain);
+        }
         if (!hasFullAccess(userData.plan, userData.trialEndsAt)) {
           router.push("/paywall");
           return;
@@ -648,11 +652,13 @@ function BuilderPageInner() {
 
   const finalPackageId = packageId || editId;
   const shareUrl = finalPackageId && agencySlug
-    ? process.env.NODE_ENV === "development"
-      ? `http://localhost:3000/${agencySlug}/${finalPackageId}`
-      : process.env.NEXT_PUBLIC_ENV !== "production"
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/${agencySlug}/${finalPackageId}`
-      : `https://${agencySlug}.packmetrix.com/${finalPackageId}`
+    ? customDomain
+      ? `https://${customDomain}/${finalPackageId}`
+      : process.env.NODE_ENV === "development"
+        ? `http://localhost:3000/${agencySlug}/${finalPackageId}`
+        : process.env.NEXT_PUBLIC_ENV !== "production"
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/${agencySlug}/${finalPackageId}`
+          : `https://${agencySlug}.packmetrix.com/${finalPackageId}`
     : "";
 
   const handleCopy = () => {
@@ -738,7 +744,7 @@ function BuilderPageInner() {
 
             {/* CTAs */}
             <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, alignItems: "center", flexWrap: "wrap" }}>
-              <button onClick={() => router.push(`/${agencySlug}/${finalPackageId}`)} style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 20px", fontSize: 13.5, fontWeight: 500, fontFamily: "inherit", cursor: "pointer", color: DA_INK1, display: "flex", alignItems: "center", gap: 7 }}>
+              <button onClick={() => window.open(shareUrl, "_blank", "noopener,noreferrer")} style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 20px", fontSize: 13.5, fontWeight: 500, fontFamily: "inherit", cursor: "pointer", color: DA_INK1, display: "flex", alignItems: "center", gap: 7 }}>
                 <Icon name="eye" size={14} color={DA_INK2} /> {LS.preview}
               </button>
               <ExportMenu
