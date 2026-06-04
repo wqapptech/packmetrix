@@ -343,7 +343,7 @@ export default function LoginPage() {
               subtitle={t.auth2LoginSubtitle}
             />
 
-            {error && <FormError>{error}</FormError>}
+            {error && <div data-testid="login-error"><FormError>{error}</FormError></div>}
 
             {/* Google button */}
             <button
@@ -379,6 +379,7 @@ export default function LoginPage() {
               <div>
                 <FieldLabel label={isAr ? "البريد الإلكتروني" : "Email"} />
                 <input
+                  data-testid="login-email"
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -392,6 +393,7 @@ export default function LoginPage() {
               <div>
                 <FieldLabel label={isAr ? "كلمة المرور" : "Password"} />
                 <input
+                  data-testid="login-password"
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
@@ -414,6 +416,7 @@ export default function LoginPage() {
 
             {/* Submit */}
             <button
+              data-testid="login-submit"
               onClick={handleLogin}
               disabled={loading}
               style={{

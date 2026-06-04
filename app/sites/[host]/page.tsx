@@ -5,17 +5,26 @@ import CustomDomainGallery from "./_gallery";
 
 export const dynamic = "force-dynamic";
 
-async function fetchAgencyBySlug(slug: string) {
-  if (!db) return null;
-  try {
-    const snap = await db.collection("users")
-      .where("agencySlug", "==", slug)
-      .limit(1)
-      .get();
-    return snap.empty ? null : snap.docs[0].data();
-  } catch {
-    return null;
+async function resolveAgencySlug(host: string): Promise<string | null> {
+  // Primary: fast index kept in sync by upsertDomainState
+  const domainSnap = await db.collection("customDomains").doc(host).get();
+  if (domainSnap.exists && domainSnap.data()?.status === "active") {
+    return domainSnap.data()!.agencySlug as string;
   }
+
+  // Fallback: look up the users collection directly (handles manually-seeded agencies)
+  const userSnap = await db
+    .collection("users")
+    .where("customDomain", "==", host)
+    .where("customDomainStatus", "==", "active")
+    .limit(1)
+    .get();
+  if (!userSnap.empty) {
+    const data = userSnap.docs[0].data();
+    return (data.agencySlug as string) || null;
+  }
+
+  return null;
 }
 
 export async function generateMetadata({
@@ -24,15 +33,17 @@ export async function generateMetadata({
   params: Promise<{ host: string }>;
 }): Promise<Metadata> {
   const { host } = await params;
-  const domainSnap = await db.collection("customDomains").doc(host).get();
-  if (!domainSnap.exists || domainSnap.data()?.status !== "active") {
-    return { title: "PackMetrix" };
-  }
+  const agencySlug = await resolveAgencySlug(host);
+  if (!agencySlug) return { title: "PackMetrix" };
 
-  const agencySlug: string = domainSnap.data()!.agencySlug;
-  const agency = await fetchAgencyBySlug(agencySlug);
-  if (!agency) return { title: "PackMetrix" };
+  const userSnap = await db
+    .collection("users")
+    .where("agencySlug", "==", agencySlug)
+    .limit(1)
+    .get();
+  if (userSnap.empty) return { title: "PackMetrix" };
 
+  const agency = userSnap.docs[0].data();
   const name = agency.name || "Travel Agency";
   const title = `${name} — Travel Packages`;
   const description = agency.about || agency.tagline || `Browse travel packages by ${name}`;
@@ -55,12 +66,8 @@ export default async function CustomDomainGalleryPage({
   params: Promise<{ host: string }>;
 }) {
   const { host } = await params;
+  const agencySlug = await resolveAgencySlug(host);
+  if (!agencySlug) notFound();
 
-  const snap = await db.collection("customDomains").doc(host).get();
-  if (!snap.exists || snap.data()?.status !== "active") {
-    notFound();
-  }
-
-  const agencySlug: string = snap.data()!.agencySlug;
   return <CustomDomainGallery agencySlug={agencySlug} />;
 }

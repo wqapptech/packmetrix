@@ -461,6 +461,7 @@ function SignupPageInner() {
                 <div>
                   <FieldLabel label={t.auth2SignupNameLabel} />
                   <input
+                    data-testid="signup-name"
                     type="text"
                     value={name}
                     onChange={e => setName(e.target.value)}
@@ -474,6 +475,7 @@ function SignupPageInner() {
                 <div>
                   <FieldLabel label={isAr ? "البريد الإلكتروني" : "Email"} />
                   <input
+                    data-testid="signup-email"
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -487,6 +489,7 @@ function SignupPageInner() {
                 <div>
                   <FieldLabel label={isAr ? "كلمة المرور" : "Password"} />
                   <input
+                    data-testid="signup-password"
                     type="password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
@@ -509,6 +512,7 @@ function SignupPageInner() {
                 <div>
                   <FieldLabel label={isAr ? "تأكيد كلمة المرور" : "Confirm password"} />
                   <input
+                    data-testid="signup-confirm"
                     type="password"
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
@@ -529,6 +533,7 @@ function SignupPageInner() {
 
               {/* Submit */}
               <button
+                data-testid="signup-submit"
                 onClick={handleSignup}
                 disabled={loading || !valid}
                 style={{
@@ -565,6 +570,7 @@ function SignupPageInner() {
 
         {/* ── Email verification step ── */}
         {step === "verify" && (
+          <div data-testid="signup-verify-step">
           <AuthCard>
             {/* Envelope icon */}
             <div style={{
@@ -637,6 +643,7 @@ function SignupPageInner() {
               >{t.auth2VerifyWrong}</button>
             </div>
           </AuthCard>
+          </div>
         )}
 
         {/* ── Link accounts step ── */}

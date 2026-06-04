@@ -7,7 +7,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import "@/app/storefront.css";
 
@@ -953,8 +953,22 @@ function StorefrontInner({ agencySlug, basePath }: { agencySlug: string; basePat
         );
         const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Package));
 
-        // First, find the agency profile so we know storefrontLanguage before filtering.
-        // Use the first doc's userId as the agency lookup key.
+        const toAgencyProfile = (u: Record<string, unknown>): AgencyProfile => ({
+          name:               String(u.name || u.email || "Travel Agency"),
+          tagline:            String(u.tagline || ""),
+          logoUrl:            String(u.logoUrl || ""),
+          brandColor:         String(u.brandColor || ""),
+          storefrontLanguage: u.storefrontLanguage === "ar" ? "ar" : "en",
+          about_en:           String(u.about_en || u.about || ""),
+          about_ar:           String(u.about_ar || ""),
+          whatsapp:           String(u.whatsapp || ""),
+          email:              String(u.email || ""),
+          statsYears:         Number(u.statsYears) || 0,
+          statsTravellers:    Number(u.statsTravellers) || 0,
+          statsRating:        Number(u.statsRating) || 0,
+        });
+
+        // Primary: resolve agency profile via a package's userId
         let agencyData: AgencyProfile | null = null;
         const firstDoc = snap.docs[0];
         if (firstDoc) {
@@ -962,23 +976,20 @@ function StorefrontInner({ agencySlug, basePath }: { agencySlug: string; basePat
           if (userId) {
             const userSnap = await getDoc(doc(db, "users", userId));
             if (userSnap.exists()) {
-              const u = userSnap.data();
-              agencyData = {
-                name:               u.name || u.email || "Travel Agency",
-                tagline:            u.tagline || "",
-                logoUrl:            u.logoUrl || "",
-                brandColor:         u.brandColor || "",
-                storefrontLanguage: u.storefrontLanguage === "ar" ? "ar" : "en",
-                about_en:           u.about_en || u.about || "",
-                about_ar:           u.about_ar || "",
-                whatsapp:           u.whatsapp || "",
-                email:              u.email || "",
-                statsYears:         u.statsYears || 0,
-                statsTravellers:    u.statsTravellers || 0,
-                statsRating:        u.statsRating || 0,
-              };
+              agencyData = toAgencyProfile(userSnap.data());
               setAgency(agencyData);
             }
+          }
+        }
+
+        // Fallback: look up the user directly by agencySlug (handles seeded/new agencies with no packages yet)
+        if (!agencyData) {
+          const userSnap = await getDocs(
+            query(collection(db, "users"), where("agencySlug", "==", agencySlug), limit(1))
+          );
+          if (!userSnap.empty) {
+            agencyData = toAgencyProfile(userSnap.docs[0].data());
+            setAgency(agencyData);
           }
         }
 
