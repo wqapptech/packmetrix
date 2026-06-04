@@ -475,6 +475,8 @@ function BuilderPageInner() {
         }
         posthog.capture("builder_opened", { mode: "new" });
 
+        const sfLang = userData.storefrontLanguage === "ar" ? "ar" : "en";
+
         // Restore draft (includes templateId + extras)
         if (typeof window !== "undefined") {
           const raw = localStorage.getItem(DRAFT_KEY);
@@ -482,6 +484,7 @@ function BuilderPageInner() {
             try {
               const draft = JSON.parse(raw);
               if (draft.core) setCore(draft.core);
+              else setCore(prev => ({ ...prev, primaryLanguage: sfLang }));
               if (draft.templateId) setSelectedTemplateId(draft.templateId);
               // Convert old Phase-1 extras (if present) into sections so no draft data is lost
               const base: AnySectionInstance[] = Array.isArray(draft.sections) ? draft.sections : [];
@@ -495,6 +498,8 @@ function BuilderPageInner() {
               setSections(supplementFromFlatFields(upgradeLegacySections(base), fakeFlat));
               setUiPhase("build");
             } catch {}
+          } else {
+            setCore(prev => ({ ...prev, primaryLanguage: sfLang }));
           }
         }
       } else {
