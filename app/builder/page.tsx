@@ -718,7 +718,7 @@ function BuilderPageInner() {
     };
     return (
       <AppLayout>
-        <div dir={l ? "rtl" : "ltr"} style={{
+        <div data-testid="builder-done" dir={l ? "rtl" : "ltr"} style={{
           flex: 1, padding: "60px 40px",
           background: DA_BG, overflowY: "auto",
           display: "flex", alignItems: "center", justifyContent: "center",

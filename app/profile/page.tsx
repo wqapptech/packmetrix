@@ -36,9 +36,10 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Input({ value, onChange, placeholder, style }: { value: string; onChange: (v: string) => void; placeholder?: string; style?: React.CSSProperties }) {
+function Input({ value, onChange, placeholder, style, "data-testid": testId }: { value: string; onChange: (v: string) => void; placeholder?: string; style?: React.CSSProperties; "data-testid"?: string }) {
   return (
     <input
+      data-testid={testId}
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
@@ -592,26 +593,51 @@ export default function BrandingPage() {
             <div style={{ fontSize: 26, fontWeight: 400, fontFamily: DISPLAY, color: DA_INK1, letterSpacing: "-0.3px" }}>{t.brandingTitle}</div>
             <div style={{ fontSize: 13, fontFamily: SANS, color: DA_INK3, marginTop: 4 }}>{t.brandingSubtitle}</div>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving || !hasChanges}
-            style={{
-              padding: "9px 20px", borderRadius: 9, fontSize: 13, fontWeight: 700, fontFamily: SANS,
-              background: saved ? DA_GREEN_SOFT : DA_GOLD,
-              border: saved ? `1px solid ${DA_GREEN}` : "none",
-              color: saved ? DA_GREEN : "#fff",
-              cursor: (saving || !hasChanges) ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", gap: 8, transition: "all .2s",
-              opacity: hasChanges || saved ? 1 : 0.35,
-            }}
-          >
-            {saving
-              ? <><span className="spinner-warm" style={{ width: 13, height: 13, borderTopColor: "#fff" }} /> {t.savingBtn}</>
-              : saved
-              ? <><Icon name="check" size={13} color={DA_GREEN} strokeWidth={2.5} /> {t.savedBtn}</>
-              : t.saveChangesBtn
-            }
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {agencySlug && (
+              <a
+                href={
+                  domainStatus === "active" && customDomain
+                    ? `https://${customDomain}`
+                    : process.env.NODE_ENV === "development"
+                    ? `http://localhost:3000/${agencySlug}`
+                    : `https://${agencySlug}.packmetrix.com`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: "9px 16px", borderRadius: 9, fontSize: 13, fontWeight: 600, fontFamily: SANS,
+                  background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+                  color: DA_INK2, textDecoration: "none",
+                  display: "flex", alignItems: "center", gap: 7,
+                }}
+              >
+                <Icon name="globe" size={13} color={DA_INK3} />
+                {lang === "ar" ? "معاينة المتجر" : "Preview storefront"}
+              </a>
+            )}
+            <button
+              data-testid="profile-save"
+              onClick={handleSave}
+              disabled={saving || !hasChanges}
+              style={{
+                padding: "9px 20px", borderRadius: 9, fontSize: 13, fontWeight: 700, fontFamily: SANS,
+                background: saved ? DA_GREEN_SOFT : DA_GOLD,
+                border: saved ? `1px solid ${DA_GREEN}` : "none",
+                color: saved ? DA_GREEN : "#fff",
+                cursor: (saving || !hasChanges) ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", gap: 8, transition: "all .2s",
+                opacity: hasChanges || saved ? 1 : 0.35,
+              }}
+            >
+              {saving
+                ? <><span className="spinner-warm" style={{ width: 13, height: 13, borderTopColor: "#fff" }} /> {t.savingBtn}</>
+                : saved
+                ? <><Icon name="check" size={13} color={DA_GREEN} strokeWidth={2.5} /> {t.savedBtn}</>
+                : t.saveChangesBtn
+              }
+            </button>
+          </div>
         </div>
 
         <div style={isMobile ? {
@@ -662,7 +688,7 @@ export default function BrandingPage() {
               </div>
 
               <FieldLabel>{t.agencyNameLabel}</FieldLabel>
-              <Input value={name} onChange={setName} placeholder="e.g. Aegean Travel" />
+              <Input data-testid="profile-name" value={name} onChange={setName} placeholder="e.g. Aegean Travel" />
 
               <FieldLabel>{t.taglineLabel}</FieldLabel>
               <Input value={tagline} onChange={setTagline} placeholder="Curated Mediterranean journeys · est. 2014" />

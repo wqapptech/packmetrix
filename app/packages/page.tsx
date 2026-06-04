@@ -45,6 +45,15 @@ function pkgUrl(slug: string, id: string, customDomain?: string): string {
   return `https://${slug}.packmetrix.com/${id}`;
 }
 
+function agencyUrl(slug: string, customDomain?: string): string {
+  if (customDomain) return `https://${customDomain}`;
+  if (process.env.NODE_ENV === "development") return `http://localhost:3000/${slug}`;
+  if (process.env.NEXT_PUBLIC_ENV !== "production") {
+    return `${process.env.NEXT_PUBLIC_APP_URL}/${slug}`;
+  }
+  return `https://${slug}.packmetrix.com`;
+}
+
 type Package = {
   id: string;
   destination: string;
@@ -291,27 +300,50 @@ export default function PackagesPage() {
             )}
           </div>
 
-          <button
-            onClick={() => (canCreate ? router.push("/builder") : router.push("/paywall"))}
-            style={{
-              background: DA_GOLD,
-              color: "#fff",
-              border: "none",
-              borderRadius: 9,
-              padding: "8px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: SANS,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="plus" size={14} color="#fff" />
-            {t.newPackageBtn}
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+            <a
+              href={agencyUrl(agencySlug, customDomain)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: DA_SURFACE,
+                color: DA_INK2,
+                border: `1px solid ${DA_RULE2}`,
+                borderRadius: 9,
+                padding: "8px 16px",
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: SANS,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                textDecoration: "none",
+              }}
+            >
+              <Icon name="globe" size={14} color={DA_INK3} />
+              {isAr ? "معاينة المتجر" : "Preview storefront"}
+            </a>
+            <button
+              onClick={() => (canCreate ? router.push("/builder") : router.push("/paywall"))}
+              style={{
+                background: DA_GOLD,
+                color: "#fff",
+                border: "none",
+                borderRadius: 9,
+                padding: "8px 18px",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: SANS,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Icon name="plus" size={14} color="#fff" />
+              {t.newPackageBtn}
+            </button>
+          </div>
         </div>
 
         {/* ── Stat tiles ────────────────────────────────────────────────── */}

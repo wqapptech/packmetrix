@@ -142,6 +142,7 @@ export function BuilderTopBar({
 
         {/* Publish CTA */}
         <button
+          data-testid="builder-publish"
           onClick={onPublish}
           disabled={publishing}
           style={{
@@ -313,6 +314,7 @@ export function BuilderTopBar({
 
       {/* Publish CTA */}
       <button
+        data-testid="builder-publish"
         onClick={onPublish}
         disabled={publishing}
         style={{
