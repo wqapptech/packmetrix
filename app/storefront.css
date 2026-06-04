@@ -1,0 +1,375 @@
+/* Storefront — Direction A · Warm Editorial · .sf namespace
+   Breakpoint: desktop ≥ 760px · mobile < 760px
+   RTL: logical properties + [dir=rtl] for the handful of explicit flips */
+
+/* ── Surfaces & tokens ───────────────────────────────────────────────── */
+.sf {
+  --paper:  #faf5e8;
+  --paper2: #fffdf7;
+  --ink:    #1b1813;
+  --ink2:   #5e564a;
+  --ink3:   #978d7c;
+  --rule:   #e7ddc8;
+  --wa:     #1faa52;
+  /* --brand, --brand-on, --brand-text, --brand-deep, --brand-tint
+     injected as inline style via deriveBrand() */
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-inter-tight), "Inter Tight", Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Cover image ─────────────────────────────────────────────────────── */
+.sf-cover {
+  position: relative;
+  overflow: hidden;
+}
+.sf-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+.sf-scrim-t {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,.46) 0%, transparent 52%);
+  pointer-events: none;
+  z-index: 1;
+}
+.sf-scrim-b {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,.70) 0%, rgba(0,0,0,.22) 44%, transparent 68%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Typography ──────────────────────────────────────────────────────── */
+.sf-serif {
+  font-family: var(--font-newsreader), Newsreader, Georgia, serif;
+}
+.sf-display {
+  font-family: var(--font-newsreader), Newsreader, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -.02em;
+  line-height: 1.02;
+  margin: 0;
+}
+.sf-h2 {
+  font-family: var(--font-newsreader), Newsreader, Georgia, serif;
+  font-weight: 500;
+  font-size: 46px;
+  letter-spacing: -.02em;
+  line-height: 1.05;
+  margin: 0;
+}
+.sf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--brand-text);
+  white-space: nowrap;
+}
+.sf-eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 1.5px;
+  background: var(--brand-text);
+  flex-shrink: 0;
+}
+.sf-eyebrow.is-center {
+  justify-content: center;
+}
+.sf-eyebrow.is-center::before {
+  display: none;
+}
+.sf-eyebrow.on-dark {
+  color: rgba(255,255,255,.78);
+}
+.sf-eyebrow.on-dark::before {
+  background: rgba(255,255,255,.78);
+}
+
+/* ── Agency mark ─────────────────────────────────────────────────────── */
+.sf-mark {
+  border-radius: 8px;
+  background: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--brand-on);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.sf-mark--dark {
+  background: rgba(255,255,255,.18);
+  color: #fff;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.sf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  border-radius: 11px;
+  transition: background .15s, box-shadow .15s, transform .1s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.sf-btn:active {
+  transform: scale(.97);
+}
+.sf-btn--brand {
+  background: var(--brand);
+  color: var(--brand-on);
+}
+.sf-btn--brand:hover {
+  background: var(--brand-deep);
+}
+.sf-btn--wa {
+  background: rgba(31,170,82,.1);
+  color: #14853e;
+  box-shadow: inset 0 0 0 1px rgba(31,170,82,.3);
+}
+.sf-btn--wa:hover {
+  background: rgba(31,170,82,.17);
+}
+.sf-btn--wa-solid {
+  background: var(--wa);
+  color: #fff;
+}
+.sf-btn--wa-solid:hover {
+  background: #178e44;
+}
+.sf-btn--ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--rule);
+}
+.sf-btn--ghost:hover {
+  background: var(--paper2);
+}
+
+/* ── Pills / badges ──────────────────────────────────────────────────── */
+.sf-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ── Section container
+   CRITICAL: use width + max-width + margin-inline — never flex-stretch ──── */
+.sf-section {
+  width: 100%;
+  max-width: 1264px;
+  margin-inline: auto;
+  padding-inline: 56px;
+  padding-bottom: 64px;
+  box-sizing: border-box;
+}
+.sf-sec-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* ── Package grid ────────────────────────────────────────────────────── */
+.sf-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+/* ── Package card ────────────────────────────────────────────────────── */
+.sf-pcard {
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--paper2);
+  border: 1px solid var(--rule);
+  transition: box-shadow .2s, transform .2s;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.sf-pcard:hover {
+  box-shadow: 0 22px 44px -26px rgba(40,28,12,.5);
+  transform: translateY(-3px);
+}
+.sf-pcard__body {
+  padding: 20px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.sf-pcard__foot {
+  margin-top: auto;
+  padding-top: 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+/* ── Link / arrow text ───────────────────────────────────────────────── */
+.sf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-text);
+}
+
+/* ── Arrow flip in RTL ───────────────────────────────────────────────── */
+.sf-arrow {
+  transition: transform .15s;
+  flex-shrink: 0;
+}
+[dir=rtl] .sf-arrow {
+  transform: scaleX(-1);
+}
+
+/* ── Stat cards ──────────────────────────────────────────────────────── */
+.sf-stat {
+  background: var(--paper2);
+  border: 1px solid var(--rule);
+  border-radius: 22px;
+  padding: 32px 36px;
+}
+.sf-stat__n {
+  font-family: var(--font-newsreader), Newsreader, Georgia, serif;
+  font-weight: 600;
+  font-size: 58px;
+  letter-spacing: -.03em;
+  color: var(--brand-text);
+  line-height: 1;
+}
+.sf-stat__l {
+  font-size: 16px;
+  color: var(--ink2);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+/* ── Contact band ────────────────────────────────────────────────────── */
+.sf-contact {
+  background: var(--brand-tint);
+  border-top: 1px solid var(--rule);
+}
+.sf-contact-inner {
+  width: 100%;
+  max-width: 1264px;
+  margin-inline: auto;
+  padding-inline: 56px;
+  padding-top: 70px;
+  padding-bottom: 70px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* ── Floating WhatsApp FAB ───────────────────────────────────────────── */
+.sf-fab {
+  position: fixed;
+  inset-inline-end: 28px;
+  bottom: 108px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 999px;
+  background: var(--wa);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: 0 8px 24px rgba(31,170,82,.35);
+  transition: background .15s, box-shadow .15s, transform .1s;
+  z-index: 50;
+  text-decoration: none;
+}
+.sf-fab:hover {
+  background: #178e44;
+  box-shadow: 0 12px 32px rgba(31,170,82,.45);
+}
+.sf-fab:active {
+  transform: scale(.96);
+}
+.sf-fab--m {
+  inset-inline-end: 20px;
+  bottom: 92px;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border-radius: 50%;
+  justify-content: center;
+}
+
+/* ── Mobile (< 760px) ────────────────────────────────────────────────── */
+@media (max-width: 759px) {
+  .sf-h2 {
+    font-size: 34px;
+  }
+  .sf-section {
+    padding-inline: 22px;
+  }
+  .sf-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .sf-stat {
+    padding: 24px 26px;
+  }
+  .sf-contact-inner {
+    padding-inline: 22px;
+    padding-top: 52px;
+    padding-bottom: 52px;
+  }
+}
+
+/* ── RTL font swap ───────────────────────────────────────────────────── */
+[dir=rtl] .sf-display,
+[dir=rtl] .sf-h2,
+[dir=rtl] .sf-serif,
+[dir=rtl] .sf-stat__n {
+  font-family: var(--font-noto-naskh-arabic), "Noto Naskh Arabic", serif;
+}
+[dir=rtl].sf,
+[dir=rtl] .sf-btn,
+[dir=rtl] .sf-eyebrow,
+[dir=rtl] .sf-link {
+  font-family: var(--font-noto-sans-arabic), "Noto Sans Arabic", system-ui, sans-serif;
+}
+
+/* ── RTL: eyebrow rule to the end ────────────────────────────────────── */
+[dir=rtl] .sf-eyebrow::before {
+  order: 1;
+}

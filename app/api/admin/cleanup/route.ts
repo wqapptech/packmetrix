@@ -5,7 +5,7 @@ import { verifyAdminToken } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-const KEEP_EMAIL = "wqapptech@gmail.com";
+const KEEP_EMAIL = "hello@packmetrix.com";
 
 async function batchDelete(refs: DocumentReference[]) {
   for (let i = 0; i < refs.length; i += 500) {
