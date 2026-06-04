@@ -36,9 +36,9 @@ type AgencyProfile = {
   tagline?: string;
   logoUrl?: string;
   brandColor?: string;
-  language?: string;
-  // fields added to user profile when ready — sections omit gracefully until then
-  about?: string;
+  storefrontLanguage?: "en" | "ar";
+  about_en?: string;
+  about_ar?: string;
   whatsapp?: string;
   email?: string;
   statsYears?: number;
@@ -741,10 +741,10 @@ function Grid({
   );
 }
 
-// ── About section (renders only when agency.about exists) ──────────────────
+// ── About section (renders only when an about text exists for the active lang) ──
 
-function About({ agency, L, m }: { agency: AgencyProfile; L: Strings; m: boolean }) {
-  if (!agency.about) return null;
+function About({ agency, about, L, m }: { agency: AgencyProfile; about: string; L: Strings; m: boolean }) {
+  if (!about) return null;
   return (
     <section
       style={{
@@ -771,7 +771,7 @@ function About({ agency, L, m }: { agency: AgencyProfile; L: Strings; m: boolean
           maxWidth: 680,
         }}
       >
-        {agency.about}
+        {about}
       </p>
     </section>
   );
@@ -935,6 +935,11 @@ function StorefrontInner({ agencySlug, basePath }: { agencySlug: string; basePat
   const searchParams = useSearchParams();
   const m = !useIsDesktop();
 
+  // ?language=ar|en overrides both package filtering and UI language.
+  // Without it, the agency's configured storefrontLanguage is used.
+  const langParam = searchParams.get("language");
+  const forcedLang: Lang | null = langParam === "ar" || langParam === "en" ? langParam : null;
+
   const [packages, setPackages] = useState<Package[]>([]);
   const [agency, setAgency] = useState<AgencyProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -947,8 +952,43 @@ function StorefrontInner({ agencySlug, basePath }: { agencySlug: string; basePat
           query(collection(db, "packages"), where("agencySlug", "==", agencySlug))
         );
         const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Package));
+
+        // First, find the agency profile so we know storefrontLanguage before filtering.
+        // Use the first doc's userId as the agency lookup key.
+        let agencyData: AgencyProfile | null = null;
+        const firstDoc = snap.docs[0];
+        if (firstDoc) {
+          const userId = (firstDoc.data() as { userId?: string }).userId;
+          if (userId) {
+            const userSnap = await getDoc(doc(db, "users", userId));
+            if (userSnap.exists()) {
+              const u = userSnap.data();
+              agencyData = {
+                name:               u.name || u.email || "Travel Agency",
+                tagline:            u.tagline || "",
+                logoUrl:            u.logoUrl || "",
+                brandColor:         u.brandColor || "",
+                storefrontLanguage: u.storefrontLanguage === "ar" ? "ar" : "en",
+                about_en:           u.about_en || u.about || "",
+                about_ar:           u.about_ar || "",
+                whatsapp:           u.whatsapp || "",
+                email:              u.email || "",
+                statsYears:         u.statsYears || 0,
+                statsTravellers:    u.statsTravellers || 0,
+                statsRating:        u.statsRating || 0,
+              };
+              setAgency(agencyData);
+            }
+          }
+        }
+
+        const sfLang: Lang = forcedLang ?? agencyData?.storefrontLanguage ?? "en";
         const active = all
           .filter(isActive)
+          .filter((p) => {
+            const pkgLang = (p as Package & { primaryLanguage?: string }).primaryLanguage || p.language || "en";
+            return pkgLang === sfLang;
+          })
           .sort((a, b) => {
             // featured first, then oldest (ascending createdAt)
             const fa = a.featured ? 1 : 0;
@@ -957,30 +997,6 @@ function StorefrontInner({ agencySlug, basePath }: { agencySlug: string; basePat
             return (a.createdAt || 0) - (b.createdAt || 0);
           });
         setPackages(active);
-
-        const firstDoc = snap.docs[0];
-        if (firstDoc) {
-          const userId = (firstDoc.data() as { userId?: string }).userId;
-          if (userId) {
-            const userSnap = await getDoc(doc(db, "users", userId));
-            if (userSnap.exists()) {
-              const u = userSnap.data();
-              setAgency({
-                name:            u.name || u.email || "Travel Agency",
-                tagline:         u.tagline || "",
-                logoUrl:         u.logoUrl || "",
-                brandColor:      u.brandColor || "",
-                language:        u.language || firstDoc.data().language || "en",
-                about:           u.about || "",
-                whatsapp:        u.whatsapp || "",
-                email:           u.email || "",
-                statsYears:      u.statsYears || 0,
-                statsTravellers: u.statsTravellers || 0,
-                statsRating:     u.statsRating || 0,
-              });
-            }
-          }
-        }
       } catch (err) {
         console.error("[Storefront] Firestore error:", err);
       } finally {
@@ -988,14 +1004,9 @@ function StorefrontInner({ agencySlug, basePath }: { agencySlug: string; basePat
       }
     };
     load();
-  }, [agencySlug]);
+  }, [agencySlug, forcedLang]);
 
-  const langParam = searchParams.get("lang");
-  const lang = (
-    (langParam || agency?.language || packages[0]?.language || "en") === "ar"
-      ? "ar"
-      : "en"
-  ) as Lang;
+  const lang: Lang = forcedLang ?? agency?.storefrontLanguage ?? "en";
   const L = T[lang];
   const brand = agency?.brandColor || DEFAULT_BRAND;
   const themeVars = deriveBrand(brand);
@@ -1020,15 +1031,32 @@ function StorefrontInner({ agencySlug, basePath }: { agencySlug: string; basePat
   };
 
   if (!agency || !lead) {
-    // No packages yet — render agency identity + footer only
+    // No packages in this language — render agency identity + footer only (spec §6 edge case)
     return (
       <div
         className="sf"
         dir={lang === "ar" ? "rtl" : "ltr"}
         lang={lang}
-        style={themeVars as React.CSSProperties}
+        style={{ ...themeVars as React.CSSProperties, justifyContent: "flex-end" }}
       >
-        {agency && <Footer agency={agency} L={L} m={m} />}
+        {agency && (
+          <>
+            {/* Minimal header so the agency is identifiable */}
+            <header style={{
+              padding: m ? "18px 22px" : "24px 56px",
+              display: "flex", alignItems: "center", gap: 13,
+              borderBottom: "1px solid var(--rule)",
+              background: "var(--paper)",
+            }}>
+              <AgencyMark agency={agency} size={m ? 36 : 42} />
+              <span className="sf-serif" style={{ fontSize: m ? 18 : 21, fontWeight: 600, letterSpacing: "-0.01em" }}>
+                {agency.name}
+              </span>
+            </header>
+            <div style={{ flex: 1 }} />
+            <Footer agency={agency} L={L} m={m} />
+          </>
+        )}
       </div>
     );
   }
@@ -1056,8 +1084,13 @@ function StorefrontInner({ agencySlug, basePath }: { agencySlug: string; basePat
       {/* §5 / §6 — Grid: only when packages.length > 1 */}
       {rest.length > 0 && <Grid packages={rest} L={L} m={m} router={router} basePath={basePath} />}
 
-      {/* §6 — About: only when agency wrote an intro */}
-      <About agency={agency} L={L} m={m} />
+      {/* §6 — About: only when agency wrote an intro for this language */}
+      <About
+        agency={agency}
+        about={lang === "ar" ? (agency.about_ar || agency.about_en || "") : (agency.about_en || agency.about_ar || "")}
+        L={L}
+        m={m}
+      />
 
       {/* §6 — Why book: only when ≥1 real figure exists */}
       <WhyBook agency={agency} L={L} m={m} />

@@ -232,7 +232,22 @@ export default function BrandingPage() {
   const [enableReviews, setEnableReviews] = useState(false);
   const [showReviews, setShowReviews] = useState(true);
 
-  const savedState = useRef({ name: "", tagline: "", email: "", phone: "", logoUrl: "", enableReviews: false, showReviews: true });
+  // Storefront fields
+  const [storefrontLanguage, setStorefrontLanguage] = useState<"en" | "ar">("en");
+  const [brandColor, setBrandColor] = useState("#1d4e72");
+  const [about_en, setAboutEn] = useState("");
+  const [about_ar, setAboutAr] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [statsYears, setStatsYears] = useState("");
+  const [statsTravellers, setStatsTravellers] = useState("");
+  const [statsRating, setStatsRating] = useState("");
+
+  const savedState = useRef({
+    name: "", tagline: "", email: "", phone: "", logoUrl: "",
+    enableReviews: false, showReviews: true,
+    storefrontLanguage: "en" as "en" | "ar", brandColor: "#1d4e72",
+    about_en: "", about_ar: "", whatsapp: "", statsYears: "", statsTravellers: "", statsRating: "",
+  });
   const hasChanges = (
     name !== savedState.current.name ||
     tagline !== savedState.current.tagline ||
@@ -240,7 +255,15 @@ export default function BrandingPage() {
     phone !== savedState.current.phone ||
     logoUrl !== savedState.current.logoUrl ||
     enableReviews !== savedState.current.enableReviews ||
-    showReviews !== savedState.current.showReviews
+    showReviews !== savedState.current.showReviews ||
+    storefrontLanguage !== savedState.current.storefrontLanguage ||
+    brandColor !== savedState.current.brandColor ||
+    about_en !== savedState.current.about_en ||
+    about_ar !== savedState.current.about_ar ||
+    whatsapp !== savedState.current.whatsapp ||
+    statsYears !== savedState.current.statsYears ||
+    statsTravellers !== savedState.current.statsTravellers ||
+    statsRating !== savedState.current.statsRating
   );
 
   const [plan, setPlan] = useState<string>("");
@@ -286,6 +309,14 @@ export default function BrandingPage() {
         const _logoUrl = d.logoUrl || "";
         const _enableReviews = d.enableReviews === true;
         const _showReviews = d.showReviews !== false;
+        const _storefrontLanguage: "en" | "ar" = d.storefrontLanguage === "ar" ? "ar" : "en";
+        const _brandColor = d.brandColor || "#1d4e72";
+        const _about_en = d.about_en || d.about || "";
+        const _about_ar = d.about_ar || "";
+        const _whatsapp = d.whatsapp || "";
+        const _statsYears = d.statsYears ? String(d.statsYears) : "";
+        const _statsTravellers = d.statsTravellers ? String(d.statsTravellers) : "";
+        const _statsRating = d.statsRating ? String(d.statsRating) : "";
         setName(_name);
         setTagline(_tagline);
         setEmail(_email);
@@ -293,7 +324,21 @@ export default function BrandingPage() {
         setLogoUrl(_logoUrl);
         setEnableReviews(_enableReviews);
         setShowReviews(_showReviews);
-        savedState.current = { name: _name, tagline: _tagline, email: _email, phone: _phone, logoUrl: _logoUrl, enableReviews: _enableReviews, showReviews: _showReviews };
+        setStorefrontLanguage(_storefrontLanguage);
+        setBrandColor(_brandColor);
+        setAboutEn(_about_en);
+        setAboutAr(_about_ar);
+        setWhatsapp(_whatsapp);
+        setStatsYears(_statsYears);
+        setStatsTravellers(_statsTravellers);
+        setStatsRating(_statsRating);
+        savedState.current = {
+          name: _name, tagline: _tagline, email: _email, phone: _phone, logoUrl: _logoUrl,
+          enableReviews: _enableReviews, showReviews: _showReviews,
+          storefrontLanguage: _storefrontLanguage, brandColor: _brandColor,
+          about_en: _about_en, about_ar: _about_ar, whatsapp: _whatsapp,
+          statsYears: _statsYears, statsTravellers: _statsTravellers, statsRating: _statsRating,
+        };
         setPlan(d.plan || "");
         const _slug = d.agencySlug ? d.agencySlug : toSlug(d.name || "");
         setAgencySlug(_slug);
@@ -341,8 +386,19 @@ export default function BrandingPage() {
   const handleSave = async () => {
     if (!uid) return;
     setSaving(true);
-    await updateDoc(doc(db, "users", uid), { name, tagline, email, phone, logoUrl, enableReviews, showReviews });
-    savedState.current = { name, tagline, email, phone, logoUrl, enableReviews, showReviews };
+    const statsYearsNum = statsYears ? Number(statsYears) : 0;
+    const statsTravellersNum = statsTravellers ? Number(statsTravellers) : 0;
+    const statsRatingNum = statsRating ? Number(parseFloat(statsRating).toFixed(1)) : 0;
+    await updateDoc(doc(db, "users", uid), {
+      name, tagline, email, phone, logoUrl, enableReviews, showReviews,
+      storefrontLanguage, brandColor, about_en, about_ar, whatsapp,
+      statsYears: statsYearsNum, statsTravellers: statsTravellersNum, statsRating: statsRatingNum,
+    });
+    savedState.current = {
+      name, tagline, email, phone, logoUrl, enableReviews, showReviews,
+      storefrontLanguage, brandColor, about_en, about_ar, whatsapp,
+      statsYears, statsTravellers, statsRating,
+    };
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -615,6 +671,154 @@ export default function BrandingPage() {
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
                 <Input value={email} onChange={setEmail} placeholder="hello@agency.com" />
                 <Input value={phone} onChange={setPhone} placeholder="+1 555 000 1234" />
+              </div>
+            </div>
+
+            {/* Storefront settings */}
+            <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 4 }}>
+                {lang === "ar" ? "إعدادات الواجهة العامة" : "Storefront settings"}
+              </div>
+              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 18, lineHeight: 1.5 }}>
+                {lang === "ar"
+                  ? "هذه الحقول تغذّي صفحتك العامة — تظهر الأقسام فقط عند ملء بياناتها."
+                  : "These fields power your public storefront — sections appear only when their data is filled in."}
+              </div>
+
+              {/* Storefront language */}
+              <FieldLabel>{lang === "ar" ? "لغة الواجهة العامة" : "Storefront language"}</FieldLabel>
+              <div style={{ display: "flex", gap: 8 }}>
+                {(["en", "ar"] as const).map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setStorefrontLanguage(l)}
+                    style={{
+                      flex: 1, padding: "9px 0", borderRadius: 9, fontSize: 13, fontWeight: 600,
+                      fontFamily: SANS, cursor: "pointer", transition: "all .15s",
+                      background: storefrontLanguage === l ? DA_GOLD : DA_SURFACE,
+                      color: storefrontLanguage === l ? "#fff" : DA_INK2,
+                      border: `1.5px solid ${storefrontLanguage === l ? DA_GOLD : DA_RULE}`,
+                    }}
+                  >
+                    {l === "en" ? "English" : "العربية"}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6, lineHeight: 1.5 }}>
+                {lang === "ar"
+                  ? "تحدد هذه اللغة الباقات التي تظهر — تُعرض باقات هذه اللغة فقط."
+                  : "Sets which packages appear — only packages in this language are shown."}
+              </div>
+
+              {/* Brand color */}
+              <FieldLabel>{lang === "ar" ? "لون الهوية" : "Brand color"}</FieldLabel>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <input
+                    type="color"
+                    value={brandColor}
+                    onChange={e => setBrandColor(e.target.value)}
+                    style={{ width: 42, height: 42, borderRadius: 9, border: `1px solid ${DA_RULE}`, cursor: "pointer", padding: 2, background: "transparent" }}
+                  />
+                </div>
+                <Input
+                  value={brandColor}
+                  onChange={v => { if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setBrandColor(v); }}
+                  placeholder="#1d4e72"
+                  style={{ fontFamily: "monospace", maxWidth: 120 }}
+                />
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: brandColor, border: `1px solid ${DA_RULE}`, flexShrink: 0 }} />
+              </div>
+              <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6 }}>
+                {lang === "ar"
+                  ? "يُستخدم على الأزرار والروابط في صفحتك العامة."
+                  : "Used on buttons and links in your storefront."}
+              </div>
+
+              {/* About */}
+              <FieldLabel>{lang === "ar" ? "نبذة عن الوكالة" : "About your agency"}</FieldLabel>
+              <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 8 }}>
+                {lang === "ar" ? "أدخل النص بالإنجليزية والعربية — كلٌّ يظهر في نسخته اللغوية." : "Enter text in both languages — each is shown in its language version."}
+              </div>
+              {[
+                { label: "English", value: about_en, set: setAboutEn, dir: "ltr", placeholder: "A short paragraph about who you are and the kind of journeys you design…" },
+                { label: "العربية", value: about_ar, set: setAboutAr, dir: "rtl", placeholder: "اكتب مقدمة قصيرة عن وكالتك وطبيعة رحلاتك…" },
+              ].map(({ label, value, set, dir, placeholder }) => (
+                <div key={label} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: DA_INK3, marginBottom: 5, letterSpacing: ".06em" }}>{label}</div>
+                  <textarea
+                    value={value}
+                    onChange={e => set(e.target.value)}
+                    placeholder={placeholder}
+                    dir={dir}
+                    rows={3}
+                    style={{
+                      width: "100%", background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
+                      borderRadius: 10, padding: "10px 14px", color: DA_INK1, fontSize: 13,
+                      fontFamily: SANS, outline: "none", resize: "vertical", lineHeight: 1.6,
+                      transition: "border-color .15s", boxSizing: "border-box",
+                    }}
+                    onFocus={e => (e.target.style.borderColor = DA_GOLD)}
+                    onBlur={e => (e.target.style.borderColor = DA_RULE)}
+                  />
+                </div>
+              ))}
+
+              {/* WhatsApp */}
+              <FieldLabel>{lang === "ar" ? "واتساب (للتواصل)" : "WhatsApp number"}</FieldLabel>
+              <Input
+                value={whatsapp}
+                onChange={setWhatsapp}
+                placeholder="+971 50 000 0000"
+              />
+              <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6 }}>
+                {lang === "ar"
+                  ? "يُفعّل زر واتساب العائم وشريط التواصل في الصفحة العامة."
+                  : "Enables the floating WhatsApp button and contact band on your storefront."}
+              </div>
+
+              {/* Trust stats */}
+              <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${DA_RULE}` }}>
+                <div style={{ fontSize: 12, fontWeight: 600, fontFamily: SANS, color: DA_INK2, marginBottom: 4 }}>
+                  {lang === "ar" ? "أرقام الثقة (اختياري)" : "Trust figures (optional)"}
+                </div>
+                <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 14, lineHeight: 1.5 }}>
+                  {lang === "ar"
+                    ? "تظهر هذه الأرقام فقط عند ملئها. لا تُدخل أرقاماً افتراضية."
+                    : "These appear only when filled in. Only enter real numbers — never invented."}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 5 }}>
+                      {lang === "ar" ? "سنوات الخبرة" : "Years in business"}
+                    </div>
+                    <Input
+                      value={statsYears}
+                      onChange={v => { if (/^\d*$/.test(v)) setStatsYears(v); }}
+                      placeholder="12"
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 5 }}>
+                      {lang === "ar" ? "مسافرون استضفتهم" : "Travellers hosted"}
+                    </div>
+                    <Input
+                      value={statsTravellers}
+                      onChange={v => { if (/^\d*$/.test(v)) setStatsTravellers(v); }}
+                      placeholder="2400"
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 5 }}>
+                      {lang === "ar" ? "متوسط التقييم (من 5)" : "Avg. rating (out of 5)"}
+                    </div>
+                    <Input
+                      value={statsRating}
+                      onChange={v => { if (/^\d*\.?\d*$/.test(v) && parseFloat(v || "0") <= 5) setStatsRating(v); }}
+                      placeholder="4.9"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -86,7 +86,7 @@ export function DesktopNav({ agency, price, brand, navLinks, dark, onWhatsApp, l
         ))}
         {agency.agencySlug && (
           <a
-            href={`/${agency.agencySlug}`}
+            href={`/${agency.agencySlug}${lang ? `?language=${lang}` : ""}`}
             style={{ fontSize: 13, fontWeight: 600, color: brand, textDecoration: "none", cursor: "pointer", transition: "opacity 0.15s" }}
             onMouseEnter={e => (e.currentTarget.style.opacity = "0.75")}
             onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
@@ -225,7 +225,7 @@ export function AgencyBar({ agency, price, brand: brandProp, dark, onWhatsApp, l
             <div style={{ fontSize: 12.5, fontWeight: 800, color: ink, letterSpacing: "-0.2px", lineHeight: 1 }}>{agency.name}</div>
             {agency.agencySlug && (
               <a
-                href={`/${agency.agencySlug}`}
+                href={`/${agency.agencySlug}${lang ? `?language=${lang}` : ""}`}
                 style={{ fontSize: 10, color: dark ? "rgba(255,255,255,0.45)" : "rgba(13,27,46,0.4)", textDecoration: "none", letterSpacing: "0.2px" }}
               >
                 {t.navAllPackages} ↗
