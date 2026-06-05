@@ -26,7 +26,6 @@ import { TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/components/templates";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_GREEN, DA_GREEN_SOFT, DA_DANGER } from "@/lib/tokens";
 import type { TopbarRenderProps } from "@/components/AppLayout";
 import { ConfirmModal } from "@/components/ConfirmModal";
-import { ExportMenu } from "@/components/export/ExportMenu";
 
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const DRAFT_KEY = "builderDraft_v2";
@@ -783,13 +782,6 @@ function BuilderPageInner() {
               <button onClick={() => window.open(shareUrl, "_blank", "noopener,noreferrer")} style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 20px", fontSize: 13.5, fontWeight: 500, fontFamily: "inherit", cursor: "pointer", color: DA_INK1, display: "flex", alignItems: "center", gap: 7 }}>
                 <Icon name="eye" size={14} color={DA_INK2} /> {LS.preview}
               </button>
-              <ExportMenu
-                pkgId={finalPackageId!}
-                agencySlug={agencySlug ?? ""}
-                pkgLang={core.primaryLanguage ?? "en"}
-                uiLang={l ? "ar" : "en"}
-                dropdownDir="below"
-              />
               <button onClick={() => router.push("/dashboard")} style={{ background: "transparent", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 13.5, color: DA_INK3, fontFamily: "inherit", cursor: "pointer" }}>
                 {LS.dashboard}
               </button>
