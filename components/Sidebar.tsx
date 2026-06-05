@@ -9,6 +9,7 @@ import { auth, db } from "@/lib/firebase";
 import Icon from "./Icon";
 import { useLang } from "@/hooks/useLang";
 import { T } from "@/lib/translations";
+import { FeatureRequestModal } from "./FeatureRequestModal";
 import {
   DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT,
@@ -60,6 +61,8 @@ export default function Sidebar({
     agencyName: string;
   } | null>(null);
   const [logoutHovered, setLogoutHovered] = useState(false);
+  const [featureReqHovered, setFeatureReqHovered] = useState(false);
+  const [featureReqOpen, setFeatureReqOpen] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -323,6 +326,30 @@ export default function Sidebar({
               </div>
             </div>
             <button
+              onClick={() => setFeatureReqOpen(true)}
+              onMouseEnter={() => setFeatureReqHovered(true)}
+              onMouseLeave={() => setFeatureReqHovered(false)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                background: featureReqHovered ? DA_SURFACE : "none",
+                border: `1px solid ${featureReqHovered ? DA_RULE2 : "transparent"}`,
+                color: DA_INK3,
+                fontSize: 12,
+                fontFamily: SANS,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                transition: "all 0.12s",
+                marginBottom: 2,
+              }}
+            >
+              <Icon name="sparkle" size={12} color={DA_INK3} />
+              {t.featureReqMenuItem}
+            </button>
+            <button
               onClick={handleLogout}
               onMouseEnter={() => setLogoutHovered(true)}
               onMouseLeave={() => setLogoutHovered(false)}
@@ -345,6 +372,12 @@ export default function Sidebar({
               <Icon name="logout" size={12} color={DA_INK3} />
               {t.signOut}
             </button>
+
+            <FeatureRequestModal
+              open={featureReqOpen}
+              onClose={() => setFeatureReqOpen(false)}
+              prefillEmail={user.email}
+            />
           </>
         ) : (
           <div

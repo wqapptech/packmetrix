@@ -168,6 +168,50 @@ export async function sendVerificationEmail(opts: {
   });
 }
 
+// ── Admin: feature request notification ───────────────────────────────────────
+
+export async function sendFeatureRequestEmail(opts: {
+  text: string;
+  category: string;
+  submitterEmail: string;
+  agencyId: string;
+  agencyName: string;
+  agencySlug: string;
+  lang: string;
+  page: string;
+}): Promise<void> {
+  const { text, category, submitterEmail, agencyId, agencyName, agencySlug, lang, page } = opts;
+
+  const categoryRow = category
+    ? `<tr><td style="padding:8px 0;color:#666;font-size:13px;vertical-align:top;padding-right:16px">Category</td><td style="padding:8px 0;font-size:13px;color:#0d1b2e">${category}</td></tr>`
+    : "";
+  const emailRow = submitterEmail
+    ? `<tr><td style="padding:8px 0;color:#666;font-size:13px;vertical-align:top;padding-right:16px">Email</td><td style="padding:8px 0;font-size:13px"><a href="mailto:${submitterEmail}" style="color:#1f5f8e">${submitterEmail}</a></td></tr>`
+    : "";
+
+  await send({
+    from: FROM,
+    to: "waleed@packmetrix.com",
+    ...(submitterEmail ? { replyTo: submitterEmail } : {}),
+    subject: `Feature request: ${agencyName || agencyId}${category ? ` · ${category}` : ""}`,
+    html: `
+<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#0d1b2e">
+  <h2 style="font-size:18px;font-weight:700;margin:0 0 6px">New feature request</h2>
+  <p style="color:#888;font-size:12px;margin:0 0 24px">Submitted via Packmetrix app · lang: ${lang} · page: ${page}</p>
+
+  <div style="background:#f7f5ef;border-left:3px solid #b08a3e;border-radius:6px;padding:14px 16px;margin-bottom:24px;font-size:14px;color:#0d1b2e;line-height:1.6;white-space:pre-wrap">${text}</div>
+
+  <table style="width:100%;border-collapse:collapse">
+    <tr><td style="padding:8px 0;color:#666;font-size:13px;vertical-align:top;padding-right:16px">Agency</td><td style="padding:8px 0;font-size:13px;font-weight:600;color:#0d1b2e">${agencyName || "—"}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;font-size:13px;vertical-align:top;padding-right:16px">Slug</td><td style="padding:8px 0;font-size:13px;color:#0d1b2e">${agencySlug || "—"}</td></tr>
+    <tr><td style="padding:8px 0;color:#666;font-size:13px;vertical-align:top;padding-right:16px">UID</td><td style="padding:8px 0;font-size:12px;color:#888;font-family:monospace">${agencyId}</td></tr>
+    ${categoryRow}
+    ${emailRow}
+  </table>
+</div>`,
+  });
+}
+
 // ── Admin: demo request ────────────────────────────────────────────────────────
 
 export async function sendDemoRequestEmail(opts: {
