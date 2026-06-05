@@ -29,7 +29,9 @@ export type IconName =
   | "globe"
   | "credit_card"
   | "mail"
-  | "lock";
+  | "lock"
+  | "facebook"
+  | "share";
 
 const PATHS: Record<IconName, string> = {
   home: "M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z M9 21V12h6v9",
@@ -76,6 +78,8 @@ const PATHS: Record<IconName, string> = {
     "M2 6h20a1 1 0 011 1v12a1 1 0 01-1 1H2a1 1 0 01-1-1V7a1 1 0 011-1z M1 10h22",
   mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6",
   lock: "M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z M7 11V7a5 5 0 0110 0v4",
+  facebook: "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z",
+  share: "M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98M21 5a3 3 0 11-6 0 3 3 0 016 0zM9 12a3 3 0 11-6 0 3 3 0 016 0zM21 19a3 3 0 11-6 0 3 3 0 016 0z",
 };
 
 export default function Icon({

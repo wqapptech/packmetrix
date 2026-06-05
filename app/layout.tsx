@@ -113,7 +113,7 @@ const newsreader = Newsreader({
 export const metadata: Metadata = {
   title: "PackMetrix — Travel Package Intelligence",
   description:
-    "Turn travel packages into high-converting landing pages in seconds. Paste any description, itinerary, or WhatsApp message — AI extracts, structures, and publishes.",
+    "How travel agencies present and sell their packages — beautifully, on their own brand, wherever their customers are. AI-powered pages, lead tracking, and 10 stunning templates.",
 };
 
 export default function RootLayout({
