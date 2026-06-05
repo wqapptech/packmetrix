@@ -11,7 +11,6 @@ import {
   DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK3,
   DA_RULE, DA_RULE2, DA_GOLD, DA_GREEN, DA_GREEN_SOFT,
 } from "@/lib/tokens";
-import { ExportMenu } from "@/components/export/ExportMenu";
 
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
@@ -150,12 +149,19 @@ type Props = {
 };
 
 export function PackageCard({
-  pkg, agency, lang,
+  pkg, lang,
   onView, onEdit, onDelete, onToggleActive, onDuplicate, onCopyLink, shareUrl,
   templateName, nights,
 }: Props) {
   const t = T[lang];
   const isAr = lang === "ar";
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    onCopyLink?.();
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
   const clicks = (pkg.whatsappClicks || 0) + (pkg.messengerClicks || 0);
   const conv = (pkg.views || 0) > 0 ? (clicks / (pkg.views || 1)) * 100 : 0;
   const isPublished = Boolean(pkg.agencySlug);
@@ -329,8 +335,18 @@ export function PackageCard({
             {t.preview}
           </button>
           {onCopyLink && (
-            <button onClick={onCopyLink} style={{ ...btnBase, width: 32, height: 30 }} title={t.copyLink}>
-              <Icon name="copy" size={12} color="currentColor" />
+            <button
+              onClick={handleCopyLink}
+              title={linkCopied ? (isAr ? "تم النسخ!" : "Copied!") : t.copyLink}
+              style={{
+                ...btnBase,
+                width: 32, height: 30,
+                background: linkCopied ? DA_GREEN_SOFT : DA_SURFACE2,
+                border: `1px solid ${linkCopied ? DA_GREEN : DA_RULE2}`,
+                transition: "background .15s, border-color .15s",
+              }}
+            >
+              <Icon name={linkCopied ? "check" : "copy"} size={12} color={linkCopied ? DA_GREEN : "currentColor"} />
             </button>
           )}
           {shareUrl && isPublished && (
@@ -339,16 +355,6 @@ export function PackageCard({
               title={locStr(pkg.title, lang) || pkg.destination}
               price={pkg.price}
               lang={lang}
-            />
-          )}
-          {isPublished && (
-            <ExportMenu
-              pkgId={pkg.id}
-              agencySlug={pkg.agencySlug || agency.agencySlug || ""}
-              pkgLang={pkg.primaryLanguage ?? "en"}
-              uiLang={lang}
-              dropdownDir="above"
-              compact
             />
           )}
         </div>
