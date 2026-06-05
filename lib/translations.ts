@@ -383,6 +383,24 @@ const en = {
   planSubscribed: "Subscribed",
   planFreeTrial: "Free trial",
 
+  // Feature request modal
+  featureReqMenuItem: "Request a feature",
+  featureReqTitle: "Suggest a feature",
+  featureReqLabel: "What would you like Packmetrix to do?",
+  featureReqPlaceholder: "Describe the feature or improvement you’d like to see…",
+  featureReqCategoryLabel: "Category (optional)",
+  featureReqCatTemplates: "Templates",
+  featureReqCatBuilder: "Builder",
+  featureReqCatStorefront: "Storefront",
+  featureReqCatSharing: "Sharing",
+  featureReqCatBilling: "Billing",
+  featureReqCatOther: "Other",
+  featureReqEmailLabel: "Your email (optional)",
+  featureReqSubmit: "Send request",
+  featureReqSuccess: "Thanks — we’ve got it!",
+  featureReqSuccessBody: "We review every suggestion personally.",
+  featureReqError: "Something went wrong. Please try again.",
+
   // Shared modal defaults
   modalConfirm: "Confirm",
   modalCancel: "Cancel",
@@ -1899,6 +1917,31 @@ const ar: typeof en = {
   planFoundingMember: "عضو مؤسس",
   planSubscribed: "مشترك",
   planFreeTrial: "تجربة مجانية",
+
+  // Feature request modal
+  // [AR-REVIEW-1] "اقتراح ميزة" uses the "suggest" framing (اقتراح) where EN says "Request a feature".
+  //   This is intentional — اقتراح reads more natural in Arabic than a literal translation of "request".
+  //   Please confirm the framing matches your brand voice.
+  // [AR-REVIEW-2] "تودّ رؤيته" in the placeholder — fluent but slightly formal; confirm register is right.
+  // [AR-REVIEW-3] "بشكل شخصي" in successBody — natural, but verify tone matches app voice.
+  // [AR-REVIEW-4] "المنشئ" for Builder category — this matches navBuilder already in the sidebar (line 1893),
+  //   so it is consistent with existing vocabulary. Please confirm you're happy with the term.
+  featureReqMenuItem: "اقتراح ميزة",
+  featureReqTitle: "اقتراح ميزة",
+  featureReqLabel: "ما الذي تريد من Packmetrix فعله؟",
+  featureReqPlaceholder: "صف الميزة أو التحسين الذي تودّ رؤيته…",
+  featureReqCategoryLabel: "الفئة (اختياري)",
+  featureReqCatTemplates: "القوالب",
+  featureReqCatBuilder: "المنشئ",
+  featureReqCatStorefront: "الواجهة",
+  featureReqCatSharing: "المشاركة",
+  featureReqCatBilling: "الفواتير",
+  featureReqCatOther: "أخرى",
+  featureReqEmailLabel: "بريدك الإلكتروني (اختياري)",
+  featureReqSubmit: "إرسال الطلب",
+  featureReqSuccess: "شكراً — تم الاستلام!",
+  featureReqSuccessBody: "نراجع كل اقتراح بشكل شخصي.",
+  featureReqError: "حدث خطأ. يرجى المحاولة مجدداً.",
 
   // Shared modal defaults
   modalConfirm: "تأكيد",
