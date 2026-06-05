@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import type { TListPackage, TAgency } from "@/components/templates/types";
 import { locStr } from "@/components/templates/types";
 import type { Lang } from "@/lib/translations";
@@ -15,6 +16,121 @@ import { ExportMenu } from "@/components/export/ExportMenu";
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
+function ShareDropdown({ shareUrl, title, price, lang }: { shareUrl: string; title: string; price: string; lang: Lang }) {
+  const [open, setOpen] = useState(false);
+  const [igCopied, setIgCopied] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const isAr = lang === "ar";
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const shareWA = () => {
+    const msg = [`✈️ *${title}*`, price ? `💰 ${price}` : null, "", shareUrl].filter(Boolean).join("\n");
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+    setOpen(false);
+  };
+
+  const shareIG = () => {
+    navigator.clipboard?.writeText(shareUrl);
+    setIgCopied(true);
+    // Keep dropdown open so user sees "Copied!" then close
+    setTimeout(() => {
+      setOpen(false);
+      setIgCopied(false);
+    }, 1400);
+  };
+
+  const shareFB = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, "_blank", "noopener,noreferrer,width=580,height=440");
+    setOpen(false);
+  };
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title={isAr ? "مشاركة" : "Share"}
+        style={{
+          background: DA_SURFACE2,
+          border: `1px solid ${DA_RULE2}`,
+          borderRadius: 7,
+          color: DA_INK1,
+          fontFamily: SANS,
+          fontSize: 12,
+          fontWeight: 500,
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 32,
+          height: 30,
+        }}
+      >
+        <Icon name="share" size={12} color="currentColor" />
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute",
+          bottom: "calc(100% + 6px)",
+          ...(isAr ? { left: 0 } : { right: 0 }),
+          background: DA_SURFACE,
+          border: `1px solid ${DA_RULE}`,
+          borderRadius: 10,
+          padding: 6,
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+          zIndex: 50,
+          minWidth: 170,
+          boxShadow: "0 4px 16px rgba(0,0,0,.1)",
+        }}>
+          <button onClick={shareWA} style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "7px 10px", borderRadius: 7, border: "none",
+            background: "transparent", cursor: "pointer", fontFamily: SANS,
+            fontSize: 12.5, fontWeight: 500, color: DA_INK1, textAlign: "left",
+          }}>
+            <span style={{ width: 20, height: 20, borderRadius: 5, background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon name="whatsapp" size={11} color="#fff" />
+            </span>
+            WhatsApp
+          </button>
+          <button onClick={shareIG} style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "7px 10px", borderRadius: 7, border: "none",
+            background: "transparent", cursor: "pointer", fontFamily: SANS,
+            fontSize: 12.5, fontWeight: 500, color: DA_INK1, textAlign: "left",
+          }}>
+            <span style={{ width: 20, height: 20, borderRadius: 5, background: "linear-gradient(135deg,#f58529,#dd2a7b,#8134af)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 10, color: "#fff", fontWeight: 700 }}>
+              IG
+            </span>
+            {igCopied ? (isAr ? "تم النسخ!" : "Copied!") : "Instagram"}
+          </button>
+          <button onClick={shareFB} style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "7px 10px", borderRadius: 7, border: "none",
+            background: "transparent", cursor: "pointer", fontFamily: SANS,
+            fontSize: 12.5, fontWeight: 500, color: DA_INK1, textAlign: "left",
+          }}>
+            <span style={{ width: 20, height: 20, borderRadius: 5, background: "#1877F2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon name="facebook" size={11} color="#fff" />
+            </span>
+            Facebook
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 type Props = {
   pkg: TListPackage;
   agency: TAgency;
@@ -25,6 +141,7 @@ type Props = {
   onToggleActive: () => void;
   onDuplicate?: () => void;
   onCopyLink?: () => void;
+  shareUrl?: string;
   templateName?: string;
   nights?: string | number;
   // kept for API compat, unused in new design:
@@ -34,7 +151,7 @@ type Props = {
 
 export function PackageCard({
   pkg, agency, lang,
-  onView, onEdit, onDelete, onToggleActive, onDuplicate, onCopyLink,
+  onView, onEdit, onDelete, onToggleActive, onDuplicate, onCopyLink, shareUrl,
   templateName, nights,
 }: Props) {
   const t = T[lang];
@@ -215,6 +332,14 @@ export function PackageCard({
             <button onClick={onCopyLink} style={{ ...btnBase, width: 32, height: 30 }} title={t.copyLink}>
               <Icon name="copy" size={12} color="currentColor" />
             </button>
+          )}
+          {shareUrl && isPublished && (
+            <ShareDropdown
+              shareUrl={shareUrl}
+              title={locStr(pkg.title, lang) || pkg.destination}
+              price={pkg.price}
+              lang={lang}
+            />
           )}
           {isPublished && (
             <ExportMenu

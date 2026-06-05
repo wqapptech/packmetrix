@@ -68,6 +68,7 @@ type Package = {
   isActive?: boolean;
   title?: LocStr;
   templateId?: string;
+  primaryLanguage: "en" | "ar";
 };
 
 type FilterTab = "all" | "live" | "draft" | "top";
@@ -189,7 +190,12 @@ export default function PackagesPage() {
       setAuthLoading(false);
 
       const pkgSnap = await getDocs(query(collection(db, "packages"), where("userId", "==", user.uid)));
-      setPackages(pkgSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Package)));
+      setPackages(pkgSnap.docs.map((d) => {
+        const data = d.data();
+        const primaryLanguage: "en" | "ar" =
+          (data.primaryLanguage || data.language) === "ar" ? "ar" : "en";
+        return { id: d.id, ...data, primaryLanguage } as Package;
+      }));
       setLoading(false);
     });
     return () => unsub();
@@ -518,6 +524,7 @@ export default function PackagesPage() {
                       ? () => navigator.clipboard?.writeText(pkgUrl(pkg.agencySlug!, pkg.id, customDomain))
                       : undefined
                   }
+                  shareUrl={pkg.agencySlug ? pkgUrl(pkg.agencySlug, pkg.id, customDomain) : undefined}
                   onDelete={async () => {
                     const leadsSnap = await getDocs(query(collection(db, "leads"), where("packageId", "==", pkg.id)));
                     setDeleteLeadCount(leadsSnap.size);

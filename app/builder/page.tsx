@@ -445,6 +445,7 @@ function BuilderPageInner() {
   const [customDomain, setCustomDomain] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [igCopied, setIgCopied] = useState(false);
   const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [saveAsOpen, setSaveAsOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
@@ -672,6 +673,34 @@ function BuilderPageInner() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const shareViaWhatsApp = () => {
+    if (!shareUrl) return;
+    const title = core.titleEn || core.titleAr || core.destination;
+    const msg = [
+      `✈️ *${title}*`,
+      core.price ? `💰 ${core.price}` : null,
+      "",
+      shareUrl,
+    ].filter((v) => v !== null).join("\n");
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+  };
+
+  const shareViaInstagram = () => {
+    if (!shareUrl) return;
+    navigator.clipboard?.writeText(shareUrl);
+    setIgCopied(true);
+    setTimeout(() => setIgCopied(false), 2500);
+  };
+
+  const shareViaFacebook = () => {
+    if (!shareUrl) return;
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      "_blank",
+      "noopener,noreferrer,width=580,height=440"
+    );
+  };
+
   // ── Loading ──────────────────────────────────────────────────────────────────
 
   if (authLoading) {
@@ -696,7 +725,8 @@ function BuilderPageInner() {
       preview: "معاينة الصفحة",
       dashboard: "العودة للوحة",
       share: "مشاركة عبر",
-      wa: "واتساب", ig: "إنستغرام",
+      wa: "واتساب", ig: "إنستغرام", fb: "فيسبوك",
+      igCopied: "تم النسخ — افتح إنستغرام للصق",
       next: "ما الخطوة التالية؟",
       next1: "شارك الرابط مع عملائك المهتمين",
       next2: "كل ضغط على واتساب يظهر فوراً في لوحة العملاء",
@@ -710,7 +740,8 @@ function BuilderPageInner() {
       preview: "Preview page",
       dashboard: "Back to dashboard",
       share: "Share via",
-      wa: "WhatsApp", ig: "Instagram",
+      wa: "WhatsApp", ig: "Instagram", fb: "Facebook",
+      igCopied: "Copied — open Instagram to paste",
       next: "What happens next?",
       next1: "Send the link to interested travellers",
       next2: "Every WhatsApp tap lands in your Leads inbox in real time",
@@ -765,13 +796,16 @@ function BuilderPageInner() {
             </div>
 
             {/* Share rail */}
-            <div style={{ marginTop: 28, padding: "16px 18px", background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_INK3 }}>{LS.share}</div>
-              <button style={{ padding: "7px 14px", background: "#25D366", color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+            <div style={{ marginTop: 28, padding: "16px 18px", background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" as const }}>
+              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_INK3, marginInlineEnd: 4 }}>{LS.share}</div>
+              <button onClick={shareViaWhatsApp} style={{ padding: "7px 14px", background: "#25D366", color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                 <Icon name="whatsapp" size={13} color="#fff" /> {LS.wa}
               </button>
-              <button style={{ padding: "7px 14px", background: "linear-gradient(135deg, #f58529 0%, #dd2a7b 50%, #8134af 100%)", color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-                {LS.ig}
+              <button onClick={shareViaInstagram} style={{ padding: "7px 14px", background: igCopied ? DA_GREEN : "linear-gradient(135deg, #f58529 0%, #dd2a7b 50%, #8134af 100%)", color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background .2s" }}>
+                {igCopied ? LS.igCopied : LS.ig}
+              </button>
+              <button onClick={shareViaFacebook} style={{ padding: "7px 14px", background: "#1877F2", color: "#fff", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                <Icon name="facebook" size={13} color="#fff" /> {LS.fb}
               </button>
             </div>
 

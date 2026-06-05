@@ -274,9 +274,10 @@ function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaini
   const L = isAr ? {
     eyebrowSuffix: "من ٥٠ مكاناً بسعر الإطلاق",
     eyebrowFallback: "٤٩ من ٥٠ مكاناً بسعر الإطلاق",
-    titleA: "صفحة هبوط مخصّصة",
-    titleB: "لكلّ باقة سفر تبيعها.",
-    sub: "ألصق برنامج رحلتك في باكميتركس. اختر قالباً. انشر صفحة احترافية على نطاقك الخاص — جاهزة للمشاركة على واتساب وإنستغرام وتيك توك. تتبّع المشاهدات والعملاء من صندوق واحد.",
+    // TODO[native-ar-review]: confirm "قدّم وبع" reads naturally and confidently; confirm "علامتك التجارية" vs "هويتك" for the target audience — PROVISIONAL pending native review
+    titleA: "قدّم وبع باقاتك",
+    titleB: "باحترافية، تحت علامتك التجارية.",
+    sub: "ألصق برنامج رحلتك. اختر قالباً. انشر صفحة احترافية على نطاقك — جاهزة للمشاركة أينما كان عملاؤك. تتبّع المشاهدات والعملاء من صندوق واحد.",
     primary: "ثبّت سعر ٣٩ € مدى الحياة",
     // TODO: native AR speaker to verify tone — "احجز عرضاً" phrasing
     demo: "احجز عرضاً",
@@ -287,9 +288,9 @@ function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaini
   } : {
     eyebrowSuffix: "of 50 launch spots left",
     eyebrowFallback: "49 of 50 launch spots left",
-    titleA: "A branded landing page",
-    titleB: "for every travel package you sell.",
-    sub: "Paste your itinerary into Packmetrix. Pick a template. Publish a polished, branded page at your own domain — ready for WhatsApp, Instagram, and TikTok. Track views and leads in one inbox.",
+    titleA: "Present and sell every package",
+    titleB: "beautifully, on your own brand.",
+    sub: "Paste your itinerary. Pick a template. Publish a polished, branded page on your own domain — ready to share wherever your customers are. Track views and leads in one inbox.",
     primary: "Lock in €39 forever",
     demo: "Book a demo",
     secondary: "See a real landing page",
@@ -427,8 +428,9 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
   const L = isAr ? {
     eyebrowSuffix: "من ٥٠ مكاناً بسعر الإطلاق",
     eyebrowFallback: "٤٩ من ٥٠ مكاناً بسعر الإطلاق",
-    titleA: "صفحة هبوط مخصّصة",
-    titleB: "لكلّ باقة تبيعها.",
+    // TODO[native-ar-review]: confirm "قدّم وبع" reads naturally and confidently; confirm "علامتك التجارية" vs "هويتك" for the target audience — PROVISIONAL pending native review
+    titleA: "قدّم وبع باقاتك",
+    titleB: "باحترافية، تحت علامتك التجارية.",
     sub: "ألصق برنامج رحلتك. اختر قالباً. انشر على نطاقك. تتبّع العملاء.",
     primary: "ثبّت سعر ٣٩ € مدى الحياة",
     // TODO: native AR speaker to verify tone — "احجز عرضاً" phrasing
@@ -438,8 +440,8 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
   } : {
     eyebrowSuffix: "of 50 launch spots left",
     eyebrowFallback: "49 of 50 launch spots left",
-    titleA: "A branded landing page",
-    titleB: "for every travel package.",
+    titleA: "Present and sell every package",
+    titleB: "beautifully, on your own brand.",
     sub: "Paste your itinerary. Pick a template. Publish at your domain. Track every lead.",
     primary: "Lock in €39 forever",
     demo: "Book a demo",
@@ -901,7 +903,7 @@ function LandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
   const L = isAr ? {
     eyebrow: "كيف يعمل",
-    title: "من رسالة واتساب إلى",
+    title: "من باقتك إلى",
     titleAccent: "صفحة مباشرة في دقائق.",
     sub: "أربع خطوات. لا أكواد، لا مصمم. هذه لقطات حقيقية من المنتج.",
     steps: [
@@ -912,7 +914,7 @@ function LandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
     ],
   } : {
     eyebrow: "How it works",
-    title: "From a WhatsApp message to a",
+    title: "From your package to a",
     titleAccent: "live page in minutes.",
     sub: "Four steps. No code, no designer. These are real screenshots from the product.",
     steps: [
@@ -974,7 +976,7 @@ function MobileLandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
   const L = isAr ? {
     eyebrow: "كيف يعمل",
-    title: "من رسالة واتساب إلى صفحة مباشرة",
+    title: "من باقتك إلى صفحة مباشرة",
     titleAccent: "في دقائق.",
     steps: [
       { title: "ألصق باقتك", body: "ألصق العرض كما ترسله على واتساب — عربي، إنجليزي، أو الاثنين." },
@@ -984,7 +986,7 @@ function MobileLandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
     ],
   } : {
     eyebrow: "How it works",
-    title: "From a WhatsApp message to a live page",
+    title: "From your package to a live page",
     titleAccent: "in minutes.",
     steps: [
       { title: "Paste your package", body: "Paste the offer exactly as you'd send it on WhatsApp — Arabic, English, or both." },
