@@ -133,7 +133,7 @@ function AtSection({
       const items = atArrMixed(d, "items");
       if (items.length < 2) return null;
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="highlights">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.atHighlights} />
@@ -174,7 +174,7 @@ function AtSection({
       const items = atSecArr(d, "items").length ? atSecArr(d, "items") : atSecArr(d, "days");
       if (!items.length) return null;
       return (
-        <div id="itinerary" style={{ padding: pad, scrollMarginTop: 64 }}>
+        <div id="itinerary" style={{ padding: pad, scrollMarginTop: 64 }} data-pmx-section="itinerary">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.navItinerary} />
@@ -233,7 +233,7 @@ function AtSection({
       const fallbackDesc = atSecStr(d, "description") || atSecStr(d, "note");
       if (!hotels.length && !fallbackDesc) return null;
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="hotel">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.hotelLabel} />
@@ -292,7 +292,7 @@ function AtSection({
       const visaDetails = atSecStr(d, "visaDetails");
       if (!includes.length && !excludes.length && !meals && !visa) return null;
       return (
-        <div id="included" style={{ padding: pad, scrollMarginTop: 64 }}>
+        <div id="included" style={{ padding: pad, scrollMarginTop: 64 }} data-pmx-section="inclusions">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.whatsIncluded} />
@@ -351,7 +351,7 @@ function AtSection({
       const items = atSecArr(d, "items");
       if (!items.length) return null;
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="faq">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.atFaq} />
@@ -374,7 +374,7 @@ function AtSection({
       const body = atSecStr(d, "body") || atSecStr(d, "text") || atSecStr(d, "content");
       if (!title && !body) return null;
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="custom">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             {title && <div style={{ fontFamily: AT.serif, fontSize: isDesktop ? 28 : 22, fontWeight: 400, color: AT.ink, marginBottom: 12 }}>{title}</div>}
@@ -389,7 +389,7 @@ function AtSection({
       const items = atSecArr(d, "items").length ? atSecArr(d, "items") : atSecArr(d, "extras");
       if (!items.length) return null;
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="extras">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.atOptionalExtras} />
@@ -419,7 +419,7 @@ function AtSection({
       const items = atSecArr(d, "people").length ? atSecArr(d, "people") : atSecArr(d, "items");
       if (!items.length) return null;
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="people">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.atYourTeam} />
@@ -460,7 +460,7 @@ function AtSection({
       const body = atSecStr(d, "body") || atSecStr(d, "text");
       if (!items.length && !body) return null;
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="important_notes">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.atImportantNotesLabel} />
@@ -486,7 +486,7 @@ function AtSection({
       const title = atSecStr(d, "title") || atSecStr(d, "heading");
       if (!body && !title) return null;
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="about_agency">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || `${t.atAboutAgencyPrefix} ${agency.name}`} />
@@ -505,7 +505,7 @@ function AtSection({
       const items = atSecArr(d, "departures").length ? atSecArr(d, "departures") : atSecArr(d, "items");
       if (!items.length) return null;
       return (
-        <div id="pricing" style={{ padding: pad, scrollMarginTop: 64 }}>
+        <div id="pricing" style={{ padding: pad, scrollMarginTop: 64 }} data-pmx-section="departures">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.departures} />
@@ -542,7 +542,7 @@ function AtSection({
       const cancellation = atSecStr(d, "cancellation");
       if (!tiers.length) return null;
       return (
-        <div id="pricing" style={{ padding: pad, scrollMarginTop: 64 }}>
+        <div id="pricing" style={{ padding: pad, scrollMarginTop: 64 }} data-pmx-section="pricing">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.chooseOption} />
@@ -611,7 +611,7 @@ function AtSection({
       const desc = atSecStr(d, "description");
       if (!items.length && !desc) return null;
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="transfers">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.atTransfers} />
@@ -628,10 +628,10 @@ function AtSection({
                   return (
                     <li key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", borderTop: `1px solid ${AT.border}`, padding: "12px 0" }}>
                       <div style={{ fontFamily: AT.serif, fontSize: 18, color: AT.superMuted, flexShrink: 0, lineHeight: 1, paddingTop: 2 }}>{String(i + 1).padStart(2, "0")}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 600, color: AT.ink }}>{leg}</div>
-                        {meta && <div style={{ fontSize: 11.5, color: AT.muted, marginTop: 3 }}>{meta}</div>}
-                        {note && <p style={{ fontSize: 12, color: AT.muted, margin: "4px 0 0", lineHeight: 1.55 }}>{note}</p>}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: AT.ink, overflowWrap: "break-word" }}>{leg}</div>
+                        {meta && <div style={{ fontSize: 11.5, color: AT.muted, marginTop: 3, overflowWrap: "break-word" }}>{meta}</div>}
+                        {note && <p style={{ fontSize: 12, color: AT.muted, margin: "4px 0 0", lineHeight: 1.55, overflowWrap: "break-word" }}>{note}</p>}
                       </div>
                       <span style={{
                         fontSize: 10, fontWeight: 700, letterSpacing: "0.8px",
@@ -671,7 +671,7 @@ function AtSection({
         return u;
       };
       return (
-        <div style={{ padding: pad }}>
+        <div style={{ padding: pad }} data-pmx-section="media">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.gallery} />
@@ -702,6 +702,72 @@ function AtSection({
                     )}
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── other_packages ────────────────────────────────────────────────────────
+    case "other_packages": {
+      const cards = atSecArr(d, "packages");
+      if (!cards.length) return null;
+      const heading = atSecStr(d, "heading") || t.otherPackagesHeading;
+      const isRtl = lang === "ar";
+      return (
+        <div style={{ padding: pad }} data-pmx-section="other_packages">
+          <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
+            <Div />
+            <SH label={heading} />
+            <div style={{
+              display: "flex", gap: 14, overflowX: "auto",
+              paddingBottom: 8,
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch",
+            }}>
+              {cards.map((card, i) => {
+                const img = atSecStr(card, "image");
+                const title = atSecStr(card, "title");
+                const dest = atSecStr(card, "destination");
+                const price = atSecStr(card, "price");
+                const nights = atSecStr(card, "nights");
+                const link = atSecStr(card, "link");
+                return (
+                  <a
+                    key={i}
+                    href={link || undefined}
+                    style={{
+                      flex: "0 0 200px", minWidth: 200, borderRadius: 4,
+                      overflow: "hidden", textDecoration: "none",
+                      border: `1px solid ${AT.border}`,
+                      background: "#fff",
+                      scrollSnapAlign: "start",
+                      display: "flex", flexDirection: "column",
+                    }}
+                  >
+                    <div style={{ width: "100%", height: 120, background: AT.border, flexShrink: 0 }}>
+                      {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                    </div>
+                    <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                      {dest && <div style={{ fontFamily: AT.sans, fontSize: 10, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase" as const, color: AT.superMuted }}>{dest}</div>}
+                      <div style={{ fontFamily: AT.serif, fontSize: 15, fontWeight: 600, color: AT.ink, lineHeight: 1.3 }}>{title}</div>
+                      {(nights || price) && (
+                        <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                          {nights && <span style={{ fontFamily: AT.sans, fontSize: 11, color: AT.superMuted }}>{nights}</span>}
+                          {price && <span style={{ fontFamily: AT.sans, fontSize: 12, fontWeight: 700, color: AT.ink }}>{price}</span>}
+                        </div>
+                      )}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+            {agency.agencySlug && (
+              <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
+                <a href={`/${agency.agencySlug}`} style={{ fontFamily: AT.sans, fontSize: 12, fontWeight: 600, color: AT.brand, textDecoration: "none", letterSpacing: "0.4px" }}>
+                  {t.navAllPackages} →
+                </a>
               </div>
             )}
           </div>
@@ -788,7 +854,7 @@ function AtReviews({
   const avgRating = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
 
   return (
-    <div style={{ padding: pad }}>
+    <div style={{ padding: pad }} data-pmx-section="reviews">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ height: 1, background: AT.border, margin: "0 0 24px" }} />
         {showList && (
@@ -934,6 +1000,7 @@ function AtCTABanner({
           <WAButton label={t.enquire} size="lg" onClick={onWhatsApp} />
           {pkg.messenger && (
             <button
+              data-testid="messenger-cta"
               onClick={onMessenger}
               style={{ background: "rgba(245,243,238,0.1)", color: AT.bg, border: `1px solid rgba(245,243,238,0.18)`, borderRadius: 6, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: AT.sans, cursor: "pointer" }}
             >
@@ -992,13 +1059,13 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <DesktopNav agency={agency} price={pkg.price} brand={AT.brand} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
 
         {/* Centered masthead */}
-        <DContainer style={{ padding: "56px 80px 32px", textAlign: "center" }}>
+        <DContainer style={{ padding: "56px 80px 32px", textAlign: "center" }} data-pmx-section="hero">
           <div style={{ display: "inline-flex", alignItems: "center", gap: 14, fontSize: 11, color: AT.superMuted, textTransform: "uppercase", letterSpacing: "2px", fontWeight: 700 }}>
             <span>{t.editorialCurated}</span>
             <span style={{ width: 1, height: 10, background: AT.border }} />
-            <span>{pkg.destination}</span>
+            <span data-pmx-field="destination">{pkg.destination}</span>
           </div>
-          <h1 style={{ fontFamily: AT.serif, fontSize: 88, fontWeight: 400, lineHeight: 0.98, letterSpacing: "-2.5px", marginTop: 28, maxWidth: 900, margin: "28px auto 0" }}>
+          <h1 style={{ fontFamily: AT.serif, fontSize: 88, fontWeight: 400, lineHeight: 0.98, letterSpacing: "-2.5px", marginTop: 28, maxWidth: 900, margin: "28px auto 0" }} data-pmx-field="title">
             {title}
           </h1>
           <div style={{ fontSize: 14, color: AT.superMuted, marginTop: 24, fontStyle: "italic", fontFamily: AT.serif }}>
@@ -1071,12 +1138,12 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       <AgencyBar agency={agency} price={pkg.price} brand={AT.brand} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
 
       {/* Magazine masthead */}
-      <div style={{ padding: "18px 22px 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ padding: "18px 22px 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }} data-pmx-section="hero">
         <span style={{ fontSize: 10, color: AT.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", fontWeight: 600 }}>{t.atlasIssueNo}</span>
         <span style={{ width: 1, height: 10, background: AT.border, display: "inline-block" }} />
         <span style={{ fontSize: 10, color: AT.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", fontWeight: 600 }}>{monthYear}</span>
         <span style={{ width: 1, height: 10, background: AT.border, display: "inline-block" }} />
-        <span style={{ fontSize: 10, color: AT.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", fontWeight: 600 }}>{pkg.destination}</span>
+        <span style={{ fontSize: 10, color: AT.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", fontWeight: 600 }} data-pmx-field="destination">{pkg.destination}</span>
       </div>
 
       {/* Large serif title */}
@@ -1084,7 +1151,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <h1 style={{
           fontFamily: AT.serif, fontSize: 44, fontWeight: 400, letterSpacing: "-1px",
           lineHeight: 1.1, color: AT.ink, margin: "0 0 10px",
-        }}>
+        }} data-pmx-field="title">
           {title}
         </h1>
         <p style={{ fontSize: 13, fontStyle: "italic", color: AT.muted, margin: 0 }}>

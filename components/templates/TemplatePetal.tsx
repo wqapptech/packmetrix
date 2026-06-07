@@ -338,7 +338,7 @@ function PtHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="highlights">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
           {t.ptHighlightsEyebrow}
@@ -371,7 +371,7 @@ function PtHotelsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   if (!hotelsSec.length) {
     return (
-      <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+      <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="hotel">
         <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
           <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptWhereYouStay}</div>
           <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 20 : 16, lineHeight: 1.55, color: MUTED, margin: 0 }}>{pkg.hotelDescription}</p>
@@ -384,7 +384,7 @@ function PtHotelsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
     ? (hotelsSec.length === 1 ? "1.1fr 1fr" : hotelsSec.length === 2 ? "1.4fr 1fr" : "1fr 1fr 1fr")
     : "1fr";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="hotel">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
           {hotelsSec.length === 1 ? t.ptWhereYouStay : t.ptYourTwoProperties}
@@ -454,7 +454,7 @@ function PtDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!deps.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="departures">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
           {t.ptUpcomingWindows}
@@ -501,7 +501,7 @@ function PtFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesk
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="faq">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
           {t.ptFaqEyebrow}
@@ -542,7 +542,7 @@ function PtImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pk
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="important_notes">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
           {t.ptNotesEyebrow}
@@ -573,6 +573,62 @@ function PtImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pk
   );
 }
 
+function PtOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"]; agencySlug?: string }) {
+  const t = T[lang];
+  const data = ptFindSec(pkg, "other_packages");
+  const cards = ptSecArr(data, "packages");
+  if (!cards.length) return null;
+  const heading = ptSecStr(data, "heading") || t.otherPackagesHeading;
+  const pad = isDesktop ? "0 80px 64px" : "32px 20px 0";
+  const isRtl = lang === "ar";
+  return (
+    <section style={{ padding: pad }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
+      <div style={{ maxWidth: isDesktop ? 1100 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <div style={{ fontFamily: SERIF, fontSize: 11, fontStyle: "italic", color: ROSE, letterSpacing: "0.3px", marginBottom: 12 }}>{heading}</div>
+        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
+          {cards.map((card, i) => {
+            const img = ptSecStr(card, "image");
+            const title = ptItemStr(card, "title");
+            const dest = ptSecStr(card, "destination");
+            const price = ptSecStr(card, "price");
+            const nights = ptSecStr(card, "nights");
+            const link = ptSecStr(card, "link");
+            return (
+              <a key={i} href={link || undefined} style={{
+                flex: "0 0 190px", minWidth: 190, borderRadius: 16, overflow: "hidden",
+                textDecoration: "none", border: `1px solid ${BORDER}`,
+                background: "#fff", scrollSnapAlign: "start",
+                display: "flex", flexDirection: "column",
+              }}>
+                <div style={{ width: "100%", height: 120, background: BORDER, flexShrink: 0 }}>
+                  {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                </div>
+                <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                  {dest && <div style={{ fontFamily: SERIF, fontSize: 10, fontStyle: "italic", color: ROSE }}>{dest}</div>}
+                  <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 400, color: INK, lineHeight: 1.3 }}>{title}</div>
+                  {(nights || price) && (
+                    <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                      {nights && <span style={{ fontSize: 11, color: MUTED }}>{nights}</span>}
+                      {price && <span style={{ fontFamily: SERIF, fontSize: 12, fontWeight: 700, color: ROSE }}>{price}</span>}
+                    </div>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+        {agencySlug && (
+          <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
+            <a href={`/${agencySlug}`} style={{ fontFamily: SERIF, fontSize: 12, fontStyle: "italic", color: ROSE, textDecoration: "none" }}>
+              {t.navAllPackages} →
+            </a>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function PtAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
   const t = T[lang];
   const data = ptFindSec(pkg, "about_agency");
@@ -584,7 +640,7 @@ function PtAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProp
   const lastTrip = ptSecStr(data, "lastTrip");
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="about_agency">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         {isDesktop ? (
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 56, alignItems: "center" }}>
@@ -649,7 +705,7 @@ function PtItinerarySection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
   if (!days.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section id="itinerary" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }}>
+    <section id="itinerary" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="itinerary">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptDayByDay}</div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
@@ -697,7 +753,7 @@ function PtInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!includes.length && !excludes.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section id="pt-inclusions" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section id="pt-inclusions" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="inclusions">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptIncludedInFull}</div>
         {includes.length > 0 && (
@@ -735,7 +791,7 @@ function PtPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
   if (!tiers.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section id="pricing" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }}>
+    <section id="pricing" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="pricing">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptInvestment}</div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
@@ -787,7 +843,7 @@ function PtTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="transfers">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptGettingThere}</div>
         <div style={{ display: "flex", flexDirection: "column" as const }}>
@@ -798,10 +854,10 @@ function PtTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
             const note = ptItemStr(item, "note", "details");
             return (
               <div key={i} style={{ padding: "18px 0", borderTop: `1px solid ${BORDER}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  {(from || to) && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 20 : 16, fontStyle: "italic", color: INK }}>{from}{from && to ? " → " : ""}{to}</div>}
+                <div style={{ minWidth: 0 }}>
+                  {(from || to) && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 20 : 16, fontStyle: "italic", color: INK, overflowWrap: "break-word" }}>{from}{from && to ? " → " : ""}{to}</div>}
                   {type && <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: ROSE, marginTop: 4 }}>{type}</div>}
-                  {note && <div style={{ fontSize: 13, color: MUTED, marginTop: 6, lineHeight: 1.5 }}>{note}</div>}
+                  {note && <div style={{ fontSize: 13, color: MUTED, marginTop: 6, lineHeight: 1.5, overflowWrap: "break-word" }}>{note}</div>}
                 </div>
               </div>
             );
@@ -821,7 +877,7 @@ function PtExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="extras">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptAddOns}</div>
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 30, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
@@ -867,7 +923,7 @@ function PtMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
     return videoUrl;
   })();
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="media">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         {images.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: isDesktop ? undefined : "130px 130px", gap: 6, marginBottom: (videoUrl || mapImage) ? 32 : 0 }}>
@@ -907,7 +963,7 @@ function PtPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
   if (!people.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="people">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptYourDesigners}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: isDesktop ? 48 : 28 }}>
@@ -947,7 +1003,7 @@ function PtCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   if (!heading && !content) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="custom">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         {heading && <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{heading}</div>}
         {image && <img src={image} alt={heading} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", marginBottom: 22 }} />}
@@ -983,7 +1039,7 @@ function PtReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
 
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }}>
+    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="reviews">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
           {showList ? `${reviews.length} ${t.ptExperiences}` : t.writeReviewTitle}
@@ -1058,7 +1114,7 @@ function PtCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
           <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
-          {pkg.messenger && <button onClick={onMessenger} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", padding: "14px 22px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>{t.vyMessenger}</button>}
+          {pkg.messenger && <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", padding: "14px 22px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>{t.vyMessenger}</button>}
         </div>
       </div>
     </section>
@@ -1102,18 +1158,18 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <DesktopNav agency={agency} price={pkg.price} brand={ROSE} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
 
         {/* Hero: text LEFT, arched image RIGHT (RTL-aware via order) */}
-        <DContainer style={{ padding: "80px 80px 64px" }}>
+        <DContainer data-pmx-section="hero" style={{ padding: "80px 80px 64px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 72, alignItems: "center" }}>
             <div style={{ order: isRtl ? 2 : 1 }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: ROSE, fontStyle: "italic", fontFamily: SERIF }}>
                 <span style={{ width: 32, height: 1, background: ROSE }} />
-                {t.petalJourneyTagline} · {pkg.destination}
+                <span data-pmx-field="destination">{t.petalJourneyTagline} · {pkg.destination}</span>
               </div>
-              <h1 style={{ fontFamily: SERIF, fontSize: 64, lineHeight: 1.02, fontWeight: 400, fontStyle: "italic", letterSpacing: "-1px", marginTop: 20, marginBottom: 22, color: INK }}>
+              <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 64, lineHeight: 1.02, fontWeight: 400, fontStyle: "italic", letterSpacing: "-1px", marginTop: 20, marginBottom: 22, color: INK }}>
                 {title}
               </h1>
               <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.72, margin: "0 0 28px" }}>{pkg.description}</p>
-              <div style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 400, color: ROSE, letterSpacing: "-0.8px", marginBottom: 5, lineHeight: 1 }}>{pkg.price}</div>
+              <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 400, color: ROSE, letterSpacing: "-0.8px", marginBottom: 5, lineHeight: 1 }}>{pkg.price}</div>
               <div style={{ fontSize: 12, color: SMUTED, marginBottom: 24 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
               <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
             </div>
@@ -1160,6 +1216,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <PtImportantNotesSection pkg={pkg} isDesktop={true} lang={lang} />
         <PtReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
+        <PtOtherPackagesSection pkg={pkg} isDesktop={true} lang={lang} agencySlug={agency.agencySlug} />
         <PetalDesignerPanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
         <PtCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
         <DesktopFooter agency={agency} brand={ROSE} />
@@ -1172,7 +1229,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       <AgencyBar agency={agency} price={pkg.price} brand={ROSE} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
 
       {/* Arched hero */}
-      <div style={{ padding: "0 18px" }}>
+      <div data-pmx-section="hero" style={{ padding: "0 18px" }}>
         <div style={{ position: "relative", height: 440, borderRadius: "200px 200px 16px 16px", overflow: "hidden", background: INK }}>
           {coverImage
             ? <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
@@ -1190,10 +1247,10 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       {/* Price + title card */}
       <div style={{ padding: "0 18px" }}>
         <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 6px 32px rgba(26,13,13,0.10)", padding: "22px 22px 20px", marginTop: -28, position: "relative", zIndex: 2 }}>
-          <h1 style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: INK, lineHeight: 1.12, letterSpacing: "-0.4px", margin: "0 0 10px" }}>
+          <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: INK, lineHeight: 1.12, letterSpacing: "-0.4px", margin: "0 0 10px" }}>
             {title}
           </h1>
-          <div style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: ROSE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{pkg.price}</div>
+          <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: ROSE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{pkg.price}</div>
           <div style={{ fontSize: 12, color: SMUTED, marginBottom: 18 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
           <WAButton label={t.bookWhatsApp} full onClick={onWhatsApp} />
         </div>
@@ -1241,6 +1298,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       <PtImportantNotesSection pkg={pkg} isDesktop={false} lang={lang} />
       <PtReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
       <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
+      <PtOtherPackagesSection pkg={pkg} isDesktop={false} lang={lang} agencySlug={agency.agencySlug} />
       <PetalDesignerPanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
       <PtCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
       <PtMobileFooter agency={agency} />

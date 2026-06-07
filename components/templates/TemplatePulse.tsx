@@ -397,8 +397,8 @@ type SectionT = { id: string; type: string; order: number; data: Record<string, 
 type TranslationT = (typeof T)["en"];
 
 function PulseSection({
-  s, t, isRtl, onWhatsApp, desktop, onImageClick,
-}: { s: SectionT; t: TranslationT; isRtl: boolean; onWhatsApp: () => void; desktop: boolean; onImageClick?: (images: LBImage[], idx: number) => void }) {
+  s, t, isRtl, onWhatsApp, desktop, onImageClick, agencySlug,
+}: { s: SectionT; t: TranslationT; isRtl: boolean; onWhatsApp: () => void; desktop: boolean; onImageClick?: (images: LBImage[], idx: number) => void; agencySlug?: string }) {
   const lang = isRtl ? "ar" as const : "en" as const;
   const d = s.data;
 
@@ -432,7 +432,7 @@ function PulseSection({
       if (!includes.length && !excludes.length) return null;
       const inclCols = desktop ? "repeat(3,1fr)" : "1fr 1fr";
       return (
-        <div id="pl-inclusions" style={wrap}>
+        <div id="pl-inclusions" style={wrap} data-pmx-section="inclusions">
           <SH label={t.includedLabel} title={t.everythingIncluded} />
           {includes.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: inclCols, gap: 10, marginBottom: excludes.length ? 20 : 0 }}>
@@ -466,7 +466,7 @@ function PulseSection({
       const items = (d.items as string[] | undefined) ?? [];
       if (!items.length) return null;
       return (
-        <div id="pl-highlights" style={wrap}>
+        <div id="pl-highlights" style={wrap} data-pmx-section="highlights">
           <SH label={t.sectionHighlightsTitle} title={t.sectionHighlightsTitle} />
           <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
             {items.map((item, i) => (
@@ -484,7 +484,7 @@ function PulseSection({
       const desc = d.description as string | undefined;
       if (!desc) return null;
       return (
-        <div id="pl-hotel" style={wrap}>
+        <div id="pl-hotel" style={wrap} data-pmx-section="hotel">
           <SH label={t.hotelLabel} title={t.hotelLabel} />
           <Card style={{ padding: 18 }}>
             <p style={{ fontSize: desktop ? 15 : 13.5, color: PL.mut, lineHeight: 1.7, margin: 0 }}>{desc}</p>
@@ -498,7 +498,7 @@ function PulseSection({
       const items = (d.items as { question: string; answer: string }[] | undefined) ?? [];
       if (!items.length) return null;
       return (
-        <div id="pl-faq" style={wrap}>
+        <div id="pl-faq" style={wrap} data-pmx-section="faq">
           <SH label={t.frequentlyAsked} title={t.frequentlyAsked} />
           <Card>
             {items.map((item, i) => (
@@ -517,7 +517,7 @@ function PulseSection({
       const deps = (d.departures as TAirport[] | undefined) ?? [];
       if (!deps.length) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="flights">
           <SH label={t.flightsLabel} title={t.flightsLabel} />
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
             {deps.map((dep, i) => (
@@ -550,7 +550,7 @@ function PulseSection({
         ?? [];
       if (!dates.length) return null;
       return (
-        <div id="pl-departures" style={wrap}>
+        <div id="pl-departures" style={wrap} data-pmx-section="departures">
           <SH label={t.sectionDepartureDatesTitle} title={t.sectionDepartureDatesTitle} />
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
             {dates.map((dep, i) => (
@@ -573,7 +573,7 @@ function PulseSection({
       const days = (d.days as { day: number; title: string; desc: string; chapter?: string }[] | undefined) ?? [];
       if (!days.length) return null;
       return (
-        <div id="pl-itinerary" style={wrap}>
+        <div id="pl-itinerary" style={wrap} data-pmx-section="itinerary">
           <SH label={`${t.dayByDay} · ${days.length} ${t.daysLabel.toLowerCase()}`} title={`${t.dayByDay} · ${days.length} ${t.daysLabel.toLowerCase()}`} />
           <div style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 12, overflow: "hidden" }}>
             {days.map((d, i) => (
@@ -604,7 +604,7 @@ function PulseSection({
         : {};
       if (desktop) {
         return (
-          <div id="pl-gallery" style={wrap}>
+          <div id="pl-gallery" style={wrap} data-pmx-section="media">
             <SH label={t.gallery} title={t.gallery} />
             <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gridTemplateRows: "180px 180px", gap: 6 }}>
               {lbImages.slice(0, 5).map((img, i) => (
@@ -635,7 +635,7 @@ function PulseSection({
       const tiers = (d.tiers as { label: string; price: string; was?: string; perks?: string[]; pop?: boolean; save?: string }[] | undefined) ?? [];
       if (!tiers.length) return null;
       return (
-        <div id="pl-pricing" style={wrap}>
+        <div id="pl-pricing" style={wrap} data-pmx-section="pricing">
           <SH label={t.navPricing} title={t.navPricing} />
           <div style={{ display: desktop ? "grid" : "flex", gridTemplateColumns: desktop ? "repeat(3,1fr)" : undefined, flexDirection: desktop ? undefined : "column" as const, gap: 10 }}>
             {tiers.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} lang={lang} />)}
@@ -649,7 +649,7 @@ function PulseSection({
       const content = d.content as string | undefined;
       if (!content) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="booking_terms">
           <SH label={t.sectionBookingTermsTitle} title={t.sectionBookingTermsTitle} />
           <Card style={{ padding: 18 }}>
             <p style={{ fontSize: 13, color: PL.mut, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>{content}</p>
@@ -664,7 +664,7 @@ function PulseSection({
       const steps = (d.steps as { label: string; amount: string; dueDate: string }[] | undefined) ?? [];
       if (!content && !steps.length) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="payment_plan">
           <SH label={t.sectionPaymentPlanTitle} title={t.sectionPaymentPlanTitle} />
           <Card>
             {content && (
@@ -691,7 +691,7 @@ function PulseSection({
       const items = (d.items as { text: string }[] | undefined) ?? [];
       if (!items.length) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="important_notes">
           <SH label={t.sectionImportantNotesTitle} title={t.sectionImportantNotesTitle} />
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
             {items.map((item, i) => (
@@ -711,7 +711,7 @@ function PulseSection({
       const notes = d.notes as string | undefined;
       if (!plan && !notes) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="meals">
           <SH label={t.sectionMealsTitle} title={t.sectionMealsTitle} />
           <Card style={{ padding: 16 }}>
             {plan && (
@@ -731,7 +731,7 @@ function PulseSection({
       const items = (d.items as string[] | undefined) ?? [];
       if (!description && !items.length) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="transfers">
           <SH label={t.sectionTransfersTitle} title={t.sectionTransfersTitle} />
           <Card style={{ padding: 16 }}>
             {description && <p style={{ fontSize: desktop ? 14 : 13.5, color: PL.ink, lineHeight: 1.65, margin: items.length ? "0 0 14px" : 0 }}>{description}</p>}
@@ -754,7 +754,7 @@ function PulseSection({
       if (!included && !content) return null;
       const isIncl = !!(included?.toLowerCase().includes("yes") || included?.toLowerCase().includes("included") || included?.toLowerCase().includes("مشمول"));
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="visa">
           <SH label={t.sectionVisaTitle} title={t.sectionVisaTitle} />
           <Card style={{ padding: 16 }}>
             {included && (
@@ -773,7 +773,7 @@ function PulseSection({
       const items = (d.items as { name: string; description: string; price: string }[] | undefined) ?? [];
       if (!items.length) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="extras">
           <SH label={t.sectionExtrasTitle} title={t.sectionExtrasTitle} />
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
             {items.map((item, i) => (
@@ -798,7 +798,7 @@ function PulseSection({
       const languages = (d.languages as string[] | undefined) ?? [];
       if (!name) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="people">
           <SH label={t.sectionGuideTitle} title={name} />
           <Card style={{ padding: 18 }}>
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
@@ -832,7 +832,7 @@ function PulseSection({
       const image = d.image as string | undefined;
       if (!content) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="about_agency">
           <SH label={t.sectionAboutAgencyTitle} title={t.sectionAboutAgencyTitle} />
           <Card>
             {image && <img src={image} alt="" style={{ width: "100%", height: desktop ? 240 : 160, objectFit: "cover", display: "block" }} />}
@@ -849,7 +849,7 @@ function PulseSection({
       const items = (d.items as { time: string; activity: string; location: string }[] | undefined) ?? [];
       if (!items.length) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="schedule">
           <SH label={t.sectionScheduleTitle} title={t.sectionScheduleTitle} />
           <Card>
             {items.map((item, i) => (
@@ -875,7 +875,7 @@ function PulseSection({
       const image = d.image as string | undefined;
       if (!heading && !content) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="custom">
           {heading && <SH label="" title={heading} />}
           {image && <img src={image} alt={heading ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 12, marginBottom: 16, display: "block" }} />}
           {content && (
@@ -893,7 +893,7 @@ function PulseSection({
       const caption = d.caption as string | undefined;
       if (!image) return null;
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="map">
           <SH label={t.sectionMapTitle} title={caption || t.sectionMapTitle} />
           <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${PL.line}` }}>
             <img src={image} alt={caption ?? ""} style={{ width: "100%", display: "block", maxHeight: desktop ? 400 : 240, objectFit: "cover" }} />
@@ -912,7 +912,7 @@ function PulseSection({
       const isYT = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
       const isVimeo = videoUrl.includes("vimeo.com");
       return (
-        <div style={wrap}>
+        <div style={wrap} data-pmx-section="video">
           <SH label={t.sectionVideoTitle} title={t.sectionVideoTitle} />
           <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "16/9", border: `1px solid ${PL.line}`, background: "#000" }}>
             {(isYT || isVimeo) ? (
@@ -940,7 +940,7 @@ function PulseSection({
       const people = (d.people as Array<{ id?: string; name: string; role?: string; bio?: string; photo?: string; languages?: string[]; years?: number; repliesIn?: string }> | undefined) ?? [];
       if (!people.length) return null;
       return (
-        <div id="pl-people" style={wrap}>
+        <div id="pl-people" style={wrap} data-pmx-section="people">
           <SH label={t.sectionGuideTitle} title={t.sectionGuideTitle} />
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 12 }}>
             {people.map((person, i) => (
@@ -983,7 +983,7 @@ function PulseSection({
       const isYT    = videoUrl ? (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) : false;
       const isVimeo = videoUrl ? videoUrl.includes("vimeo.com") : false;
       return (
-        <div id="pl-media" style={wrap}>
+        <div id="pl-media" style={wrap} data-pmx-section="media">
           {images.length > 0 && (
             <>
               <SH label={t.gallery} title={t.gallery} />
@@ -1015,21 +1015,72 @@ function PulseSection({
       );
     }
 
+    /* ── other_packages ─────────────────────────────────────────────────── */
+    case "other_packages": {
+      const packages = (d.packages as Record<string, unknown>[] | undefined) ?? [];
+      if (!packages.length) return null;
+      const heading = (d.heading as string | undefined) || t.otherPackagesHeading;
+      return (
+        <div style={wrap} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
+          <SH label={heading} />
+          <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
+            {packages.map((card, i) => {
+              const img = typeof card.image === "string" ? card.image : "";
+              const title = typeof card.title === "string" ? card.title : "";
+              const dest = typeof card.destination === "string" ? card.destination : "";
+              const price = typeof card.price === "string" ? card.price : "";
+              const nights = typeof card.nights === "string" ? card.nights : "";
+              const link = typeof card.link === "string" ? card.link : "";
+              return (
+                <a key={i} href={link || undefined} style={{
+                  flex: "0 0 195px", minWidth: 195, borderRadius: 12, overflow: "hidden",
+                  textDecoration: "none", border: `1px solid ${PL.line}`,
+                  background: PL.paper, scrollSnapAlign: "start",
+                  display: "flex", flexDirection: "column",
+                }}>
+                  <div style={{ width: "100%", height: 120, background: PL.line, flexShrink: 0 }}>
+                    {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                  </div>
+                  <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                    {dest && <div style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" as const, color: PL.mut }}>{dest}</div>}
+                    <div style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: PL.ink, lineHeight: 1.3 }}>{title}</div>
+                    {(nights || price) && (
+                      <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                        {nights && <span style={{ fontFamily: SANS, fontSize: 11, color: PL.mut }}>{nights}</span>}
+                        {price && <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: PL.deal }}>{price}</span>}
+                      </div>
+                    )}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+          {agencySlug && (
+            <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
+              <a href={`/${agencySlug}`} style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: PL.mut, textDecoration: "none" }}>
+                {t.navAllPackages} →
+              </a>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     default:
       return null;
   }
 }
 
-function PulseSections({ pkg, t, isRtl, onWhatsApp, desktop = false, onImageClick }: {
+function PulseSections({ pkg, t, isRtl, onWhatsApp, desktop = false, onImageClick, agencySlug }: {
   pkg: TPackage; t: TranslationT; isRtl: boolean; onWhatsApp: () => void; desktop?: boolean;
-  onImageClick?: (images: LBImage[], idx: number) => void;
+  onImageClick?: (images: LBImage[], idx: number) => void; agencySlug?: string;
 }) {
   if (!pkg.sections?.length) return null;
   const sorted = [...pkg.sections].sort((a, b) => a.order - b.order);
   return (
     <>
       {sorted.map(s => (
-        <PulseSection key={s.id} s={s as SectionT} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={desktop} onImageClick={onImageClick} />
+        <PulseSection key={s.id} s={s as SectionT} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={desktop} onImageClick={onImageClick} agencySlug={agencySlug} />
       ))}
     </>
   );
@@ -1085,7 +1136,7 @@ function PulseReviews({
   const hasReviews = canShow && reviews.length > 0;
 
   return (
-    <div id="pl-reviews" style={wrap}>
+    <div id="pl-reviews" style={wrap} data-pmx-section="reviews">
       {/* heading */}
       <div style={{ marginBottom: 20 }}>
         {desktop ? (
@@ -1387,7 +1438,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
               {link.label}
             </a>
           ))}
-          <button onClick={onWhatsApp} style={{
+          <button data-testid="wa-cta" onClick={onWhatsApp} style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             fontSize: 12, fontWeight: 700, color: "#fff",
             background: PL.wa, padding: "6px 12px",
@@ -1399,7 +1450,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
       </div>
 
       {/* ── Hero ── */}
-      <div style={{ position: "relative", height: 380, overflow: "hidden", background: PL.ink }}>
+      <div data-pmx-section="hero" style={{ position: "relative", height: 380, overflow: "hidden", background: PL.ink }}>
         {cover && <img src={cover} alt={pkg.destination} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(0,0,0,.25) 0%,rgba(0,0,0,.1) 50%,rgba(0,0,0,.85) 100%)" }} />
 
@@ -1431,10 +1482,10 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
 
         {/* title — sits above the booking card which floats −28px over hero bottom */}
         <div style={{ position: "absolute", bottom: 46, left: 16, right: 16, color: "#fff" }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.8)", letterSpacing: 0.4, textTransform: "uppercase", marginBottom: 8 }}>
+          <div data-pmx-field="destination" style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.8)", letterSpacing: 0.4, textTransform: "uppercase", marginBottom: 8 }}>
             {pkg.destination}{nights ? ` · ${nights} ${t.nightsLabel}` : ""}
           </div>
-          <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, margin: 0 }}>
+          <h1 data-pmx-field="title" style={{ fontSize: 30, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, margin: 0 }}>
             {pkg.title ?? pkg.destination}
           </h1>
         </div>
@@ -1454,7 +1505,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
               {pkg.priceWas && (
                 <span style={{ fontSize: 14, color: PL.mut, textDecoration: "line-through" }}>{pkg.priceWas}</span>
               )}
-              <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{pkg.price}</span>
+              <span data-pmx-field="price" style={{ fontSize: 34, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{pkg.price}</span>
             </div>
             <div style={{ fontSize: 11, color: PL.mut, marginTop: 4 }}>{t.pricePerGuestTwinShare}</div>
           </div>
@@ -1498,7 +1549,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
 
         {/* CTA buttons */}
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <button onClick={onWhatsApp} style={{
+          <button data-testid="wa-cta" onClick={onWhatsApp} style={{
             flex: 1, background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
             padding: "14px 16px", fontWeight: 800, fontSize: 14, letterSpacing: -0.1,
             cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -1507,7 +1558,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
             {Ico.wa(14)} {t.bookWhatsApp}
           </button>
           {pkg.messenger && (
-            <button onClick={onMessenger} style={{
+            <button data-testid="messenger-cta" onClick={onMessenger} style={{
               background: "#0084ff", color: "#fff", border: "none",
               borderRadius: 10, padding: "14px 16px", fontWeight: 700, fontSize: 13,
               cursor: "pointer", fontFamily: SANS, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, flexShrink: 0,
@@ -1594,7 +1645,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
 
       {/* ── Sections (user-added content in defined order) ── */}
       {pkg.sections?.length ? (
-        <PulseSections pkg={pkg} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={false} onImageClick={openLightbox} />
+        <PulseSections pkg={pkg} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={false} onImageClick={openLightbox} agencySlug={agency.agencySlug} />
       ) : (
         <>
           {!!pkg.itinerary?.length && (
@@ -1724,7 +1775,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
             {pkg.description}
           </p>
           <div style={{ marginTop: 18 }}>
-            <button onClick={onWhatsApp} style={{
+            <button data-testid="wa-cta" onClick={onWhatsApp} style={{
               width: "100%", background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
               padding: "14px 16px", fontWeight: 800, fontSize: 14, letterSpacing: -0.1,
               cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -1770,7 +1821,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
             {t.pricePerGuestTwinShare}
           </div>
         </div>
-        <button onClick={onWhatsApp} style={{
+        <button data-testid="wa-cta" onClick={onWhatsApp} style={{
           background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
           padding: "12px 16px", fontWeight: 800, fontSize: 13,
           cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8,
@@ -1920,7 +1971,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
             {pkg.priceWas && <div style={{ fontSize: 11, color: PL.mut }}><s>{pkg.priceWas}</s>{effectiveSaving ? ` · ${effectiveSaving}` : ""}</div>}
             <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4 }}>{pkg.price}</div>
           </div>
-          <button onClick={onWhatsApp} style={{
+          <button data-testid="wa-cta" onClick={onWhatsApp} style={{
             background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
             padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer",
             display: "inline-flex", alignItems: "center", gap: 8,
@@ -1932,7 +1983,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
       </div>
 
       {/* ── Split hero: 1.5fr image + 1fr booking sidebar ── */}
-      <section style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr" }}>
+      <section data-pmx-section="hero" style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr" }}>
         {/* media panel */}
         <div style={{ position: "relative", minHeight: 540, background: PL.ink, overflow: "hidden" }}>
           {cover && <img src={cover} alt={pkg.destination} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
@@ -1965,10 +2016,10 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
           </div>
 
           <div style={{ position: "absolute", bottom: 24, left: 24, right: 24, color: "#fff" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", opacity: 0.85, marginBottom: 10 }}>
+            <div data-pmx-field="destination" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", opacity: 0.85, marginBottom: 10 }}>
               {pkg.destination}{nights ? ` · ${nights} ${t.nightsLabel}` : ""}
             </div>
-            <h1 style={{ fontSize: 48, fontWeight: 800, letterSpacing: -1.4, lineHeight: 1.05, margin: 0, maxWidth: 600 }}>
+            <h1 data-pmx-field="title" style={{ fontSize: 48, fontWeight: 800, letterSpacing: -1.4, lineHeight: 1.05, margin: 0, maxWidth: 600 }}>
               {pkg.title ?? pkg.destination}
             </h1>
           </div>
@@ -1991,7 +2042,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
               {pkg.priceWas && (
                 <span style={{ fontSize: 18, color: PL.mut, textDecoration: "line-through", fontWeight: 500 }}>{pkg.priceWas}</span>
               )}
-              <span style={{ fontSize: 54, fontWeight: 800, letterSpacing: -1.6, lineHeight: 1 }}>{pkg.price}</span>
+              <span data-pmx-field="price" style={{ fontSize: 54, fontWeight: 800, letterSpacing: -1.6, lineHeight: 1 }}>{pkg.price}</span>
               {effectiveSaving && (
                 <span style={{ display: "inline-block", background: PL.deal, color: "#fff", fontWeight: 800, fontSize: 12, padding: "5px 8px", borderRadius: 4, letterSpacing: 0.2 }}>
                   {effectiveSaving}
@@ -2049,7 +2100,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
 
           {/* CTAs */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <button onClick={onWhatsApp} style={{
+            <button data-testid="wa-cta" onClick={onWhatsApp} style={{
               background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
               padding: "16px 20px", fontWeight: 700, fontSize: 15, cursor: "pointer",
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -2058,7 +2109,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
               {Ico.wa(15)} {t.bookWhatsApp}
             </button>
             {pkg.messenger && (
-              <button onClick={onMessenger} style={{
+              <button data-testid="messenger-cta" onClick={onMessenger} style={{
                 background: "#0084ff", color: "#fff", border: "none", borderRadius: 10,
                 padding: "13px 20px", fontWeight: 600, fontSize: 13.5, cursor: "pointer",
                 display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -2133,7 +2184,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
 
           {/* sections (user-added content in defined order) */}
           {pkg.sections?.length ? (
-            <PulseSections pkg={pkg} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={true} onImageClick={openLightbox} />
+            <PulseSections pkg={pkg} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={true} onImageClick={openLightbox} agencySlug={agency.agencySlug} />
           ) : (
             <>
               {!!pkg.itinerary?.length && (
@@ -2235,7 +2286,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
                   {pkg.description.slice(0, 180)}{pkg.description.length > 180 ? "…" : ""}
                 </p>
               )}
-              <button onClick={onWhatsApp} style={{
+              <button data-testid="wa-cta" onClick={onWhatsApp} style={{
                 width: "100%", background: PL.wa, color: "#fff", border: "none",
                 borderRadius: 8, padding: "11px 14px", fontWeight: 700, fontSize: 12.5,
                 cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: SANS,
@@ -2278,7 +2329,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
               {pkg.description}
             </p>
             <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
-              <button onClick={onWhatsApp} style={{
+              <button data-testid="wa-cta" onClick={onWhatsApp} style={{
                 background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
                 padding: "14px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer",
                 display: "inline-flex", alignItems: "center", gap: 8, fontFamily: SANS,
@@ -2286,7 +2337,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
                 {Ico.wa(15)} {t.bookWhatsApp}
               </button>
               {pkg.messenger && (
-                <button onClick={onMessenger} style={{
+                <button data-testid="messenger-cta" onClick={onMessenger} style={{
                   background: "#0084ff", color: "#fff", border: "none",
                   borderRadius: 10, padding: "14px 20px", fontWeight: 600, fontSize: 13.5,
                   cursor: "pointer", fontFamily: SANS, display: "inline-flex", alignItems: "center", gap: 8,

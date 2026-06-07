@@ -25,6 +25,7 @@ export function SectionList({
   lang,
   templateId,
   isMobile = false,
+  onSectionFocus,
 }: {
   sections: AnySectionInstance[];
   onChange: (sections: AnySectionInstance[]) => void;
@@ -32,6 +33,7 @@ export function SectionList({
   lang: "en" | "ar";
   templateId?: string;
   isMobile?: boolean;
+  onSectionFocus?: (sectionType: string) => void;
 }) {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
@@ -87,12 +89,18 @@ export function SectionList({
     setNewIds((prev) => new Set([...prev, id]));
   };
 
-  // Opening a "new" section removes the invitation marker and expands the form
+  // Opening a "new" section removes the invitation marker and expands the form.
+  // Also fires onSectionFocus so the preview scrolls to that section.
   const toggleOpen = (id: string) => {
     setNewIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
     setOpenIds((prev) => {
       const n = new Set(prev);
+      const opening = !n.has(id);
       if (n.has(id)) n.delete(id); else n.add(id);
+      if (opening) {
+        const sec = sections.find((s) => s.id === id);
+        if (sec) onSectionFocus?.(sec.type);
+      }
       return n;
     });
   };
@@ -214,6 +222,7 @@ export function SectionList({
             dragHandleProps={{ onMouseDown: (e) => e.stopPropagation() }}
             isMobile={isMobile}
             isNew={newIds.has(section.id)}
+            onFocusWithin={onSectionFocus ? () => onSectionFocus(section.type) : undefined}
           />
         </div>
       ))}

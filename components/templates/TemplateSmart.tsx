@@ -141,7 +141,7 @@ function SmStars({ rating }: { rating: number }) {
 
 // ─── SmSection — single section renderer ─────────────────────────────────────
 
-function SmSection({ s, isDesktop, onWhatsApp, lang }: {
+function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
   s: NonNullable<TPackage["sections"]>[number];
   isDesktop: boolean;
   onWhatsApp: () => void;
@@ -165,7 +165,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
         .filter(d => d.title?.trim());
       if (!days.length) return null;
       return (
-        <section id="itinerary" style={{ ...secPad, scrollMarginTop: 88 }}>
+        <section id="itinerary" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="itinerary">
           <SmSecHead label={t.dayByDay} title={t.yourJourney} isDesktop={isDesktop} />
           <div style={isDesktop
             ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }
@@ -203,7 +203,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       if (!items.length) return null;
       const title = t.smHighlights;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="highlights">
           <SmSecHead label={title} title={title} isDesktop={isDesktop} />
           {isDesktop ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
@@ -232,7 +232,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       const desc = smSecStr(s as ReturnType<typeof smFindSec>, "description");
       if (!desc) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="hotel">
           <SmSecHead label={t.hotelLabel} title={t.hotelSectionTitle} isDesktop={isDesktop} />
           <p style={{ fontSize: isDesktop ? 15 : 14, color: SM.muted, lineHeight: 1.75, margin: 0 }}>{desc}</p>
         </section>
@@ -247,7 +247,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       const visa = smSecStr(s as ReturnType<typeof smFindSec>, "visa");
       if (!includes.length && !excludes.length) return null;
       return (
-        <section id="included" style={{ ...secPad, scrollMarginTop: 88 }}>
+        <section id="included" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="inclusions">
           <SmSecHead label={t.whatsIncluded} title={t.whatsIncluded} isDesktop={isDesktop} />
           {(meals || visa) && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
@@ -314,7 +314,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       if (!items.length) return null;
       const title = t.frequentlyAsked || (isRtl ? "الأسئلة الشائعة" : "FAQ");
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="faq">
           <SmSecHead title={title} isDesktop={isDesktop} />
           <div style={isDesktop
             ? { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }
@@ -343,7 +343,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       const image   = smSecStr(s as ReturnType<typeof smFindSec>, "image");
       if (!heading && !content) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="custom">
           {heading && <SmSecHead title={heading} isDesktop={isDesktop} />}
           {isDesktop && image ? (
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 40, alignItems: "start" }}>
@@ -366,7 +366,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
         .filter(it => it?.name?.trim());
       if (!items.length) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="extras">
           <SmSecHead title={t.sectionExtrasTitle} isDesktop={isDesktop} />
           <div style={isDesktop
             ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }
@@ -395,7 +395,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       if (!people.length) return null;
       const title = t.smOurTeam;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="people">
           <SmSecHead title={title} isDesktop={isDesktop} />
           <div style={isDesktop
             ? { display: "grid", gridTemplateColumns: `repeat(${Math.min(people.length, 3)}, 1fr)`, gap: 16 }
@@ -438,7 +438,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       const languages = smSecStrArr(s as ReturnType<typeof smFindSec>, "languages");
       if (!name && !bio) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="people">
           <SmSecHead title={t.sectionGuideTitle} isDesktop={isDesktop} />
           <div style={{ ...cardStyle, padding: isDesktop ? "22px 24px" : "16px 18px", display: "flex", gap: 14, alignItems: "flex-start", maxWidth: isDesktop ? 640 : undefined }}>
             {photo && <img src={photo} alt={name} style={{ width: isDesktop ? 80 : 60, height: isDesktop ? 80 : 60, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />}
@@ -464,7 +464,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
         .filter(it => it?.text?.trim());
       if (!items.length) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="important_notes">
           <SmSecHead title={t.sectionImportantNotesTitle} isDesktop={isDesktop} />
           <div style={{
             background: `${SM.brand}07`, border: `1px solid ${SM.brand}22`,
@@ -491,7 +491,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       const image   = smSecStr(s as ReturnType<typeof smFindSec>, "image");
       if (!content && !image) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="about_agency">
           <SmSecHead title={t.sectionAboutAgencyTitle} isDesktop={isDesktop} />
           {isDesktop && image ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
@@ -517,7 +517,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
         .filter(it => it?.date?.trim());
       if (!dates.length) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="departures">
           <SmSecHead title={t.sectionDepartureDatesTitle} isDesktop={isDesktop} />
           {isDesktop ? (
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(dates.length, 3)}, 1fr)`, gap: 12 }}>
@@ -555,7 +555,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
         .filter(tier => tier?.price);
       if (!tiers.length) return null;
       return (
-        <section id="pricing" style={{ ...secPad, scrollMarginTop: 88 }}>
+        <section id="pricing" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="pricing">
           <SmSecHead label={t.navPricing} title={t.chooseOption} isDesktop={isDesktop} />
           <div style={isDesktop
             ? { display: "grid", gridTemplateColumns: `repeat(${tiers.length}, 1fr)`, gap: 14 }
@@ -604,7 +604,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       const items = smSecStrArr(s as ReturnType<typeof smFindSec>, "items");
       if (!desc && !items.length) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="transfers">
           <SmSecHead title={t.sectionTransfersTitle} isDesktop={isDesktop} />
           {desc && <p style={{ fontSize: isDesktop ? 15 : 14, color: SM.muted, lineHeight: 1.7, margin: "0 0 14px", direction: isRtl ? "rtl" : "ltr" }}>{desc}</p>}
           {items.length > 0 && (
@@ -646,7 +646,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       const mealKey = plan === "none" ? "mealNone" : plan === "breakfast" ? "mealBreakfast" : plan === "half_board" ? "mealHalfBoard" : plan === "full_board" ? "mealFullBoard" : plan === "all_inclusive" ? "mealAllInclusive" : null;
       const label = mealKey ? t[mealKey] : t.mealNotSpecified;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="meals">
           <SmSecHead title={t.sectionMealsTitle} isDesktop={isDesktop} />
           <div style={{ display: "inline-flex", padding: isDesktop ? "8px 20px" : "6px 14px", borderRadius: 99, background: `${SM.brand}12`, border: `1px solid ${SM.brand}28`, fontSize: isDesktop ? 14 : 13, fontWeight: 700, color: SM.brand, marginBottom: notes ? 12 : 0 }}>
             {label}
@@ -662,7 +662,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       const content  = smSecStr(s as ReturnType<typeof smFindSec>, "content");
       const visaLabel = included === "included" ? t.visaIncluded : included === "assistance" ? t.visaAssistance : included === "free" ? t.visaFree : t.visaRequired;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="visa">
           <SmSecHead title={t.sectionVisaTitle} isDesktop={isDesktop} />
           <div style={{ display: "inline-flex", padding: isDesktop ? "8px 20px" : "6px 14px", borderRadius: 99, background: `${SM.brand}12`, border: `1px solid ${SM.brand}28`, fontSize: isDesktop ? 14 : 13, fontWeight: 700, color: SM.brand, marginBottom: content ? 12 : 0 }}>
             {visaLabel}
@@ -678,7 +678,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       if (!text) return null;
       const title = t.smBookingTerms;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="booking_terms">
           <SmSecHead title={title} isDesktop={isDesktop} />
           <div style={{ ...cardStyle, padding: isDesktop ? "22px 28px" : "16px 18px", maxWidth: isDesktop ? 800 : undefined }}>
             <p style={{ fontSize: isDesktop ? 14 : 13, color: SM.muted, lineHeight: 1.8, margin: 0, direction: isRtl ? "rtl" : "ltr", whiteSpace: "pre-wrap" }}>{text}</p>
@@ -694,7 +694,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
         .filter(st => st?.label?.trim());
       if (!content && !steps.length) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="payment_plan">
           <SmSecHead title={t.sectionPaymentPlanTitle} isDesktop={isDesktop} />
           {content && <p style={{ fontSize: isDesktop ? 15 : 13.5, color: SM.muted, lineHeight: 1.7, margin: "0 0 16px", direction: isRtl ? "rtl" : "ltr" }}>{content}</p>}
           {steps.length > 0 && (
@@ -731,7 +731,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
         .filter(it => it?.activity?.trim());
       if (!items.length) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="schedule">
           <SmSecHead title={t.sectionScheduleTitle} isDesktop={isDesktop} />
           <div style={{ maxWidth: isDesktop ? 700 : undefined }}>
             {items.map((it, i) => (
@@ -759,7 +759,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       const cap = smSecStr(s as ReturnType<typeof smFindSec>, "caption");
       if (!img) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="map">
           <img src={img} alt={cap || "Map"} style={{ width: "100%", borderRadius: isDesktop ? 16 : 12, display: "block", objectFit: "cover", aspectRatio: isDesktop ? "21/9" : "16/9" }} />
           {cap && <div style={{ fontSize: 12.5, color: SM.muted, textAlign: "center", marginTop: 10, direction: isRtl ? "rtl" : "ltr" }}>{cap}</div>}
         </section>
@@ -772,7 +772,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
       if (!videoUrl) return null;
       const title = t.smVideo;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="video">
           <SmSecHead title={title} isDesktop={isDesktop} />
           <video src={videoUrl} controls muted style={{ width: "100%", borderRadius: isDesktop ? 16 : 12, background: "#000", maxHeight: isDesktop ? 500 : 280, display: "block" }} />
         </section>
@@ -785,7 +785,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
         .filter(a => a?.name?.trim());
       if (!departures.length) return null;
       return (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="flights">
           <SmSecHead title={t.departureOptions} isDesktop={isDesktop} />
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {departures.map((a, i) => (
@@ -800,6 +800,59 @@ function SmSection({ s, isDesktop, onWhatsApp, lang }: {
                 </button>
               </div>
             ))}
+          </div>
+        </section>
+      );
+    }
+
+    // ── other_packages ────────────────────────────────────────────────────────
+    case "other_packages": {
+      const packages = smSecArr(s as ReturnType<typeof smFindSec>, "packages") as Array<Record<string, unknown>>;
+      if (!packages.length) return null;
+      const heading = smSecStr(s as ReturnType<typeof smFindSec>, "heading") || t.otherPackagesHeading;
+      return (
+        <section style={{ padding: isDesktop ? "40px 56px" : "32px 18px 0" }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
+          <div style={{ maxWidth: isDesktop ? 1100 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: SM.muted, marginBottom: 14 }}>{heading}</div>
+            <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
+              {packages.map((card, i) => {
+                const img = typeof card.image === "string" ? card.image : "";
+                const title = typeof card.title === "string" ? card.title : "";
+                const dest = typeof card.destination === "string" ? card.destination : "";
+                const price = typeof card.price === "string" ? card.price : "";
+                const nights = typeof card.nights === "string" ? card.nights : "";
+                const link = typeof card.link === "string" ? card.link : "";
+                return (
+                  <a key={i} href={link || undefined} style={{
+                    flex: "0 0 195px", minWidth: 195, borderRadius: 10, overflow: "hidden",
+                    textDecoration: "none", border: `1px solid ${SM.border}`,
+                    background: SM.paper, scrollSnapAlign: "start",
+                    display: "flex", flexDirection: "column",
+                  }}>
+                    <div style={{ width: "100%", height: 120, background: SM.border, flexShrink: 0 }}>
+                      {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                    </div>
+                    <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                      {dest && <div style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: SM.brand }}>{dest}</div>}
+                      <div style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 700, color: SM.ink, lineHeight: 1.3 }}>{title}</div>
+                      {(nights || price) && (
+                        <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                          {nights && <span style={{ fontFamily: FONT, fontSize: 11, color: SM.muted }}>{nights}</span>}
+                          {price && <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: SM.brand }}>{price}</span>}
+                        </div>
+                      )}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+            {agency.agencySlug && (
+              <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
+                <a href={`/${agency.agencySlug}`} style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: SM.brand, textDecoration: "none" }}>
+                  {t.navAllPackages} →
+                </a>
+              </div>
+            )}
           </div>
         </section>
       );
@@ -820,7 +873,7 @@ function SmGallerySection({ images, videoUrl, mapImage, isDesktop, lang, t }: {
   const isRtl = lang === "ar";
   if (!images.length && !videoUrl && !mapImage) return null;
   return (
-    <section style={{ padding: isDesktop ? "52px 80px" : "20px 18px", maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+    <section style={{ padding: isDesktop ? "52px 80px" : "20px 18px", maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }} data-pmx-section="media">
       <h2 style={{ fontSize: isDesktop ? 32 : 22, fontWeight: 800, letterSpacing: "-0.4px", color: SM.ink, marginBottom: isDesktop ? 24 : 16, fontFamily: FONT }}>{t.gallery}</h2>
       {videoUrl && (() => {
         const isEmbed = videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo");
@@ -966,7 +1019,7 @@ function SmReviews({ pkg, agency, isDesktop, lang }: { pkg: TPackage; agency: TA
   return (
     <>
       {hasReviews && (
-        <section style={secPad}>
+        <section style={secPad} data-pmx-section="reviews">
           <div style={isDesktop
             ? { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28 }
             : { marginBottom: 18 }}>
@@ -1067,7 +1120,7 @@ function SmReviewForm({ pkg, isDesktop, lang, onNewReview }: {
 
   if (submitted) {
     return (
-      <section style={secPad}>
+      <section style={secPad} data-pmx-section="reviews">
         <div style={{ padding: "22px 20px", borderRadius: 14, background: `${SM.brand}10`, border: `1px solid ${SM.brand}28`, textAlign: "center" }}>
           <div style={{ fontSize: 22, marginBottom: 8 }}>★</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: SM.ink }}>{t.reviewSubmitSuccess}</div>
@@ -1103,7 +1156,7 @@ function SmReviewForm({ pkg, isDesktop, lang, onNewReview }: {
 
   if (isDesktop) {
     return (
-      <section style={secPad}>
+      <section style={secPad} data-pmx-section="reviews">
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 64, alignItems: "start" }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", marginBottom: 8 }}>{t.writeReviewTitle}</div>
@@ -1117,7 +1170,7 @@ function SmReviewForm({ pkg, isDesktop, lang, onNewReview }: {
   }
 
   return (
-    <section style={secPad}>
+    <section style={secPad} data-pmx-section="reviews">
       <Eyebrow text={t.writeReviewTitle} brand={SM.brand} />
       <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.3px", color: SM.ink, margin: "10px 0 6px", fontFamily: FONT }}>{t.writeReviewTitle}</h2>
       <p style={{ fontSize: 13, color: SM.muted, marginBottom: 16 }}>{t.writeReviewSub}</p>
@@ -1240,7 +1293,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <DesktopNav agency={agency} price={pkg.price} brand={SM.brand} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
 
         {/* Split hero: image left, text right */}
-        <DContainer style={{ padding: "56px 80px 48px" }}>
+        <DContainer data-pmx-section="hero" style={{ padding: "56px 80px 48px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 48, alignItems: "center" }}>
             <div style={{ position: "relative", height: 440, borderRadius: 14, overflow: "hidden" }}>
               {coverImage
@@ -1249,11 +1302,11 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               }
             </div>
             <div>
-              <Eyebrow text={pkg.destination} brand={SM.brand} />
-              <h1 style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.2px", marginTop: 16, marginBottom: 18, fontFamily: FONT }}>{title}</h1>
+              <div data-pmx-field="destination"><Eyebrow text={pkg.destination} brand={SM.brand} /></div>
+              <h1 data-pmx-field="title" style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.2px", marginTop: 16, marginBottom: 18, fontFamily: FONT }}>{title}</h1>
               <p style={{ fontSize: 16, color: SM.muted, lineHeight: 1.65, margin: 0 }}>{pkg.description}</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 28 }}>
-                <div style={{ fontSize: 56, fontWeight: 800, color: SM.brand, letterSpacing: "-1.5px", lineHeight: 1 }}>{pkg.price}</div>
+                <div data-pmx-field="price" style={{ fontSize: 56, fontWeight: 800, color: SM.brand, letterSpacing: "-1.5px", lineHeight: 1 }}>{pkg.price}</div>
                 <div style={{ fontSize: 14, color: SM.superMuted }}>{t.perPerson} · {t.allInSuffix}</div>
               </div>
               <div style={{ marginTop: 24 }}>
@@ -1296,7 +1349,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       <AgencyBar agency={agency} price={pkg.price} brand={SM.brand} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
 
       {/* Hero */}
-      <div style={{ position: "relative", height: 230, overflow: "hidden" }}>
+      <div data-pmx-section="hero" style={{ position: "relative", height: 230, overflow: "hidden" }}>
         {coverImage
           ? <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           : <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${SM.brand}cc, ${SM.brand}44)` }} />
@@ -1306,8 +1359,8 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
       {/* Title + description */}
       <div style={{ padding: "22px 18px 0" }}>
-        <Eyebrow text={pkg.destination} brand={SM.brand} />
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: SM.ink, margin: "10px 0 12px", letterSpacing: "-0.5px", lineHeight: 1.2, fontFamily: FONT }}>
+        <div data-pmx-field="destination"><Eyebrow text={pkg.destination} brand={SM.brand} /></div>
+        <h1 data-pmx-field="title" style={{ fontSize: 26, fontWeight: 800, color: SM.ink, margin: "10px 0 12px", letterSpacing: "-0.5px", lineHeight: 1.2, fontFamily: FONT }}>
           {title}
         </h1>
         {pkg.description && (
@@ -1342,7 +1395,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <div style={{ display: "flex", alignItems: "center", gap: 14, background: SM.paper, border: `1px solid ${SM.border}`, borderRadius: 14, padding: "16px 18px" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 10, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 3 }}>{t.from}</div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: SM.brand, letterSpacing: "-0.5px", lineHeight: 1 }}>{pkg.price}</div>
+            <div data-pmx-field="price" style={{ fontSize: 26, fontWeight: 800, color: SM.brand, letterSpacing: "-0.5px", lineHeight: 1 }}>{pkg.price}</div>
             <div style={{ fontSize: 11, color: SM.superMuted, marginTop: 3 }}>
               {nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}
             </div>

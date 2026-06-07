@@ -28,6 +28,7 @@ export function SectionCard({
   isDragOver,
   isMobile = false,
   isNew = false,
+  onFocusWithin,
 }: {
   section: AnySectionInstance;
   index: number;
@@ -44,6 +45,7 @@ export function SectionCard({
   isDragOver?: boolean;
   isMobile?: boolean;
   isNew?: boolean;
+  onFocusWithin?: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -315,12 +317,15 @@ export function SectionCard({
 
       {/* Body — visible when open */}
       {isOpen && (
-        <div style={{
-          padding: "16px 16px 18px",
-          borderTop: `1px solid ${DA_RULE}`,
-          borderRadius: "0 0 11px 11px",
-          overflow: "hidden",
-        }}>
+        <div
+          onFocus={onFocusWithin}
+          style={{
+            padding: "16px 16px 18px",
+            borderTop: `1px solid ${DA_RULE}`,
+            borderRadius: "0 0 11px 11px",
+            overflow: "hidden",
+          }}
+        >
           <SectionEditor
             def={def}
             data={section.data}

@@ -16,14 +16,17 @@ export function CoreFieldsEditor({
   onChange,
   userId,
   lang,
+  onFieldFocus,
 }: {
   core: CoreForm;
   onChange: (c: CoreForm) => void;
   userId: string;
   lang: "en" | "ar";
+  onFieldFocus?: (key: string) => void;
 }) {
   const set = <K extends keyof CoreForm>(key: K, val: CoreForm[K]) =>
     onChange({ ...core, [key]: val });
+  const ff = (key: string) => () => onFieldFocus?.(key);
 
   const l = lang === "ar";
 
@@ -64,14 +67,16 @@ export function CoreFieldsEditor({
       )}
 
       <FieldLabel required>{l ? "الوجهة" : "Destination"}</FieldLabel>
-      <TextInput
-        value={core.destination}
-        onChange={(v) => set("destination", v)}
-        placeholder={l ? "مثال: مكة المكرمة، المملكة العربية السعودية" : "e.g. Mecca, Saudi Arabia"}
-      />
+      <div onFocus={ff("destination")}>
+        <TextInput
+          value={core.destination}
+          onChange={(v) => set("destination", v)}
+          placeholder={l ? "مثال: مكة المكرمة، المملكة العربية السعودية" : "e.g. Mecca, Saudi Arabia"}
+        />
+      </div>
 
       <div style={{ display: "flex", gap: 12 }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }} onFocus={ff("price")}>
           <FieldLabel required>{l ? "السعر الأساسي" : "Base price"}</FieldLabel>
           <TextInput
             value={core.price}
@@ -80,6 +85,7 @@ export function CoreFieldsEditor({
           />
         </div>
         <div style={{ flex: 1 }}>
+          {/* currency — silent, no preview target */}
           <FieldLabel>{l ? "العملة" : "Currency"}</FieldLabel>
           <TextInput
             value={core.currency}
@@ -87,7 +93,7 @@ export function CoreFieldsEditor({
             placeholder="EUR, SAR, USD…"
           />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }} onFocus={ff("hero")}>
           <FieldLabel>{l ? "عدد الليالي" : "Nights"}</FieldLabel>
           <TextInput
             value={core.nights}
@@ -106,7 +112,7 @@ export function CoreFieldsEditor({
       </div>
 
       <div style={{ display: "flex", gap: 12 }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }} onFocus={ff("title")}>
           <FieldLabel>{l ? "العنوان — إنجليزي" : "Title — English"}</FieldLabel>
           <TextInput
             value={core.titleEn}
@@ -114,7 +120,7 @@ export function CoreFieldsEditor({
             placeholder="e.g. Premium Umrah Package 2026"
           />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }} onFocus={ff("title")}>
           <FieldLabel>{l ? "العنوان — عربي" : "Title — Arabic"}</FieldLabel>
           <div dir="rtl">
             <TextInput
@@ -128,7 +134,7 @@ export function CoreFieldsEditor({
 
       {/* Bilingual description */}
       <div style={{ display: "flex", gap: 12 }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }} onFocus={ff("title")}>
           <FieldLabel>{l ? "الوصف — إنجليزي" : "Description — English"}</FieldLabel>
           <TextArea
             value={core.descriptionEn}
@@ -137,7 +143,7 @@ export function CoreFieldsEditor({
             rows={3}
           />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }} onFocus={ff("title")}>
           <FieldLabel>{l ? "الوصف — عربي" : "Description — Arabic"}</FieldLabel>
           <div dir="rtl">
             <TextArea
@@ -190,7 +196,9 @@ export function CoreFieldsEditor({
         />
       </div>
 
-      <CoverImageField value={core.coverImage} onChange={(v) => set("coverImage", v)} userId={userId} lang={lang} />
+      <div onFocus={ff("hero")}>
+        <CoverImageField value={core.coverImage} onChange={(v) => set("coverImage", v)} userId={userId} lang={lang} />
+      </div>
     </div>
   );
 }

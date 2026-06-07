@@ -71,7 +71,7 @@ function CmHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   if (!hotels.length) {
     return (
-      <section style={{ padding: pad }}>
+      <section style={{ padding: pad }} data-pmx-section="hotel">
         <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Accommodation</div>
           <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.65 }}>{pkg.hotelDescription}</div>
@@ -80,7 +80,7 @@ function CmHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
     );
   }
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="hotel">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Where you stay</div>
         <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 18px", color: INK }}>Teahouses &amp; lodges</h3>
@@ -143,7 +143,7 @@ function CmMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
   if (!videoUrl && !mapSrc && !images.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="media">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Route &amp; film</div>
         <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? (mapSrc && videoUrl ? "1.2fr 1fr" : "1fr") : undefined, flexDirection: isDesktop ? undefined : "column" as const, gap: 12 }}>
@@ -206,7 +206,7 @@ function CmDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   };
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="departures">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>{t.coDepartureWindows}</div>
         <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 18px", color: INK }}>{t.coSeasonalOpenings}</h3>
@@ -257,7 +257,7 @@ function CmFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: b
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="faq">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Common questions</div>
         <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? "1fr 1fr" : undefined, flexDirection: isDesktop ? undefined : "column" as const, gap: 0 }}>
@@ -284,7 +284,7 @@ function CmImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; i
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="important_notes">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Before you go</div>
         <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 16px", color: INK }}>Important notes</h3>
@@ -331,7 +331,7 @@ function CmAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg
   const currentYear = new Date().getFullYear();
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="about_agency">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>About {agency.name}</div>
         {isDesktop && teamPhoto ? (
@@ -612,6 +612,74 @@ function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPag
   );
 }
 
+// ─── Other Packages ──────────────────────────────────────────────────────────
+
+function CmOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"]; agencySlug?: string }) {
+  const t = T[lang];
+  const data = cmFindSec(pkg, "other_packages");
+  const cards = cmSecArr(data, "packages");
+  if (!cards.length) return null;
+  const heading = cmSecStr(data, "heading") || t.otherPackagesHeading;
+  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
+  const isRtl = lang === "ar";
+  return (
+    <section style={{ padding: pad }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
+      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{heading}</div>
+        <div style={{
+          display: "flex", gap: 14, overflowX: "auto",
+          paddingBottom: 8, scrollSnapType: "x mandatory",
+          WebkitOverflowScrolling: "touch",
+        }}>
+          {cards.map((card, i) => {
+            const img = cmSecStr(card, "image");
+            const title = cmItemStr(card, "title");
+            const dest = cmSecStr(card, "destination");
+            const price = cmSecStr(card, "price");
+            const nights = cmSecStr(card, "nights");
+            const link = cmSecStr(card, "link");
+            return (
+              <a
+                key={i}
+                href={link || undefined}
+                style={{
+                  flex: "0 0 200px", minWidth: 200, borderRadius: 12,
+                  overflow: "hidden", textDecoration: "none",
+                  border: `1px solid ${BORDER}`,
+                  background: "#fff",
+                  scrollSnapAlign: "start",
+                  display: "flex", flexDirection: "column",
+                }}
+              >
+                <div style={{ width: "100%", height: 120, background: BORDER, flexShrink: 0 }}>
+                  {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                </div>
+                <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                  {dest && <div style={{ fontFamily: INTER, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" as const, color: ORANGE }}>{dest}</div>}
+                  <div style={{ fontFamily: INTER, fontSize: 14, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{title}</div>
+                  {(nights || price) && (
+                    <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                      {nights && <span style={{ fontFamily: INTER, fontSize: 11, color: MUTED }}>{nights}</span>}
+                      {price && <span style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: ORANGE }}>{price}</span>}
+                    </div>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+        {agencySlug && (
+          <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
+            <a href={`/${agencySlug}`} style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: ORANGE, textDecoration: "none" }}>
+              {t.navAllPackages} →
+            </a>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Missing section components ─────────────────────────────────────────────
 
 function CmHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
@@ -621,7 +689,7 @@ function CmHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="highlights">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.coHighlights}</div>
         <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
@@ -642,7 +710,7 @@ function CmInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!includes.length && !excludes.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section id="included" style={{ padding: pad, scrollMarginTop: 88 }}>
+    <section id="included" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="inclusions">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <Eyebrow text={t.coWhatsIncluded} brand={ORANGE} />
         {includes.length > 0 && (
@@ -678,7 +746,7 @@ function CmPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
   if (!tiers.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section id="pricing" style={{ padding: pad, scrollMarginTop: 88 }}>
+    <section id="pricing" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="pricing">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <Eyebrow text={t.navPricing} brand={ORANGE} />
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 12, marginTop: 16 }}>
@@ -726,7 +794,7 @@ function CmTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="transfers">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.coTransfers}</div>
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
@@ -737,10 +805,10 @@ function CmTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
             const note = cmItemStr(item, "note", "details");
             return (
               <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                <div>
-                  {(from || to) && <div style={{ fontFamily: INTER, fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 4 }}>{from}{from && to ? " → " : ""}{to}</div>}
+                <div style={{ minWidth: 0 }}>
+                  {(from || to) && <div style={{ fontFamily: INTER, fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 4, overflowWrap: "break-word" }}>{from}{from && to ? " → " : ""}{to}</div>}
                   {type && <div style={{ fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", color: ORANGE, textTransform: "uppercase" as const }}>{type}</div>}
-                  {note && <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>{note}</div>}
+                  {note && <div style={{ fontSize: 12, color: MUTED, marginTop: 4, overflowWrap: "break-word" }}>{note}</div>}
                 </div>
               </div>
             );
@@ -758,7 +826,7 @@ function CmExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="extras">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.coExtras}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 8 }}>
@@ -790,7 +858,7 @@ function CmCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   if (!heading && !content) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="custom">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         {heading && <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{heading}</div>}
         {image && <img src={image} alt={heading} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 12, marginBottom: 16, display: "block" }} />}
@@ -807,7 +875,7 @@ function CmPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
   if (!people.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="people">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.coPeople}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 12 }}>
@@ -867,7 +935,7 @@ function CmReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
 
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="reviews">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>
           {showList ? `${reviews.length} ${t.coVerifiedReviews}` : t.writeReviewTitle}
@@ -938,7 +1006,7 @@ function CmCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
           <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
-          {pkg.messenger && <button onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 8, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: INTER, cursor: "pointer" }}>{t.coMessenger}</button>}
+          {pkg.messenger && <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 8, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: INTER, cursor: "pointer" }}>{t.coMessenger}</button>}
         </div>
       </div>
     </section>
@@ -982,18 +1050,18 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
         <DesktopNav agency={agency} price={pkg.price} brand={ORANGE} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
 
         {/* Hero: text LEFT, image RIGHT (50/50 split) */}
-        <DContainer style={{ padding: "80px 80px 64px" }}>
+        <DContainer style={{ padding: "80px 80px 64px" }} data-pmx-section="hero">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
             {/* Text column */}
             <div style={{ order: isRtl ? 2 : 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }} data-pmx-field="destination">
                 {pkg.destination}
               </div>
-              <h1 style={{ fontFamily: INTER, fontSize: 58, fontWeight: 800, lineHeight: 0.97, letterSpacing: "-2px", margin: "0 0 20px", color: INK }}>{title}</h1>
+              <h1 style={{ fontFamily: INTER, fontSize: 58, fontWeight: 800, lineHeight: 0.97, letterSpacing: "-2px", margin: "0 0 20px", color: INK }} data-pmx-field="title">{title}</h1>
               {pkg.description && (
                 <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.65, margin: "0 0 24px" }}>{pkg.description}</p>
               )}
-              <div style={{ fontFamily: INTER, fontSize: 36, fontWeight: 800, color: ORANGE, letterSpacing: "-0.8px", lineHeight: 1 }}>{pkg.price}</div>
+              <div style={{ fontFamily: INTER, fontSize: 36, fontWeight: 800, color: ORANGE, letterSpacing: "-0.8px", lineHeight: 1 }} data-pmx-field="price">{pkg.price}</div>
               <div style={{ fontSize: 11.5, color: SMUTED, marginTop: 4, marginBottom: 20, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.perPerson}</div>
               {pkg.difficulty && (
                 <div style={{ maxWidth: 320, marginBottom: 20 }}>
@@ -1038,6 +1106,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
 
         {/* Day-by-day itinerary */}
         {itinerary.length > 0 && (
+          <div data-pmx-section="itinerary">
           <DContainer id="itinerary" style={{ padding: "0 80px 64px" }}>
             <Eyebrow text={t.dayByDay} brand={ORANGE} />
             <h2 style={{ fontFamily: INTER, fontSize: 32, fontWeight: 800, letterSpacing: "-0.7px", margin: "10px 0 24px" }}>{t.compassDailyMetrics}</h2>
@@ -1055,6 +1124,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
               ))}
             </div>
           </DContainer>
+          </div>
         )}
 
         <CmHotelsSection pkg={pkg} isDesktop={true} />
@@ -1071,6 +1141,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
         <CmImportantNotesSection pkg={pkg} isDesktop={true} />
         <CmReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <CmAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} />
+        <CmOtherPackagesSection pkg={pkg} isDesktop={true} lang={lang} agencySlug={agency.agencySlug} />
         <CompassGuidePanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
         <CmCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
         <DesktopFooter agency={agency} brand={ORANGE} />
@@ -1083,17 +1154,17 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
       <AgencyBar agency={agency} price={pkg.price} brand={ORANGE} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
 
       {/* Hero: full-bleed with strong bottom gradient on mobile */}
-      <div style={{ position: "relative", height: 460, overflow: "hidden" }}>
+      <div style={{ position: "relative", height: 460, overflow: "hidden" }} data-pmx-section="hero">
         {coverImage
           ? <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           : <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${ORANGE}cc, ${ORANGE}55)` }} />
         }
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.08) 20%, rgba(0,0,0,0.75) 100%)" }} />
         <div style={{ position: "absolute", bottom: 20, left: 18, right: 18 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.7)", letterSpacing: "2px", textTransform: "uppercase" as const, marginBottom: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.7)", letterSpacing: "2px", textTransform: "uppercase" as const, marginBottom: 6 }} data-pmx-field="destination">
             {pkg.destination}
           </div>
-          <h1 style={{ fontFamily: INTER, fontSize: 34, fontWeight: 800, color: "#fff", lineHeight: 1.05, letterSpacing: "-1px", margin: 0 }}>{title}</h1>
+          <h1 style={{ fontFamily: INTER, fontSize: 34, fontWeight: 800, color: "#fff", lineHeight: 1.05, letterSpacing: "-1px", margin: 0 }} data-pmx-field="title">{title}</h1>
         </div>
       </div>
 
@@ -1114,7 +1185,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
       <div style={{ padding: "20px 18px 0" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div>
-            <div style={{ fontFamily: INTER, fontSize: 32, fontWeight: 800, color: ORANGE, letterSpacing: "-0.8px", lineHeight: 1 }}>{pkg.price}</div>
+            <div style={{ fontFamily: INTER, fontSize: 32, fontWeight: 800, color: ORANGE, letterSpacing: "-0.8px", lineHeight: 1 }} data-pmx-field="price">{pkg.price}</div>
             <div style={{ fontSize: 11, color: SMUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.perPerson}</div>
           </div>
           <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
@@ -1158,7 +1229,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
 
       {/* Day-by-day itinerary */}
       {itinerary.length > 0 && (
-        <section id="itinerary" style={{ padding: "22px 18px 0", scrollMarginTop: 88 }}>
+        <section id="itinerary" style={{ padding: "22px 18px 0", scrollMarginTop: 88 }} data-pmx-section="itinerary">
           <Eyebrow text={t.dayByDay} brand={ORANGE} />
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
             {itinerary.map((it, i) => (
@@ -1199,6 +1270,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
       <CmImportantNotesSection pkg={pkg} isDesktop={false} />
       <CmReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
       <CmAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} />
+      <CmOtherPackagesSection pkg={pkg} isDesktop={false} lang={lang} agencySlug={agency.agencySlug} />
       <CompassGuidePanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
       <CmCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
       <CmMobileFooter agency={agency} />

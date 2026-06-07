@@ -21,8 +21,9 @@ import { CoreFieldsEditor } from "@/components/builder/CoreFieldsEditor";
 import { SectionList } from "@/components/builder/SectionList";
 import { BuilderTopBar } from "@/components/builder/BuilderTopBar";
 import { VisualTemplatePicker } from "@/components/builder/TemplatePicker";
-import { LivePreviewPhone } from "@/components/builder/LivePreviewPhone";
+import { LivePreviewIframe } from "@/components/builder/LivePreviewIframe";
 import { TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/components/templates";
+import type { TAgency } from "@/components/templates/types";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_GREEN, DA_GREEN_SOFT, DA_DANGER } from "@/lib/tokens";
 import type { TopbarRenderProps } from "@/components/AppLayout";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -36,22 +37,27 @@ const DRAFT_KEY = "builderDraft_v2";
 function OnThisPageRail({
   sections,
   lang,
+  onSectionClick,
 }: {
   sections: AnySectionInstance[];
   lang: "en" | "ar";
+  onSectionClick?: (sectionType: string) => void;
 }) {
   const l = lang === "ar";
   const items = [
-    { id: "builder-basics", label: l ? "الأساسيات" : "Basics" },
+    { id: "builder-basics", label: l ? "الأساسيات" : "Basics", sectionType: "" },
     ...sections.map((s) => ({
       id: `section-${s.id}`,
       label: l
         ? (SECTION_REGISTRY[s.type]?.labelAr ?? SECTION_REGISTRY[s.type]?.label ?? s.type)
         : (SECTION_REGISTRY[s.type]?.label ?? s.type),
+      sectionType: s.type,
     })),
   ];
-  const scroll = (id: string) =>
+  const scroll = (id: string, sectionType: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (sectionType) onSectionClick?.(sectionType);
+  };
 
   return (
     <div style={{ position: "sticky", top: 0, alignSelf: "flex-start", width: 200, flexShrink: 0, paddingTop: 30 }}>
@@ -62,7 +68,7 @@ function OnThisPageRail({
         {items.map((it) => (
           <div
             key={it.id}
-            onClick={() => scroll(it.id)}
+            onClick={() => scroll(it.id, it.sectionType)}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 13px", borderRadius: 8, cursor: "pointer" }}
             onMouseEnter={(e) => { e.currentTarget.style.background = DA_SURFACE; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -429,8 +435,8 @@ function BuilderPageInner() {
 
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [uiPhase, setUiPhase] = useState<UiPhase>(isEditMode ? "build" : "template");
+  const [isChangingTemplate, setIsChangingTemplate] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState(DEFAULT_TEMPLATE_ID);
   const [core, setCore] = useState<CoreForm>({ ...DEFAULT_CORE_FORM });
   const [sections, setSections] = useState<AnySectionInstance[]>([]);
@@ -447,6 +453,9 @@ function BuilderPageInner() {
   const [saveName, setSaveName] = useState("");
   const [saveAsStatus, setSaveAsStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [agency, setAgency] = useState<TAgency | null>(null);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [activeField, setActiveField] = useState<string | null>(null);
 
   // ── Auth + load ──────────────────────────────────────────────────────────────
 
@@ -459,6 +468,21 @@ function BuilderPageInner() {
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
         await setDoc(userRef, { plan: "free", packagesUsed: 0, aiLimit: FREE_AI_LIMIT, createdAt: Date.now() });
+      }
+
+      // Load real agency branding for the preview (always, regardless of editId)
+      if (userSnap.exists()) {
+        const ud = userSnap.data();
+        setAgency({
+          name:           ud.name || ud.email || "Travel Agency",
+          tagline:        ud.tagline        || "",
+          logoUrl:        ud.logoUrl        || "",
+          brandColor:     ud.brandColor     || "#1f5f8e",
+          activeTemplate: ud.activeTemplate || DEFAULT_TEMPLATE_ID,
+          agencySlug:     ud.agencySlug     || "",
+          enableReviews:  ud.enableReviews  === true,
+          showReviews:    ud.showReviews    !== false,
+        });
       }
 
       if (!editId) {
@@ -913,10 +937,15 @@ function BuilderPageInner() {
       <AppLayout topbar={DiscardTopBar}>
         <VisualTemplatePicker
           selectedId={selectedTemplateId}
-          isEditMode={isEditMode}
-          onCancel={isEditMode ? () => setUiPhase("build") : undefined}
+          isEditMode={isEditMode || isChangingTemplate}
+          onCancel={isEditMode || isChangingTemplate ? () => { setIsChangingTemplate(false); setUiPhase("build"); } : undefined}
           onStart={(templateId, tripTypeId, userPresetSections) => {
             setSelectedTemplateId(templateId);
+            if (isChangingTemplate) {
+              setIsChangingTemplate(false);
+              setUiPhase("build");
+              return;
+            }
             const hasExisting = sections.length > 0;
             if (userPresetSections) {
               setSections(userPresetSections);
@@ -989,7 +1018,7 @@ function BuilderPageInner() {
         pkgName={pkgDisplayName}
         templateName={templateDisplayName}
         draftSaved={draftStatus === "saved"}
-        onChangeTemplate={() => setUiPhase("template")}
+        onChangeTemplate={() => { setUiPhase("template"); setIsChangingTemplate(true); }}
         onPublish={handleSubmit}
         publishing={generating}
         isEditMode={isEditMode}
@@ -999,7 +1028,7 @@ function BuilderPageInner() {
         isMobile={isMobile}
       />
     }>
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div style={{ flex: 1 }}>
 
         {/* Save-as-template modal */}
         {saveAsOpen && (
@@ -1070,7 +1099,13 @@ function BuilderPageInner() {
           }}
         >
           {/* Left: on-this-page rail (desktop only) */}
-          {!isMobile && <OnThisPageRail sections={sections} lang={lang} />}
+          {!isMobile && (
+            <OnThisPageRail
+              sections={sections}
+              lang={lang}
+              onSectionClick={(type) => setActiveSection(type)}
+            />
+          )}
 
           {/* Center: one continuous scroll */}
           <div style={{ flex: 1, minWidth: 0, paddingTop: isMobile ? 0 : 30, display: "flex", flexDirection: "column", gap: isMobile ? 24 : 32 }}>
@@ -1116,7 +1151,19 @@ function BuilderPageInner() {
                   {l ? "ما يظهر أعلى الصفحة — التعديلات تظهر في المعاينة فوراً." : "What shows at the top of the page — edits appear in the preview instantly."}
                 </div>
               </div>
-              <CoreFieldsEditor core={core} onChange={setCore} userId={user?.uid ?? ""} lang={lang} />
+              <CoreFieldsEditor
+                core={core}
+                onChange={setCore}
+                userId={user?.uid ?? ""}
+                lang={lang}
+                onFieldFocus={(key) => {
+                  if (key === "title" || key === "price" || key === "destination") {
+                    setActiveField(key);
+                  } else if (key === "hero") {
+                    setActiveSection("hero");
+                  }
+                }}
+              />
             </section>
 
             {/* Trip sections */}
@@ -1141,26 +1188,51 @@ function BuilderPageInner() {
                 lang={lang}
                 templateId={selectedTemplateId}
                 isMobile={isMobile}
+                onSectionFocus={(type) => setActiveSection(type)}
               />
             </section>
 
             {error && (
               <p style={{ fontSize: 13, color: DA_DANGER, fontFamily: SANS, margin: 0 }}>{error}</p>
             )}
+
+            {/* Mobile: inline live preview — phone-only, no toggle */}
+            {isMobile && (
+              <div style={{ overflowX: "auto" }}>
+                <LivePreviewIframe
+                  core={core}
+                  sections={sections}
+                  lang={lang}
+                  templateId={selectedTemplateId}
+                  agency={agency}
+                  phoneOnly
+                  activeSection={activeSection}
+                  activeField={activeField}
+                />
+              </div>
+            )}
           </div>
 
           {/* Right: live preview (desktop only, sticky) */}
           {!isMobile && (
             <div style={{ flexShrink: 0, position: "sticky", top: 24, paddingTop: 30 }}>
-              <LivePreviewPhone core={core} sections={sections} lang={lang} templateId={selectedTemplateId} />
+              <LivePreviewIframe
+                core={core}
+                sections={sections}
+                lang={lang}
+                templateId={selectedTemplateId}
+                agency={agency}
+                activeSection={activeSection}
+                activeField={activeField}
+              />
             </div>
           )}
         </div>
       </div>
     </AppLayout>
 
-    {/* Mobile bottom bar — Preview + Publish pinned */}
-    {isMobile && !showMobilePreview && (
+    {/* Mobile bottom bar — Publish pinned */}
+    {isMobile && (
       <div
         dir={l ? "rtl" : "ltr"}
         style={{
@@ -1168,31 +1240,18 @@ function BuilderPageInner() {
           background: DA_BG, borderTop: `1px solid ${DA_RULE}`,
           padding: "10px 16px",
           paddingBottom: `calc(10px + env(safe-area-inset-bottom))`,
-          display: "flex", gap: 10,
         }}
       >
-        <button
-          onClick={() => setShowMobilePreview(true)}
-          style={{
-            flex: 1, padding: "11px", borderRadius: 10,
-            background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
-            color: DA_INK1, fontFamily: SANS, fontSize: 13.5, fontWeight: 600,
-            cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
-          }}
-        >
-          <Icon name="eye" size={15} color={DA_INK2} />
-          {l ? "معاينة" : "Preview"}
-        </button>
         <button
           data-testid="builder-publish-mobile-bottom"
           onClick={handleSubmit}
           disabled={generating}
           style={{
-            flex: 2, padding: "11px",
+            width: "100%", padding: "13px",
             background: generating ? DA_SURFACE : DA_GOLD,
             border: generating ? `1px solid ${DA_RULE2}` : "none",
             borderRadius: 10, color: generating ? DA_INK3 : "#fff",
-            fontFamily: SANS, fontSize: 13.5, fontWeight: 600,
+            fontFamily: SANS, fontSize: 14, fontWeight: 600,
             cursor: generating ? "not-allowed" : "pointer",
             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
           }}
@@ -1209,37 +1268,6 @@ function BuilderPageInner() {
             </>
           )}
         </button>
-      </div>
-    )}
-
-    {/* Mobile preview overlay */}
-    {isMobile && showMobilePreview && (
-      <div
-        dir={l ? "rtl" : "ltr"}
-        style={{ position: "fixed", inset: 0, zIndex: 200, background: DA_BG, display: "flex", flexDirection: "column" }}
-      >
-        <div style={{ height: 56, paddingInline: 14, borderBottom: `1px solid ${DA_RULE}`, display: "flex", alignItems: "center", gap: 10, background: DA_BG, flexShrink: 0 }}>
-          <button
-            onClick={() => setShowMobilePreview(false)}
-            style={{ width: 34, height: 34, borderRadius: 8, background: DA_SURFACE, border: `1px solid ${DA_RULE2}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-          >
-            <Icon name="x" size={14} color={DA_INK2} />
-          </button>
-          <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase" as const, color: DA_GOLD }}>
-            {l ? "معاينة مباشرة" : "Live preview"}
-          </span>
-          <div style={{ flex: 1 }} />
-          <button
-            onClick={() => setShowMobilePreview(false)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, background: DA_INK1, border: "none", color: DA_BG, fontFamily: SANS, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
-          >
-            <Icon name="edit" size={12} color={DA_BG} />
-            {l ? "تعديل" : "Back to edit"}
-          </button>
-        </div>
-        <div style={{ flex: 1, overflow: "auto" }}>
-          <LivePreviewPhone core={core} sections={sections} lang={lang} templateId={selectedTemplateId} />
-        </div>
       </div>
     )}
 

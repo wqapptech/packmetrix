@@ -183,7 +183,7 @@ function AuHighlightsSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }
   const rawItems = secArrMixed(data, "items");
   if (rawItems.length < 2) return null;
   return (
-    <section id="au-highlights" className="au-v2 au-v2-hl">
+    <section id="au-highlights" className="au-v2 au-v2-hl" data-pmx-section="highlights">
       <div className="au-v2-hl__head">
         <div className="au-eb">{secStr(data, "eyebrow") || T[lang].auHighlightsEyebrow}</div>
         <h2 className="au-v2__title">{T[lang].auHighlightsHeading}</h2>
@@ -215,7 +215,7 @@ function AuHotelsSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
 
   if (hotels.length) {
     return (
-      <section id="au-stay" className="au-v2 au-v2-htl">
+      <section id="au-stay" className="au-v2 au-v2-htl" data-pmx-section="hotel">
         <div className="au-v2__head">
           <div>
             <div className="au-eb">{secStr(data, "eyebrow") || T[lang].auWhereYouStay}</div>
@@ -263,7 +263,7 @@ function AuHotelsSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
 
   if (!pkg.hotelDescription?.trim()) return null;
   return (
-    <section className="au-v2 au-v2-htl">
+    <section className="au-v2 au-v2-htl" data-pmx-section="hotel">
       <div className="au-v2__head">
         <div>
           <div className="au-eb">{T[lang].auWhereYouStay}</div>
@@ -281,7 +281,7 @@ function AuGalleryMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   const images = pkg.gallery?.map((g) => g.src) ?? pkg.images ?? [];
   if (!images.length) return null;
   return (
-    <section className="au-gal-m">
+    <section className="au-gal-m" data-pmx-section="media">
       <div className="au-section__head">
         <div className="au-eb">{T[lang].auInPhotographs}</div>
       </div>
@@ -302,7 +302,7 @@ function AuGalleryDesktop({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   const items = pkg.gallery ?? (pkg.images ?? []).map((src) => ({ src, caption: "" }));
   if (!items.length) return null;
   return (
-    <section className="au-d-gallery">
+    <section className="au-d-gallery" data-pmx-section="media">
       <div className="au-section__head" style={{ padding: 0, marginBottom: 28 }}>
         <div className="au-eb">{T[lang].auInPhotographs}</div>
         <h2 className="au-d-story-section__title" style={{ marginTop: 14, fontSize: 44 }}>
@@ -341,7 +341,7 @@ function AuMediaSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   if (!videoUrl && !videoPoster && !mapSrc) return null;
   const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
   return (
-    <section className="au-v2 au-v2-med">
+    <section className="au-v2 au-v2-med" data-pmx-section="media">
       <div className="au-v2__head">
         <div>
           <div className="au-eb">{T[lang].auFilmMap}</div>
@@ -389,7 +389,7 @@ function AuExtrasSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   const items = secArr(data, "items");
   if (!items.length) return null;
   return (
-    <section className="au-v2 au-v2-ex">
+    <section className="au-v2 au-v2-ex" data-pmx-section="extras">
       <div className="au-v2__head">
         <div>
           <div className="au-eb">{T[lang].auALaCarte}</div>
@@ -425,7 +425,7 @@ function AuTransfersSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" })
   const desc = secStr(data, "description");
   if (!rawItems.length && !desc) return null;
   return (
-    <section className="au-v2 au-v2-tx">
+    <section className="au-v2 au-v2-tx" data-pmx-section="transfers">
       <div className="au-v2__head">
         <div>
           <div className="au-eb">{T[lang].auGettingAround}</div>
@@ -477,7 +477,7 @@ function AuPricingSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   if (!hasLeft && !hasRight) return null;
 
   return (
-    <section className="au-v2 au-v2-pr">
+    <section className="au-v2 au-v2-pr" data-pmx-section="pricing">
       <div className="au-v2__head">
         <div>
           <div className="au-eb">{T[lang].auPaymentCancellation}</div>
@@ -538,7 +538,7 @@ function AuDeparturesMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" })
   const deps = pkg.departures ?? [];
   if (!deps.length) return null;
   return (
-    <section className="au-section" style={{ paddingTop: 0 }}>
+    <section className="au-section" style={{ paddingTop: 0 }} data-pmx-section="departures">
       <div className="au-section__head">
         <div className="au-eb">{T[lang].departures}</div>
         <h2 className="au-section__title">{T[lang].auThisSeason}</h2>
@@ -576,7 +576,7 @@ function AuTiersMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   const tiers = pkg.pricingTiers ?? [];
   if (!tiers.length) return null;
   return (
-    <section className="au-section" style={{ paddingTop: 24 }}>
+    <section className="au-section" style={{ paddingTop: 24 }} data-pmx-section="pricing">
       <div className="au-section__head">
         <div className="au-eb">{T[lang].auAccommodation}</div>
         <h2 className="au-section__title">{T[lang].auChooseYourStay}</h2>
@@ -608,7 +608,7 @@ function AuDeparturesTiersDesktop({ pkg, lang }: { pkg: TPackage; lang: "en" | "
   const tiers = pkg.pricingTiers ?? [];
   if (!deps.length && !tiers.length) return null;
   return (
-    <section id="au-departures" className="au-d-book">
+    <section id="au-departures" className="au-d-book" data-pmx-section="departures">
       {deps.length > 0 && (
         <div className="au-d-book__col">
           <div className="au-eb" style={{ marginBottom: 14 }}>{T[lang].departures}</div>
@@ -664,7 +664,7 @@ function AuFaqSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   const items = secArr(data, "items");
   if (!items.length) return null;
   return (
-    <section className="au-v2 au-v2-faq">
+    <section className="au-v2 au-v2-faq" data-pmx-section="faq">
       <div className="au-v2__head">
         <div>
           <div className="au-eb">{T[lang].auQuestionsAnticipated}</div>
@@ -699,7 +699,7 @@ function AuImportantNotesSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "a
   const items = notes.length ? notes : secArr(data, "items");
   if (!items.length) return null;
   return (
-    <section className="au-v2 au-v2-no">
+    <section className="au-v2 au-v2-no" data-pmx-section="important_notes">
       <div className="au-v2__head">
         <div>
           <div className="au-eb">{T[lang].auPracticalNotes}</div>
@@ -732,7 +732,7 @@ function AuReviewsMobile({ pkg, lang, agency }: { pkg: TPackage; lang: "en" | "a
   const reviews = pkg.reviews ?? [];
   if (!reviews.length || agency.showReviews === false) return null;
   return (
-    <section className="au-reviews">
+    <section className="au-reviews" data-pmx-section="reviews">
       <div className="au-section__head" style={{ marginBottom: 16 }}>
         <div className="au-eb">{T[lang].auGuestLetters}</div>
       </div>
@@ -771,7 +771,7 @@ function AuReviewsDesktop({ pkg, lang, agency }: { pkg: TPackage; lang: "en" | "
   const reviews = pkg.reviews ?? [];
   if (!reviews.length || agency.showReviews === false) return null;
   return (
-    <section id="au-reviews" className="au-d-reviews">
+    <section id="au-reviews" className="au-d-reviews" data-pmx-section="reviews">
       <div className="au-d-reviews__top">
         <div>
           <div className="au-eb" style={{ marginBottom: 18 }}>{T[lang].auGuestLetters}</div>
@@ -814,7 +814,7 @@ function AuInclusionsMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" })
   const exc = pkg.excludes ?? [];
   if (!inc.length && !exc.length) return null;
   return (
-    <section className="au-section--paper">
+    <section className="au-section--paper" data-pmx-section="inclusions">
       <div className="au-section" style={{ background: "transparent" }}>
         <div className="au-section__head">
           <div className="au-eb">{T[lang].auWhatIsIncluded}</div>
@@ -850,7 +850,7 @@ function AuInclusionsDesktop({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }
   const exc = pkg.excludes ?? [];
   if (!inc.length && !exc.length) return null;
   return (
-    <section className="au-d-incl">
+    <section className="au-d-incl" data-pmx-section="inclusions">
       <div>
         <div className="au-eb" style={{ marginBottom: 12 }}>{T[lang].auInclusions}</div>
         <h2 className="au-d-incl__title">{T[lang].auEverythingConsidered}</h2>
@@ -886,7 +886,7 @@ function AuPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: "en" 
   const agentPerson = people.find((p) => p.role === "agent" || p.role === "curator" || p.role === "trip_lead");
   const guides = people.filter((p) => p.role === "guide");
   return (
-    <section className="au-v2 au-v2-pp">
+    <section className="au-v2 au-v2-pp" data-pmx-section="people">
       <div className="au-v2__head">
         <div>
           <div className="au-eb">{T[lang].auTheTeam}</div>
@@ -919,7 +919,7 @@ function AuPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: "en" 
                 )}
               </div>
               <div className="au-v2-pp__lead-cta">
-                <button className="au-cta-wa" style={{ padding: "12px 18px" }} onClick={onWhatsApp}>
+                <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "12px 18px" }} onClick={onWhatsApp}>
                   <WaIcon size={14} /> {T[lang].auMessageWAPrefix} {agentPerson.name.split(" ")[0]} {T[lang].auOnWhatsApp}
                 </button>
               </div>
@@ -964,7 +964,7 @@ function AuAboutAgencySection({ pkg, lang, agency }: { pkg: TPackage; lang: "en"
   const lastTrip = secStr(data, "lastTrip");
   const currentYear = new Date().getFullYear();
   return (
-    <section className="au-v2 au-v2-ag">
+    <section className="au-v2 au-v2-ag" data-pmx-section="about_agency">
       <div className="au-v2-ag__left">
         <div className="au-eb">
           {T[lang].auTheAgency}{founded ? ` · ${lang === "ar" ? "منذ" : "since"} ${founded}` : ""}
@@ -1005,6 +1005,77 @@ function AuAboutAgencySection({ pkg, lang, agency }: { pkg: TPackage; lang: "en"
   );
 }
 
+// ─── Other Packages ───────────────────────────────────────────────────────────
+
+function AuOtherPackagesSection({ pkg, lang, agencySlug }: { pkg: TPackage; lang: "en" | "ar"; agencySlug?: string }) {
+  const data = findSec(pkg, "other_packages");
+  const cards = secArr(data, "packages");
+  if (!cards.length) return null;
+  const t = T[lang];
+  const heading = secStr(data, "heading") || t.otherPackagesHeading;
+  const isRtl = lang === "ar";
+  return (
+    <section className="au-section" dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
+      <div className="au-section__head">
+        <div className="au-eb">{heading}</div>
+      </div>
+      <div style={{
+        display: "flex", gap: 16, overflowX: "auto",
+        paddingBottom: 8,
+        scrollSnapType: "x mandatory",
+        WebkitOverflowScrolling: "touch",
+      }}>
+        {cards.map((card, i) => {
+          const img = secStr(card, "image");
+          const title = secStr(card, "title");
+          const dest = secStr(card, "destination");
+          const price = secStr(card, "price");
+          const nights = secStr(card, "nights");
+          const link = secStr(card, "link");
+          return (
+            <a
+              key={i}
+              href={link || undefined}
+              style={{
+                flex: "0 0 220px", minWidth: 220, borderRadius: 14,
+                overflow: "hidden", textDecoration: "none",
+                border: "1px solid rgba(13,27,46,0.10)",
+                background: "#fff",
+                scrollSnapAlign: "start",
+                display: "flex", flexDirection: "column",
+                transition: "box-shadow 0.18s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 8px 28px -6px rgba(13,27,46,0.18)")}
+              onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}
+            >
+              <div style={{ width: "100%", height: 130, background: "rgba(13,27,46,0.06)", flexShrink: 0 }}>
+                {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+              </div>
+              <div style={{ padding: "12px 14px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                {dest && <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: "var(--au-brand)", fontFamily: "var(--font-inter-tight, sans-serif)" }}>{dest}</div>}
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0d1b2e", lineHeight: 1.3, fontFamily: "var(--au-serif, Georgia, serif)" }}>{title}</div>
+                {(nights || price) && (
+                  <div style={{ marginTop: "auto", paddingTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                    {nights && <span style={{ fontSize: 11.5, color: "rgba(13,27,46,0.5)", fontFamily: "var(--font-inter-tight, sans-serif)" }}>{nights}</span>}
+                    {price && <span style={{ fontSize: 13, fontWeight: 700, color: "var(--au-brand)", fontFamily: "var(--font-inter-tight, sans-serif)" }}>{price}</span>}
+                  </div>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+      {agencySlug && (
+        <div style={{ marginTop: 16, textAlign: isRtl ? "left" : "right" }}>
+          <a href={`/${agencySlug}`} style={{ fontSize: 13, fontWeight: 600, color: "var(--au-brand)", textDecoration: "none", fontFamily: "var(--font-inter-tight, sans-serif)" }}>
+            {t.navAllPackages} →
+          </a>
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ─── Custom ───────────────────────────────────────────────────────────────────
 
 function AuCustomSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
@@ -1013,7 +1084,7 @@ function AuCustomSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   const blocks = rawBlocks.length ? rawBlocks : secArr(data, "items");
   if (!blocks.length) return null;
   return (
-    <section className="au-v2 au-v2-cu">
+    <section className="au-v2 au-v2-cu" data-pmx-section="custom">
       {blocks.map((c, i) => (
         <article key={i} className="au-v2-cu__block">
           <div className="au-eb">{T[lang].auEditorNote}</div>
@@ -1034,7 +1105,7 @@ function AuFinalCtaMobile({ agentFirst, lang, onWhatsApp }: { agentFirst: string
       <p className="au-final__sub">
         {T[lang].auSendToPrefix} {agentFirst} {T[lang].auSendNote}
       </p>
-      <button className="au-cta-wa" style={{ width: "auto", padding: "16px 26px" }} onClick={onWhatsApp}>
+      <button data-testid="wa-cta" className="au-cta-wa" style={{ width: "auto", padding: "16px 26px" }} onClick={onWhatsApp}>
         <WaIcon size={16} /> {T[lang].auMessageWAPrefix} {agentFirst} {T[lang].auOnWhatsApp}
       </button>
     </section>
@@ -1051,7 +1122,7 @@ function AuFinalCtaDesktop({ agentFirst, lang, onWhatsApp }: { agentFirst: strin
         {T[lang].auSendToPrefix} {agentFirst} {T[lang].auSendNoteLong}
       </p>
       <div className="au-v2-cta__row">
-        <button className="au-cta-wa" style={{ padding: "16px 28px", fontSize: 14 }} onClick={onWhatsApp}>
+        <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "16px 28px", fontSize: 14 }} onClick={onWhatsApp}>
           <WaIcon size={15} /> {T[lang].auMessageWAPrefix} {agentFirst} {T[lang].auOnWhatsApp}
         </button>
       </div>
@@ -1137,7 +1208,7 @@ function AuChaptersMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   const itinerary = (pkg.itinerary ?? []).filter((it) => it.title?.trim());
   if (!itinerary.length) return null;
   return (
-    <section className="au-section" style={{ paddingTop: 32 }}>
+    <section className="au-section" style={{ paddingTop: 32 }} data-pmx-section="itinerary">
       <div className="au-section__head">
         <div className="au-eb">{T[lang].dayByDay}</div>
         <h2 className="au-section__title">{T[lang].auDaysLikeChapters}</h2>
@@ -1175,7 +1246,7 @@ function AuChaptersDesktop({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) 
   const itinerary = (pkg.itinerary ?? []).filter((it) => it.title?.trim());
   if (!itinerary.length) return null;
   return (
-    <section id="au-itinerary" className="au-d-story-section">
+    <section id="au-itinerary" className="au-d-story-section" data-pmx-section="itinerary">
       <div className="au-d-story-section__head">
         <div>
           <div className="au-eb">{T[lang].dayByDay}</div>
@@ -1286,18 +1357,18 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
               {pkg.price && (
                 <div className="au-d-nav__price">{T[lang].from} <b>{pkg.price}</b></div>
               )}
-              <button className="au-cta-wa" style={{ padding: "10px 18px", fontSize: 13 }} onClick={onWhatsApp}>
+              <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "10px 18px", fontSize: 13 }} onClick={onWhatsApp}>
                 <WaIcon size={14} /> {T[lang].auSpeakTo} {agentFirst}
               </button>
             </div>
           </div>
 
           {/* ── Split hero ──────────────────────────────────────────────── */}
-          <section className="au-d-hero">
+          <section className="au-d-hero" data-pmx-section="hero">
             <div className="au-d-hero__text">
               <div>
                 <div className="au-d-hero__topbar">
-                  <div className="au-eb">{pkg.destination}</div>
+                  <div className="au-eb" data-pmx-field="destination">{pkg.destination}</div>
                   {pkg.rating != null && (
                     <div className="rating">
                       <AuStars value={pkg.rating} size={12} />
@@ -1305,16 +1376,16 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
                     </div>
                   )}
                 </div>
-                <h1 className="au-d-hero__title">{title}</h1>
+                <h1 className="au-d-hero__title" data-pmx-field="title">{title}</h1>
                 {pkg.description && <p className="au-d-hero__desc">{pkg.description}</p>}
                 <div className="au-d-hero__cta-row">
                   <div className="au-d-hero__price-block">
                     <div className="lab">{T[lang].auFromPerGuest}</div>
-                    <div className="price">{pkg.price}</div>
+                    <div className="price" data-pmx-field="price">{pkg.price}</div>
                     {nights && <div className="sub">{nights} {T[lang].nightsLabel} · {T[lang].auDoubleOccupancy}</div>}
                   </div>
                   <div className="au-d-hero__buttons">
-                    <button className="au-cta-wa" style={{ padding: "14px 24px" }} onClick={onWhatsApp}>
+                    <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "14px 24px" }} onClick={onWhatsApp}>
                       <WaIcon size={15} /> {T[lang].auSpeakTo} {agentFirst}
                     </button>
                   </div>
@@ -1441,6 +1512,9 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
           {/* ── Custom ──────────────────────────────────────────────────── */}
           <AuCustomSection pkg={pkg} lang={lang} />
 
+          {/* ── Other packages ──────────────────────────────────────────── */}
+          <AuOtherPackagesSection pkg={pkg} lang={lang} agencySlug={agency.agencySlug} />
+
           {/* ── Final CTA ───────────────────────────────────────────────── */}
           <AuFinalCtaDesktop agentFirst={agentFirst} lang={lang} onWhatsApp={onWhatsApp} />
 
@@ -1461,11 +1535,11 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
           </div>
 
           {/* ── Hero ────────────────────────────────────────────────────── */}
-          <div className="au-m-hero">
+          <div className="au-m-hero" data-pmx-section="hero">
             {coverImage && <img className="au-m-hero__img" src={coverImage} alt={pkg.destination} />}
             <div className="au-m-hero__veil" />
             <div className="au-m-hero__top">
-              <div className="au-eb au-eb--light">{pkg.destination}</div>
+              <div className="au-eb au-eb--light" data-pmx-field="destination">{pkg.destination}</div>
               {pkg.rating != null && (
                 <div className="au-m-hero__rating">
                   <AuStars value={pkg.rating} size={10} color="#fff" />
@@ -1480,7 +1554,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
               >
                 {T[lang].curatedByPrefix}{nights ? `, ${nights} ${T[lang].nightsLabel}` : ""}{agentName ? ` · ${agentName}` : ""}
               </div>
-              <h1 className="au-m-hero__title">{title}</h1>
+              <h1 className="au-m-hero__title" data-pmx-field="title">{title}</h1>
             </div>
           </div>
 
@@ -1489,7 +1563,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
             <div className="au-m-booking__top">
               <div>
                 <div className="au-m-booking__price-lab">{T[lang].auFromPerGuest}</div>
-                <div className="au-m-booking__price">{pkg.price}</div>
+                <div className="au-m-booking__price" data-pmx-field="price">{pkg.price}</div>
                 <div className="au-m-booking__sub">{T[lang].auDoubleOccupancy}</div>
               </div>
               {dep && (
@@ -1510,7 +1584,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
               </div>
             )}
             <div className="au-m-booking__cta">
-              <button className="au-cta-wa" onClick={onWhatsApp}>
+              <button data-testid="wa-cta" className="au-cta-wa" onClick={onWhatsApp}>
                 <WaIcon size={15} /> {T[lang].auSpeakTo} {agentFirst}
               </button>
             </div>
@@ -1572,6 +1646,9 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
           {/* ── Custom ──────────────────────────────────────────────────── */}
           <AuCustomSection pkg={pkg} lang={lang} />
 
+          {/* ── Other packages ──────────────────────────────────────────── */}
+          <AuOtherPackagesSection pkg={pkg} lang={lang} agencySlug={agency.agencySlug} />
+
           {/* ── Dark agent closing band ──────────────────────────────────── */}
           <AuAgentDarkBand pkg={pkg} lang={lang} />
 
@@ -1594,7 +1671,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
                 {dep ? ` · ${dep.date.split(",")[0]}` : ""}
               </div>
             </div>
-            <button className="au-cta-wa au-sticky__cta" style={{ padding: "12px 18px" }} onClick={onWhatsApp}>
+            <button data-testid="wa-cta" className="au-cta-wa au-sticky__cta" style={{ padding: "12px 18px" }} onClick={onWhatsApp}>
               <WaIcon size={14} /> {T[lang].auSpeakTo} {agentFirst}
             </button>
           </div>

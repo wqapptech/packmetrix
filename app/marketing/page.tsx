@@ -9,8 +9,8 @@ import { useLang, switchLang } from "@/hooks/useLang";
 import { TRIAL_DAYS } from "@/lib/trial";
 import { TEMPLATES } from "@/components/templates";
 import { MINI_RENDERS } from "@/components/builder/TemplatePicker";
-import { AuroraMiniPhone } from "@/components/builder/LivePreviewPhone";
 import type { CoreForm } from "@/lib/sections/types";
+import { guessDestinationKind, DESTINATION_GRADIENTS } from "@/lib/destination";
 import {
   DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT,
@@ -39,7 +39,7 @@ const MALTA_CORE: CoreForm = {
   primaryLanguage: "en",
   whatsapp: "",
   messenger: "",
-  coverImage: "",
+  coverImage: "https://images.unsplash.com/photo-1584348059301-bb1d44173050?w=1600&q=80",
 };
 
 const MALTA_HL_EN = ["Boutique citadel hotel", "Private guided curation", "Return flights included"];
@@ -58,10 +58,68 @@ const SALALAH_CORE: CoreForm = {
   primaryLanguage: "ar",
   whatsapp: "",
   messenger: "",
-  coverImage: "",
+  coverImage: "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=1600&q=80",
 };
 const SALALAH_HL_EN = ["4-star accommodation", "Private car with driver", "Curated Khareef excursions"];
 const SALALAH_HL_AR = ["إقامة فاخرة فئة ٤ نجوم", "سيارة خاصة مع سائق طوال الرحلة", "جولات خريفية مخصصة للوجهة"];
+
+// ── AuroraMiniPhone — static decorative phone mockup for marketing ────────────
+// (Builder's live preview now uses a real iframe; this is a marketing-only static mock)
+
+function MarketingCoverGradient({ kind, height }: { kind: string; height: number }) {
+  const bg = DESTINATION_GRADIENTS[kind] ?? DESTINATION_GRADIENTS.default;
+  return (
+    <div style={{ width: "100%", height, background: bg, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0, rgba(255,255,255,.04) 1px, transparent 1px, transparent 8px)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 50%, rgba(0,0,0,.45) 100%)" }} />
+    </div>
+  );
+}
+
+function AuroraMiniPhone({ core, highlights, lang }: { core: CoreForm; highlights: string[]; lang: "en" | "ar" }) {
+  const isAr    = lang === "ar";
+  const paper   = "#faf5e8";
+  const ink     = "#1a1611";
+  const ink2    = "#5e564a";
+  const gold    = "#b08a3e";
+  const rule    = "#e8dfcc";
+  const title   = isAr ? (core.titleAr || core.destination || "") : (core.titleEn || core.destination || "");
+  const desc    = isAr ? (core.descriptionAr || "") : (core.descriptionEn || "");
+  const nights  = Number(core.nights) || 5;
+  const currency = core.currency || "€";
+  const price   = core.price || "—";
+  const destKind = guessDestinationKind(core.destination || "");
+  return (
+    <div dir={isAr ? "rtl" : "ltr"} style={{ background: paper, color: ink, height: "100%", overflow: "hidden", fontFamily: '"Inter", system-ui, sans-serif' }}>
+      <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 8, background: paper, borderBottom: `1px solid ${rule}` }}>
+        <div style={{ width: 18, height: 18, borderRadius: 4, background: ink, color: gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 }}>P</div>
+        <div style={{ fontSize: 10.5, fontWeight: 600, color: ink }}>Packmetrix</div>
+      </div>
+      <MarketingCoverGradient kind={destKind} height={170} />
+      <div style={{ padding: "16px 18px 20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 9, fontWeight: 600, letterSpacing: 1.4, textTransform: "uppercase", color: gold }}>
+          {nights} {isAr ? "ليالٍ" : "Nights"}<span style={{ opacity: .5 }}>·</span>{currency}{price}
+        </div>
+        <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 22, fontWeight: 400, color: ink, letterSpacing: -.5, lineHeight: 1.1, marginBottom: 12 }}>
+          {title || (isAr ? "عنوان الباقة" : "Package title")}
+        </div>
+        {desc && <div style={{ fontSize: 11.5, color: ink2, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{desc}</div>}
+        {highlights.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 14 }}>
+            {highlights.slice(0, 3).map((h, i) => (
+              <span key={i} style={{ fontSize: 9.5, fontWeight: 500, padding: "3px 8px", borderRadius: 999, background: "#fff", border: `1px solid ${rule}`, color: ink, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span style={{ color: gold }}>✓</span>{h}
+              </span>
+            ))}
+          </div>
+        )}
+        <button style={{ width: "100%", marginTop: 16, padding: "12px 0", background: "#25D366", color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" }}>
+          {isAr ? "تواصل عبر واتساب" : "Contact us on WhatsApp"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ── Shared icon SVGs ──────────────────────────────────────────────────────────
 
@@ -165,7 +223,7 @@ function LandingNav({ lang }: { lang: "en" | "ar" }) {
             );
           })}
         </div>
-        <a href={`${AGENCY_URL}/login`} style={{ fontFamily: SANS, fontSize: 13, color: DA_INK1, fontWeight: 500, cursor: "pointer", textDecoration: "none", marginOuter: 4 }}>{L.login}</a>
+        <a href={`${AGENCY_URL}/login`} style={{ fontFamily: SANS, fontSize: 13, color: DA_INK1, fontWeight: 500, cursor: "pointer", textDecoration: "none", marginInline: 4 }}>{L.login}</a>
         <a href={`${AGENCY_URL}/signup`} style={{
           padding: "8px 16px", background: DA_GOLD, color: "#fff",
           border: "none", borderRadius: 8,
@@ -270,34 +328,34 @@ function MobileLandingNav({ lang }: { lang: "en" | "ar" }) {
 function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaining: number | null }) {
   const isAr = lang === "ar";
   const L = isAr ? {
-    eyebrowSuffix: "مقعد متبقٍ فقط في عرض الإطلاق من أصل 50 مقعداً متاحاً",
-    eyebrowFallback: "متبقي مقعد واحد فقط في عرض الإطلاق من أصل 50 مقعداً متاحاً",
+    eyebrowSuffix: "مقعد متبقٍ من أصل 50",
+    eyebrowFallback: "مقعد واحد متبقٍ من أصل 50",
     titleA: "اعرض وبِع باقاتك السياحية",
-    titleB: "بأعلى احترافية تحت اسم هويتك المستقلة.",
-    sub: "الصق تفاصيل برامجك المكتوبة عشوائياً، اختر قالباً فائق الجاذبية، وانشر صفحة هبوط تخصصية ومستضافة بالكامل على نطاقك الخاص — لتكون جاهزة للمشاركة الفورية مع مسافريك عبر قنوات التواصل، مع تتبع الزيارات والعملاء من نافذة واحدة مركبة ومحمية.",
-    primary: "اشترك بسعر 39 € شهرياً مدى الحياة",
+    titleB: "باحترافية كاملة تحت هويتك المستقلة.",
+    sub: "الصق تفاصيل برنامجك، اختر قالباً، وانشر صفحة هبوط على نطاقك الخاص — جاهزة للمشاركة على الواتساب مع تتبع الزيارات والعملاء.",
+    primary: "اقفل سعر 39 € شهرياً مدى الحياة",
     demo: "احجز جلسة استشارية",
-    secondary: "تصفح صفحة هبوط تجريبية حية",
-    proofA: `فترة تجريبية حرة ومفتوحة لـ ${TRIAL_DAYS} أيام`,
-    proofB: "سعر ثابت مدى الحياة · 79 € لاحقاً للشركات الجديدة",
-    proofC: "بدون أي متطلبات لبطاقات ائتمانية",
+    secondary: "تصفح مثالاً حياً",
+    proofA: `تجربة مجانية ${TRIAL_DAYS} أيام`,
+    proofB: "سعر ثابت مدى الحياة · 79 € لاحقاً",
+    proofC: "لا بطاقة دفع مطلوبة",
   } : {
-    keySuffix: "of 50 global launch locations locked",
-    keyFallback: "1 early access strategic slot remains open from structural cap",
-    titleA: "Transform static travel itineraries into",
-    titleB: "high-converting landing pages under your standalone brand.",
-    sub: "Drop in rough schedules, raw copywriting notes, or broadcast messages. Our dedicated builder structures variables, stitches visually beautiful travel sections, and deploys custom domains natively — ready to accelerate your client conversion pipelines.",
-    primary: "Secure Launch Price Tier €39/mo",
-    demo: "Request Product Demo Walkthrough",
-    secondary: "Review live interactive example",
-    proofA: `Risk-Free ${TRIAL_DAYS}-Day Premium Evaluation Window`,
-    proofB: "Contractual lifetime price protection blueprint applied",
-    proofC: "No transactional card entries requested upfront",
+    keySuffix: "of 50 founding spots taken",
+    keyFallback: "1 founding spot still available",
+    titleA: "Turn travel packages into",
+    titleB: "beautiful landing pages under your own brand.",
+    sub: "Paste your raw itinerary, WhatsApp copy, or notes. Our builder structures it into a stunning, hosted landing page — on your own domain and ready to share in minutes.",
+    primary: "Lock in €39/mo — launch price",
+    demo: "Book a demo",
+    secondary: "See a live example",
+    proofA: `${TRIAL_DAYS}-day free trial`,
+    proofB: "Lifetime price lock · €79/mo after launch",
+    proofC: "No credit card required",
   };
 
-  const eyebrow = spotsRemaining !== null
-    ? (isAr ? `${spotsRemaining} ${L.eyebrowSuffix}` : `${spotsRemaining} ${L.keySuffix}`)
-    : (isAr ? L.eyebrowFallback : L.keyFallback);
+  const eyebrow: string = spotsRemaining !== null
+    ? (isAr ? `${spotsRemaining} ${L.eyebrowSuffix ?? ""}` : `${spotsRemaining} ${L.keySuffix ?? ""}`)
+    : (isAr ? L.eyebrowFallback ?? "" : L.keyFallback ?? "");
 
   return (
     <div id="product" style={{ padding: "64px 48px 80px", position: "relative", overflow: "hidden" }}>
@@ -420,30 +478,30 @@ function LandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaini
 function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRemaining: number | null }) {
   const isAr = lang === "ar";
   const L = isAr ? {
-    eyebrowSuffix: "مقعد متبقٍ فقط في عرض الإطلاق من أصل 50 مقعداً متاحاً",
-    eyebrowFallback: "متبقي مقعد واحد فقط في عرض الإطلاق من أصل 50 مقعداً متاحاً",
+    eyebrowSuffix: "مقعد متبقٍ من أصل 50",
+    eyebrowFallback: "مقعد واحد متبقٍ من أصل 50",
     titleA: "اعرض وبِع باقاتك السياحية",
-    titleB: "بأعلى احترافية تحت هويتك المستقلة.",
-    sub: "الصق تفاصيل برامجك المكتوبة عشوائياً، اختر قالباً فائق الجاذبية، وانشر صفحة هبوط تخصصية ومستضافة بالكامل على نطاقك الخاص.",
-    primary: "اشترك بسعر 39 € شهرياً مدى الحياة",
-    demo: "احجز جلسة استشارية خاصة",
-    secondary: "تصفح صفحة هبوط تجريبية حية",
-    proof: [`فترة تجريبية لـ ${TRIAL_DAYS} أيام`, "سعر ثابت مدى الحياة · 79 € لاحقاً", "بدون بطاقات ائتمانية"],
+    titleB: "باحترافية كاملة تحت هويتك.",
+    sub: "الصق تفاصيل برنامجك، اختر قالباً، وانشر صفحة هبوط على نطاقك — جاهزة للمشاركة على الواتساب.",
+    primary: "اقفل سعر 39 € شهرياً مدى الحياة",
+    demo: "احجز جلسة استشارية",
+    secondary: "تصفح مثالاً حياً",
+    proof: [`تجربة مجانية ${TRIAL_DAYS} أيام`, "سعر ثابت مدى الحياة · 79 € لاحقاً", "لا بطاقة دفع مطلوبة"],
   } : {
-    keySuffix: "of 50 global launch slots locked down successfully",
-    keyFallback: "1 residual strategic evaluation allocation maps open inside cap",
-    titleA: "Deploys custom high-converting",
-    titleB: "landing layouts built specifically around your operations roots.",
-    sub: "Drop in messy text updates, pricing blocks, or messaging drafts. Build beautiful presentations and trace customer threads natively.",
-    primary: "Secure Launch Price Tier €39/mo",
-    demo: "Request consulting call",
-    secondary: "Review live interactive example",
-    proof: [`Risk-Free ${TRIAL_DAYS}-Day Test Loop`, "Lifetime price tier lock validation", "Zero financial card records requested"],
+    keySuffix: "of 50 founding spots taken",
+    keyFallback: "1 founding spot still available",
+    titleA: "Turn travel packages into",
+    titleB: "beautiful landing pages, in minutes.",
+    sub: "Paste raw copy or bullet points. Our builder formats it into a hosted booking page on your own domain — ready to share on WhatsApp.",
+    primary: "Lock in €39/mo — launch price",
+    demo: "Book a demo",
+    secondary: "See a live example",
+    proof: [`${TRIAL_DAYS}-day free trial`, "Lifetime price lock · €79/mo after", "No credit card required"],
   };
 
-  const eyebrow = spotsRemaining !== null
-    ? (isAr ? `${spotsRemaining} ${L.eyebrowSuffix}` : `${spotsRemaining} ${L.keySuffix}`)
-    : (isAr ? L.eyebrowFallback : L.keyFallback);
+  const eyebrow: string = spotsRemaining !== null
+    ? (isAr ? `${spotsRemaining} ${L.eyebrowSuffix ?? ""}` : `${spotsRemaining} ${L.keySuffix ?? ""}`)
+    : (isAr ? L.eyebrowFallback ?? "" : L.keyFallback ?? "");
 
   return (
     <div id="product" style={{ padding: "28px 18px 36px", position: "relative", overflow: "hidden" }}>
@@ -524,30 +582,30 @@ function MobileLandingHero({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsR
 function LandingFeatures({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
   const L = isAr ? {
-    eyebrow: "كل ما تحتاجه للتميز المبيعاتي",
-    title: "مطور هندسياً لوكالات السفر،",
-    titleAccent: "وليس أداة تصميم عامة عشوائية مشتتة.",
-    sub: "ستة أدوات مخصصة ومبتكرة صممناها خصيصاً لتناسب الطريقة التي تبيع بها مكاتب وشركات السياحة عروضها وخدماتها اللوجستية.",
+    eyebrow: "مصمم لوكالات السفر",
+    title: "مطور لوكالات السفر،",
+    titleAccent: "وليس أداة بناء عامة.",
+    sub: "ستة أدوات صُممت خصيصاً لطريقة بيع وكالات السفر — من المسودة الخام إلى صفحة الحجز المنشورة.",
     cards: [
-      { eyebrow: "01 · استخراج المحتوى", title: "استخراج هيكل الباقة بالذكاء الاصطناعي", body: "الصق مسودات البرامج أو رسائل مجموعات الواتساب الطويلة والمشتتة — سيتولى نموذجنا المتخصص استخراج الوجهات، هيكلة الأسعار المتعددة، صياغة المشمولات وبناء الجدول يوماً بيوم في ثوانٍ معدودة." },
-      { eyebrow: "02 · واجهات العرض البصري", title: "عشرة قوالب وتصميمات معززة للبيع", body: "معرض واسع من التصاميم البصرية النخبوية والفاخرة — لكل نوع رحلة سمة فنية تبرز روعتها وتزيد ثقة المسافرين والمشاهدين بالميدان." },
-      { eyebrow: "03 · صندوق الوارد المركزي", title: "تتبع خط المبيعات واقتناص استفسارات واتساب", body: "كل نقرة تفاعلية من الزائر على أزرار الاتصال تترجم فوراً داخل لوحة التحكم كصفقة مبيعات جديدة مع عرض كامل لتاريخ تصفح العميل داخل الصفحة ودرجة جديته." },
-      { eyebrow: "04 · إدارة النطاقات", title: "ربط النطاق المخصص المستقل بالكامل مع SSL", body: "انشر عروض باقات السفر بالكامل تحت رابط وعنوان موقعك الرسمي الخاص لتعزيز موثوقية عملك وبناء حضور علامة تجارية قوية في أذهان العملاء." },
-      { eyebrow: "05 · انسيابية الهواتف", title: "هندسة وتصميم للهواتف الذكية أولاً", body: "أغلب المسافرين يتصفحون العروض السياحية من هواتفهم عبر روابط إنستغرام أو واتساب. لذلك صممنا كافة التخطيطات والقوالب لتظهر بأبعاد مبهرة ومريحة للجوال." },
-      { eyebrow: "06 · الازدواجية اللغوية", title: "دعم حقيقي ثنائي اللغة ومحاذاة كاملة للـ RTL", body: "توفير الميزة ثنائية اللغة الناتجة والمباشرة (عربي + إنجليزي) بشكل احترافي رصين — مع دعم التقويم الهجري، متطلبات تفكيك اللوجستيات للعمرة، ومحاذاة الخطوط العربية." },
+      { eyebrow: "01 · استخراج ذكي", title: "استخراج هيكل الباقة بالذكاء الاصطناعي", body: "الصق رسالة واتساب أو قائمة نقاط — يستخرج نموذجنا الوجهة، الأسعار، الليالي والمشمولات في ثوانٍ." },
+      { eyebrow: "02 · قوالب احترافية", title: "عشرة قوالب معززة للبيع", body: "تصاميم لكل نوع رحلة — عطلات عائلية، عمرة، مغامرات، وشهر عسل. اعرض محتواك الحقيقي فوراً." },
+      { eyebrow: "03 · صندوق الوارد", title: "تتبع استفسارات واتساب مركزياً", body: "كل نقرة على زر التواصل تصل مباشرة للوحة التحكم مع سجل تصفح الزائر الكامل ودرجة اهتمامه." },
+      { eyebrow: "04 · نطاق مخصص", title: "نطاقك الخاص مع SSL كامل", body: "انشر باقاتك تحت عنوان موقعك الرسمي. إعداد بنقرة واحدة مع شهادة SSL تلقائية." },
+      { eyebrow: "05 · تصميم للجوال", title: "مصمم للهواتف الذكية أولاً", body: "أغلب المسافرين يفتحون الروابط من هواتفهم عبر واتساب. كل قالب يظهر بشكل مثالي على أي شاشة." },
+      { eyebrow: "06 · ثنائي اللغة", title: "عربي + إنجليزي مع دعم RTL", body: "نشر ثنائي اللغة بمحاذاة صحيحة للنص العربي، دعم التقويم الهجري، وخطوط عربية احترافية." },
     ],
   } : {
-    eyebrow: "Engineered Industry Capabilities Suite",
+    eyebrow: "Built for travel agencies",
     title: "Purpose-built for travel operators,",
-    titleAccent: "not a generic unstyled builder.",
-    sub: "Six modular tools architecture designed directly around how incoming travel prospects research, evaluate, and lock booking choices.",
+    titleAccent: "not a generic page builder.",
+    sub: "Six tools built specifically for the way travel agencies sell — from raw itineraries to published booking pages.",
     cards: [
-      { eyebrow: "01 · Raw Content Extraction", title: "AI Instant Structural Parsing", body: "Drop in basic itineraries, unformatted marketing posts, old brochures, or text files. Our specialized natural language models isolate targets, flat values, and logistics fields instantly." },
-      { eyebrow: "02 · Visual Paradigms", title: "Ten Premium Presentation Layouts", body: "Access targeted structural themes built specifically to translate luxury bespoke escapes, high-altitude expeditions, faith journeys, or social cohorts securely." },
-      { eyebrow: "03 · Central Lead Hub", title: "WhatsApp-Native Pipeline Sync", body: "Capture outbound customer inquiries instantly into a centralized desk, mapping session paths, evaluated pricing tiers, and buying intent scores automatically." },
-      { eyebrow: "04 · Brand Domain Routing", title: "Masked Addressing with Enterprise SSL", body: "Route standalone custom business domains directly across platform tracking arrays. Complete encryption certificate loops resolve instantly once setup maps catch." },
-      { eyebrow: "05 · Handset Optimization", title: "Mobile Viewport Responsiveness First", body: "Calibrated down to 400px widths framework rules natively, ensuring typography elements and visual presentation modules display flawlessly on traveler phones." },
-      { eyebrow: "06 · Global Translation", title: "Bilingual English + Arabic RTL Core", body: "Built to deploy dual-language properties seamlessly. Integrates specialized features like automated Hijri mapping, religious operational criteria, and native Arabic layouts." },
+      { eyebrow: "01 · AI Parsing", title: "Instant itinerary extraction", body: "Drop in unformatted WhatsApp copy, bullet lists, or old brochures. Our model extracts destinations, prices, nights, and inclusions in seconds." },
+      { eyebrow: "02 · Templates", title: "Ten conversion-ready layouts", body: "Designs built for every trip type — family holidays, umrah packages, adventure escapes, or honeymoons. Preview with your real content instantly." },
+      { eyebrow: "03 · Lead inbox", title: "WhatsApp-native lead tracking", body: "Every tap on your contact buttons lands in a central inbox with the full visitor timeline, showing pricing interest and intent." },
+      { eyebrow: "04 · Custom domains", title: "Your domain, full SSL", body: "Publish under your own agency domain. One-click setup with automatic SSL — your brand, not ours." },
+      { eyebrow: "05 · Mobile-first", title: "Designed for phone screens", body: "Most travelers open links on their phone from WhatsApp or Instagram. Every template looks flawless at any screen size." },
+      { eyebrow: "06 · Bilingual", title: "Arabic + English, RTL-native", body: "True bilingual publishing with correct RTL alignment, Hijri calendar support, and Arabic typography — not a translation afterthought." },
     ],
   };
 
@@ -590,24 +648,24 @@ function LandingFeatures({ lang }: { lang: "en" | "ar" }) {
 function MobileLandingFeatures({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
   const L = isAr ? {
-    eyebrow: "كل ما تحتاجه للتميز المبيعاتي", title: "مطور هندسياً لوكالات السفر،", titleAccent: "وليس أداة تصميم عامة.",
+    eyebrow: "مصمم لوكالات السفر", title: "مطور لوكالات السفر،", titleAccent: "وليس أداة بناء عامة.",
     cards: [
-      { eyebrow: "01 · استخراج ذكي", title: "استخراج هيكل الباقة بالذكاء الاصطناعي", body: "الصق مسودات البرامج أو رسائل الواتساب الطويلة والمشتتة — سيتولى نموذجنا استخراج الوجهات، فئات العملات والأسعار، والمشمولات بدقة في ثوانٍ." },
-      { eyebrow: "02 · واجهات العرض", title: "عشرة قوالب وتصميمات معززة للبيع", body: "معرض واسع من التصاميم البصرية النخبوية والفاخرة — لكل نوع رحلة سمة فنية تبرز روعتها وتزيد ثقة المسافرين." },
-      { eyebrow: "03 · خط المبيعات", title: "تتبع صفقات واتساب والعملاء المحتملين", body: "كل نقرة تفاعلية من الزائر على أزرار الاتصال تترجم فوراً داخل لوحة التحكم كصفقة مبيعات جديدة مع عرض كامل لتاريخ تصفح العميل." },
-      { eyebrow: "04 · إدارة النطاقات", title: "ربط النطاق المخصص المستقل بالكامل", body: "انشر عروض باقات السفر بالكامل تحت رابط وعنوان موقعك الرسمي الخاص لتعزيز موثوقية عملك وبناء حضور علامة تجارية قوية." },
-      { eyebrow: "05 · انسيابية الجوال", title: "هندسة وتصميم للهواتف الذكية أولاً", body: "أغلب المسافرين يتصفحون العروض من هواتفهم. لذلك صممنا كافة التخطيطات والقوالب لتظهر بأبعاد مبهرة ومريحة للجوال." },
-      { eyebrow: "06 · الازدواجية اللغوية", title: "دعم حقيقي ثنائي اللغة ومحاذاة RTL", body: "توفير الميزة ثنائية اللغة الناتجة والمباشرة (عربي + إنجليزي) بشكل احترافي رصين — مع دعم التقويم الهجري ونظم ترجمة العروض." },
+      { eyebrow: "01 · استخراج ذكي", title: "استخراج هيكل الباقة بالذكاء الاصطناعي", body: "الصق رسالة واتساب أو قائمة نقاط — يستخرج نموذجنا الوجهة، الأسعار والمشمولات في ثوانٍ." },
+      { eyebrow: "02 · قوالب احترافية", title: "عشرة قوالب معززة للبيع", body: "تصاميم لكل نوع رحلة — عطلات عائلية، عمرة، مغامرات. اعرض محتواك الحقيقي فوراً." },
+      { eyebrow: "03 · صندوق الوارد", title: "تتبع استفسارات واتساب مركزياً", body: "كل نقرة على زر التواصل تصل للوحة التحكم مع سجل تصفح الزائر ودرجة اهتمامه." },
+      { eyebrow: "04 · نطاق مخصص", title: "نطاقك الخاص مع SSL كامل", body: "انشر باقاتك تحت عنوان موقعك الرسمي بإعداد سريع وشهادة SSL تلقائية." },
+      { eyebrow: "05 · تصميم للجوال", title: "مصمم للهواتف الذكية أولاً", body: "أغلب المسافرين يفتحون الروابط من هواتفهم. كل قالب يظهر بشكل مثالي على أي شاشة." },
+      { eyebrow: "06 · ثنائي اللغة", title: "عربي + إنجليزي مع دعم RTL", body: "نشر ثنائي اللغة بمحاذاة عربية صحيحة ودعم التقويم الهجري." },
     ],
   } : {
-    eyebrow: "Engineered Capabilities Suite", title: "Purpose-built for travel operators,", titleAccent: "not general builders.",
+    eyebrow: "Built for travel agencies", title: "Purpose-built for travel operators,", titleAccent: "not a generic page builder.",
     cards: [
-      { eyebrow: "01 · Extraction Engine", title: "AI Instant Structural Parsing", body: "Drop in unformatted itineraries or messy WhatsApp notes. Extract destinations, base prices, schedules natively." },
-      { eyebrow: "02 · Layout Paradigms", title: "Premium Presentation Strategy Tiers", body: "Access curated design layouts engineered specifically around modern group tours, honeymoons, or faith departures." },
-      { eyebrow: "03 · Inbound Leads", title: "Central Pipeline Communications Sync", body: "Route outbound client clicks straight into system management folders, recording timeline logs and unique context tracks." },
-      { eyebrow: "04 · Masked URLs", title: "Custom Business Domains Integration", body: "Deploys your standalone agency web root mapping rules natively across platform assets, managing SSL certificates automatically." },
-      { eyebrow: "05 · Responsiveness", title: "Mobile Handset Viewport Execution First", body: "Layout themes scale flawlessly down to small device properties before scaling up, mapping font elements elegantly." },
-      { eyebrow: "06 · Global Dialects", title: "English + Arabic Dual Experience Native", body: "Supports correct RTL alignment rules, localized Hijri data configurations, and certified travel text requirements easily." },
+      { eyebrow: "01 · AI Parsing", title: "Instant itinerary extraction", body: "Drop in unformatted WhatsApp copy or bullet lists. Destinations, prices, and inclusions are extracted in seconds." },
+      { eyebrow: "02 · Templates", title: "Ten conversion-ready layouts", body: "Designs for every trip type — family trips, umrah packages, honeymoons, and more. Preview your content in real time." },
+      { eyebrow: "03 · Lead inbox", title: "WhatsApp-native lead tracking", body: "Every contact tap lands in a central inbox with the full visitor session, showing interest level and intent." },
+      { eyebrow: "04 · Custom domains", title: "Your domain, full SSL", body: "Publish under your own domain with one-click SSL setup — your brand front and center." },
+      { eyebrow: "05 · Mobile-first", title: "Designed for phone screens", body: "Every template looks flawless on phones, because that's where your travelers open WhatsApp links." },
+      { eyebrow: "06 · Bilingual", title: "Arabic + English, RTL-native", body: "True bilingual publishing with correct RTL alignment and Hijri calendar support built in." },
     ],
   };
   const featureIcons = ["✦", "▣", "◎", "⊕", "◻", "⌖"];
@@ -680,7 +738,7 @@ function ShotPaste({ lang }: { lang: "en" | "ar" }) {
         <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase", color: DA_GOLD, marginBottom: 4 }}>
           {isAr ? "خطوة البناء الهيكلي الأول الأول · 1 من 4" : "Guided workspace pipeline · 1 of 4"}
         </div>
-        <div style={{ windowFilter: "none", fontFamily: DISPLAY, fontSize: 20, fontWeight: 400, color: DA_INK1, letterSpacing: -0.4, marginBottom: 12 }}>
+        <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 400, color: DA_INK1, letterSpacing: -0.4, marginBottom: 12 }}>
           {isAr ? "الصق نصوص ومسودات الباقة السياحية" : "Provide unformatted content input"}
         </div>
         <div style={{
@@ -851,7 +909,7 @@ function ShotPublished({ lang }: { lang: "en" | "ar" }) {
       {/* floating live-link pill */}
       <div style={{
         position: "absolute", top: 0,
-        幕: isAr ? "auto" : 8, insetInlineStart: isAr ? "auto" : 8, insetInlineEnd: isAr ? 8 : "auto",
+        insetInlineStart: isAr ? "auto" : 8, insetInlineEnd: isAr ? 8 : "auto",
         background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 9,
         padding: "7px 11px", boxShadow: "0 12px 28px -12px rgba(26,22,17,.25)",
         display: "flex", alignItems: "center", gap: 7,
@@ -887,26 +945,26 @@ const HOW_SHOTS: Array<(p: { lang: "en" | "ar" }) => React.JSX.Element> = [ShotP
 function LandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
   const L = isAr ? {
-    eyebrow: "دليل مسار العمليات الرقمية لوكالتك",
-    title: "من مسودة البرنامج العشوائية وحتى الرابط المنشور عالي الكفاءة",
-    titleAccent: "في ثلاث دقائق معدودة تماماً ودون عناء.",
-    sub: "أربعة خطوات تنظيمية متكاملة ومؤتمتة بالكامل. لا حاجة لأي أكواد برمجية أو مصممين محترفين. محاكاة حقيقية لواجهات نظام التشغيل الميداني.",
+    eyebrow: "كيف يعمل",
+    title: "من المسودة إلى صفحة حجز مباشرة",
+    titleAccent: "في أقل من ثلاث دقائق.",
+    sub: "أربع خطوات بسيطة. لا حاجة لمصمم أو مبرمج.",
     steps: [
-      { title: "1. الصق مسودات ونصوص الباقة السياحية العشوائية", body: "انسخ تفاصيل مسار رحلتك أو منشورك التسويقي الخام المتداول كما ترسلها تماماً عبر مجموعات الواتساب — يدعم اللغة العربية، الإنجليزية، أو الإزدواجية اللغوية المتزامنة مع التعبيرات الإيموجي بمرونة كاملة." },
-      { title: "2. معالجة وهيكلة آلية ذكية للحقول الفنية", body: "يقوم نموذج الذكاء الاصطناعي بمسح نصوصك وتصنيفها فوراً داخل قواعد البيانات: يحدد جغرافية الوجهة، السعر المبدئي، ليالي المبيت، مواصفات فندق الإقامة المستضيفة والمشمولات الأساسية للباقة بدقة، مع صلاحية تعديل كاملة بنقرة واحدة." },
-      { title: "3. اختيار ومحاذاة القالب البصري واجهة العرض", body: "توفير عشرة قوالب وتصميمات هيكلية فريدة ومجربة، مصممة هندسياً لتلائم عطلات العائلات، مغامرات المتسلقين، أو الزيارات الإيمانية والروحانية للحج والعمرة. شاهد مسار عرض محتواك الحقيقي منتقى بعينيك." },
-      { title: "4. نشر الرابط وتفعيل مركز تتبع خط المبيعات والعملاء", body: "انشر العرض فوراً واحصل على رابط تسويقي ذكي مستضاف تحت هويتك ونطاقك الخاص، شاركه بضغطة واحدة على مجموعات الواتساب أو قنوات التواصل الاجتماعي، وراقب نمو Impressions والاتصالات Captured حياً." },
+      { title: "1. الصق تفاصيل باقتك", body: "الصق رسالة واتساب، قائمة نقاط، أو برنامج رحلة — عربي، إنجليزي، أو لغتين معاً. لا تنسيق مطلوب." },
+      { title: "2. تملأ الحقول تلقائياً", body: "يستخرج الذكاء الاصطناعي الوجهة، الليالي، السعر، الفندق والمشمولات من نصك ويحولها لحقول قابلة للتعديل." },
+      { title: "3. اختر قالباً", body: "10 قوالب احترافية — عطلات عائلية، عمرة، مغامرات، وأكثر. شاهد محتواك الحقيقي فوراً." },
+      { title: "4. انشر وتابع العملاء", body: "صفحة هبوط مستضافة تحت نطاقك الخاص. شاركها على الواتساب وتابع الزيارات والاستفسارات مباشرة." },
     ],
   } : {
-    eyebrow: "Operational Workspace Workflow Overview",
-    title: "From raw unstyled notes to published tracking URL asset",
-    titleAccent: "in under three minutes flat.",
-    sub: "Four clear guided production stages. No visual coding knowledge, no deployment scripts required. Actual graphic interface mockup layouts.",
+    eyebrow: "How It Works",
+    title: "From raw notes to a live booking page",
+    titleAccent: "in under three minutes.",
+    sub: "Four simple steps. No design skills or technical setup needed.",
     steps: [
-      { title: "1. Paste unformatted text components block", body: "Dump in messy WhatsApp broadcast copy, old text brochures, rough bulleted lists, or raw trip specifications directly. Accepts multilingual structures and custom layouts gracefully." },
-      { title: "2. Automated structural processing lookup", body: "Our text structures parsing automation isolates global target values, currency markers, multi-tier pricing models, flight options, and accommodation rules, mapping values seamlessly into input fields." },
-      { title: "3. Align layout template presentation profiles", body: "Match your data rows directly against our specialized travel design catalog presets. Real-time visual layout previews process natively with your exact input variables values mapped." },
-      { title: "4. Launch link mapping and gather client pipeline", body: "Publish configurations live onto your custom domain layer, broadcast URLs across client targets chat frameworks, and observe direct inbound buyer contacts update your dashboard central hub." },
+      { title: "1. Paste your package details", body: "Drop in a WhatsApp broadcast, bullet list, or typed itinerary — Arabic, English, or both. No formatting needed." },
+      { title: "2. Fields fill automatically", body: "Our builder extracts destination, nights, price, hotel, and inclusions from your text and maps them into editable fields." },
+      { title: "3. Pick a template", body: "Choose from 10 professionally designed templates — family trips, umrah packages, adventure escapes, and more. Preview with your real content in real time." },
+      { title: "4. Publish and track leads", body: "Get a hosted landing page on your own domain. Share the link on WhatsApp and watch impressions and inbound messages update live." },
     ],
   };
 
@@ -970,14 +1028,14 @@ function MobileLandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
       { title: "4. نشر الرابط وتتبع صفقات المبيعات حياً", body: "احصل على صفحة هبوط احترافية مستضافة بنطاقك المخصص الموصول، شارك الرابط بضغطة واحدة وتابع مبيعات صندوق الوارد." },
     ],
   } : {
-    eyebrow: "Operational Workflow",
-    title: "From raw travel text notes into clean live URL",
-    titleAccent: "in moments flat.",
+    eyebrow: "How It Works",
+    title: "From raw notes to a live page",
+    titleAccent: "in minutes.",
     steps: [
-      { title: "1. Provide unformatted trip description copy", body: "Drop in messaging updates, bullet pricing lists, or layout notes text inputs directly without structural restrictions rules." },
-      { title: "2. Automatic natural parsing logic sweeps", body: "Isolates and populates target parameters, nights, base price units, and flight rule criteria dynamically inside fields." },
-      { title: "3. Choose presentation portfolio layout asset", body: "Rotate targeted layout preservation themes. Map visual galleries, accent color styles, and global identities metrics instantly." },
-      { title: "4. Track live customer conversation threads logs", body: "Deploys secure link mapping rules straight onto standalone custom business domains address, tracking conversions." },
+      { title: "1. Paste your package details", body: "Drop in a WhatsApp message, bullet list, or typed itinerary — Arabic, English, or both." },
+      { title: "2. Fields fill automatically", body: "Destination, nights, price, and inclusions are extracted from your text and mapped into editable fields instantly." },
+      { title: "3. Pick a template", body: "Choose from 10 beautiful layouts and preview your content in real time." },
+      { title: "4. Publish and track leads", body: "Get a hosted page on your own domain. Share on WhatsApp and watch impressions and leads update live." },
     ],
   };
 
@@ -999,7 +1057,7 @@ function MobileLandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
                 <div style={{
                   width: 30, height: 30, borderRadius: "50%",
                   background: DA_INK1, color: DA_GOLD, flexShrink: 0,
-                  display: "flex", alignItems: "center", justifyContext: "center",
+                  display: "flex", alignItems: "center", justifyContent: "center",
                   fontFamily: DISPLAY, fontSize: 13, fontWeight: 400,
                 }}>{`0${i + 1}`}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -1020,8 +1078,8 @@ function MobileLandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
 function TemplateShowcase({ lang, mobile }: { lang: "en" | "ar"; mobile?: boolean }) {
   const isAr = lang === "ar";
   const L = isAr
-    ? { eyebrow: "قوالب وواجهات التصميم العرض البصري", title: "اختر النمط البصري المنسق المناسب لـ", titleAccent: "طبيعة وفئة باقتك السياحية.", sub: "عشرة تصاميم متكاملة — لكل قالب شخصية بصرية مستقلة وحالة استخدام مدروسة. ابدأ من نموذج جاهز، وخصص كل تفصيلة ولون لكنة بالأنظمة.", seeAll: "تصفح الأرشيف الكامل للقوالب العشرة" }
-    : { eyebrow: "UI Presentation Template Presets Designs", title: "Select the specific graphic layout philosophy matching", titleAccent: "your unique adventure goals.", sub: "Ten premium, field-tested functional presentation styles engineered to maximize intent. Advance configurations unlock rich custom overrides layers.", seeAll: "Expand complete layouts portfolio strings" };
+    ? { eyebrow: "قوالب التصميم", title: "اختر القالب المناسب", titleAccent: "لنوع باقتك.", sub: "عشرة تصاميم احترافية — لكل قالب شخصية بصرية مستقلة وحالة استخدام مدروسة. خصّص الألوان والمحتوى بسهولة.", seeAll: "تصفح جميع القوالب العشرة" }
+    : { eyebrow: "Template Designs", title: "Find the layout that fits", titleAccent: "your package.", sub: "Ten travel-tested designs, each crafted for a specific trip type. Customize colors, fonts, and content with ease.", seeAll: "Browse all 10 templates" };
 
   const showcased = TEMPLATES.slice(0, mobile ? 4 : 5);
   const gridCols = mobile ? "1fr 1fr" : "repeat(5, 1fr)";
@@ -1111,16 +1169,16 @@ type ExampleItem = {
 };
 
 const DEMO_TEMPLATE_TAGS: Record<string, { en: string; ar: string }> = {
-  sakina:  { en: "Umrah Operations",  ar: "رحلات عمرة دينية"   },
-  family:  { en: "Family Holidays",  ar: "عطلات عائلية مريحة"  },
-  pulse:   { en: "Flash Promos",     ar: "عروض اللحظة الأخيرة" },
-  petal:   { en: "Bespoke Romance",  ar: "ملاذات شهر عسل فاخرة" },
-  aurora:  { en: "Bespoke Luxury",   ar: "سياحة نخبوية فاخرة"  },
-  tribe:   { en: "Group Escapes",    ar: "أفواج جماعية شبابية" },
-  compass: { en: "High Adventure",   ar: "تسلق ومغامرات جبلية" },
-  voyage:  { en: "Youth Explorers",  ar: "رحلات الظهر والشباب" },
-  atlas:   { en: "Heritage Travel",  ar: "تجارب ثقافية وتراثية" },
-  smart:   { en: "Value Budget",     ar: "باقات اقتصادية شفافة" },
+  sakina:  { en: "Umrah",          ar: "عمرة"         },
+  family:  { en: "Family",         ar: "عائلي"        },
+  pulse:   { en: "Flash Promo",    ar: "عروض فورية"   },
+  petal:   { en: "Romance",        ar: "شهر عسل"      },
+  aurora:  { en: "Luxury",         ar: "فاخر"         },
+  tribe:   { en: "Group",          ar: "جماعي"        },
+  compass: { en: "Adventure",      ar: "مغامرات"      },
+  voyage:  { en: "Youth",          ar: "شباب"         },
+  atlas:   { en: "Heritage",       ar: "تراثي"        },
+  smart:   { en: "Budget",           ar: "اقتصادي"      },
 };
 
 async function fetchDemoPackages(lang: "en" | "ar"): Promise<ExampleItem[]> {
@@ -1166,56 +1224,56 @@ function exampleData(isAr: boolean): ExampleItem[] {
   return [
     {
       kind: "umrah", ar: true,
-      destination: isAr ? "مكة المكرمة والمدينة المنورة" : "Makkah & Madinah Sanctuary",
-      title: "عمرة رمضان الروحانية · ١٠ ليالٍ",
-      tag: isAr ? "رحلات عمرة دينية" : "Umrah Operations Focus",
+      destination: isAr ? "مكة المكرمة والمدينة المنورة" : "Makkah & Madinah",
+      title: "عمرة رمضان · ١٠ ليالٍ",
+      tag: isAr ? "رحلات عمرة" : "Umrah",
       price: isAr ? "٤٬٢٠٠ ﷼" : "4,200 SAR",
-      agency: isAr ? "دار السكينة لخدمات المعتمرين" : "Dar Al-Sakina Travel Hub",
+      agency: isAr ? "دار السكينة" : "Dar Al-Sakina",
       lang: "AR",
     },
     {
       kind: "sardinia", ar: false,
-      destination: "Sardinia, Italy coast",
-      title: "Flash conversion weekend escape drop",
-      tag: "Scarcity Flash Promo",
-      price: "€499 flat rate", was: "€919 baseline",
-      agency: "Levant Voyages Europe",
+      destination: "Sardinia, Italy",
+      title: "Flash escape · Sardinia",
+      tag: "Flash Promo",
+      price: "€499", was: "€919",
+      agency: "Levant Voyages",
       lang: "EN",
     },
     {
       kind: "maldives", ar: false,
-      destination: "Maldives Luxury Atolls",
-      title: "Bespoke romance package layout · 7 nights",
-      tag: "Bespoke Romance Escape",
-      price: "€4,200 total per couple",
-      agency: "Cedar & Sea Bespoke Curation",
+      destination: "Maldives",
+      title: "Romance escape · 7 nights",
+      tag: "Honeymoon",
+      price: "€4,200 / couple",
+      agency: "Cedar & Sea",
       lang: "EN",
     },
     {
       kind: "salalah", ar: true,
-      destination: isAr ? "صلالة، سلطنة عُمان" : "Salalah, Oman Green Season",
-      title: "خريف ظفار العائلي المتكامل · ٥ ليالٍ",
-      tag: isAr ? "ععطلات عائلية مريحة" : "Multi-Gen Family Holiday",
+      destination: isAr ? "صلالة، سلطنة عُمان" : "Salalah, Oman",
+      title: "خريف صلالة · ٥ ليالٍ",
+      tag: isAr ? "عطلات عائلية" : "Family Holiday",
       price: isAr ? "٢٬٩٥٠ ﷼" : "2,950 SAR",
-      agency: isAr ? "وكالة مرايا للسفر الاستكشافي" : "Maraya Journeys Workspace",
+      agency: isAr ? "مرايا للأسفار" : "Maraya Journeys",
       lang: "AR",
     },
     {
       kind: "cappadocia", ar: false,
-      destination: "Cappadocia, Türkiye Anatolia",
-      title: "Hot-air ballooning sequence · boutique stay",
-      tag: "Boutique Experience Curation",
-      price: "€549 per guest",
-      agency: "Maraya Journeys Global Portfolio",
+      destination: "Cappadocia, Türkiye",
+      title: "Balloons & boutique · Cappadocia",
+      tag: "Boutique Experience",
+      price: "€549 / guest",
+      agency: "Maraya Journeys",
       lang: "EN",
     },
     {
       kind: "wadirum", ar: true,
-      destination: isAr ? "صحراء وادي رم، الأردن" : "Wadi Rum Protection Wilderness",
-      title: "مغامرة الأفواج الجماعية والأنشطة المشترك · ٤ ليالٍ",
-      tag: isAr ? "أفواج جماعية شبابية" : "Group Cohorts Safe Escape",
-      price: isAr ? "٦٩٩ ﷼ / للمقعد الفردي" : "699 SAR per cohort seat",
-      agency: isAr ? "مؤسسة قبيلة الرحالة للمغامرات" : "Tribe Travel Co. Environment",
+      destination: isAr ? "وادي رم، الأردن" : "Wadi Rum, Jordan",
+      title: "مغامرة جماعية · وادي رم",
+      tag: isAr ? "أفواج جماعية" : "Group Escape",
+      price: isAr ? "٦٩٩ ﷼ / شخص" : "699 SAR / person",
+      agency: isAr ? "قبيلة الرحالة" : "Tribe Travel Co.",
       lang: "AR",
     },
   ];
@@ -1223,8 +1281,8 @@ function exampleData(isAr: boolean): ExampleItem[] {
 
 function ExampleCard({ ex, lang }: { ex: ExampleItem; lang: "en" | "ar" }) {
   const isAr = lang === "ar";
-  const seeLive = isAr ? "تصفح صفحة الهبوط المباشرة" : "Launch live page context";
-  const comingSoon = isAr ? "قريباً بالأنظمة" : "Tenant build packaging";
+  const seeLive = isAr ? "تصفح الصفحة" : "View page";
+  const comingSoon = isAr ? "قريباً" : "Coming soon";
   return (
     <div style={{
       background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14,
@@ -1262,7 +1320,7 @@ function ExampleCard({ ex, lang }: { ex: ExampleItem; lang: "en" | "ar" }) {
             padding: "3px 8px", background: "rgba(13,10,6,.45)", color: "rgba(255,255,255,.92)",
             borderRadius: 999, fontFamily: MONO, fontSize: 9.5, fontWeight: 500, letterSpacing: .3,
             backdropFilter: "blur(8px)",
-          }}>{ex.lang === "AR" ? (isAr ? "واجهة عربية معتمدة" : "Arabic native") : (isAr ? "واجهة إنجليزية معتمدة" : "English native")}</span>
+          }}>{ex.lang === "AR" ? (isAr ? "عربي" : "AR") : (isAr ? "إنجليزي" : "EN")}</span>
         </div>
         {/* destination + title */}
         <div dir={ex.ar ? "rtl" : "ltr"} style={{ position: "absolute", insetInline: 14, bottom: 12 }}>
@@ -1333,15 +1391,15 @@ function LandingExamples({ lang }: { lang: "en" | "ar" }) {
   }, [lang]);
   const data = liveData ?? exampleData(isAr);
   const L = isAr ? {
-    eyebrow: "أمثلة وثائقية حقيقية بالميدان",
-    title: "تصفح نماذج صفحات هبوط",
-    titleAccent: "فعلية منشورة للجمهور.",
-    sub: "هذه صفحات هبوط تسويقية حقيقية قامت بتشييدها وهندستها وكالات سفر متميزة شريكة معنا — اضغط على أي نموذج لمراجعة وتصفح تجربة العميل وال زائر حياً.",
+    eyebrow: "نماذج توضيحية",
+    title: "شاهد ما يمكنك بناؤه",
+    titleAccent: "مع PackMetrix.",
+    sub: "نماذج توضيحية تُظهر إمكانيات المنصة عبر أنواع مختلفة من الباقات السياحية. اضغط على أي بطاقة لتصفح التجربة الكاملة.",
   } : {
-    eyebrow: "Authentic Production Environment Case Highlights",
-    title: "Review live optimized operational",
-    titleAccent: "landing page frameworks deployed.",
-    sub: "These are live destination pages traveling agencies engineered on PackMetrix. Click any layout to pull up dynamic view components natively.",
+    eyebrow: "Sample Pages",
+    title: "See what you can build",
+    titleAccent: "with PackMetrix.",
+    sub: "Sample landing pages showing the range of what you can create — across different trip types, languages, and templates.",
   };
   return (
     <div id="examples" style={{ padding: "80px 48px", background: DA_BG }}>
@@ -1383,13 +1441,13 @@ function MobileLandingExamples({ lang }: { lang: "en" | "ar" }) {
   }, [lang]);
   const data = liveData ?? exampleData(isAr);
   const L = isAr ? {
-    eyebrow: "أمثلة حقيقية منشورة",
-    title: "تصفح صفحات هبوط",
-    titleAccent: "فعلية ومباشرة.",
+    eyebrow: "نماذج توضيحية",
+    title: "شاهد ما يمكنك",
+    titleAccent: "بناؤه مع PackMetrix.",
   } : {
-    eyebrow: "Production Examples",
-    title: "Review live fully routed",
-    titleAccent: "agency portfolios pages.",
+    eyebrow: "Sample Pages",
+    title: "See what you can build",
+    titleAccent: "with PackMetrix.",
   };
   return (
     <div id="examples" style={{ padding: "44px 18px", background: DA_BG }}>
@@ -1426,37 +1484,37 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
   const pct = Math.max(2, Math.min(100, (filled / totalSpots) * 100));
 
   const L = isAr ? {
-    eyebrow: "إدارة الفواتير والاشتراكات المادية للأنظمة",
-    title: "خطة استثمارية موحدة الشروط.",
-    titleAccent: "اشترك بسعر الإطلاق المخفض، وثبّت قيمته مدى الحياة لعملك.",
-    sub: "أول 50 شركة ووكالة سفر تفعل حسابها الآن ستقوم بقفل سعر الاشتراك عند 39 € شهرياً فقط — وسيظل هذا السعر ثابتاً ومضموناً لها طوال مدة اشتراكها بالمنصة دون أي زيادة. بعد اكتمال العدد، سيتم فتح التسجيل للوكالات الجديدة بسعر الخطة القياسي البالغ 79 € شهرياً.",
-    chip: "سعر الإطلاق المميز · متاح لـ 50 مقعداً تنظيمياً فقط", planName: "باقة سعر الإطلاق الحصرية", perMonth: "/شهرياً صافي التكلفة",
-    locked: "ميزة قفل التكلفة مدى الحياة لحماية عملك · ترتفع التكلفة إلى 79 € لاحقاً للشركات الجديدة",
-    spotsLine: spotsRemaining !== null ? `متبقي ${spotsRemaining} مقعداً شاغراً فقط بسعر الإطلاق المخفض` : "متبقي مقعد واحد فقط متاح بسعر الإطلاق المخفض",
-    monthly: "نظام السداد شهري دوري مريح", annual: "نظام التزام سنوي موفر للغاية", annualSave: "وفّر فورا 17% من القيمة",
-    included: "كافة الخصائص والأدوات الاستراتيجية والذكاء الاصطناعي مفتوحة ومشمولة بالكامل بملفك",
-    items: ["إنشاء ونشر باقات سياحية نشطة ومباشرة بدون أي حدود عددية", "صلاحية الوصول واستخدام كامل محفظة قوالب العرض البصري الـ 10", "ربط وتثبيت نطاقات مخصصة مستقلة غير محدودة مع إدارة SSL", "صندوق الوارد المركزي المطور لتلقي وإدارة اتصالات واتساب وبث البيانات", "تصدير قوائم وجداول المسافرين والمبيعات فوراً كملف وثائقي CSV", "الاحتفاظ وسحب سجل بيانات التحليلات وأداء القنوات لفترات ممتدة", "البحث المفتوح بالوسائط المرئية ومكتبات الصور السياحية الفاخرة المبرمجة"],
-    cta: "قم بتأكيد الحجز وقفل السعر عند 39 € شهرياً مدى الحياة لعملك",
-    trust: `تتضمن فترة تجريبية حرة ومفتوحة لـ ${TRIAL_DAYS} أيام · لا يطلب بطاقة دفع · إلغاء الحساب من خطوة واحدة في أي وقت`,
-    notReady: "هل يفضل عملك مراجعة مستشار مبيعات أولاً؟",
-    demoLink: "جدول موعد جلسة استشارية وعرض توضيحي مفسر لشركتك",
-    after: "تنبيه تنظيمي مالي: بعد انتهاء مهلة عرض الإطلاق الحالي، سيتم تطبيق سعر الاشتراك القياسي البالغ 79 € شهرياً للشركات الجديدة. قم بقفل مميزات حسابك وتأمين ميزانيتك بالسعر المخفض الآن، ولن تتغير قيمته عليك أبداً.",
+    eyebrow: "الأسعار",
+    title: "خطة واحدة، كل شيء مشمول.",
+    titleAccent: "اقفل سعر الإطلاق مدى الحياة.",
+    sub: "أول 50 وكالة تسجّل الآن تقفل السعر عند 39 € شهرياً للأبد. بعد ذلك، السعر 79 € للمشتركين الجدد.",
+    chip: "سعر الإطلاق · 50 مقعداً فقط", planName: "خطة سعر الإطلاق", perMonth: "/شهرياً",
+    locked: "سعر ثابت مدى الحياة · 79 € للمشتركين الجدد لاحقاً",
+    spotsLine: spotsRemaining !== null ? `متبقي ${spotsRemaining} مقعداً بسعر الإطلاق` : "مقعد واحد متبقٍ بسعر الإطلاق",
+    monthly: "شهري", annual: "سنوي", annualSave: "وفّر 17%",
+    included: "كل شيء مشمول",
+    items: ["نشر باقات سياحية غير محدودة", "جميع القوالب الـ 10 مفتوحة بالكامل", "نطاق مخصص + SSL تلقائي", "صندوق الوارد المركزي (واتساب وماسنجر)", "تصدير قوائم المسافرين كـ CSV", "تحليلات كاملة بدون قيود", "مكتبة صور سفر احترافية"],
+    cta: "ابدأ تجربتك المجانية — اقفل سعر 39 €",
+    trust: `تجربة مجانية ${TRIAL_DAYS} أيام · لا بطاقة دفع · إلغاء في أي وقت`,
+    notReady: "لست مستعداً بعد؟",
+    demoLink: "احجز جلسة استشارية",
+    after: "بعد انتهاء عرض الإطلاق، سيصبح السعر 79 € شهرياً للمشتركين الجدد. سجّل الآن لتقفل سعرك للأبد.",
   } : {
-    eyebrow: "Subscription Plan Pricing Architecture",
-    title: "One streamlined core workspace tier.",
-    titleAccent: "Secure early launch price levels, lock validation for life.",
-    sub: "Our initial 50 corporate travel team signups map values permanently at €39/mo, contractually protected against platform index increases. Subsequent global lookup deployments route natively at €79/mo baseline rules framework standard.",
-    chip: "Bespoke Early Access Incentive · 50 strategic structural spots total", planName: "Launch price portfolio strategy tier", perMonth: "/mo price baseline",
-    locked: "Permanent pricing protection safeguard active · €79/mo tier rules apply later",
-    spotsLine: spotsRemaining !== null ? `${spotsRemaining} strategic enrollment slots remaining open inside database` : "1 final allocation workspace configuration open under cap metrics rules",
-    monthly: "Monthly configuration renewal cycle", annual: "Annual billing flat commitment layout", annualSave: "Apply instant 17% optimization credit layers",
-    included: "All enterprise module tools and AI engines unlocked natively",
-    items: ["Publish and manage unlimited travel landing layers simultaneously", "Complete, unrestricted luxury visual templates presentation catalog inclusion", "Standalone custom business domains mapping setup + automated SSL tracking rules", "Centralized lead inbox hub configuration (WhatsApp & Messenger triggers)", "Export client metadata records natively via structured analytical CSV documents", "Permanent lookup capability analytics logs window without data drops", "Instant access to premium global travel stock photos & videos engines"],
-    cta: "Commit workspace properties and lock life tier at €39/mo",
-    trust: `Risk-Free ${TRIAL_DAYS}-Day Premium Evaluation Window · Zero credit cards entries required · Cancel anytime`,
-    notReady: "Require layout workflow clearings configuration first?",
-    demoLink: "Coordinate introductory professional consulting call",
-    after: "Financial parameters forecast: Post launch pricing loops closure, baseline structures refresh natively at €79/mo rule categories for next-gen onboarding suites. Protect configuration properties inputs today to lock value indexes permanently.",
+    eyebrow: "Pricing",
+    title: "One plan, everything included.",
+    titleAccent: "Lock in the launch price for life.",
+    sub: "The first 50 agencies to sign up lock in €39/mo forever. After that, new signups pay €79/mo.",
+    chip: "Early access · 50 spots total", planName: "Launch pricing plan", perMonth: "/mo",
+    locked: "Lifetime price lock · rises to €79/mo for new signups after launch",
+    spotsLine: spotsRemaining !== null ? `${spotsRemaining} spots remaining at launch price` : "1 spot remaining at launch price",
+    monthly: "Monthly", annual: "Annual", annualSave: "Save 17%",
+    included: "Everything included",
+    items: ["Publish unlimited travel packages", "All 10 templates, fully unlocked", "Custom domain + automatic SSL", "Central lead inbox (WhatsApp & Messenger)", "Export traveler lists as CSV", "Full analytics history, no data caps", "Premium travel photo & video library"],
+    cta: "Start free trial — lock in €39/mo",
+    trust: `${TRIAL_DAYS}-day free trial · No credit card required · Cancel anytime`,
+    notReady: "Not ready yet?",
+    demoLink: "Book a demo call instead",
+    after: "After launch, new signups pay €79/mo. Sign up now to lock in your rate forever.",
   };
 
   return (
@@ -1561,27 +1619,27 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
   const pct = Math.max(2, Math.min(100, (filled / totalSpots) * 100));
 
   const L = isAr ? {
-    eyebrow: "خطط الأسعار والاشتراكات", title: "خطة استثمارية واحدة.", titleAccent: "احجز بسعر الإطلاق المخفض، واقفل قيمته مدى الحياة.",
-    spotsLine: spotsRemaining !== null ? `متبقي ${spotsRemaining} مقعداً شاغراً فقط بسعر الإطلاق` : "متبقي مقعد واحد فقط متاح بسعر الإطلاق المخفض",
-    chip: "عرض الإطلاق الحصري · 50 مقعداً متاحاً فقط", planName: "باقة سعر الإطلاق", perMonth: "/شهرياً",
-    locked: "ميزة قفل التكلفة مدى الحياة لعملك · 79 € لاحقاً للشركات الجديدة",
-    items: ["إنشاء ونشر باقات سياحية نشطة بدون أي حدود عددية", "صلاحية الوصول واستخدام كامل محفظة قوالب الـ 10", "ربط وتثبيت نطاق مخصص مستقل مع إدارة شهادات SSL", "صندوق الوارد المركزي لتلقي وإدارة اتصالات واتساب", "تصدير قوائم وجداول المسافرين والمبيعات فوراً كملف CSV", "الاحتفاظ وسحب سجل بيانات التحليلات وأداء القنوات بدون قيود", "البحث المفتوح بالوسائط ومكتبات الصور السياحية الفاخرة"],
-    cta: "قفل الاشتراك المالي عند 39 € شهرياً مدى الحياة",
-    trust: `تتضمن فترة تجريبية حرة ومفتوحة لـ ${TRIAL_DAYS} أيام · لا يطلب بطاقة دفع · إلغاء الحساب في أي وقت`,
-    notReady: "هل تفضل مراجعة مستشار المبيعات أولاً؟",
-    demoLink: "احجز موعد جلسة استشارية لوكالتك",
+    eyebrow: "الأسعار", title: "خطة واحدة، كل شيء مشمول.", titleAccent: "اقفل سعر الإطلاق مدى الحياة.",
+    spotsLine: spotsRemaining !== null ? `متبقي ${spotsRemaining} مقعداً بسعر الإطلاق` : "مقعد واحد متبقٍ بسعر الإطلاق",
+    chip: "سعر الإطلاق · 50 مقعداً فقط", planName: "خطة سعر الإطلاق", perMonth: "/شهرياً",
+    locked: "سعر ثابت مدى الحياة · 79 € للمشتركين الجدد لاحقاً",
+    items: ["نشر باقات سياحية غير محدودة", "جميع القوالب الـ 10 مفتوحة بالكامل", "نطاق مخصص + SSL تلقائي", "صندوق الوارد المركزي (واتساب وماسنجر)", "تصدير قوائم المسافرين كـ CSV", "تحليلات كاملة بدون قيود", "مكتبة صور سفر احترافية"],
+    cta: "ابدأ تجربتك المجانية — اقفل سعر 39 €",
+    trust: `تجربة مجانية ${TRIAL_DAYS} أيام · لا بطاقة دفع · إلغاء في أي وقت`,
+    notReady: "لست مستعداً بعد؟",
+    demoLink: "احجز جلسة استشارية",
   } : {
-    eyebrow: "Subscription Pricing Matrix Tiers",
-    title: "One structured workspace strategy setup.",
-    titleAccent: "Lock launch parameters indexes forever, safeguard pipelines volume.",
-    spotsLine: spotsRemaining !== null ? `${spotsRemaining} strategic enrollment slots remaining open` : "1 final configuration balance logged beneath structural cap thresholds",
-    chip: "Launch Price Incentive · Restricted allocations window", planName: "Launch price portfolio configuration plan", perMonth: "/mo price baseline",
-    locked: "Lifetime value loop lock validation running natively · €79/mo applies later",
-    items: ["Launch unrestricted active travel layouts pages simultaneously", "Complete premium templates library options portfolio access", "Standalone custom domains registration + automated SSL routing mapping rules", "Centralized pipeline tracking leads hub inbox modules tool", "Export database client context records natively via CSV text tables", "Permanent lookup capability analytics logs window range histories", "Instant lookup access premium global stock photos galleries"],
-    cta: "Lock lifetime subscription strategy at €39/mo tier",
-    trust: `Risk-Free ${TRIAL_DAYS}-Day premium evaluation loop · Zero card details requested · Cancel anytime`,
-    notReady: "Require workflow consult execution block first?",
-    demoLink: "Coordinate introductory product demo walkthrough",
+    eyebrow: "Pricing",
+    title: "One plan, everything included.",
+    titleAccent: "Lock in the launch price for life.",
+    spotsLine: spotsRemaining !== null ? `${spotsRemaining} spots remaining at launch price` : "1 spot remaining at launch price",
+    chip: "Early access · 50 spots total", planName: "Launch pricing plan", perMonth: "/mo",
+    locked: "Lifetime price lock · rises to €79/mo for new signups after launch",
+    items: ["Publish unlimited travel packages", "All 10 templates, fully unlocked", "Custom domain + automatic SSL", "Central lead inbox (WhatsApp & Messenger)", "Export traveler lists as CSV", "Full analytics history, no data caps", "Premium travel photo & video library"],
+    cta: "Start free trial — lock in €39/mo",
+    trust: `${TRIAL_DAYS}-day free trial · No credit card required · Cancel anytime`,
+    notReady: "Not ready yet?",
+    demoLink: "Book a demo call instead",
   };
 
   return (
@@ -2059,17 +2117,17 @@ function MobileLandingDemo({ lang }: { lang: "en" | "ar" }) {
 function LandingFinalCta({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
   const L = isAr ? {
-    eyebrow: "ابدأ رحلة التميز والنمو الآن", title: "هل اتخذت القرار الاستراتيجي وأصبحت مستعداً لتنمية", titleAccent: "وكالتك وشركتك السياحية بالمنطقة؟",
-    sub: "قم بتهيئة وهندسة ونشر أولى صفحات هبوط عروض سفرك السياحية ب مظهر احترافي ومحسن مبيعات في أقل من عشر دقائق معدودة تماماً. اقفل ميزانيتك للاشتراك بسعر الإطلاق المخفض البالغ 39 € شهرياً مدى الحياة لعملك.",
-    cta: "تأكيد قفل السعر عند 39 € شهرياً مدى الحياة",
-    second: `شامل فترة تجريبية حرة ومفتوحة لـ ${TRIAL_DAYS} أيام · بدون أي متطلبات لبطاقات ائتمانية أو رسوم مسبقة`,
+    eyebrow: "ابدأ الآن", title: "هل أنت مستعد لتنمية", titleAccent: "مبيعات وكالتك السياحية؟",
+    sub: "انشر أول صفحة هبوط لباقتك في أقل من 10 دقائق. اقفل سعر 39 € شهرياً مدى الحياة.",
+    cta: "ابدأ تجربتك المجانية — اقفل سعر 39 €",
+    second: `تجربة مجانية ${TRIAL_DAYS} أيام · لا بطاقة دفع مطلوبة`,
   } : {
-    eyebrow: "Accelerate Booking Velocity Today",
-    title: "Are you ready to optimize structural conversions across",
-    titleAccent: "your entire agency portfolio catalog?",
-    sub: "Construct and distribute your initial configuration profile framework in under ten minutes flat. Safeguard pipeline values natively at the exclusive launch tier price level of €39/mo forever.",
-    cta: "Lock lifetime pricing strategy at €39/mo",
-    second: `Includes immediate access risk-free ${TRIAL_DAYS}-day premium validation loop · zero banking card profiles requested`,
+    eyebrow: "Start Today",
+    title: "Ready to start selling your packages",
+    titleAccent: "with beautiful landing pages?",
+    sub: "Build and publish your first package page in under 10 minutes. Lock in €39/mo for life.",
+    cta: "Start free trial — lock in €39/mo",
+    second: `${TRIAL_DAYS}-day free trial · No credit card required`,
   };
   return (
     <div style={{ padding: "80px 48px", background: DA_DARK, color: DA_BG, position: "relative", overflow: "hidden" }}>
@@ -2096,15 +2154,15 @@ function LandingFinalCta({ lang }: { lang: "en" | "ar" }) {
 function MobileLandingFinalCta({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
   const L = isAr ? {
-    eyebrow: "ابدأ رحلة التميز والنمو اليوم", titleA: "هل أنت مستعد لتسريع نمو مبيعات وحجوزات", titleB: "وكالتك وشركتك السياحية بالمنطقة؟",
-    sub: "أنشئ واقفل أولى صفحات هبوط عروض سفرك السياحية بمظهر احترافي ومحسن مبيعات في أقل من ١٠ دقائق.",
-    cta: "قفل الاشتراك المالي عند 39 € شهرياً مدى الحياة", second: `شامل فترة تجريبية حرة ومفتوحة لـ ${TRIAL_DAYS} أيام · بدون أي متطلبات لبطاقات دفع`,
+    eyebrow: "ابدأ الآن", titleA: "هل أنت مستعد لتنمية", titleB: "مبيعات وكالتك السياحية؟",
+    sub: "انشر أول صفحة هبوط لباقتك في أقل من 10 دقائق.",
+    cta: "ابدأ تجربتك المجانية — اقفل سعر 39 €", second: `تجربة مجانية ${TRIAL_DAYS} أيام · لا بطاقة دفع مطلوبة`,
   } : {
-    eyebrow: "Launch Configuration Profile Instantly",
-    titleA: "Are you ready to accelerate strategy rules velocity across",
-    titleB: "your traveling agency model layers?",
-    sub: "Construct your initial optimized travel portfolio presentation framework inside ten minutes.",
-    cta: "Lock lifetime subscription at €39/mo", second: `Includes free lookup validation loop active covering ${TRIAL_DAYS} days · zero credit requirements`,
+    eyebrow: "Start Today",
+    titleA: "Ready to grow your agency's",
+    titleB: "bookings with great pages?",
+    sub: "Build your first package page in under 10 minutes. Lock in €39/mo for life.",
+    cta: "Start free trial — lock in €39/mo", second: `${TRIAL_DAYS}-day free trial · No credit card required`,
   };
   return (
     <div style={{ padding: "44px 18px", background: DA_DARK, color: DA_BG, position: "relative", overflow: "hidden" }}>

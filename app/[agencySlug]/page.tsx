@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { headers } from "next/headers";
 import { db } from "@/lib/firebase-admin";
 import AgencyStorefront from "@/components/AgencyStorefront";
 
@@ -49,5 +50,14 @@ export default async function AgencyPackagesPage({
 }) {
   const { agencySlug } = await params;
   if (!agencySlug) return null;
-  return <AgencyStorefront agencySlug={agencySlug} basePath={`/${agencySlug}`} />;
+
+  const h = await headers();
+  const host = (h.get("x-forwarded-host") || h.get("host") || "").split(":")[0].toLowerCase();
+  // When the storefront is served via an agency subdomain (e.g. haridah-travel-tourism.packmetrix.com),
+  // the proxy has already stripped the slug from the path. Using basePath="" keeps package card
+  // navigation as /{packageId}, avoiding the redundant /slug/slug/{packageId} URL.
+  const isSubdomainAccess = /^[a-z0-9-]+\.packmetrix\.com$/.test(host);
+  const basePath = isSubdomainAccess ? "" : `/${agencySlug}`;
+
+  return <AgencyStorefront agencySlug={agencySlug} basePath={basePath} />;
 }

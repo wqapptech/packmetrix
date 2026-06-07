@@ -65,7 +65,7 @@ function SkFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesk
   if (!items.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section style={{ padding: pad, background: BONE }}>
+    <section style={{ padding: pad, background: BONE }} data-pmx-section="faq">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>{t.skCommonQuestions}</div>
         <div style={{ width: 32, height: 1, background: GOLD, marginBottom: 20 }} />
@@ -94,7 +94,7 @@ function SkImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pk
   if (!items.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section style={{ padding: pad, background: "#fff" }}>
+    <section style={{ padding: pad, background: "#fff" }} data-pmx-section="important_notes">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>
           {t.skImportantNotes}
@@ -139,7 +139,7 @@ function SkAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProp
   const currentYear = new Date().getFullYear();
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section style={{ padding: pad, background: SAGE }}>
+    <section style={{ padding: pad, background: SAGE }} data-pmx-section="about_agency">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         {isDesktop && teamPhoto ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
@@ -199,6 +199,67 @@ function SkAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProp
   );
 }
 
+// ─── Other Packages ──────────────────────────────────────────────────────────
+
+function SkOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"]; agencySlug?: string }) {
+  const t = T[lang];
+  const data = skFindSec(pkg, "other_packages");
+  const cards = skSecArr(data, "packages");
+  if (!cards.length) return null;
+  const heading = skSecStr(data, "heading") || t.otherPackagesHeading;
+  const pad = isDesktop ? "0 72px 64px" : "32px 18px 0";
+  const isRtl = lang === "ar";
+  return (
+    <section style={{ padding: pad, background: BONE }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
+      <div style={{ maxWidth: isDesktop ? 1140 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>{heading}</div>
+          <div style={{ width: 32, height: 1, background: GOLD }} />
+        </div>
+        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
+          {cards.map((card, i) => {
+            const img = skSecStr(card, "image");
+            const title = skSecStr(card, "title");
+            const dest = skSecStr(card, "destination");
+            const price = skSecStr(card, "price");
+            const nights = skSecStr(card, "nights");
+            const link = skSecStr(card, "link");
+            return (
+              <a key={i} href={link || undefined} style={{
+                flex: "0 0 190px", minWidth: 190, borderRadius: 8, overflow: "hidden",
+                textDecoration: "none", border: `1px solid ${BORDER}`,
+                background: "#fff", scrollSnapAlign: "start",
+                display: "flex", flexDirection: "column",
+              }}>
+                <div style={{ width: "100%", height: 120, background: BORDER, flexShrink: 0 }}>
+                  {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                </div>
+                <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                  {dest && <div style={{ fontFamily: SERIF, fontSize: 10, color: GOLD, letterSpacing: "1px", textTransform: "uppercase" as const }}>{dest}</div>}
+                  <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: INK, lineHeight: 1.3 }}>{title}</div>
+                  {(nights || price) && (
+                    <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                      {nights && <span style={{ fontFamily: SERIF, fontSize: 11, color: MUTED }}>{nights}</span>}
+                      {price && <span style={{ fontFamily: SERIF, fontSize: 13, fontWeight: 700, color: GOLD }}>{price}</span>}
+                    </div>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+        {agencySlug && (
+          <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
+            <a href={`/${agencySlug}`} style={{ fontFamily: SERIF, fontSize: 12, fontWeight: 600, color: GOLD, textDecoration: "none", letterSpacing: "0.3px" }}>
+              {t.navAllPackages} →
+            </a>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Shared section head ─────────────────────────────────────────────────────
 
 function SkSecHead({ label, isDesktop }: { label: string; isDesktop: boolean }) {
@@ -219,7 +280,7 @@ function SkHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!items.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="sk-highlights" style={{ padding: pad, background: BONE }}>
+    <section id="sk-highlights" style={{ padding: pad, background: BONE }} data-pmx-section="highlights">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={t.skHighlights} isDesktop={isDesktop} />
         <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10 }}>
@@ -241,7 +302,7 @@ function SkItinerarySection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
   if (!days.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="itinerary" style={{ padding: pad, background: "#fff", scrollMarginTop: 88 }}>
+    <section id="itinerary" style={{ padding: pad, background: "#fff", scrollMarginTop: 88 }} data-pmx-section="itinerary">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={`${t.skDayByDay} · ${days.length} ${t.skDays}`} isDesktop={isDesktop} />
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
@@ -279,7 +340,7 @@ function SkHotelSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
   if (!desc) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="sk-hotel" style={{ padding: pad, background: BONE }}>
+    <section id="sk-hotel" style={{ padding: pad, background: BONE }} data-pmx-section="hotel">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={t.skAccommodation} isDesktop={isDesktop} />
         <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
@@ -305,7 +366,7 @@ function SkInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   const cols = isDesktop ? "repeat(3,1fr)" : "1fr";
   return (
-    <section id="included" style={{ padding: pad, background: "#fff", scrollMarginTop: 88 }}>
+    <section id="included" style={{ padding: pad, background: "#fff", scrollMarginTop: 88 }} data-pmx-section="inclusions">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={t.skIncludedInPackage} isDesktop={isDesktop} />
         {includes.length > 0 && (
@@ -365,7 +426,7 @@ function SkMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
   return (
-    <section id="sk-media" style={{ padding: pad, background: BONE }}>
+    <section id="sk-media" style={{ padding: pad, background: BONE }} data-pmx-section="media">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         {images.length > 0 && (
           <>
@@ -408,7 +469,7 @@ function SkTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
   if (!items.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="sk-transfers" style={{ padding: pad, background: "#fff" }}>
+    <section id="sk-transfers" style={{ padding: pad, background: "#fff" }} data-pmx-section="transfers">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={t.skTransfers} isDesktop={isDesktop} />
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
@@ -419,10 +480,10 @@ function SkTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
             const note = skItemStr(item, "note", "details");
             return (
               <div key={i} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 12 }}>
-                <div>
-                  {(from || to) && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 16 : 14, fontWeight: 600, color: INK, marginBottom: 4 }}>{from}{from && to ? " → " : ""}{to}</div>}
+                <div style={{ minWidth: 0 }}>
+                  {(from || to) && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 16 : 14, fontWeight: 600, color: INK, marginBottom: 4, overflowWrap: "break-word" }}>{from}{from && to ? " → " : ""}{to}</div>}
                   {type && <div style={{ fontSize: 12, color: SAGE, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.6px", marginBottom: note ? 4 : 0 }}>{type}</div>}
-                  {note && <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>{note}</div>}
+                  {note && <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5, overflowWrap: "break-word" }}>{note}</div>}
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SAGE} strokeWidth="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h5l3 3v5h-8V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
               </div>
@@ -443,7 +504,7 @@ function SkPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
   if (!tiers.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="pricing" style={{ padding: pad, background: BONE, scrollMarginTop: 88 }}>
+    <section id="pricing" style={{ padding: pad, background: BONE, scrollMarginTop: 88 }} data-pmx-section="pricing">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={t.skPricing} isDesktop={isDesktop} />
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 14 }}>
@@ -494,7 +555,7 @@ function SkDeparturesSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageP
   if (!entries.length && !legacyDeps.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="sk-departures" style={{ padding: pad, background: "#fff" }}>
+    <section id="sk-departures" style={{ padding: pad, background: "#fff" }} data-pmx-section="departures">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={t.skDepartureDates} isDesktop={isDesktop} />
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
@@ -523,7 +584,7 @@ function SkExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
   if (!items.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="sk-extras" style={{ padding: pad, background: BONE }}>
+    <section id="sk-extras" style={{ padding: pad, background: BONE }} data-pmx-section="extras">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={t.skOptionalExtras} isDesktop={isDesktop} />
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 10 }}>
@@ -557,7 +618,7 @@ function SkCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   if (!heading && !content) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="sk-custom" style={{ padding: pad, background: "#fff" }}>
+    <section id="sk-custom" style={{ padding: pad, background: "#fff" }} data-pmx-section="custom">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         {heading && <SkSecHead label={heading} isDesktop={isDesktop} />}
         {image && <img src={image} alt={heading} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, marginBottom: 18, display: "block" }} />}
@@ -576,7 +637,7 @@ function SkPeopleSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProps
   if (!people.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="sk-people" style={{ padding: pad, background: `${SAGE}0a` }}>
+    <section id="sk-people" style={{ padding: pad, background: `${SAGE}0a` }} data-pmx-section="people">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={t.mutawifLabel} isDesktop={isDesktop} />
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 16 }}>
@@ -641,7 +702,7 @@ function SkReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
 
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section id="sk-reviews" style={{ padding: pad, background: "#fff" }}>
+    <section id="sk-reviews" style={{ padding: pad, background: "#fff" }} data-pmx-section="reviews">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={showList ? `${reviews.length} ${t.skVerifiedReviews}` : t.writeReviewTitle} isDesktop={isDesktop} />
         {showList && (
@@ -714,7 +775,7 @@ function SkCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
           <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />
           {pkg.messenger && (
-            <button onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 100, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>{t.vyMessenger}</button>
+            <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 100, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>{t.vyMessenger}</button>
           )}
         </div>
       </div>
@@ -994,16 +1055,16 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <DesktopNav agency={agency} price={pkg.price} brand={SAGE} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
 
         {/* Hero: text LEFT, arch image RIGHT (design-correct) */}
-        <DContainer style={{ padding: "64px 80px" }}>
+        <DContainer data-pmx-section="hero" style={{ padding: "64px 80px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 64, alignItems: "center" }}>
             {/* Text column — left */}
             <div style={{ order: isRtl ? 2 : 1 }}>
               <Eyebrow text={t.spiritualJourney} brand={SAGE} />
-              <h1 style={{ fontFamily: SERIF, fontSize: 60, fontWeight: 600, lineHeight: 1.02, letterSpacing: "-0.8px", marginTop: 18, marginBottom: 20, color: INK }}>
+              <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 60, fontWeight: 600, lineHeight: 1.02, letterSpacing: "-0.8px", marginTop: 18, marginBottom: 20, color: INK }}>
                 {title}
               </h1>
               <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.72, margin: "0 0 28px" }}>{pkg.description}</p>
-              <div style={{ fontFamily: SERIF, fontSize: 40, fontWeight: 400, color: SAGE, letterSpacing: "-0.8px", marginBottom: 6, lineHeight: 1 }}>{pkg.price}</div>
+              <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 40, fontWeight: 400, color: SAGE, letterSpacing: "-0.8px", marginBottom: 6, lineHeight: 1 }}>{pkg.price}</div>
               <div style={{ fontSize: 12, color: SMUTED, marginBottom: 24 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
               <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />
             </div>
@@ -1079,6 +1140,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <SkReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <SkPeopleSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
         <SkAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
+        <SkOtherPackagesSection pkg={pkg} isDesktop={true} lang={lang} agencySlug={agency.agencySlug} />
 
         {/* Mutawif dark closing panel (legacy agent field) */}
         <MutawifClosingPanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
@@ -1095,7 +1157,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <AgencyBar agency={agency} price={pkg.price} brand={SAGE} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
 
       {/* Arched hero */}
-      <div style={{ padding: "0 18px" }}>
+      <div data-pmx-section="hero" style={{ padding: "0 18px" }}>
         <div style={{ position: "relative", height: 420, borderRadius: "200px 200px 16px 16px", overflow: "hidden", background: INK }}>
           {coverImage
             ? <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
@@ -1111,10 +1173,10 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       {/* Title + price card */}
       <div style={{ padding: "0 18px" }}>
         <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 6px 32px rgba(13,27,46,0.10)", padding: "22px 22px 20px", marginTop: -28, position: "relative", zIndex: 2 }}>
-          <h1 style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 600, color: INK, lineHeight: 1.12, letterSpacing: "-0.4px", margin: "0 0 10px" }}>
+          <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 600, color: INK, lineHeight: 1.12, letterSpacing: "-0.4px", margin: "0 0 10px" }}>
             {title}
           </h1>
-          <div style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: SAGE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{pkg.price}</div>
+          <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: SAGE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{pkg.price}</div>
           <div style={{ fontSize: 12, color: SMUTED, marginBottom: 18 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
           <WAButton label={t.whatsAppTheOffice} full onClick={onWhatsApp} />
         </div>
@@ -1191,6 +1253,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <SkReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
       <SkPeopleSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
       <SkAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
+      <SkOtherPackagesSection pkg={pkg} isDesktop={false} lang={lang} agencySlug={agency.agencySlug} />
 
       {/* Mutawif dark closing panel (legacy agent field) */}
       <MutawifClosingPanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />

@@ -155,7 +155,7 @@ export function WAButton({ label, size = "md", style, full, onClick }: {
 }) {
   const s = { sm: { pad: "8px 14px", fs: 12, ic: 13 }, md: { pad: "13px 22px", fs: 14, ic: 15 }, lg: { pad: "16px 24px", fs: 15, ic: 16 } }[size];
   return (
-    <button onClick={onClick} style={{
+    <button data-testid="wa-cta" onClick={onClick} style={{
       background: WA_GREEN, color: "#fff", border: "none", borderRadius: 10,
       padding: s.pad, fontSize: s.fs, fontWeight: 700, cursor: "pointer",
       fontFamily: "inherit", display: "inline-flex", alignItems: "center",
@@ -581,7 +581,7 @@ export function SharedCTABanner({ pkg, agency, tokens, lang, onWhatsApp, onMesse
       <div style={{ display: "flex", flexDirection: "column", gap: 10, position: "relative" }}>
         {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" full onClick={onWhatsApp} />}
         {pkg.messenger && (
-          <button onClick={onMessenger} style={{ background: "rgba(255,255,255,0.18)", color: "#fff", border: "1px solid rgba(255,255,255,0.28)", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+          <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "rgba(255,255,255,0.18)", color: "#fff", border: "1px solid rgba(255,255,255,0.28)", borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
             {t.messageMessenger}
           </button>
         )}
