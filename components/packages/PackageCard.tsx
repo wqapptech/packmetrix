@@ -155,6 +155,7 @@ export function PackageCard({
 }: Props) {
   const t = T[lang];
   const isAr = lang === "ar";
+  const pkgLang = pkg.primaryLanguage || lang;
   const [linkCopied, setLinkCopied] = useState(false);
 
   const handleCopyLink = () => {
@@ -274,7 +275,7 @@ export function PackageCard({
             fontFamily: DISPLAY, fontSize: 18, fontWeight: 400,
             color: DA_INK1, letterSpacing: -.3, lineHeight: 1.15,
           }}>
-            {locStr(pkg.title, lang) || pkg.destination}
+            {locStr(pkg.title, pkgLang) || pkg.destination}
           </div>
           <div style={{
             display: "flex", alignItems: "center", gap: 6, marginTop: 5,
@@ -352,7 +353,7 @@ export function PackageCard({
           {shareUrl && isPublished && (
             <ShareDropdown
               shareUrl={shareUrl}
-              title={locStr(pkg.title, lang) || pkg.destination}
+              title={locStr(pkg.title, pkgLang) || pkg.destination}
               price={pkg.price}
               lang={lang}
             />
