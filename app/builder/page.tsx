@@ -28,7 +28,64 @@ import type { TopbarRenderProps } from "@/components/AppLayout";
 import { ConfirmModal } from "@/components/ConfirmModal";
 
 const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
+const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 const DRAFT_KEY = "builderDraft_v2";
+
+// ─── On-this-page rail (desktop sticky navigation) ────────────────────────────
+
+function OnThisPageRail({
+  sections,
+  lang,
+}: {
+  sections: AnySectionInstance[];
+  lang: "en" | "ar";
+}) {
+  const l = lang === "ar";
+  const items = [
+    { id: "builder-basics", label: l ? "الأساسيات" : "Basics" },
+    ...sections.map((s) => ({
+      id: `section-${s.id}`,
+      label: l
+        ? (SECTION_REGISTRY[s.type]?.labelAr ?? SECTION_REGISTRY[s.type]?.label ?? s.type)
+        : (SECTION_REGISTRY[s.type]?.label ?? s.type),
+    })),
+  ];
+  const scroll = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  return (
+    <div style={{ position: "sticky", top: 0, alignSelf: "flex-start", width: 200, flexShrink: 0, paddingTop: 30 }}>
+      <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase" as const, color: DA_INK3, marginBottom: 14, paddingInlineStart: 13 }}>
+        {l ? "في هذه الصفحة" : "On this page"}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        {items.map((it) => (
+          <div
+            key={it.id}
+            onClick={() => scroll(it.id)}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 13px", borderRadius: 8, cursor: "pointer" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = DA_SURFACE; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: DA_GREEN }} />
+            <span style={{ fontFamily: SANS, fontSize: 13, color: DA_INK2 }}>{it.label}</span>
+          </div>
+        ))}
+      </div>
+      {sections.length > 0 && (
+        <div style={{ marginTop: 18, padding: "12px 13px 0", borderTop: `1px solid ${DA_RULE}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: SANS, fontSize: 11.5, color: DA_INK3, marginBottom: 7 }}>
+            <span>{l ? "اكتمال الصفحة" : "Page complete"}</span>
+            <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace", color: DA_INK2 }}>{sections.length} / {items.length}</span>
+          </div>
+          <div style={{ height: 5, borderRadius: 3, background: DA_RULE, overflow: "hidden" }}>
+            <div style={{ width: `${(sections.length / items.length) * 100}%`, height: "100%", background: DA_GOLD, transition: "width 0.3s" }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── API bridge ───────────────────────────────────────────────────────────────
 
@@ -356,66 +413,6 @@ function buildApiPayload(
 // ─── Builder UI phases ────────────────────────────────────────────────────────
 
 type UiPhase = "template" | "build";
-type Tab = "core" | "sections" | "seo";
-
-// ─── SEO tab (auto-generated preview) ────────────────────────────────────────
-
-function SeoTab({ core, lang }: { core: CoreForm; lang: "en" | "ar" }) {
-  const l = lang === "ar";
-  const seoTitle = core.titleEn || core.destination || "";
-  const seoTitleAr = core.titleAr || core.destination || "";
-  const seoDesc = (core.descriptionEn || "").slice(0, 160);
-  const seoDescAr = (core.descriptionAr || "").slice(0, 160);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ padding: "12px 16px", background: DA_GOLD_SOFT, border: `1px solid rgba(176,138,62,.25)`, borderRadius: 10, fontSize: 13, color: DA_INK2, lineHeight: 1.55 }}>
-        <span style={{ color: DA_GOLD, fontWeight: 600 }}>✦ </span>
-        {l
-          ? "بيانات SEO تُولَّد تلقائياً من معلومات الباقة عند النشر. لا حاجة لأي إعداد يدوي."
-          : "SEO metadata is automatically generated from your core info at publish time. No manual setup needed."}
-      </div>
-
-      <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, padding: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_INK3, marginBottom: 12 }}>
-          {l ? "معاينة جوجل" : "Google preview"}
-        </div>
-        <div style={{ fontSize: 18, color: "#1a0dab", lineHeight: 1.3, marginBottom: 4 }}>
-          {seoTitle || (l ? "عنوان الباقة" : "Package title")}
-        </div>
-        <div style={{ fontSize: 13, color: "#006621", marginBottom: 4 }}>packmetrix.com/your-agency/…</div>
-        <div style={{ fontSize: 13, color: "#545454", lineHeight: 1.5 }}>
-          {seoDesc || (l ? "وصف الباقة سيظهر هنا…" : "Package description will appear here…")}
-        </div>
-      </div>
-
-      {seoTitleAr && seoTitleAr !== seoTitle && (
-        <div dir="rtl" style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_INK3, marginBottom: 12 }}>
-            {l ? "معاينة جوجل — عربي" : "Google preview — Arabic"}
-          </div>
-          <div style={{ fontSize: 18, color: "#1a0dab", lineHeight: 1.3, marginBottom: 4 }}>{seoTitleAr}</div>
-          <div style={{ fontSize: 13, color: "#006621", marginBottom: 4 }}>packmetrix.com/your-agency/…</div>
-          <div style={{ fontSize: 13, color: "#545454", lineHeight: 1.5 }}>{seoDescAr || "…"}</div>
-        </div>
-      )}
-
-      {core.coverImage && (
-        <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" as const, color: DA_INK3, marginBottom: 12 }}>
-            {l ? "صورة المشاركة (OG Image)" : "Sharing image (OG image)"}
-          </div>
-          <div style={{ position: "relative", width: "100%", aspectRatio: "1200/630", borderRadius: 8, overflow: "hidden" }}>
-            <img src={core.coverImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          </div>
-          <div style={{ fontSize: 12, color: DA_INK3, marginTop: 8 }}>
-            {l ? "صورة الغلاف تُستخدم تلقائياً عند المشاركة." : "Your cover image is automatically used when shared."}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Main builder ─────────────────────────────────────────────────────────────
 
@@ -432,7 +429,7 @@ function BuilderPageInner() {
 
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("core");
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [uiPhase, setUiPhase] = useState<UiPhase>(isEditMode ? "build" : "template");
   const [selectedTemplateId, setSelectedTemplateId] = useState(DEFAULT_TEMPLATE_ID);
   const [core, setCore] = useState<CoreForm>({ ...DEFAULT_CORE_FORM });
@@ -943,7 +940,6 @@ function BuilderPageInner() {
                 }
               }
             }
-            setTab("sections");
             setUiPhase("build");
           }}
           lang={lang}
@@ -999,17 +995,18 @@ function BuilderPageInner() {
         isEditMode={isEditMode}
         onBack={isEditMode ? () => router.push("/packages") : undefined}
         onDiscard={!isEditMode ? handleDiscard : undefined}
+        onSaveAsTemplate={sections.length > 0 ? () => { setSaveAsOpen(true); setSaveName(""); setSaveAsStatus("idle"); } : undefined}
         isMobile={isMobile}
       />
     }>
-      <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "20px 16px 80px" : "28px 40px 60px" }}>
+      <div style={{ flex: 1, overflow: "auto" }}>
 
         {/* Save-as-template modal */}
         {saveAsOpen && (
           <div style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setSaveAsOpen(false)}>
             <div style={{ background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, borderRadius: 18, padding: "28px 24px", width: "100%", maxWidth: 380 }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6, color: DA_INK1 }}>{t.saveAsTemplateModalTitle}</div>
-              <div style={{ fontSize: 12.5, color: DA_INK3, marginBottom: 18, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6, color: DA_INK1, fontFamily: SANS }}>{t.saveAsTemplateModalTitle}</div>
+              <div style={{ fontSize: 12.5, color: DA_INK3, marginBottom: 18, lineHeight: 1.5, fontFamily: SANS }}>
                 {l ? `سيتم حفظ ${sections.length} قسماً كقالب يمكنك إعادة استخدامه.` : `Save ${sections.length} sections as a reusable template.`}
               </div>
               <input
@@ -1033,82 +1030,218 @@ function BuilderPageInner() {
           </div>
         )}
 
-        {/* Tab bar + secondary actions */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: isMobile ? undefined : "wrap", gap: 10, overflow: isMobile ? "hidden" : undefined }}>
-          <div style={{ display: "inline-flex", background: DA_SURFACE, border: `1px solid ${DA_RULE2}`, borderRadius: 10, padding: 4, gap: 4, flexShrink: 0, overflow: isMobile ? "auto" : undefined, scrollbarWidth: "none" }}>
-            {(["core", "sections", "seo"] as Tab[]).map((tabKey) => {
-              const active = tab === tabKey;
-              const tabLabel = tabKey === "core"
-                ? (l ? (isMobile ? "الأساسي" : "المعلومات الأساسية") : (isMobile ? "Core" : "Core info"))
-                : tabKey === "sections"
-                  ? (l ? "الأقسام" : "Sections")
-                  : (l ? "SEO" : "SEO");
-              const count = tabKey === "sections" ? sections.length : undefined;
-              return (
-                <button
-                  key={tabKey}
-                  onClick={() => setTab(tabKey)}
+        {/* Mobile chip strip — sticky section navigation */}
+        {isMobile && sections.length > 0 && (
+          <div style={{ position: "sticky", top: 0, zIndex: 10, background: DA_BG, borderBottom: `1px solid ${DA_RULE}`, paddingTop: 10 }}>
+            <div style={{ display: "flex", gap: 7, overflowX: "auto", padding: "0 16px 10px", scrollbarWidth: "none" as const }}>
+              {[
+                { id: "builder-basics", label: l ? "الأساسيات" : "Basics" },
+                ...sections.map((s) => ({
+                  id: `section-${s.id}`,
+                  label: l
+                    ? (SECTION_REGISTRY[s.type]?.labelAr ?? SECTION_REGISTRY[s.type]?.label ?? s.type)
+                    : (SECTION_REGISTRY[s.type]?.label ?? s.type),
+                })),
+              ].map((chip) => (
+                <div
+                  key={chip.id}
+                  onClick={() => document.getElementById(chip.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
                   style={{
-                    padding: isMobile ? "7px 12px" : "7px 14px", borderRadius: 7, border: "none",
-                    background: active ? DA_INK1 : "transparent",
-                    color: active ? DA_BG : DA_INK2,
-                    fontSize: isMobile ? 12 : 13, fontWeight: active ? 500 : 400,
-                    fontFamily: "inherit", cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 6,
-                    transition: "all 0.15s",
-                    whiteSpace: "nowrap",
+                    display: "inline-flex", alignItems: "center", flexShrink: 0,
+                    padding: "6px 13px", borderRadius: 999,
+                    background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+                    color: DA_INK2, fontSize: 12.5, fontWeight: 500,
+                    cursor: "pointer", fontFamily: SANS, whiteSpace: "nowrap" as const,
                   }}
                 >
-                  {tabLabel}
-                  {count !== undefined && (
-                    <span style={{ fontSize: 10.5, fontFamily: "var(--font-jetbrains-mono), monospace", background: active ? "rgba(255,255,255,.12)" : DA_BG, color: active ? DA_BG : DA_INK3, borderRadius: 999, padding: "1px 7px" }}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Secondary actions */}
-          {!isMobile && (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {sections.length > 0 && (
-                <button onClick={() => { setSaveAsOpen(true); setSaveName(""); setSaveAsStatus("idle"); }} style={{ fontSize: 12, color: DA_INK3, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
-                  <Icon name="copy" size={11} color={DA_INK3} />
-                  {t.saveAsTemplateBtn}
-                </button>
-              )}
+                  {chip.label}
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Content + preview rail */}
-        <div style={{ display: "flex", gap: 36, alignItems: "flex-start" }}>
-          <div className="fade-in" key={tab} style={{ flex: 1, minWidth: 0 }}>
-            {tab === "core" && (
+        {/* ── Main layout: rail | content | preview ── */}
+        <div
+          dir={l ? "rtl" : "ltr"}
+          style={{
+            display: "flex", gap: isMobile ? 0 : 28, alignItems: "flex-start",
+            padding: isMobile ? "20px 16px 80px" : "0 32px 60px",
+          }}
+        >
+          {/* Left: on-this-page rail (desktop only) */}
+          {!isMobile && <OnThisPageRail sections={sections} lang={lang} />}
+
+          {/* Center: one continuous scroll */}
+          <div style={{ flex: 1, minWidth: 0, paddingTop: isMobile ? 0 : 30, display: "flex", flexDirection: "column", gap: isMobile ? 24 : 32 }}>
+
+            {/* Page heading */}
+            {pkgDisplayName && (
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase" as const, color: DA_INK3 }}>
+                  {l ? "تحرير الباقة" : "Editing package"}
+                </div>
+                <div style={{ fontFamily: DISPLAY, fontSize: isMobile ? 28 : 38, fontWeight: 400, color: DA_INK1, letterSpacing: -0.8, lineHeight: 1.05, marginTop: 6 }}>
+                  {pkgDisplayName}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap" as const, alignItems: "center", gap: 8, marginTop: 10, fontFamily: SANS, fontSize: 13, color: DA_INK2 }}>
+                  {core.destination && <span>{core.destination}</span>}
+                  {core.destination && core.nights && <span style={{ color: DA_RULE2 }}>·</span>}
+                  {core.nights && <span>{core.nights} {l ? "ليالي" : "nights"}</span>}
+                  {(core.destination || core.nights) && core.price && <span style={{ color: DA_RULE2 }}>·</span>}
+                  {core.price && <span>{l ? "من" : "from"} {core.price}{core.currency ? ` ${core.currency}` : ""}</span>}
+                  {draftStatus === "saved" && (
+                    <>
+                      <span style={{ color: DA_RULE2 }}>·</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: DA_GREEN }}>
+                        <Icon name="check" size={12} color={DA_GREEN} strokeWidth={2.5} />
+                        {l ? "محفوظة" : "Saved"}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Basics */}
+            <section id="builder-basics">
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase" as const, color: DA_GOLD }}>
+                  {l ? "الأساسيات" : "Basics"}
+                </div>
+                <div style={{ fontFamily: DISPLAY, fontSize: isMobile ? 22 : 27, fontWeight: 400, color: DA_INK1, letterSpacing: -0.4, lineHeight: 1.05, marginTop: 5 }}>
+                  {l ? "أساسيات الرحلة" : "Trip basics"}
+                </div>
+                <div style={{ fontFamily: SANS, fontSize: 12.5, color: DA_INK2, marginTop: 5, lineHeight: 1.5 }}>
+                  {l ? "ما يظهر أعلى الصفحة — التعديلات تظهر في المعاينة فوراً." : "What shows at the top of the page — edits appear in the preview instantly."}
+                </div>
+              </div>
               <CoreFieldsEditor core={core} onChange={setCore} userId={user?.uid ?? ""} lang={lang} />
-            )}
-            {tab === "sections" && (
-              <SectionList sections={sections} onChange={setSections} userId={user?.uid ?? ""} lang={lang} templateId={selectedTemplateId} />
-            )}
-            {tab === "seo" && (
-              <SeoTab core={core} lang={lang} />
+            </section>
+
+            {/* Trip sections */}
+            <section>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase" as const, color: DA_GOLD }}>
+                  {l ? "الرحلة" : "The trip"}
+                </div>
+                <div style={{ fontFamily: DISPLAY, fontSize: isMobile ? 22 : 27, fontWeight: 400, color: DA_INK1, letterSpacing: -0.4, lineHeight: 1.05, marginTop: 5 }}>
+                  {l ? "أقسام الرحلة" : "Trip sections"}
+                </div>
+                <div style={{ fontFamily: SANS, fontSize: 12.5, color: DA_INK2, marginTop: 5, lineHeight: 1.5 }}>
+                  {l
+                    ? "كل ما يراه المسافر — انقر أي صف لفتحه وتعديله. يمكنك فتح أكثر من قسم معاً."
+                    : "Everything the traveller sees — click any row to open and edit it. Open as many as you like at once."}
+                </div>
+              </div>
+              <SectionList
+                sections={sections}
+                onChange={setSections}
+                userId={user?.uid ?? ""}
+                lang={lang}
+                templateId={selectedTemplateId}
+                isMobile={isMobile}
+              />
+            </section>
+
+            {error && (
+              <p style={{ fontSize: 13, color: DA_DANGER, fontFamily: SANS, margin: 0 }}>{error}</p>
             )}
           </div>
 
+          {/* Right: live preview (desktop only, sticky) */}
           {!isMobile && (
-            <div style={{ flexShrink: 0, position: "sticky", top: 24 }}>
+            <div style={{ flexShrink: 0, position: "sticky", top: 24, paddingTop: 30 }}>
               <LivePreviewPhone core={core} sections={sections} lang={lang} templateId={selectedTemplateId} />
             </div>
           )}
         </div>
-
-        {error && (
-          <p style={{ marginTop: 16, fontSize: 13, color: DA_DANGER }}>{error}</p>
-        )}
       </div>
     </AppLayout>
+
+    {/* Mobile bottom bar — Preview + Publish pinned */}
+    {isMobile && !showMobilePreview && (
+      <div
+        dir={l ? "rtl" : "ltr"}
+        style={{
+          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+          background: DA_BG, borderTop: `1px solid ${DA_RULE}`,
+          padding: "10px 16px",
+          paddingBottom: `calc(10px + env(safe-area-inset-bottom))`,
+          display: "flex", gap: 10,
+        }}
+      >
+        <button
+          onClick={() => setShowMobilePreview(true)}
+          style={{
+            flex: 1, padding: "11px", borderRadius: 10,
+            background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
+            color: DA_INK1, fontFamily: SANS, fontSize: 13.5, fontWeight: 600,
+            cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+          }}
+        >
+          <Icon name="eye" size={15} color={DA_INK2} />
+          {l ? "معاينة" : "Preview"}
+        </button>
+        <button
+          data-testid="builder-publish-mobile-bottom"
+          onClick={handleSubmit}
+          disabled={generating}
+          style={{
+            flex: 2, padding: "11px",
+            background: generating ? DA_SURFACE : DA_GOLD,
+            border: generating ? `1px solid ${DA_RULE2}` : "none",
+            borderRadius: 10, color: generating ? DA_INK3 : "#fff",
+            fontFamily: SANS, fontSize: 13.5, fontWeight: 600,
+            cursor: generating ? "not-allowed" : "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+          }}
+        >
+          {generating ? (
+            <>
+              <span className="spinner" style={{ width: 13, height: 13, borderWidth: 1.5, borderTopColor: DA_GOLD }} />
+              {isEditMode ? (l ? "جاري الحفظ…" : "Saving…") : (l ? "جاري النشر…" : "Publishing…")}
+            </>
+          ) : (
+            <>
+              <Icon name="sparkle" size={14} color="#fff" />
+              {isEditMode ? (l ? "حفظ التغييرات" : "Save changes") : (l ? "نشر الصفحة" : "Publish page")}
+            </>
+          )}
+        </button>
+      </div>
+    )}
+
+    {/* Mobile preview overlay */}
+    {isMobile && showMobilePreview && (
+      <div
+        dir={l ? "rtl" : "ltr"}
+        style={{ position: "fixed", inset: 0, zIndex: 200, background: DA_BG, display: "flex", flexDirection: "column" }}
+      >
+        <div style={{ height: 56, paddingInline: 14, borderBottom: `1px solid ${DA_RULE}`, display: "flex", alignItems: "center", gap: 10, background: DA_BG, flexShrink: 0 }}>
+          <button
+            onClick={() => setShowMobilePreview(false)}
+            style={{ width: 34, height: 34, borderRadius: 8, background: DA_SURFACE, border: `1px solid ${DA_RULE2}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+          >
+            <Icon name="x" size={14} color={DA_INK2} />
+          </button>
+          <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase" as const, color: DA_GOLD }}>
+            {l ? "معاينة مباشرة" : "Live preview"}
+          </span>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => setShowMobilePreview(false)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8, background: DA_INK1, border: "none", color: DA_BG, fontFamily: SANS, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+          >
+            <Icon name="edit" size={12} color={DA_BG} />
+            {l ? "تعديل" : "Back to edit"}
+          </button>
+        </div>
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <LivePreviewPhone core={core} sections={sections} lang={lang} templateId={selectedTemplateId} />
+        </div>
+      </div>
+    )}
 
     <ConfirmModal
       open={discardOpen}

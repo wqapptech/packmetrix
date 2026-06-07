@@ -19,6 +19,7 @@ export function BuilderTopBar({
   isEditMode,
   onBack,
   onDiscard,
+  onSaveAsTemplate,
   isMobile = false,
 }: {
   pkgName?: string;
@@ -30,6 +31,7 @@ export function BuilderTopBar({
   isEditMode?: boolean;
   onBack?: () => void;
   onDiscard?: () => void;
+  onSaveAsTemplate?: () => void;
   isMobile?: boolean;
 }) {
   const lang = useLang();
@@ -41,6 +43,7 @@ export function BuilderTopBar({
     back: "الباقات",
     discard: "تجاهل",
     draftSaved: "تم الحفظ",
+    saveAsTemplate: "حفظ كقالب",
     changeTemplate: "تغيير القالب",
     publish: isEditMode ? "حفظ" : "نشر",
     publishFull: isEditMode ? "حفظ التغييرات" : "نشر الصفحة",
@@ -51,6 +54,7 @@ export function BuilderTopBar({
     back: "Packages",
     discard: "Discard",
     draftSaved: "Saved",
+    saveAsTemplate: "Save as template",
     changeTemplate: "Change template",
     publish: isEditMode ? "Save" : "Publish",
     publishFull: isEditMode ? "Save changes" : "Publish page",
@@ -295,6 +299,22 @@ export function BuilderTopBar({
           }}
         >
           {L.discard}
+        </button>
+      )}
+
+      {/* Save as template */}
+      {onSaveAsTemplate && (
+        <button
+          onClick={onSaveAsTemplate}
+          style={{
+            padding: "7px 12px",
+            background: "transparent", border: `1px solid ${DA_RULE2}`,
+            borderRadius: 8, color: DA_INK2, fontFamily: SANS, fontSize: 12.5, fontWeight: 500,
+            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+          }}
+        >
+          <Icon name="copy" size={13} color={DA_INK3} />
+          {L.saveAsTemplate}
         </button>
       )}
 

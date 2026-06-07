@@ -37,7 +37,7 @@ type Package = {
     // 4. Low traffic
     if (pkg.views < 10) {
       insights.push(
-        "📉 Low visibility — consider improving distribution or SEO."
+        "📉 Low visibility — consider sharing this package on more channels."
       );
     }
   

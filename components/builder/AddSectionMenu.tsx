@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import { SECTION_REGISTRY_LIST, SECTION_CATEGORIES } from "@/lib/sections/registry";
 import type { AnySectionInstance, SectionTypeKey } from "@/lib/sections/types";
 import { SAND } from "./constants";
-import { DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_GOLD, DA_GOLD_SOFT } from "@/lib/tokens";
+import {
+  DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
+  DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GREEN, DA_GREEN_SOFT,
+} from "@/lib/tokens";
+
+const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
 
 export function AddSectionMenu({
   existing,
@@ -19,6 +25,7 @@ export function AddSectionMenu({
   lang: "en" | "ar";
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
   const l = lang === "ar";
 
   // Close on outside click
@@ -39,111 +46,186 @@ export function AddSectionMenu({
 
   const usedTypes = new Set(existing.map((s) => s.type));
 
+  // Visible (non-legacy) section types
+  const allVisible = SECTION_REGISTRY_LIST.filter((d) => !d.legacy);
+
+  // Filter by search query
+  const q = query.trim().toLowerCase();
+  const matches = (def: typeof allVisible[number]) => {
+    if (!q) return true;
+    return (
+      def.label.toLowerCase().includes(q) ||
+      (def.labelAr ?? "").toLowerCase().includes(q) ||
+      ((def as any).description ?? "").toLowerCase().includes(q) ||
+      ((def as any).descriptionAr ?? "").toLowerCase().includes(q)
+    );
+  };
+
+  const totalCount = allVisible.length;
+
   return (
     <div style={{
-      position: "fixed",
-      inset: 0,
-      zIndex: 1000,
-      background: "rgba(0,0,0,0.65)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(26,20,16,.55)",
+      backdropFilter: "blur(2px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
       padding: 20,
     }}>
       <div
         ref={ref}
+        dir={l ? "rtl" : "ltr"}
         style={{
           background: DA_SURFACE2,
-          border: `1px solid ${DA_RULE}`,
-          borderRadius: 20,
+          border: `1px solid ${DA_RULE2}`,
+          borderRadius: 18,
           width: "100%",
-          maxWidth: 520,
-          maxHeight: "80vh",
+          maxWidth: 680,
+          maxHeight: "82vh",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
+          boxShadow: "0 40px 90px -30px rgba(26,20,16,.45)",
         }}
       >
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px 14px", borderBottom: `1px solid ${DA_RULE}` }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: DA_INK1 }}>
-              {l ? "إضافة قسم" : "Add a section"}
+        <div style={{
+          padding: "22px 26px 18px",
+          borderBottom: `1px solid ${DA_RULE}`,
+          background: DA_SURFACE2,
+          flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+            <div>
+              <div style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 400, color: DA_INK1, letterSpacing: -0.5, lineHeight: 1 }}>
+                {l ? "أضف قسماً" : "Add a section"}
+              </div>
+              <div style={{ fontFamily: SANS, fontSize: 12.5, color: DA_INK2, marginTop: 6 }}>
+                {l
+                  ? `اختر نوع القسم لإضافته إلى باقتك · ${totalCount} نوعاً`
+                  : `Choose a section type to add to your package · ${totalCount} types`}
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: DA_INK3, marginTop: 2 }}>
-              {l ? "اختر نوع القسم لإضافته إلى الباقة" : "Choose a section type to add to your package"}
-            </div>
+            <button
+              onClick={onClose}
+              style={{
+                width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                background: DA_SURFACE, border: `1px solid ${DA_RULE2}`, color: DA_INK3,
+                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+              }}
+            >
+              <Icon name="x" size={14} color={DA_INK3} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${DA_RULE}`, background: DA_SURFACE, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            <Icon name="x" size={14} color={DA_INK3} />
-          </button>
+
+          {/* Search */}
+          <div style={{
+            marginTop: 16, display: "flex", alignItems: "center", gap: 9,
+            height: 40, padding: "0 13px",
+            background: DA_SURFACE, border: `1px solid ${DA_RULE2}`, borderRadius: 10,
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={DA_INK3} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={l ? `ابحث في ${totalCount} قسماً…` : `Search ${totalCount} sections…`}
+              style={{
+                flex: 1, background: "transparent", border: "none", outline: "none",
+                fontFamily: SANS, fontSize: 13.5, color: DA_INK1,
+              }}
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                style={{ background: "none", border: "none", cursor: "pointer", color: DA_INK3, fontSize: 16, lineHeight: 1, padding: 0 }}
+              >×</button>
+            )}
+          </div>
         </div>
 
         {/* Section list */}
-        <div style={{ overflowY: "auto", padding: "14px 20px 20px", background: DA_SURFACE }}>
+        <div style={{ overflowY: "auto", padding: "6px 26px 24px", background: DA_SURFACE2 }}>
           {SECTION_CATEGORIES.map((cat) => {
-            const items = SECTION_REGISTRY_LIST.filter((d) => d.category === cat.id);
+            const items = allVisible.filter((d) => d.category === cat.id && matches(d));
             if (!items.length) return null;
             const catLabel = l ? cat.labelAr : cat.label;
             return (
-              <div key={cat.id} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: DA_INK3, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 10 }}>
+              <div key={cat.id} style={{ marginTop: 20 }}>
+                <div style={{
+                  fontFamily: SANS, fontSize: 10.5, fontWeight: 700,
+                  letterSpacing: 1.4, textTransform: "uppercase" as const,
+                  color: DA_INK3, marginBottom: 12,
+                }}>
                   {catLabel}
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {items.map((def) => {
                     const alreadyUsed = usedTypes.has(def.type) && !def.multiple;
                     const defLabel = l ? def.labelAr : def.label;
-                    const defDesc = l ? def.descriptionAr : def.description;
+                    const defDesc = l
+                      ? ((def as any).descriptionAr ?? (def as any).description ?? "")
+                      : ((def as any).description ?? "");
                     return (
                       <button
                         key={def.type}
                         onClick={() => { if (!alreadyUsed) { onAdd(def.type); onClose(); } }}
                         disabled={alreadyUsed}
                         style={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 10,
-                          padding: "12px 14px",
-                          borderRadius: 12,
-                          border: `1px solid ${alreadyUsed ? DA_RULE : DA_RULE}`,
-                          background: alreadyUsed ? DA_SURFACE : DA_SURFACE2,
-                          cursor: alreadyUsed ? "not-allowed" : "pointer",
-                          opacity: alreadyUsed ? 0.4 : 1,
-                          textAlign: "left",
-                          fontFamily: "inherit",
-                          transition: "border-color 0.15s, background 0.15s",
+                          display: "flex", alignItems: "flex-start", gap: 12,
+                          padding: "13px 15px", borderRadius: 12,
+                          border: `1px solid ${alreadyUsed ? DA_RULE : DA_RULE2}`,
+                          background: alreadyUsed ? "transparent" : DA_SURFACE,
+                          cursor: alreadyUsed ? "default" : "pointer",
+                          opacity: alreadyUsed ? 0.55 : 1,
+                          textAlign: l ? "right" : "left",
+                          fontFamily: SANS,
+                          transition: "border-color 0.12s, background 0.12s",
                         }}
                         onMouseEnter={(e) => {
                           if (!alreadyUsed) {
-                            e.currentTarget.style.borderColor = DA_GOLD;
-                            e.currentTarget.style.background = DA_GOLD_SOFT;
+                            e.currentTarget.style.borderColor = "rgba(176,138,62,.55)";
+                            e.currentTarget.style.background = "rgba(176,138,62,.04)";
                           }
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = DA_RULE;
-                          e.currentTarget.style.background = DA_SURFACE2;
+                          e.currentTarget.style.borderColor = alreadyUsed ? DA_RULE : DA_RULE2;
+                          e.currentTarget.style.background = alreadyUsed ? "transparent" : DA_SURFACE;
                         }}
                       >
-                        <div style={{ flexShrink: 0, marginTop: 1 }}>
-                          <Icon name={def.icon} size={16} color={alreadyUsed ? DA_INK3 : SAND} />
+                        <div style={{
+                          width: 38, height: 38, borderRadius: 9, flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          background: alreadyUsed ? DA_SURFACE2 : DA_GOLD_SOFT,
+                          color: alreadyUsed ? DA_INK3 : DA_GOLD,
+                          border: `1px solid ${DA_RULE}`,
+                        }}>
+                          <Icon name={def.icon} size={17} color={alreadyUsed ? DA_INK3 : DA_GOLD} />
                         </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 12.5, fontWeight: 600, color: alreadyUsed ? DA_INK3 : DA_INK1, marginBottom: 3 }}>
-                            {defLabel}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
+                            <span style={{ fontSize: 13.5, fontWeight: 600, color: alreadyUsed ? DA_INK3 : DA_INK1 }}>
+                              {defLabel}
+                            </span>
                             {alreadyUsed && (
-                              <span style={{ marginLeft: 6, fontSize: 10, color: DA_INK3, fontWeight: 400 }}>
+                              <span style={{
+                                fontSize: 11, color: DA_GREEN, fontWeight: 600,
+                                display: "inline-flex", alignItems: "center", gap: 3,
+                                background: DA_GREEN_SOFT, borderRadius: 5, padding: "1px 6px",
+                              }}>
+                                <Icon name="check" size={10} color={DA_GREEN} strokeWidth={2.5} />
                                 {l ? "مضاف" : "Added"}
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: 11, color: DA_INK3, lineHeight: 1.4 }}>
+                          <div style={{ fontSize: 12, color: DA_INK3, marginTop: 3, lineHeight: 1.45 }}>
                             {defDesc}
                           </div>
                         </div>
+                        {!alreadyUsed && (
+                          <Icon name="plus" size={15} color={DA_INK3} />
+                        )}
                       </button>
                     );
                   })}
@@ -151,6 +233,15 @@ export function AddSectionMenu({
               </div>
             );
           })}
+
+          {/* No results */}
+          {q && SECTION_CATEGORIES.every((cat) =>
+            allVisible.filter((d) => d.category === cat.id && matches(d)).length === 0
+          ) && (
+            <div style={{ padding: "40px 0", textAlign: "center" as const, color: DA_INK3, fontFamily: SANS, fontSize: 13.5 }}>
+              {l ? `لا توجد نتائج لـ "${query}"` : `No sections match "${query}"`}
+            </div>
+          )}
         </div>
       </div>
     </div>
