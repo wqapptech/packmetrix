@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import PackageRenderer from "@/components/PackageRenderer";
 import type { TPackage, TAgency, Lang } from "@/components/templates/types";
@@ -34,7 +34,39 @@ export default function CustomDomainPackageDetail({
         if (!pkgSnap.exists()) { router.push("/"); return; }
 
         const data = { id: pkgSnap.id, ...pkgSnap.data() } as TPackage;
-        setPkg(normalizePkg(data));
+        const normalized = normalizePkg(data);
+
+        if (data.userId && normalized.sections?.some(s => s.type === "other_packages")) {
+          const othersSnap = await getDocs(
+            query(collection(db, "packages"), where("userId", "==", data.userId))
+          );
+          const cards = othersSnap.docs
+            .filter(d => d.id !== packageId && d.data().isActive !== false && d.data().status !== "draft")
+            .slice(0, 4)
+            .map(d => {
+              const pd = d.data();
+              const title = typeof pd.title === "object" && pd.title !== null
+                ? ((pd.title as Record<string, string>).en || (pd.title as Record<string, string>).ar || pd.destination || "")
+                : String(pd.title || pd.destination || "");
+              return {
+                title,
+                destination: String(pd.destination || ""),
+                price: String(pd.price || ""),
+                nights: pd.nights ? String(pd.nights) : "",
+                image: String(pd.coverImage || ""),
+                link: `/${agencySlug}/${d.id}`,
+              };
+            });
+          const idx = normalized.sections!.findIndex(s => s.type === "other_packages");
+          if (idx !== -1) {
+            normalized.sections![idx] = {
+              ...normalized.sections![idx],
+              data: { ...normalized.sections![idx].data, packages: cards },
+            };
+          }
+        }
+
+        setPkg(normalized);
 
         if (data.userId) {
           const userSnap = await getDoc(doc(db, "users", data.userId));

@@ -24,7 +24,10 @@ function MiniAurora({ isAr }: { isAr: boolean }) {
       <div style={{ padding: "8px 12px 0", fontSize: 7, fontWeight: 600, color: "#8a6a3a", letterSpacing: 1.2, textTransform: "uppercase" }}>
         {isAr ? "مرايا · بوتيك" : "Maraya · Boutique"}
       </div>
-      <div style={{ height: 72, margin: "10px 12px 0", background: "linear-gradient(135deg, #4a8fb8 0%, #1f5378 100%)", borderRadius: 4 }} />
+      <div style={{ height: 72, margin: "10px 12px 0", borderRadius: 4, overflow: "hidden", position: "relative" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="https://images.unsplash.com/photo-1584348059301-bb1d44173050?w=400&q=80" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      </div>
       <div style={{ padding: "10px 12px 0" }}>
         <div style={{ fontSize: 6.5, color: "#8a6a3a", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>
           {isAr ? "5 ليالٍ · €388" : "5 NIGHTS · €388"}

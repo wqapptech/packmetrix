@@ -1399,6 +1399,10 @@
   max-width: 540px;
   font-style: italic;
 }
+.au-v2-tx__main {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
 .au-v2-tx__pill {
   font-family: "JetBrains Mono", monospace;
   font-size: 10px;

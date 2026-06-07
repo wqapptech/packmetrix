@@ -79,6 +79,7 @@ function TbItinerarySection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
   const pad = isDesktop ? "0 80px 56px" : "28px 18px 0";
   if (isDesktop) {
     return (
+      <div data-pmx-section="itinerary">
       <DContainer id="itinerary" style={{ padding: pad, scrollMarginTop: 88 }}>
         <Eyebrow text={t.tbJourneyDayByDay} brand={BRAND} />
         <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.6px", marginTop: 10, marginBottom: 24 }}>{t.tbAdventureLaidOut}</h2>
@@ -95,10 +96,11 @@ function TbItinerarySection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
           })}
         </div>
       </DContainer>
+      </div>
     );
   }
   return (
-    <section id="itinerary" style={{ padding: pad, scrollMarginTop: 88 }}>
+    <section id="itinerary" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="itinerary">
       <Eyebrow text={t.dayByDay} brand={BRAND} />
       <h2 style={{ fontSize: 22, fontWeight: 700, color: INK, margin: "10px 0 16px", letterSpacing: "-0.3px" }}>{t.tbYourJourney}</h2>
       <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
@@ -127,7 +129,7 @@ function TbHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="highlights">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbTripHighlights}</div>
         <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
@@ -148,7 +150,7 @@ function TbHotelSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
   if (!desc) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="hotel">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbWhereYouStay}</div>
         <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>
@@ -170,7 +172,7 @@ function TbInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!includes.length && !excludes.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section id="included" style={{ padding: pad, scrollMarginTop: 88 }}>
+    <section id="included" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="inclusions">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <Eyebrow text={t.tbWhatsIncluded} brand={BRAND} />
         {includes.length > 0 && (
@@ -206,7 +208,7 @@ function TbFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesk
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="faq">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbCommonQuestions}</div>
         <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? "1fr 1fr" : undefined, flexDirection: isDesktop ? undefined : "column" as const, gap: 0 }}>
@@ -234,7 +236,7 @@ function TbCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   if (!heading && !content) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="custom">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         {heading && <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{heading}</div>}
         {image && <img src={image} alt={heading} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, marginBottom: 16, display: "block" }} />}
@@ -251,7 +253,7 @@ function TbExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="extras">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbOptionalAddOns}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 8 }}>
@@ -282,7 +284,7 @@ function TbPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
   if (!people.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="people">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.tbYourTribeLeaders}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 12 }}>
@@ -326,7 +328,7 @@ function TbImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pk
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="important_notes">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbGoodToKnow}</div>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1fr", gap: 10 }}>
@@ -361,7 +363,7 @@ function TbAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProp
   const currentYear = new Date().getFullYear();
   const pad = isDesktop ? "0 80px 64px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="about_agency">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbAboutPrefix} {agency.name}</div>
         {isDesktop && teamPhoto ? (
@@ -418,6 +420,62 @@ function TbAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProp
   );
 }
 
+function TbOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"]; agencySlug?: string }) {
+  const t = T[lang];
+  const data = tbFindSec(pkg, "other_packages");
+  const cards = tbSecArr(data, "packages");
+  if (!cards.length) return null;
+  const heading = tbSecStr(data, "heading") || t.otherPackagesHeading;
+  const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
+  const isRtl = lang === "ar";
+  return (
+    <section style={{ padding: pad }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
+      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{heading}</div>
+        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
+          {cards.map((card, i) => {
+            const img = tbSecStr(card, "image");
+            const title = tbItemStr(card, "title");
+            const dest = tbSecStr(card, "destination");
+            const price = tbSecStr(card, "price");
+            const nights = tbSecStr(card, "nights");
+            const link = tbSecStr(card, "link");
+            return (
+              <a key={i} href={link || undefined} style={{
+                flex: "0 0 190px", minWidth: 190, borderRadius: 14, overflow: "hidden",
+                textDecoration: "none", border: `1px solid ${BORDER}`,
+                background: "#fff", scrollSnapAlign: "start",
+                display: "flex", flexDirection: "column",
+              }}>
+                <div style={{ width: "100%", height: 120, background: BORDER, flexShrink: 0 }}>
+                  {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                </div>
+                <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                  {dest && <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: BRAND }}>{dest}</div>}
+                  <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{title}</div>
+                  {(nights || price) && (
+                    <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                      {nights && <span style={{ fontFamily: SANS, fontSize: 11, color: MUTED }}>{nights}</span>}
+                      {price && <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: BRAND }}>{price}</span>}
+                    </div>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+        {agencySlug && (
+          <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
+            <a href={`/${agencySlug}`} style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: BRAND, textDecoration: "none" }}>
+              {t.navAllPackages} →
+            </a>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function TbDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
   const t = T[lang];
   const data = tbFindSec(pkg, "departures");
@@ -425,7 +483,7 @@ function TbDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!deps.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="departures">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbDepartureDates}</div>
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
@@ -457,7 +515,7 @@ function TbPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
   if (!tiers.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section id="pricing" style={{ padding: pad, scrollMarginTop: 88 }}>
+    <section id="pricing" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="pricing">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <Eyebrow text={t.navPricing} brand={BRAND} />
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 12, marginTop: 16 }}>
@@ -505,7 +563,7 @@ function TbTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="transfers">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbTransfersLabel}</div>
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
@@ -516,10 +574,10 @@ function TbTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
             const note = tbItemStr(item, "note", "details");
             return (
               <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                <div>
-                  {(from || to) && <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 4 }}>{from}{from && to ? " → " : ""}{to}</div>}
+                <div style={{ minWidth: 0 }}>
+                  {(from || to) && <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 4, overflowWrap: "break-word" }}>{from}{from && to ? " → " : ""}{to}</div>}
                   {type && <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.8px", color: BRAND, textTransform: "uppercase" as const }}>{type}</div>}
-                  {note && <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>{note}</div>}
+                  {note && <div style={{ fontSize: 12, color: MUTED, marginTop: 4, overflowWrap: "break-word" }}>{note}</div>}
                 </div>
               </div>
             );
@@ -540,7 +598,7 @@ function TbMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
   if (!videoUrl && !mapSrc && !images.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="media">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbPhotosFilm}</div>
         {mapSrc && (
@@ -600,6 +658,7 @@ function TbSections({ pkg, isDesktop, onWhatsApp, lang, agency }: { pkg: TPagePr
       <TbImportantNotesSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
       <TbFaqSection pkg={pkg} isDesktop={isDesktop} lang={lang} />
       <TbAboutAgencySection pkg={pkg} agency={agency} isDesktop={isDesktop} lang={lang} />
+      <TbOtherPackagesSection pkg={pkg} isDesktop={isDesktop} lang={lang} agencySlug={agency.agencySlug} />
     </>
   );
 }
@@ -630,7 +689,7 @@ function TbReviews({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; a
 
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }}>
+    <section style={{ padding: pad }} data-pmx-section="reviews">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>
           {showList ? `${reviews.length} ${t.tbVerifiedReviews}` : t.writeReviewTitle}
@@ -732,7 +791,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <DesktopNav agency={agency} price={pkg.price} brand={BRAND} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
 
         {/* Full-bleed hero with floating price card */}
-        <div style={{ position: "relative", height: 560, overflow: "hidden" }}>
+        <div data-pmx-section="hero" style={{ position: "relative", height: 560, overflow: "hidden" }}>
           {coverImage
             ? <img src={coverImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
             : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${BRAND}cc, ${BRAND}55)` }} />
@@ -740,13 +799,13 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.55))" }} />
           <DContainer style={{ position: "absolute", inset: 0, padding: "0 80px", display: "flex", alignItems: "flex-end", paddingBottom: 56 }}>
             <div style={{ color: "#fff", flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, letterSpacing: "1.4px", textTransform: "uppercase" as const }}>{pkg.destination}</div>
-              <h1 style={{ fontSize: 64, fontWeight: 800, lineHeight: 1, letterSpacing: "-1.6px", margin: "12px 0 0" }}>{title}</h1>
+              <div data-pmx-field="destination" style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, letterSpacing: "1.4px", textTransform: "uppercase" as const }}>{pkg.destination}</div>
+              <h1 data-pmx-field="title" style={{ fontSize: 64, fontWeight: 800, lineHeight: 1, letterSpacing: "-1.6px", margin: "12px 0 0" }}>{title}</h1>
               <p style={{ fontSize: 17, opacity: 0.9, marginTop: 16, maxWidth: 540, lineHeight: 1.5 }}>{pkg.description}</p>
             </div>
             <div style={{ background: "rgba(255,255,255,0.96)", backdropFilter: "blur(12px)", borderRadius: 16, padding: 24, minWidth: 260 }}>
               <div style={{ fontSize: 10.5, color: SMUTED, letterSpacing: "1px", textTransform: "uppercase" as const }}>{t.from}</div>
-              <div style={{ fontSize: 42, fontWeight: 800, letterSpacing: "-1px", marginTop: 4, lineHeight: 1 }}>{pkg.price}</div>
+              <div data-pmx-field="price" style={{ fontSize: 42, fontWeight: 800, letterSpacing: "-1px", marginTop: 4, lineHeight: 1 }}>{pkg.price}</div>
               <div style={{ fontSize: 11, color: SMUTED, marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ${t.perPerson}` : t.perPerson}</div>
               <div style={{ height: 1, background: BORDER, margin: "16px 0" }} />
               <WAButton label={t.saveMySeat} full size="md" onClick={onWhatsApp} />
@@ -784,7 +843,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
       <AgencyBar agency={agency} price={pkg.price} brand={BRAND} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
 
       {/* Hero */}
-      <div style={{ position: "relative", height: 320, overflow: "hidden" }}>
+      <div data-pmx-section="hero" style={{ position: "relative", height: 320, overflow: "hidden" }}>
         {coverImage ? (
           <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
@@ -792,10 +851,10 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
         )}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%)" }} />
         <div style={{ position: "absolute", top: 20, left: 18 }}>
-          <Eyebrow text={pkg.destination} brand={BRAND} light />
+          <div data-pmx-field="destination"><Eyebrow text={pkg.destination} brand={BRAND} light /></div>
         </div>
         <div style={{ position: "absolute", bottom: 24, left: 20, right: 20 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#fff", lineHeight: 1.15, margin: 0, letterSpacing: "-0.5px", textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>
+          <h1 data-pmx-field="title" style={{ fontSize: 28, fontWeight: 800, color: "#fff", lineHeight: 1.15, margin: 0, letterSpacing: "-0.5px", textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>
             {title}
           </h1>
         </div>
@@ -806,7 +865,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "16px 18px" }}>
           <div>
             <div style={{ fontSize: 10, color: SMUTED, textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 4 }}>{t.from}</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: BRAND, letterSpacing: "-0.5px", lineHeight: 1 }}>{pkg.price}</div>
+            <div data-pmx-field="price" style={{ fontSize: 28, fontWeight: 800, color: BRAND, letterSpacing: "-0.5px", lineHeight: 1 }}>{pkg.price}</div>
             <div style={{ fontSize: 11, color: MUTED, marginTop: 3 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
           </div>
           <WAButton label={t.bookWhatsApp} size="md" onClick={onWhatsApp} />

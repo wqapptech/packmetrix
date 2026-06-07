@@ -1438,6 +1438,32 @@ const REGISTRY = [
   },
 
   {
+    type: "other_packages" as const,
+    label: "Other Packages",
+    labelAr: "باقات أخرى",
+    icon: "package",
+    description: "Auto-shows your other active packages with a link to your storefront",
+    descriptionAr: "يعرض تلقائياً باقاتك الأخرى النشطة مع رابط لمتجرك",
+    category: "social",
+    multiple: false,
+    fields: [
+      {
+        key: "heading",
+        label: "Section heading (optional)",
+        labelAr: "عنوان القسم (اختياري)",
+        type: "text",
+        placeholder: "e.g. More trips you'll love",
+        placeholderAr: "مثال: رحلات أخرى ستحبها",
+      },
+    ],
+    defaultData: { heading: "" },
+    summaryText: (_data, lang) =>
+      lang === "ar"
+        ? "يُعبَّأ تلقائياً من باقاتك"
+        : "Auto-populated from your packages",
+  },
+
+  {
     type: "departures" as const,
     label: "Departures",
     labelAr: "مواعيد المغادرة",

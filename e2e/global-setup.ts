@@ -52,6 +52,8 @@ function basePkgFields(userId: string, agencySlug: string, now: number) {
     agencySlug,
     price: "from 1,999 USD",
     views: 0,
+    whatsapp: "15550001234",
+    messenger: "smoke-test-page",
     whatsappClicks: 0,
     messengerClicks: 0,
     createdAt: now,

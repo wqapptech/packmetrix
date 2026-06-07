@@ -157,7 +157,7 @@ function VyGalleryMobile({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "
   const photos = secStrArr(data, "images").length ? secStrArr(data, "images") : (pkg.images ?? []);
   if (!photos.length) return null;
   return (
-    <section className="vy-gal">
+    <section className="vy-gal" data-pmx-section="media">
       <div className="vy-sec__eb">{t.vyPhotos}</div>
       <div className="vy-gal__grid">
         {photos.slice(0, 6).map((src, i) => (
@@ -176,7 +176,7 @@ function VyGalleryDesktop({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | 
   const photos = secStrArr(data, "images").length ? secStrArr(data, "images") : (pkg.images ?? []);
   if (!photos.length) return null;
   return (
-    <section className="vy-d-sec">
+    <section className="vy-d-sec" data-pmx-section="media">
       <div className="vy-d-sec__head">
         <div>
           <div className="vy-d-sec__eb">{t.gallery}</div>
@@ -204,7 +204,7 @@ function VyItineraryMobile({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" |
   const legacyItems = items.length ? items : (pkg.itinerary ?? []).map((it) => it as unknown as SD);
   if (!legacyItems.length) return null;
   return (
-    <section id="itinerary" className="vy-sec" style={{ scrollMarginTop: 60 }}>
+    <section id="itinerary" className="vy-sec" style={{ scrollMarginTop: 60 }} data-pmx-section="itinerary">
       <div className="vy-sec__eb">{t.dayByDay}</div>
       <div className="vy-itin-scroll">
         {legacyItems.map((it, i) => {
@@ -243,7 +243,7 @@ function VyItineraryDesktop({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" 
   if (!legacyItems.length) return null;
   const heading = secStr(data, "heading");
   return (
-    <section id="itinerary" className="vy-d-sec" style={{ scrollMarginTop: 64 }}>
+    <section id="itinerary" className="vy-d-sec" style={{ scrollMarginTop: 64 }} data-pmx-section="itinerary">
       <div className="vy-d-sec__head">
         <div>
           <div className="vy-d-sec__eb">{t.dayByDay}</div>
@@ -287,7 +287,7 @@ function VyHighlightsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en"
   const items = secArr(data, "items");
   if (items.length < 2) return null;
   return (
-    <section className="vy-v2 vy-v2-hl">
+    <section className="vy-v2 vy-v2-hl" data-pmx-section="highlights">
       <div className="vy-v2__eb">{t.vyWhyThisTrip}</div>
       <div className="vy-v2-hl__grid">
         {items.slice(0, 3).map((item, i) => (
@@ -324,7 +324,7 @@ function VyHotelsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "
   const heading = secStr(data, "heading");
   const stopsLabel = hotels.length !== 1 ? t.vyStopsPlural : t.vyStops;
   return (
-    <section className="vy-v2 vy-v2-htl">
+    <section className="vy-v2 vy-v2-htl" data-pmx-section="hotel">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyWhereYouCrash} · {hotels.length} {stopsLabel}</div>
         <h2 className="vy-v2__title">
@@ -393,7 +393,7 @@ function VyMediaSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "a
   const hasMap = !!mapSrc;
   const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
   return (
-    <section className="vy-v2 vy-v2-med">
+    <section className="vy-v2 vy-v2-med" data-pmx-section="media">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyFilmRoute}</div>
         <h2 className="vy-v2__title">{t.vyMoveAtSpeed}</h2>
@@ -476,7 +476,7 @@ function VyInclusionsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en"
   if (!includes.length && !excludes.length) return null;
   const heading = secStr(data, "heading");
   return (
-    <section id="included" className="vy-v2 vy-v2-inc" style={{ scrollMarginTop: 64 }}>
+    <section id="included" className="vy-v2 vy-v2-inc" style={{ scrollMarginTop: 64 }} data-pmx-section="inclusions">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyWhatsIn}</div>
         <h2 className="vy-v2__title">{heading || t.vyInclusionsAndNot}</h2>
@@ -523,7 +523,7 @@ function VyExtrasSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "
   if (!items.length) return null;
   const heading = secStr(data, "heading");
   return (
-    <section className="vy-v2 vy-v2-ex">
+    <section className="vy-v2 vy-v2-ex" data-pmx-section="extras">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyAddOnsPayOnDay}</div>
         <h2 className="vy-v2__title">{heading || t.vyBoltOnsNoPressure}</h2>
@@ -552,7 +552,7 @@ function VyTransfersSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" 
   if (!items.length) return null;
   const heading = secStr(data, "heading");
   return (
-    <section className="vy-v2 vy-v2-tx">
+    <section className="vy-v2 vy-v2-tx" data-pmx-section="transfers">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyGettingThere}</div>
         <h2 className="vy-v2__title">{heading || t.vyGettingBetween}</h2>
@@ -567,7 +567,7 @@ function VyTransfersSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" 
           return (
             <li key={i} className="vy-v2-tx__row">
               <div className="vy-v2-tx__dot">{String(i + 1).padStart(2, "0")}</div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div className="vy-v2-tx__leg">{leg}</div>
                 {(mode || duration) && (
                   <div className="vy-v2-tx__meta">
@@ -603,7 +603,7 @@ function VyPricingSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | 
   if (!instalments.length && !cancellation.length && !deposit && !cancellationStr) return null;
   const heading = secStr(data, "heading");
   return (
-    <section id="pricing" className="vy-v2 vy-v2-pr" style={{ scrollMarginTop: 64 }}>
+    <section id="pricing" className="vy-v2 vy-v2-pr" style={{ scrollMarginTop: 64 }} data-pmx-section="pricing">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyMoneyStuff}</div>
         <h2 className="vy-v2__title">{heading || t.vyPayInThree}</h2>
@@ -658,7 +658,7 @@ function VyDeparturesMobile({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" 
   const tiers = (pkg.pricingTiers ?? []).filter((tier) => tier.price);
   if (!deps.length && !tiers.length) return null;
   return (
-    <section className="vy-sec">
+    <section className="vy-sec" data-pmx-section="departures">
       <div className="vy-sec__eb">{t.vyDates}</div>
       {deps.length > 0 && (
         <div className="vy-deps">
@@ -708,7 +708,7 @@ function VyDeparturesDesktop({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en"
   const tiers = (pkg.pricingTiers ?? []).filter((tier) => tier.price);
   if (!deps.length && !tiers.length) return null;
   return (
-    <section className="vy-d-sec">
+    <section className="vy-d-sec" data-pmx-section="departures">
       <div className="vy-d-sec__head">
         <div>
           <div className="vy-d-sec__eb">{t.vyDates}</div>
@@ -774,7 +774,7 @@ function VyFaqSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar"
   if (!items.length) return null;
   const heading = secStr(data, "heading");
   return (
-    <section className="vy-v2 vy-v2-faq">
+    <section className="vy-v2 vy-v2-faq" data-pmx-section="faq">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyFaqEyebrow}</div>
         <h2 className="vy-v2__title">{heading || t.vyWhatCrewAsk}</h2>
@@ -803,7 +803,7 @@ function VyImportantNotesSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: 
   if (!notes.length) return null;
   const heading = secStr(data, "heading");
   return (
-    <section className="vy-v2 vy-v2-no">
+    <section className="vy-v2 vy-v2-no" data-pmx-section="important_notes">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyReadThese}</div>
         <h2 className="vy-v2__title">{heading || t.vyPracticalStuff}</h2>
@@ -839,7 +839,7 @@ function VyReviewsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | 
   // customer-submitted reviews stored in the flat pkg.reviews field.
   if (secReviews.length > 0) {
     return (
-      <section className="vy-v2">
+      <section className="vy-v2" data-pmx-section="reviews">
         <div className="vy-v2__head">
           <div className="vy-v2__eb">{t.vyWhatCrewSays}</div>
           <h2 className="vy-v2__title">{heading || t.vyRealFeedback}</h2>
@@ -877,7 +877,7 @@ function VyReviewsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | 
   const flatReviews = pkg.reviews ?? [];
   if (!flatReviews.length) return null;
   return (
-    <section className="vy-v2">
+    <section className="vy-v2" data-pmx-section="reviews">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyWhatCrewSays}</div>
         <h2 className="vy-v2__title">{heading || t.vyRealFeedback}</h2>
@@ -914,7 +914,7 @@ function VyPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; la
   const guides = people.filter((p) => itemStr(p, "role") === "guide");
   if (!agent && !guides.length) return null;
   return (
-    <section className="vy-v2 vy-v2-pp" style={{ padding: 0 }}>
+    <section className="vy-v2 vy-v2-pp" style={{ padding: 0 }} data-pmx-section="people">
       {agent && (
         <div className="vy-v2-pp__lead">
           {itemStr(agent, "photo", "avatar") && (
@@ -985,7 +985,7 @@ function VyAboutAgencySection({ pkg, agency, lang }: { pkg: TPageProps["pkg"]; a
   const currentYear = new Date().getFullYear();
   const heading = secStr(data, "heading");
   return (
-    <section className="vy-v2">
+    <section className="vy-v2" data-pmx-section="about_agency">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{agency.name} · {t.vyTheOutfit}</div>
         <h2 className="vy-v2__title">{heading || t.vyRealTripsNotTours}</h2>
@@ -1024,6 +1024,61 @@ function VyAboutAgencySection({ pkg, agency, lang }: { pkg: TPageProps["pkg"]; a
   );
 }
 
+// ─── Other Packages ───────────────────────────────────────────────────────────
+
+function VyOtherPackagesSection({ pkg, lang, agencySlug }: { pkg: TPageProps["pkg"]; lang: "en" | "ar"; agencySlug?: string }) {
+  const t = T[lang];
+  const data = findSec(pkg, "other_packages");
+  const cards = secArr(data, "packages");
+  if (!cards.length) return null;
+  const heading = secStr(data, "heading") || t.otherPackagesHeading;
+  const isRtl = lang === "ar";
+  return (
+    <section style={{ padding: "40px 20px 0", background: BG }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUT, marginBottom: 14 }}>{heading}</div>
+      <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
+        {cards.map((card, i) => {
+          const img = secStr(card, "image");
+          const title = itemStr(card, "title");
+          const dest = secStr(card, "destination");
+          const price = secStr(card, "price");
+          const nights = secStr(card, "nights");
+          const link = secStr(card, "link");
+          return (
+            <a key={i} href={link || undefined} style={{
+              flex: "0 0 190px", minWidth: 190, borderRadius: 10, overflow: "hidden",
+              textDecoration: "none", border: `1px solid ${LINE}`,
+              background: "rgba(255,255,255,0.06)", scrollSnapAlign: "start",
+              display: "flex", flexDirection: "column",
+            }}>
+              <div style={{ width: "100%", height: 120, background: LINE, flexShrink: 0, position: "relative" }}>
+                {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+              </div>
+              <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                {dest && <div style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: ACID }}>{dest}</div>}
+                <div style={{ fontFamily: ARCH, fontSize: 13, fontWeight: 700, color: FG, lineHeight: 1.3 }}>{title}</div>
+                {(nights || price) && (
+                  <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                    {nights && <span style={{ fontFamily: MONO, fontSize: 10.5, color: MUT }}>{nights}</span>}
+                    {price && <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: ACID }}>{price}</span>}
+                  </div>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+      {agencySlug && (
+        <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
+          <a href={`/${agencySlug}`} style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: ACID, textDecoration: "none", letterSpacing: "0.5px" }}>
+            {t.navAllPackages} →
+          </a>
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ─── Custom blocks ─────────────────────────────────────────────────────────────
 
 function VyCustomSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
@@ -1037,7 +1092,7 @@ function VyCustomSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "
     : allCustom;
   if (!blocks.length) return null;
   return (
-    <section className="vy-v2 vy-v2-cu">
+    <section className="vy-v2 vy-v2-cu" data-pmx-section="custom">
       {blocks.map((c, i) => (
         <article key={i} className="vy-v2-cu__block">
           <div className="vy-v2-cu__stamp">{t.vyEditorialsCut}</div>
@@ -1133,7 +1188,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <VyTicker pkg={pkg} lang={lang} />
 
         {/* Desktop hero: big number + destination left, image + buy card right */}
-        <div className="vy-d-hero">
+        <div className="vy-d-hero" data-pmx-section="hero">
           <div className="vy-d-hero__left">
             <div className="vy-d-hero__top">
               <span>{agency.name}</span>
@@ -1146,7 +1201,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
                 {nights}<span className="unit">{t.nightsLabel}</span>
               </div>
             )}
-            <div className="vy-d-hero__dest">{pkg.destination?.split(",")[0]}</div>
+            <div className="vy-d-hero__dest" data-pmx-field="title">{pkg.destination?.split(",")[0]}</div>
             {pkg.description && <p className="vy-d-hero__desc">{pkg.description}</p>}
           </div>
           <div className="vy-d-hero__right">
@@ -1156,7 +1211,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
                 : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${ACID}22, ${BG})` }} />
               }
               {pkg.destination && (
-                <div className="vy-d-hero__img-cap">{pkg.destination.split(",")[0].toUpperCase()}</div>
+                <div className="vy-d-hero__img-cap" data-pmx-field="destination">{pkg.destination.split(",")[0].toUpperCase()}</div>
               )}
             </div>
             <div className="vy-d-hero__buy">
@@ -1169,7 +1224,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
                   </div>
                 )}
               </div>
-              <div className="vy-d-hero__buy-price">{pkg.price}</div>
+              <div className="vy-d-hero__buy-price" data-pmx-field="price">{pkg.price}</div>
               <div className="vy-d-hero__buy-cta">
                 <button className="vy-cta-d" onClick={onWhatsApp}>
                   <WaIcon size={15} /> {t.bookWhatsApp}
@@ -1225,6 +1280,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <VyReviewsSection pkg={pkg} lang={lang} />
         <VyPeopleSection pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
         <VyAboutAgencySection pkg={pkg} agency={agency} lang={lang} />
+        <VyOtherPackagesSection pkg={pkg} lang={lang} agencySlug={agency.agencySlug} />
         <VyCustomSection pkg={pkg} lang={lang} />
         <VyFinalCta pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
         <DesktopFooter agency={agency} brand={ACID} dark />
@@ -1239,11 +1295,11 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <VyTicker pkg={pkg} lang={lang} />
 
       {/* Mobile hero */}
-      <div style={{ position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "relative", overflow: "hidden" }} data-pmx-section="hero">
         {/* Big poster number */}
         <div style={{ padding: "22px 16px 0" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: MONO, fontSize: 10, color: MUT, letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: 12 }}>
-            <span>{pkg.destination}</span>
+            <span data-pmx-field="destination">{pkg.destination}</span>
             {pkg.scarcity?.spotsRemaining != null && (
               <span style={{ color: ACID, fontWeight: 700 }}>{pkg.scarcity.spotsRemaining} {t.vySpots}</span>
             )}
@@ -1254,7 +1310,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
           {nights && (
             <div style={{ fontFamily: MONO, fontSize: 11, color: MUT, letterSpacing: "0.8px", textTransform: "uppercase", marginTop: 6 }}>{t.nightsLabel}</div>
           )}
-          <div style={{ fontFamily: ARCH, fontSize: 44, lineHeight: 0.92, letterSpacing: "-2px", textTransform: "uppercase", marginTop: 14, color: FG }}>
+          <div style={{ fontFamily: ARCH, fontSize: 44, lineHeight: 0.92, letterSpacing: "-2px", textTransform: "uppercase", marginTop: 14, color: FG }} data-pmx-field="title">
             {pkg.destination?.split(",")[0]}
           </div>
         </div>
@@ -1279,7 +1335,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
             </div>
           )}
         </div>
-        <div style={{ fontFamily: ARCH, fontSize: 64, lineHeight: 0.9, letterSpacing: "-3px", marginBottom: 8 }}>{pkg.price}</div>
+        <div style={{ fontFamily: ARCH, fontSize: 64, lineHeight: 0.9, letterSpacing: "-3px", marginBottom: 8 }} data-pmx-field="price">{pkg.price}</div>
         <div style={{ fontFamily: MONO, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 20 }}>
           {nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}
         </div>
@@ -1311,6 +1367,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <VyReviewsSection pkg={pkg} lang={lang} />
       <VyPeopleSection pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
       <VyAboutAgencySection pkg={pkg} agency={agency} lang={lang} />
+      <VyOtherPackagesSection pkg={pkg} lang={lang} agencySlug={agency.agencySlug} />
       <VyCustomSection pkg={pkg} lang={lang} />
       <VyFinalCta pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
       <VyMobileFooter agency={agency} />

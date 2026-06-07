@@ -152,7 +152,7 @@ function FaItinerary({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
     : (pkg.itinerary ?? []).filter((d) => d.title?.trim()).map((d) => ({ ...d } as FaSD));
   if (!days.length) return null;
   return (
-    <section id="itinerary" style={{ padding: "20px 18px", scrollMarginTop: 88 }}>
+    <section id="itinerary" style={{ padding: "20px 18px", scrollMarginTop: 88 }} data-pmx-section="itinerary">
       <FaSectionHead kicker={t.familyTypicalDay} title={t.familyEasyMornings} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {days.map((day, i) => {
@@ -182,7 +182,7 @@ function FaHighlights({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const rawItems = faSecArrMixed(data, "items");
   if (rawItems.length < 1) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="highlights">
       <FaSectionHead kicker={t.builtForFamilies} title={t.familyFeaturesHeading} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {rawItems.map((item, i) => {
@@ -212,7 +212,7 @@ function FaHotel({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const hotels = faSecArr(faFindSec(pkg, "hotels"), "hotels");
   if (!desc && !hotels.length) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="hotel">
       <FaSectionHead kicker={t.faWhereYouStay} title={t.faFamilyHome} />
       {hotels.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -254,7 +254,7 @@ function FaInclusions({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
 
   if (!includes.length && !excludes.length && !meals && !visaStatus) return null;
   return (
-    <section id="included" style={{ padding: "20px 18px", scrollMarginTop: 88 }}>
+    <section id="included" style={{ padding: "20px 18px", scrollMarginTop: 88 }} data-pmx-section="inclusions">
       <FaSectionHead kicker={t.includedLabel} title={t.faWhatsIncludedFamily} />
       {(meals || visaStatus) && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
@@ -312,7 +312,7 @@ function FaFaq({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const items = faSecArr(data, "items");
   if (!items.length) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="faq">
       <FaSectionHead kicker={t.frequentlyAsked} title={t.faFamilyQuestions} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {items.map((f, i) => {
@@ -343,7 +343,7 @@ function FaCustom({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const image = faSecStr(data, "image");
   if (!heading && !content) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="custom">
       {image && <img src={image} alt={heading} style={{ width: "100%", borderRadius: 14, marginBottom: 14, maxHeight: 200, objectFit: "cover" }} />}
       {heading && <h3 style={{ fontSize: 18, fontWeight: 800, color: FA.ink, letterSpacing: "-0.3px", margin: "0 0 10px" }}>{heading}</h3>}
       {content && <p style={{ fontSize: 13.5, color: FA.muted, lineHeight: 1.7, margin: 0 }}>{content}</p>}
@@ -357,7 +357,7 @@ function FaExtras({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const items = faSecArr(data, "items");
   if (!items.length) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="extras">
       <FaSectionHead kicker={t.faOptionalAddOns} title={t.faLittleThings} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {items.map((e, i) => {
@@ -385,7 +385,7 @@ function FaPeople({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const people = faSecArr(data, "people");
   if (!people.length) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="people">
       <FaSectionHead kicker={t.faTravelTeam} title={t.faPeopleWhoCare} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {people.map((p, i) => {
@@ -423,7 +423,7 @@ function FaImportantNotes({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const items = notes.length ? notes : faSecArr(data, "items");
   if (!items.length) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="important_notes">
       <FaSectionHead kicker={t.faGoodToKnow} title={t.faBeforeYouPackBags} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {items.map((n, i) => {
@@ -455,7 +455,7 @@ function FaAboutAgency({ pkg, agency, lang }: { pkg: TPackage; agency: TAgency; 
   if (!content) return null;
   const initials = agency.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="about_agency">
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
         {agency.logoUrl
           ? <img src={agency.logoUrl} alt="" style={{ width: 36, height: 36, borderRadius: 9, objectFit: "contain" }} />
@@ -488,7 +488,7 @@ function FaDepartures({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
     : legacyDeps;
   if (!deps.length) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="departures">
       <FaSectionHead kicker={t.faDepartureDates} title={t.faPickPerfectWindow} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {deps.map((d, i) => {
@@ -518,7 +518,7 @@ function FaPricing({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: Lang; onWha
   const cancellation = faSecStr(data, "cancellation") || pkg.cancellation;
   if (!tiers.length && !cancellation) return null;
   return (
-    <section id="pricing" style={{ padding: "20px 18px", scrollMarginTop: 88 }}>
+    <section id="pricing" style={{ padding: "20px 18px", scrollMarginTop: 88 }} data-pmx-section="pricing">
       <FaSectionHead kicker={t.navPricing} title={t.faWhatFamiliesChoose} />
       {tiers.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: cancellation ? 16 : 0 }}>
@@ -568,7 +568,7 @@ function FaTransfers({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const desc = faSecStr(data, "description");
   if (!rawItems.length && !desc) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="transfers">
       <FaSectionHead kicker={t.faGettingAround} title={t.faDoorToDoorComfort} />
       {desc && !rawItems.length && <p style={{ fontSize: 13.5, color: FA.muted, lineHeight: 1.7, margin: 0 }}>{desc}</p>}
       {rawItems.length > 0 && (
@@ -580,7 +580,7 @@ function FaTransfers({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
             return (
               <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 14px", background: "#fff", border: `1px solid ${FA.border}`, borderRadius: 10 }}>
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: FA.brand, flexShrink: 0 }} />
-                <div style={{ flex: 1, fontSize: 13.5, color: FA.ink, fontWeight: 500 }}>{label}</div>
+                <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: FA.ink, fontWeight: 500, overflowWrap: "break-word" }}>{label}</div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: included ? FA.brand : FA.muted, flexShrink: 0 }}>
                   {included ? t.faTransferIncluded : t.faTransferAddOn}
                 </div>
@@ -604,7 +604,7 @@ function FaMedia({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const mapCaption = faSecStr(data, "mapCaption");
   if (!images.length && !videoUrl && !mapImage) return null;
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="media">
       <FaSectionHead kicker={t.faInPhotographs} title={t.faGlimpseAwaits} />
       {videoUrl && (() => {
         const isEmbed = videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo");
@@ -667,7 +667,7 @@ function FaReviews({ pkg, agency, lang }: { pkg: TPackage; agency: TAgency; lang
   };
 
   return (
-    <section style={{ padding: "20px 18px" }}>
+    <section style={{ padding: "20px 18px" }} data-pmx-section="reviews">
       <FaSectionHead
         kicker={t.faWhatFamiliesSay}
         title={t.faRealStories}
@@ -741,6 +741,61 @@ function FaReviews({ pkg, agency, lang }: { pkg: TPackage; agency: TAgency; lang
   );
 }
 
+// ─── FaOtherPackages ──────────────────────────────────────────────────────────
+
+function FaOtherPackages({ pkg, lang, agencySlug }: { pkg: TPackage; lang: Lang; agencySlug?: string }) {
+  const t = T[lang];
+  const data = faFindSec(pkg, "other_packages");
+  const cards = faSecArr(data, "packages");
+  if (!cards.length) return null;
+  const heading = faSecStr(data, "heading") || t.otherPackagesHeading;
+  const isRtl = lang === "ar";
+  return (
+    <section style={{ padding: "32px 18px 0" }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" as const, color: FA.muted, marginBottom: 14 }}>{heading}</div>
+      <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
+        {cards.map((card, i) => {
+          const img = faSecStr(card, "image");
+          const title = faSecStr(card, "title");
+          const dest = faSecStr(card, "destination");
+          const price = faSecStr(card, "price");
+          const nights = faSecStr(card, "nights");
+          const link = faSecStr(card, "link");
+          return (
+            <a key={i} href={link || undefined} style={{
+              flex: "0 0 190px", minWidth: 190, borderRadius: 14, overflow: "hidden",
+              textDecoration: "none", border: `1px solid ${FA.border}`,
+              background: "#fff", scrollSnapAlign: "start",
+              display: "flex", flexDirection: "column",
+            }}>
+              <div style={{ width: "100%", height: 120, background: FA.border, flexShrink: 0 }}>
+                {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+              </div>
+              <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                {dest && <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: FA.brand }}>{dest}</div>}
+                <div style={{ fontFamily: FA.serif, fontSize: 14, fontWeight: 700, color: FA.ink, lineHeight: 1.3 }}>{title}</div>
+                {(nights || price) && (
+                  <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                    {nights && <span style={{ fontSize: 11, color: FA.muted }}>{nights}</span>}
+                    {price && <span style={{ fontSize: 12, fontWeight: 700, color: FA.brand }}>{price}</span>}
+                  </div>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+      {agencySlug && (
+        <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
+          <a href={`/${agencySlug}`} style={{ fontSize: 12, fontWeight: 700, color: FA.brand, textDecoration: "none" }}>
+            {t.navAllPackages} →
+          </a>
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ─── FaSection switch ─────────────────────────────────────────────────────────
 
 interface FaSectionProps {
@@ -767,6 +822,7 @@ function FaSection({ s, isDesktop, onWhatsApp, lang, agency, pkg }: FaSectionPro
     case "people":         return <FaPeople pkg={pkg} lang={lang} />;
     case "important_notes": return <FaImportantNotes pkg={pkg} lang={lang} />;
     case "about_agency":   return <FaAboutAgency pkg={pkg} agency={agency} lang={lang} />;
+    case "other_packages": return <FaOtherPackages pkg={pkg} lang={lang} agencySlug={agency.agencySlug} />;
     case "departures":     return <FaDepartures pkg={pkg} lang={lang} />;
     case "pricing":        return <FaPricing pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />;
     case "transfers":      return <FaTransfers pkg={pkg} lang={lang} />;
@@ -822,7 +878,7 @@ function FaCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
         <div style={{ display: "flex", flexDirection: isDesktop ? "row" : "column", gap: 10 }}>
           <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} style={{ background: "#fff", color: FA.brand }} />
           {pkg.messenger && (
-            <button onClick={onMessenger} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 10, padding: "14px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 10, padding: "14px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               {t.faMessengerBtn}
             </button>
           )}
@@ -875,7 +931,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <DesktopNav agency={agency} price={pkg.price} brand={FA.brand} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
 
         {/* 50/50 hero: arched image left + overlapping price card, text right */}
-        <DContainer style={{ padding: "56px 80px 56px" }}>
+        <DContainer style={{ padding: "56px 80px 56px" }} data-pmx-section="hero">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56, alignItems: "center" }}>
             <div style={{ position: "relative" }}>
               <div style={{ position: "relative", height: 480, borderRadius: 220, overflow: "hidden" }}>
@@ -887,13 +943,13 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
               {/* Overlapping price card */}
               <div style={{ position: "absolute", bottom: -16, right: -16, background: "#fff", borderRadius: 14, padding: "16px 20px", boxShadow: "0 10px 24px rgba(0,0,0,0.08)", border: `1px solid ${FA.border}` }}>
                 <div style={{ fontSize: 10.5, color: FA.superMuted, letterSpacing: "0.7px", textTransform: "uppercase" }}>{t.familyOf4}</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: FA.brand, marginTop: 4, letterSpacing: "-0.5px" }}>{pkg.price}</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: FA.brand, marginTop: 4, letterSpacing: "-0.5px" }} data-pmx-field="price">{pkg.price}</div>
                 <div style={{ fontSize: 11, color: FA.superMuted, marginTop: 2 }}>{t.kidsUnder6Free}</div>
               </div>
             </div>
-            <div>
+            <div data-pmx-field="destination">
               <Eyebrow text={pkg.destination} brand={FA.brand} />
-              <h1 style={{ fontSize: 60, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.5px", marginTop: 16, marginBottom: 18 }}>{title}</h1>
+              <h1 style={{ fontSize: 60, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.5px", marginTop: 16, marginBottom: 18 }} data-pmx-field="title">{title}</h1>
               <p style={{ fontSize: 16.5, color: FA.muted, lineHeight: 1.7, margin: "0 0 24px" }}>{pkg.description}</p>
               <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
             </div>
@@ -952,7 +1008,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <AgencyBar agency={agency} price={pkg.price} brand={FA.brand} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
 
       {/* Hero with curved bottom */}
-      <div style={{ position: "relative", height: 320, overflow: "hidden" }}>
+      <div style={{ position: "relative", height: 320, overflow: "hidden" }} data-pmx-section="hero">
         {coverImage ? (
           <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
@@ -966,9 +1022,9 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       </div>
 
       {/* Title + description */}
-      <div style={{ padding: "8px 18px 0" }}>
+      <div style={{ padding: "8px 18px 0" }} data-pmx-field="destination">
         <Eyebrow text={pkg.destination} brand={FA.brand} />
-        <h1 style={{ fontSize: 30, fontWeight: 800, color: FA.ink, margin: "10px 0 12px", letterSpacing: "-0.5px", lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 30, fontWeight: 800, color: FA.ink, margin: "10px 0 12px", letterSpacing: "-0.5px", lineHeight: 1.2 }} data-pmx-field="title">
           {title}
         </h1>
         {pkg.description && (
@@ -991,7 +1047,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 8, fontWeight: 600 }}>
               {t.perFamilyOfFour}
             </div>
-            <div style={{ fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1px", lineHeight: 1, marginBottom: 6 }}>
+            <div style={{ fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1px", lineHeight: 1, marginBottom: 6 }} data-pmx-field="price">
               {pkg.price}
             </div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 20 }}>

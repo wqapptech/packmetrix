@@ -149,15 +149,32 @@ export type ReviewItem = {
 };
 export type ReviewsData = { reviews: ReviewItem[] };
 
+// ── Other packages (cross-promo) ──────────────────────────────────────────────
+
+export type OtherPackageCard = {
+  title: string;
+  destination?: string;
+  price?: string;
+  nights?: string;
+  image?: string;
+  link?: string;
+};
+export type OtherPackagesData = {
+  heading?: string;
+  /** Runtime-only — injected by the page loader, never stored in Firestore. */
+  packages?: OtherPackageCard[];
+};
+
 // ─── Discriminated union — full type safety for rendering and storage ─────────
 
 export type SectionInstance =
   // v2 section types
-  | { id: string; type: "people";        order: number; data: PeopleData }
-  | { id: string; type: "trek_profile";  order: number; data: TrekProfileData }
-  | { id: string; type: "scarcity";      order: number; data: ScarcityData }
-  | { id: string; type: "media";         order: number; data: MediaData }
-  | { id: string; type: "departures";    order: number; data: DeparturesData }
+  | { id: string; type: "people";          order: number; data: PeopleData }
+  | { id: string; type: "trek_profile";    order: number; data: TrekProfileData }
+  | { id: string; type: "scarcity";        order: number; data: ScarcityData }
+  | { id: string; type: "media";           order: number; data: MediaData }
+  | { id: string; type: "departures";      order: number; data: DeparturesData }
+  | { id: string; type: "other_packages";  order: number; data: OtherPackagesData }
   // stable section types (unchanged from v1)
   | { id: string; type: "itinerary";       order: number; data: ItineraryData }
   | { id: string; type: "inclusions";      order: number; data: InclusionsData }
