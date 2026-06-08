@@ -25,22 +25,52 @@ export function PexelsVideoSearch({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
   const searchLabel = lang === "ar" ? "بحث" : "Search";
   const noResults = lang === "ar" ? "لا توجد نتائج" : "No results";
   const useLabel = lang === "ar" ? "استخدام" : "Use";
+  const loadMoreLabel = lang === "ar" ? "تحميل المزيد" : "Load more";
+
+  const fetchVideos = async (q: string, p: number) => {
+    const res = await fetch(`/api/pexels/videos?query=${encodeURIComponent(q)}&page=${p}`);
+    const data = await res.json();
+    const videos: any[] = data.videos || [];
+    return { batch: videos, hasMore: videos.length > 0 };
+  };
 
   const search = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setSearched(true);
+    setPage(1);
+    setHasMore(false);
     try {
-      const res = await fetch(`/api/pexels/videos?query=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      setResults(data.videos || []);
+      const { batch, hasMore: more } = await fetchVideos(query, 1);
+      setResults(batch);
+      setHasMore(more);
     } catch {}
     setLoading(false);
+  };
+
+  const loadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    try {
+      const { batch, hasMore: more } = await fetchVideos(query, nextPage);
+      if (batch.length === 0) {
+        setHasMore(false);
+      } else {
+        setResults((prev) => [...prev, ...batch]);
+        setPage(nextPage);
+        setHasMore(more);
+      }
+    } catch {}
+    setLoadingMore(false);
   };
 
   return (
@@ -161,6 +191,34 @@ export function PexelsVideoSearch({
               );
             })}
           </div>
+          {hasMore && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                style={{
+                  padding: "8px 22px",
+                  borderRadius: 10,
+                  background: DA_SURFACE,
+                  border: `1px solid ${DA_RULE}`,
+                  color: DA_INK2,
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: loadingMore ? "not-allowed" : "pointer",
+                  fontFamily: "inherit",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                  opacity: loadingMore ? 0.7 : 1,
+                }}
+              >
+                {loadingMore ? (
+                  <span className="spinner-warm" style={{ width: 12, height: 12, borderTopColor: DA_GOLD }} />
+                ) : null}
+                {loadMoreLabel}
+              </button>
+            </div>
+          )}
           <div style={{ marginTop: 8, fontSize: 10.5, color: DA_INK3, textAlign: "right" }}>
             <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: DA_INK3, textDecoration: "none" }}>Pexels</a>
             {" · "}
