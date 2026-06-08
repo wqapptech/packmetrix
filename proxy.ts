@@ -11,7 +11,7 @@ const BLOCKED_ON_CUSTOM_DOMAIN = [
 const APP_ROOTS = [
   "/dashboard", "/builder", "/login", "/signup", "/profile",
   "/leads", "/packages", "/paywall", "/home", "/api", "/_next",
-  "/ingest", "/sites",
+  "/ingest", "/sites", "/preview",
 ];
 
 function isInfrastructureHost(hostname: string): boolean {
@@ -87,6 +87,9 @@ export function proxy(request: NextRequest) {
     if (slugSubdomain) {
       const agencySlug = slugSubdomain[1];
       if (pathname === `/${agencySlug}` || pathname.startsWith(`/${agencySlug}/`)) {
+        return NextResponse.next();
+      }
+      if (APP_ROOTS.some(r => pathname === r || pathname.startsWith(r + "/"))) {
         return NextResponse.next();
       }
       const url = request.nextUrl.clone();
