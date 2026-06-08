@@ -157,6 +157,8 @@ export default function PreviewPage() {
   return (
     <>
       <style>{`
+        ::-webkit-scrollbar { width: 0; height: 0; }
+        html { scrollbar-width: none; }
         @keyframes pmx-section-flash {
           0%   { box-shadow: inset 0 0 0 3px #b08a3e, 0 0 0 4px rgba(176,138,62,.25); }
           70%  { box-shadow: inset 0 0 0 3px #b08a3e, 0 0 0 4px rgba(176,138,62,.25); }

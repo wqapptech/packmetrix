@@ -55,6 +55,12 @@ async function slowScroll(page: Page, distance: number, steps = 4) {
 const CURSOR_SCRIPT = `(function () {
   if (document.getElementById('__demo_cursor__')) return;
 
+  // Hide native scrollbars — they appear as an ugly vertical strip on the right
+  // in the recorded video. Content is still scrollable via the script.
+  const scrollbarStyle = document.createElement('style');
+  scrollbarStyle.textContent = '::-webkit-scrollbar{display:none!important}*{scrollbar-width:none!important}';
+  document.head.appendChild(scrollbarStyle);
+
   const style = document.createElement('style');
   style.textContent = \`
     #__demo_cursor__ {
@@ -127,8 +133,8 @@ async function main() {
   });
 
   const context = await browser.newContext({
-    viewport: { width: 1400, height: 860 },
-    recordVideo: { dir: videosDir, size: { width: 1400, height: 860 } },
+    viewport: { width: 1440, height: 900 },
+    recordVideo: { dir: videosDir, size: { width: 1440, height: 900 } },
   });
 
   // Cursor overlay auto-applies to every page and new tab.
@@ -200,19 +206,25 @@ async function main() {
   await slowScroll(page, 500, 4);
   await beat(page, 1_000);
 
-  // Scroll to the custom domain section so the narrator can explain it.
-  // The input has a unique placeholder we can target.
-  const domainInput = page.getByPlaceholder("e.g., packages.myagency.com or www.myagency.com");
-  if (await domainInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await domainInput.scrollIntoViewIfNeeded();
+  // Scroll to the custom domain section.
+  // We target the field label text ("Your primary business URL") rather than the
+  // placeholder, because the account already has a domain configured — the input
+  // has a value so its placeholder is never visible.
+  const domainLabel = page.getByText("Your primary business URL").first();
+  if (await domainLabel.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await domainLabel.scrollIntoViewIfNeeded();
+    await beat(page, 800);
+    // Scroll a little further so the configured domain value and the
+    // green "Live" status badge are both fully in frame.
+    await page.evaluate(() => window.scrollBy({ top: 120, behavior: "smooth" }));
     // Long pause — narrator says:
     //   "Connect your own domain — every package page is served from
-    //    packages.youragency.com, with no Packmetrix branding in the URL."
+    //    your URL, with no Packmetrix branding anywhere."
     await beat(page, 3_500);
   } else {
-    // Domain section may be inside a collapsed card; just scroll further.
-    await slowScroll(page, 400, 3);
-    await beat(page, 2_000);
+    // Fallback: keep scrolling until something domain-related is visible.
+    await slowScroll(page, 500, 4);
+    await beat(page, 2_500);
   }
 
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
@@ -295,7 +307,16 @@ Book now before the offer disappears.`;
   await aiTextarea.click();
   await beat(page, 600);
   await aiTextarea.fill(AI_DESCRIPTION);
-  await beat(page, 1_200);
+  await beat(page, 800);
+
+  // Slowly scroll within the textarea so viewers can read the full description,
+  // then reset to top so the Extract button is visible.
+  await aiTextarea.evaluate((el: HTMLTextAreaElement) => { el.scrollTop = el.scrollHeight / 2; });
+  await beat(page, 700);
+  await aiTextarea.evaluate((el: HTMLTextAreaElement) => { el.scrollTop = el.scrollHeight; });
+  await beat(page, 700);
+  await aiTextarea.evaluate((el: HTMLTextAreaElement) => { el.scrollTop = 0; });
+  await beat(page, 500);
 
   // Click extract and wait for the API response + build form to appear.
   // onAiExtract() calls setUiPhase("build"), so the form transitions automatically.
@@ -351,12 +372,17 @@ Book now before the offer disappears.`;
     await photoInput.press("Enter");
 
     await page.waitForTimeout(3_000);
-    const firstPhoto = page
+    // Click the photo container div (the element with onClick) rather than the
+    // <img> inside it. The .px-ov overlay covers the img, so targeting the parent
+    // div (which has the actual handleSelect onClick handler) is more reliable.
+    const firstPhotoContainer = page
       .locator("img[src*='pexels'], img[src*='unsplash'], img[src*='images.pexels']")
-      .first();
-    if (await firstPhoto.isVisible({ timeout: 8_000 }).catch(() => false)) {
-      await firstPhoto.click();
-      await beat(page, 1_500);
+      .first()
+      .locator("..");  // parent <div> which carries onClick={() => handleSelect(photo)}
+    if (await firstPhotoContainer.isVisible({ timeout: 8_000 }).catch(() => false)) {
+      await firstPhotoContainer.scrollIntoViewIfNeeded();
+      await firstPhotoContainer.click();
+      await beat(page, 2_000);  // extra wait so preview iframe debounces and updates
     }
   }
 
@@ -385,19 +411,47 @@ Book now before the offer disappears.`;
       .getByRole("button", { name: new RegExp(label, "i") })
       .first();
     await sectionBtn.scrollIntoViewIfNeeded();
-    await sectionBtn.click();
+    await sectionBtn.click({ force: true });
 
     // Modal closes automatically
     await page.getByText("Add a section").waitFor({ state: "hidden", timeout: 8_000 });
-    await beat(page, 700);
+    await beat(page, 1_200);
 
-    // Expand the newly added section ("Add content →" is the invite CTA)
-    const addContentBtn = page.getByText("Add content").last();
-    if (await addContentBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await addContentBtn.scrollIntoViewIfNeeded();
-      await addContentBtn.click();
-      await beat(page, 600);
-    }
+    // Diagnose what's in the DOM before attempting to open the section editor.
+    const dbg = await page.evaluate(() => {
+      const all = Array.from(document.querySelectorAll("button"));
+      const ac  = all.filter((b) => (b.textContent ?? "").includes("Add content"));
+      return { totalBtns: all.length, addContentCount: ac.length };
+    });
+    console.log(`  DOM buttons: ${dbg.totalBtns}, "Add content" found: ${dbg.addContentCount}`);
+
+    // Open the newly added section card.
+    // Use dispatchEvent with full mouse event so React's synthetic event system picks it up.
+    const openResult = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll("button"));
+      const btn  = [...btns].reverse()
+        .find((b) => (b.textContent ?? "").includes("Add content"));
+      if (!btn) return "not-found";
+      btn.scrollIntoView({ block: "nearest" });
+      btn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true }));
+      return "dispatched";
+    });
+    console.log(`  Add content dispatch: ${openResult}`);
+    await beat(page, 1_500);
+
+    // Diagnose DOM state after the click — did the editor mount?
+    const afterState = await page.evaluate(() => {
+      const acLeft = Array.from(document.querySelectorAll("button"))
+        .filter((b) => (b.textContent ?? "").includes("Add content")).length;
+      const inputs  = Array.from(document.querySelectorAll("input, textarea"));
+      return {
+        addContentRemaining: acLeft,
+        inputCount: inputs.length,
+        placeholders: inputs.map((i) => i.getAttribute("placeholder") ?? i.getAttribute("inputMode") ?? "—"),
+      };
+    });
+    console.log(`  After click → addContent remaining: ${afterState.addContentRemaining}, inputs: ${afterState.inputCount}`);
+    console.log(`  Placeholders: ${JSON.stringify(afterState.placeholders)}`);
 
     // Fill in the key field(s)
     await fill();
