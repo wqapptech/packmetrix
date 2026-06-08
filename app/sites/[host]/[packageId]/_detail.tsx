@@ -6,6 +6,7 @@ import { doc, getDoc, collection, getDocs, query, where } from "firebase/firesto
 import { db } from "@/lib/firebase";
 import PackageRenderer from "@/components/PackageRenderer";
 import type { TPackage, TAgency, Lang } from "@/components/templates/types";
+import { locStr } from "@/components/templates/types";
 import { DEFAULT_TEMPLATE_ID } from "@/components/templates/index";
 import { normalizePkg } from "@/lib/sections/normalize";
 
@@ -145,9 +146,12 @@ export default function CustomDomainPackageDetail({
 
   const openWA = () => {
     if (!pkg.whatsapp) return;
-    const sid = getSession();
     trackClick("whatsapp");
-    const msg = encodeURIComponent(`Hi, I'm interested in the ${pkg.destination} package (${pkg.price}). [ref:${sid.slice(0, 8)}]`);
+    const title = locStr(pkg.title, lang) || pkg.destination;
+    const body = lang === "ar"
+      ? `السلام عليكم! أنا مهتم بباقة "${title}" (${pkg.price}). هل يمكنكم تزويدي بمزيد من التفاصيل؟`
+      : `Hi! I'm interested in the "${title}" package (${pkg.price}). Could you share more details?`;
+    const msg = encodeURIComponent(body);
     window.open(`https://wa.me/${pkg.whatsapp.replace(/\D/g, "")}?text=${msg}`, "_blank", "noopener,noreferrer");
   };
 
