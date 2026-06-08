@@ -35,7 +35,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     Card: TemplateVoyageCard,
     previewBg: "#0d1b2e",
     dark: true,
-    templateColor: "#d6f43d",
+    templateColor: "#4d6b0e",
     available: true,
   },
   {
@@ -111,7 +111,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     Page: TemplateTribePage,
     Card: TemplateTribeCard,
     previewBg: "#f3ebdf",
-    templateColor: "#d96e3e", // --tr-clay from tribe.css
+    templateColor: "#8a3a1e", // --tr-clay from tribe.css (darkened for builder readability)
     available: true,
   },
   {
@@ -123,7 +123,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     Page: TemplateSmartPage,
     Card: TemplateSmartCard,
     previewBg: "#ffffff",
-    templateColor: "#e5b53d", // --sm-yellow from smart.css
+    templateColor: "#8a6a10", // --sm-yellow from smart.css (darkened for builder readability)
     available: true,
   },
   {
