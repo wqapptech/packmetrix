@@ -31,7 +31,7 @@ export default function CustomDomainPackageDetail({
       if (!packageId) return;
       try {
         const pkgSnap = await getDoc(doc(db, "packages", packageId));
-        if (!pkgSnap.exists()) { router.push("/"); return; }
+        if (!pkgSnap.exists()) { window.location.replace("/"); return; }
 
         const data = { id: pkgSnap.id, ...pkgSnap.data() } as TPackage;
         const normalized = normalizePkg(data);
