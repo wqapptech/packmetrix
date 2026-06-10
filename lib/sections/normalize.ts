@@ -405,6 +405,11 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
     if (ms && !normalized.messenger) normalized.messenger = ms.value;
   }
 
+  // Strip trailing "per person" labels that some agents paste into the price field.
+  if (normalized.price) {
+    normalized.price = normalized.price.replace(/\s+per\s+person\b.*/i, "").trim();
+  }
+
   // Derive `saving` at render from wasPrice − price (NEVER stored).
   if (!normalized.saving && normalized.priceWas && normalized.price) {
     const parse = (s: string) => parseFloat(s.replace(/[^0-9.]/g, ""));
@@ -414,7 +419,7 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
       const diff = Math.round(was - curr);
       // Keep the currency symbol from the price string if present
       const sym = normalized.price.match(/[€$£¥₹]/)?.[0] ?? "";
-      normalized.saving = `Save ${sym}${diff.toLocaleString()}`;
+      normalized.saving = `${sym}${diff.toLocaleString()}`;
     }
   }
 

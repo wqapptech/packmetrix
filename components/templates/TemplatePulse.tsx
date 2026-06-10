@@ -1415,7 +1415,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 16px",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {agency.logoUrl ? (
             <img src={agency.logoUrl} alt={agency.name} style={{ height: 26, width: "auto", objectFit: "contain" }} />
           ) : (
@@ -1430,7 +1430,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
             {agency.tagline && <div style={{ fontSize: 10, color: PL.mut, marginTop: 1 }}>{agency.tagline}</div>}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, overflowX: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, overflowX: "auto", flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
           {buildNavLinks(pkg, gallery, hasDeps, hasTiers, t).map(link => (
             <a key={link.href} href={link.href} style={{
               fontSize: 12, fontWeight: 600, color: PL.mut, textDecoration: "none", whiteSpace: "nowrap",
@@ -1816,9 +1816,14 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
               <span style={{ fontSize: 10.5, background: PL.dealBg, color: PL.deal, padding: "2px 6px", borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>{effectiveSaving}</span>
             )}
           </div>
-          <div style={{ fontSize: 10, color: PL.mut, marginTop: 1, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            {hasScar && <><BlinkDot color={PL.deal} size={5} /><b style={{ color: PL.deal }}>{pkg.spotsRemaining}</b></>}
-            {t.pricePerGuestTwinShare}
+          <div style={{ fontSize: 10, color: PL.mut, marginTop: 1 }}>
+            {hasScar && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 4, color: PL.deal, fontWeight: 700, marginBottom: 1 }}>
+                <BlinkDot color={PL.deal} size={5} />
+                {t.onlyLabel} <b>{pkg.spotsRemaining}</b> {t.spotsLeft}
+              </div>
+            )}
+            <div>{t.pricePerGuestTwinShare}</div>
           </div>
         </div>
         <button data-testid="wa-cta" onClick={onWhatsApp} style={{
