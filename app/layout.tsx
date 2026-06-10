@@ -21,6 +21,7 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   style: ["normal", "italic"],
+  preload: false,
 });
 
 const dmSerif = DM_Serif_Display({
@@ -28,6 +29,7 @@ const dmSerif = DM_Serif_Display({
   subsets: ["latin"],
   weight: "400",
   style: ["normal", "italic"],
+  preload: false,
 });
 
 const cormorant = Cormorant_Garamond({
@@ -35,6 +37,7 @@ const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   style: ["normal", "italic"],
+  preload: false,
 });
 
 const instrumentSerif = Instrument_Serif({
@@ -42,18 +45,21 @@ const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
   style: ["normal", "italic"],
+  preload: false,
 });
 
 const archivoblack = Archivo_Black({
   variable: "--font-archivo-black",
   subsets: ["latin"],
   weight: "400",
+  preload: false,
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   weight: ["400", "500", "700"],
+  preload: false,
 });
 
 const interTight = Inter_Tight({
@@ -67,12 +73,14 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+  preload: false,
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-ibm-plex-mono",
   subsets: ["latin"],
   weight: ["400", "500", "700"],
+  preload: false,
 });
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -80,6 +88,7 @@ const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   style: ["normal", "italic"],
+  preload: false,
 });
 
 const sourceSerif = Source_Serif_4({
@@ -87,6 +96,7 @@ const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
   weight: ["300", "400", "600", "700"],
   style: ["normal", "italic"],
+  preload: false,
 });
 
 const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
@@ -101,6 +111,7 @@ const newsreader = Newsreader({
   weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
