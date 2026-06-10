@@ -12,6 +12,7 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
+  LightboxCarousel,
 } from "./shared";
 import type { TPageProps, TCardProps, TPackage, TAgency, Lang } from "./types";
 
@@ -511,7 +512,7 @@ function FaDepartures({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   );
 }
 
-function FaPricing({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: Lang; onWhatsApp: () => void }) {
+function FaPricing({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: Lang; onWhatsApp?: () => void }) {
   const t = T[lang];
   const data = faFindSec(pkg, "pricing");
   const tiers = faSecArr(data, "tiers").length ? faSecArr(data, "tiers") : (pkg.pricingTiers ?? []).map((tier) => ({ ...tier } as FaSD));
@@ -542,7 +543,7 @@ function FaPricing({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: Lang; onWha
                 <div style={{ fontSize: 12, fontWeight: 600, color: isPop ? "rgba(255,255,255,0.75)" : FA.muted, marginBottom: 6 }}>{label}</div>
                 <div style={{ fontSize: 34, fontWeight: 800, color: isPop ? "#fff" : FA.ink, letterSpacing: "-1px", lineHeight: 1 }}>{price}</div>
                 <div style={{ fontSize: 11.5, color: isPop ? "rgba(255,255,255,0.6)" : FA.superMuted, marginTop: 4, marginBottom: 14 }}>{t.perPerson}</div>
-                <WAButton label={t.bookWhatsApp} size="md" onClick={onWhatsApp} style={isPop ? { background: "#fff", color: FA.brand } : undefined} />
+                {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="md" onClick={onWhatsApp} style={isPop ? { background: "#fff", color: FA.brand } : undefined} />}
               </div>
             );
           })}
@@ -602,6 +603,7 @@ function FaMedia({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const videoUrl = faSecStr(data, "videoUrl") || pkg.videoUrl || "";
   const mapImage = faSecStr(data, "mapImage") || faSecStr(data, "mapSrc");
   const mapCaption = faSecStr(data, "mapCaption");
+  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
   if (!images.length && !videoUrl && !mapImage) return null;
   return (
     <section style={{ padding: "20px 18px" }} data-pmx-section="media">
@@ -628,10 +630,11 @@ function FaMedia({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
       {images.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {images.slice(0, 6).map((url, i) => (
-            <img key={i} src={url} alt="" style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10 }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }} />
+            <img key={i} src={url} alt="" onClick={() => setLbIdx(i)} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10, cursor: "pointer" }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }} />
           ))}
         </div>
       )}
+      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
     </section>
   );
 }
@@ -801,7 +804,7 @@ function FaOtherPackages({ pkg, lang, agencySlug }: { pkg: TPackage; lang: Lang;
 interface FaSectionProps {
   s: { id: string; type: string; order: number; data: Record<string, unknown> };
   isDesktop: boolean;
-  onWhatsApp: () => void;
+  onWhatsApp?: () => void;
   lang: Lang;
   agency: TAgency;
   pkg: TPackage;
@@ -835,7 +838,7 @@ function FaSection({ s, isDesktop, onWhatsApp, lang, agency, pkg }: FaSectionPro
 // ─── FaSections wrapper ────────────────────────────────────────────────────────
 
 function FaSections({ pkg, isDesktop, onWhatsApp, lang, agency }: {
-  pkg: TPackage; isDesktop: boolean; onWhatsApp: () => void; lang: Lang; agency: TAgency;
+  pkg: TPackage; isDesktop: boolean; onWhatsApp?: () => void; lang: Lang; agency: TAgency;
 }) {
   const sections = [...(pkg.sections ?? [])].sort((a, b) => a.order - b.order);
   return (
@@ -876,7 +879,7 @@ function FaCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
           {t.faReserveFamilySpot}
         </div>
         <div style={{ display: "flex", flexDirection: isDesktop ? "row" : "column", gap: 10 }}>
-          <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} style={{ background: "#fff", color: FA.brand }} />
+          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} style={{ background: "#fff", color: FA.brand }} />}
           {pkg.messenger && (
             <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 10, padding: "14px 22px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               {t.faMessengerBtn}
@@ -928,7 +931,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
   if (isDesktop) {
     return (
       <div style={{ minHeight: "100vh", background: FA.bg, color: FA.ink, fontFamily: FA.serif, direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={FA.brand} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
+        <DesktopNav agency={agency} price={pkg.price} brand={FA.brand} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* 50/50 hero: arched image left + overlapping price card, text right */}
         <DContainer style={{ padding: "56px 80px 56px" }} data-pmx-section="hero">
@@ -951,7 +954,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
               <Eyebrow text={pkg.destination} brand={FA.brand} />
               <h1 style={{ fontSize: 60, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.5px", marginTop: 16, marginBottom: 18 }} data-pmx-field="title">{title}</h1>
               <p style={{ fontSize: 16.5, color: FA.muted, lineHeight: 1.7, margin: "0 0 24px" }}>{pkg.description}</p>
-              <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
+              {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
             </div>
           </div>
         </DContainer>
@@ -978,7 +981,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
         {/* Sections */}
         <DContainer style={{ padding: "0 80px" }}>
-          <FaSections pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} agency={agency} />
+          <FaSections pkg={pkg} isDesktop={true} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
         </DContainer>
 
         {/* Reviews (standalone if not already in sections) */}
@@ -1005,7 +1008,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       minHeight: "100vh", background: FA.bg, color: FA.ink,
       fontFamily: FA.serif, direction: isRtl ? "rtl" : "ltr",
     }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={FA.brand} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
+      <AgencyBar agency={agency} price={pkg.price} brand={FA.brand} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Hero with curved bottom */}
       <div style={{ position: "relative", height: 320, overflow: "hidden" }} data-pmx-section="hero">
@@ -1053,7 +1056,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 20 }}>
               {t.kidsUnder12Free}
             </div>
-            <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} style={{ background: "#fff", color: FA.brand }} />
+            {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} style={{ background: "#fff", color: FA.brand }} />}
           </div>
         </div>
       </div>
@@ -1069,7 +1072,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       )}
 
       {/* All sections */}
-      <FaSections pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} agency={agency} />
+      <FaSections pkg={pkg} isDesktop={false} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
 
       {/* Reviews (standalone if not in sections) */}
       {!(pkg.sections?.some((s) => s.type === "reviews")) && (pkg.reviews?.length ?? 0) > 0 && (
@@ -1083,7 +1086,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
       <FaMobileFooter agency={agency} />
 
-      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={onWhatsApp} lang={lang} />
+      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
     </div>
   );
 }

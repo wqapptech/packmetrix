@@ -13,6 +13,7 @@ import {
   DContainer,
   DesktopFooter,
   getItineraryDays,
+  LightboxCarousel,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -399,18 +400,10 @@ function TbAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProp
               </div>
             )}
             {story && <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, margin: "0 0 16px" }}>{story}</p>}
-            {(founded || teamSize) && (
-              <div style={{ display: "flex", gap: 0, borderTop: `1px solid ${BORDER}`, paddingTop: 14 }}>
-                {founded && (
-                  <div style={{ flex: 1, textAlign: "center" as const, borderRight: `1px solid ${BORDER}`, padding: "8px 0" }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: BRAND, lineHeight: 1 }}>{currentYear - founded}+</div>
-                    <div style={{ fontSize: 10, color: MUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.tbYears}</div>
-                  </div>
-                )}
-                <div style={{ flex: 1, textAlign: "center" as const, padding: "8px 0" }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: BRAND, lineHeight: 1 }}>100%</div>
-                  <div style={{ fontSize: 10, color: MUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.tbSatisfactionLabel}</div>
-                </div>
+            {founded && (
+              <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14, textAlign: "center" as const, padding: "8px 0" }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: BRAND, lineHeight: 1 }}>{currentYear - founded}+</div>
+                <div style={{ fontSize: 10, color: MUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.tbYears}</div>
               </div>
             )}
           </>
@@ -544,9 +537,9 @@ function TbPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
                     ))}
                   </ul>
                 )}
-                <button onClick={onWhatsApp} style={{ marginTop: "auto", background: pop ? "rgba(255,255,255,0.2)" : `${BRAND}12`, border: `1px solid ${pop ? "rgba(255,255,255,0.3)" : `${BRAND}30`}`, borderRadius: 8, padding: "10px 0", fontSize: 13, fontWeight: 700, color: pop ? "#fff" : BRAND, fontFamily: SANS, cursor: "pointer" }}>
+                {pkg.whatsapp && <button onClick={onWhatsApp} style={{ marginTop: "auto", background: pop ? "rgba(255,255,255,0.2)" : `${BRAND}12`, border: `1px solid ${pop ? "rgba(255,255,255,0.3)" : `${BRAND}30`}`, borderRadius: 8, padding: "10px 0", fontSize: 13, fontWeight: 700, color: pop ? "#fff" : BRAND, fontFamily: SANS, cursor: "pointer" }}>
                   {t.bookWhatsApp}
-                </button>
+                </button>}
               </div>
             );
           })}
@@ -595,6 +588,7 @@ function TbMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
   const mapSrc     = tbSecStr(mediaSec, "mapImage") || tbSecStr(mediaSec, "mapSrc") || "";
   const mapCaption = tbSecStr(mediaSec, "mapCaption") || "";
   const images     = tbSecStrArr(mediaSec, "images");
+  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
   if (!videoUrl && !mapSrc && !images.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
@@ -628,13 +622,14 @@ function TbMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
         {images.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(images.length, isDesktop ? 4 : 2)}, 1fr)`, gap: 8 }}>
             {images.slice(0, isDesktop ? 4 : 4).map((src, i) => (
-              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: 100 }}>
+              <div key={i} onClick={() => setLbIdx(i)} style={{ borderRadius: 10, overflow: "hidden", height: 100, cursor: "pointer" }}>
                 <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
               </div>
             ))}
           </div>
         )}
       </div>
+      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
     </section>
   );
 }
@@ -745,7 +740,7 @@ function TbCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
-          <WAButton label={t.saveMySeat} size="lg" onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.saveMySeat} size="lg" onClick={onWhatsApp} />}
           {pkg.messenger && <button onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 8, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: SANS, cursor: "pointer" }}>{t.tbMessenger}</button>}
         </div>
       </div>
@@ -788,7 +783,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
   if (isDesktop) {
     return (
       <div style={{ minHeight: "100vh", background: BG, color: INK, fontFamily: SANS, direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={BRAND} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
+        <DesktopNav agency={agency} price={pkg.price} brand={BRAND} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Full-bleed hero with floating price card */}
         <div data-pmx-section="hero" style={{ position: "relative", height: 560, overflow: "hidden" }}>
@@ -808,7 +803,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
               <div data-pmx-field="price" style={{ fontSize: 42, fontWeight: 800, letterSpacing: "-1px", marginTop: 4, lineHeight: 1 }}>{pkg.price}</div>
               <div style={{ fontSize: 11, color: SMUTED, marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ${t.perPerson}` : t.perPerson}</div>
               <div style={{ height: 1, background: BORDER, margin: "16px 0" }} />
-              <WAButton label={t.saveMySeat} full size="md" onClick={onWhatsApp} />
+              {pkg.whatsapp && <WAButton label={t.saveMySeat} full size="md" onClick={onWhatsApp} />}
             </div>
           </DContainer>
         </div>
@@ -840,7 +835,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
   return (
     <div style={{ minHeight: "100vh", background: BG, color: INK, fontFamily: SANS, direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={BRAND} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
+      <AgencyBar agency={agency} price={pkg.price} brand={BRAND} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Hero */}
       <div data-pmx-section="hero" style={{ position: "relative", height: 320, overflow: "hidden" }}>
@@ -868,7 +863,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
             <div data-pmx-field="price" style={{ fontSize: 28, fontWeight: 800, color: BRAND, letterSpacing: "-0.5px", lineHeight: 1 }}>{pkg.price}</div>
             <div style={{ fontSize: 11, color: MUTED, marginTop: 3 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
           </div>
-          <WAButton label={t.bookWhatsApp} size="md" onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="md" onClick={onWhatsApp} />}
         </div>
       </div>
 
@@ -905,7 +900,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
       <TbMobileFooter agency={agency} />
 
-      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={onWhatsApp} lang={lang} />
+      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
     </div>
   );
 }

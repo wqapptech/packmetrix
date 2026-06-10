@@ -11,6 +11,7 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
+  LightboxCarousel,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -93,6 +94,72 @@ const VISA_LABELS: Record<string, { en: string; ar: string }> = {
   required:   { en: "Visa required · we assist", ar: "تأشيرة مطلوبة · نساعدك" },
 };
 
+// ─── Media section ────────────────────────────────────────────────────────────
+
+function AtMediaSection({ d, isDesktop, lang }: { d: AtSD; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
+  const pad = isDesktop ? "0 80px 48px" : "22px 22px 0";
+  const maxW = isDesktop ? 1080 : undefined;
+  const videoUrl = atSecStr(d, "videoUrl") || atSecStr(d, "video");
+  const videoPoster = atSecStr(d, "videoPoster") || atSecStr(d, "poster");
+  const mapSrc = atSecStr(d, "mapImage") || atSecStr(d, "map");
+  const mapCaption = atSecStr(d, "mapCaption");
+  const photos = atSecStrArr(d, "images");
+  const hasVideo = !!(videoUrl || videoPoster);
+  const hasMap = !!mapSrc;
+  const hasPhotos = photos.length > 0;
+  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
+  if (!hasVideo && !hasMap && !hasPhotos) return null;
+  const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
+  const atToEmbed = (u: string) => {
+    const yt = u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+    if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+    const vi = u.match(/vimeo\.com\/(\d+)/);
+    if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
+    return u;
+  };
+  return (
+    <div style={{ padding: pad }} data-pmx-section="media">
+      <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
+        <div style={{ height: 1, background: AT.border, margin: "0 0 24px" }} />
+        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: AT.superMuted, marginBottom: 12 }}>
+          {atSecStr(d, "eyebrow") || t.gallery}
+        </div>
+        {hasPhotos && (
+          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr 1fr", gap: 8, marginBottom: (hasVideo || hasMap) ? 16 : 0 }}>
+            {photos.slice(0, 6).map((src, i) => (
+              <img key={i} src={src} alt="" onClick={() => setLbIdx(i)} style={{ width: "100%", aspectRatio: "4/3" as React.CSSProperties["aspectRatio"], objectFit: "cover", borderRadius: 3, cursor: "pointer" }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }} />
+            ))}
+          </div>
+        )}
+        {(hasVideo || hasMap) && (
+          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 12 }}>
+            {hasVideo && videoUrl && (
+              <div style={{ position: "relative", borderRadius: 4, overflow: "hidden", height: 220 }}>
+                {isEmbed
+                  ? <iframe src={atToEmbed(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
+                  : <video src={videoUrl} controls playsInline poster={videoPoster || undefined} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                }
+              </div>
+            )}
+            {hasMap && (
+              <div style={{ position: "relative", borderRadius: 4, overflow: "hidden" }}>
+                <img src={mapSrc} alt="map" style={{ width: "100%", height: 220, objectFit: "cover" }} />
+                {mapCaption && (
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "rgba(13,27,46,0.55)", fontSize: 11, color: "rgba(245,243,238,0.9)", fontStyle: "italic" }}>
+                    {mapCaption}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      {lbIdx !== null && <LightboxCarousel images={photos} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
+    </div>
+  );
+}
+
 // ─── Section switch ───────────────────────────────────────────────────────────
 
 function AtSection({
@@ -100,7 +167,7 @@ function AtSection({
 }: {
   s: { id: string; type: string; order: number; data: Record<string, unknown> };
   isDesktop: boolean;
-  onWhatsApp: () => void;
+  onWhatsApp?: () => void;
   lang: TPageProps["lang"];
   agency: TPageProps["agency"];
 }) {
@@ -585,14 +652,14 @@ function AtSection({
                         ))}
                       </ul>
                     )}
-                    <button onClick={onWhatsApp} style={{
+                    {onWhatsApp && <button onClick={onWhatsApp} style={{
                       marginTop: 14, width: "100%", padding: "10px 0", fontSize: 12.5,
                       fontWeight: 700, border: `1px solid ${pop ? "rgba(245,243,238,0.35)" : AT.border}`,
                       background: "transparent", color: pop ? AT.bg : AT.ink,
                       borderRadius: 3, cursor: "pointer",
                     }}>
                       {t.enquire} →
-                    </button>
+                    </button>}
                   </div>
                 );
               })}
@@ -652,62 +719,8 @@ function AtSection({
     }
 
     // ── media ─────────────────────────────────────────────────────────────────
-    case "media": {
-      const videoUrl = atSecStr(d, "videoUrl") || atSecStr(d, "video");
-      const videoPoster = atSecStr(d, "videoPoster") || atSecStr(d, "poster");
-      const mapSrc = atSecStr(d, "mapImage") || atSecStr(d, "map");
-      const mapCaption = atSecStr(d, "mapCaption");
-      const photos = atSecStrArr(d, "images");
-      const hasVideo = !!(videoUrl || videoPoster);
-      const hasMap = !!mapSrc;
-      const hasPhotos = photos.length > 0;
-      if (!hasVideo && !hasMap && !hasPhotos) return null;
-      const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
-      const atToEmbed = (u: string) => {
-        const yt = u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
-        if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
-        const vi = u.match(/vimeo\.com\/(\d+)/);
-        if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
-        return u;
-      };
-      return (
-        <div style={{ padding: pad }} data-pmx-section="media">
-          <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
-            <Div />
-            <SH label={atSecStr(d, "eyebrow") || t.gallery} />
-            {hasPhotos && (
-              <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr 1fr", gap: 8, marginBottom: (hasVideo || hasMap) ? 16 : 0 }}>
-                {photos.slice(0, 6).map((src, i) => (
-                  <img key={i} src={src} alt="" style={{ width: "100%", aspectRatio: "4/3" as React.CSSProperties["aspectRatio"], objectFit: "cover", borderRadius: 3 }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }} />
-                ))}
-              </div>
-            )}
-            {(hasVideo || hasMap) && (
-              <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 12 }}>
-                {hasVideo && videoUrl && (
-                  <div style={{ position: "relative", borderRadius: 4, overflow: "hidden", height: 220 }}>
-                    {isEmbed
-                      ? <iframe src={atToEmbed(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
-                      : <video src={videoUrl} controls playsInline poster={videoPoster || undefined} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                    }
-                  </div>
-                )}
-                {hasMap && (
-                  <div style={{ position: "relative", borderRadius: 4, overflow: "hidden" }}>
-                    <img src={mapSrc} alt="map" style={{ width: "100%", height: 220, objectFit: "cover" }} />
-                    {mapCaption && (
-                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "rgba(13,27,46,0.55)", fontSize: 11, color: "rgba(245,243,238,0.9)", fontStyle: "italic" }}>
-                        {mapCaption}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
+    case "media":
+      return <AtMediaSection d={d} isDesktop={isDesktop} lang={lang} />;
 
     // ── other_packages ────────────────────────────────────────────────────────
     case "other_packages": {
@@ -791,7 +804,7 @@ function AtSections({
 }: {
   pkg: TPageProps["pkg"];
   isDesktop: boolean;
-  onWhatsApp: () => void;
+  onWhatsApp?: () => void;
   lang: TPageProps["lang"];
   agency: TPageProps["agency"];
 }) {
@@ -997,7 +1010,7 @@ function AtCTABanner({
           </div>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
-          <WAButton label={t.enquire} size="lg" onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.enquire} size="lg" onClick={onWhatsApp} />}
           {pkg.messenger && (
             <button
               data-testid="messenger-cta"
@@ -1056,7 +1069,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   if (isDesktop) {
     return (
       <div style={{ minHeight: "100vh", background: AT.bg, color: AT.ink, fontFamily: AT.sans, direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={AT.brand} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
+        <DesktopNav agency={agency} price={pkg.price} brand={AT.brand} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Centered masthead */}
         <DContainer style={{ padding: "56px 80px 32px", textAlign: "center" }} data-pmx-section="hero">
@@ -1117,11 +1130,11 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               <div style={{ fontFamily: AT.serif, fontSize: 48, fontWeight: 400, marginTop: 4, letterSpacing: "-1px", lineHeight: 1 }}>{pkg.price}</div>
               <div style={{ fontSize: 12, color: AT.superMuted, marginTop: 6 }}>{nights ? `${nights} ${t.nightsLabel} · ${t.perPerson}` : t.perPerson}</div>
             </div>
-            <WAButton label={t.enquire} size="lg" onClick={onWhatsApp} />
+            {pkg.whatsapp && <WAButton label={t.enquire} size="lg" onClick={onWhatsApp} />}
           </div>
         </DContainer>
 
-        <AtSections pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} agency={agency} />
+        <AtSections pkg={pkg} isDesktop={true} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
         <AtReviews pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <AtCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
 
@@ -1135,7 +1148,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       minHeight: "100vh", background: AT.bg, color: AT.ink,
       fontFamily: AT.sans, direction: isRtl ? "rtl" : "ltr",
     }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={AT.brand} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
+      <AgencyBar agency={agency} price={pkg.price} brand={AT.brand} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Magazine masthead */}
       <div style={{ padding: "18px 22px 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }} data-pmx-section="hero">
@@ -1206,17 +1219,17 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               {nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}
             </div>
           </div>
-          <WAButton label={t.enquire} size="md" onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.enquire} size="md" onClick={onWhatsApp} />}
         </div>
       </div>
 
-      <AtSections pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} agency={agency} />
+      <AtSections pkg={pkg} isDesktop={false} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
       <AtReviews pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
 
       <AtCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
       <AtMobileFooter agency={agency} />
 
-      <StickyCTA price={pkg.price} nights={nights} label={t.enquire} onWhatsApp={onWhatsApp} lang={lang} />
+      <StickyCTA price={pkg.price} nights={nights} label={t.enquire} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
     </div>
   );
 }

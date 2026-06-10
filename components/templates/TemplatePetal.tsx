@@ -12,6 +12,7 @@ import {
   DContainer,
   DesktopFooter,
   getItineraryDays,
+  LightboxCarousel,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -63,7 +64,7 @@ function MobileTrustStrip({ t }: { t: typeof T["en"] }) {
 
 // ─── Room treatments ─────────────────────────────────────────────────────────
 
-function RoomTreatments({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"]; onWhatsApp: () => void }) {
+function RoomTreatments({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
   const tiers = (pkg.pricingTiers || []).filter(tier => tier.price);
   if (!tiers.length) return null;
@@ -105,14 +106,14 @@ function RoomTreatments({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lan
                 <div style={{ fontSize: 11, color: isFeature ? "rgba(255,255,255,0.55)" : SMUTED, marginBottom: 16 }}>
                   {t.couplesTreatmentLabel}
                 </div>
-                <button onClick={onWhatsApp} style={{
+                {onWhatsApp && <button onClick={onWhatsApp} style={{
                   width: "100%", padding: "11px", borderRadius: 10, border: "none", cursor: "pointer",
                   fontFamily: "inherit", fontSize: 13.5, fontWeight: 700,
                   background: isFeature ? "rgba(255,255,255,0.22)" : ROSE,
                   color: "#fff",
                 }}>
                   {t.bookWhatsApp}
-                </button>
+                </button>}
               </div>
             </div>
           );
@@ -122,7 +123,7 @@ function RoomTreatments({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lan
   );
 }
 
-function RoomTreatmentsDesktop({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"]; onWhatsApp: () => void }) {
+function RoomTreatmentsDesktop({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
   const tiers = (pkg.pricingTiers || []).filter(tier => tier.price);
   if (!tiers.length) return null;
@@ -159,13 +160,13 @@ function RoomTreatmentsDesktop({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg
                 <div style={{ fontSize: 13, color: isFeature ? "rgba(255,255,255,0.7)" : MUTED, marginBottom: 10 }}>{localizeTierLabel(tier.label, lang)}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 44, fontWeight: 400, letterSpacing: "-1px", lineHeight: 1, color: isFeature ? "#fff" : ROSE, marginBottom: 4 }}>{tier.price}</div>
                 <div style={{ fontSize: 11.5, color: isFeature ? "rgba(255,255,255,0.55)" : SMUTED, marginBottom: 22 }}>{t.couplesTreatmentLabel}</div>
-                <button onClick={onWhatsApp} style={{
+                {onWhatsApp && <button onClick={onWhatsApp} style={{
                   width: "100%", padding: "13px", borderRadius: 12, border: "none", cursor: "pointer",
                   fontFamily: "inherit", fontSize: 14, fontWeight: 700,
                   background: isFeature ? "rgba(255,255,255,0.2)" : ROSE, color: "#fff",
                 }}>
                   {t.bookWhatsApp}
-                </button>
+                </button>}
               </div>
             </div>
           );
@@ -177,7 +178,7 @@ function RoomTreatmentsDesktop({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg
 
 // ─── Designer closing panel ───────────────────────────────────────────────────
 
-function PetalDesignerPanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp: () => void }) {
+function PetalDesignerPanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
   const agent = pkg.agent;
   const firstName = agent?.name?.split(" ")[0] || agency.name;
@@ -217,7 +218,7 @@ function PetalDesignerPanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps
           </div>
         )}
       </div>
-      <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} full onClick={onWhatsApp} />
+      {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} full onClick={onWhatsApp} />}
       <button style={{
         width: "100%", marginTop: 10, padding: "12px", borderRadius: 10,
         border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
@@ -229,7 +230,7 @@ function PetalDesignerPanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps
   );
 }
 
-function PetalDesignerPanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp: () => void }) {
+function PetalDesignerPanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
   const agent = pkg.agent;
   const firstName = agent?.name?.split(" ")[0] || agency.name;
@@ -276,7 +277,7 @@ function PetalDesignerPanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPa
               )}
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-              <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} size="lg" onClick={onWhatsApp} />
+              {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} size="lg" onClick={onWhatsApp} />}
               <button style={{
                 padding: "14px 22px", borderRadius: 10,
                 border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
@@ -822,9 +823,9 @@ function PtPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
                     ))}
                   </ul>
                 )}
-                <button onClick={onWhatsApp} style={{ marginTop: 20, width: "100%", background: pop ? ROSE : "transparent", color: pop ? "#fff" : ROSE, border: `1px solid ${ROSE}`, padding: "12px 0", fontSize: 13.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
+                {pkg.whatsapp && <button onClick={onWhatsApp} style={{ marginTop: 20, width: "100%", background: pop ? ROSE : "transparent", color: pop ? "#fff" : ROSE, border: `1px solid ${ROSE}`, padding: "12px 0", fontSize: 13.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
                   {t.bookWhatsApp}
-                </button>
+                </button>}
               </article>
             );
           })}
@@ -912,6 +913,7 @@ function PtMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
   const videoUrl   = ((data?.videoUrl as string | undefined) ?? pkg.videoUrl ?? "").trim();
   const mapImage   = (data?.mapImage as string | undefined) ?? "";
   const mapCaption = (data?.mapCaption as string | undefined) ?? "";
+  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
   if (!images.length && !videoUrl && !mapImage) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
@@ -928,7 +930,7 @@ function PtMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
         {images.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: isDesktop ? undefined : "130px 130px", gap: 6, marginBottom: (videoUrl || mapImage) ? 32 : 0 }}>
             {(isDesktop ? images : images.slice(0, 3)).map((src, i) => (
-              <div key={i} style={{ overflow: "hidden", gridRow: !isDesktop && i === 0 ? "span 2" : undefined, aspectRatio: isDesktop ? "4/3" : undefined }}>
+              <div key={i} onClick={() => setLbIdx(i)} style={{ overflow: "hidden", gridRow: !isDesktop && i === 0 ? "span 2" : undefined, aspectRatio: isDesktop ? "4/3" : undefined, cursor: "pointer" }}>
                 <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
               </div>
             ))}
@@ -950,6 +952,7 @@ function PtMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop:
           </div>
         )}
       </div>
+      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
     </section>
   );
 }
@@ -1113,7 +1116,7 @@ function PtCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
-          <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
           {pkg.messenger && <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", padding: "14px 22px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>{t.vyMessenger}</button>}
         </div>
       </div>
@@ -1155,7 +1158,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   if (isDesktop) {
     return (
       <div style={{ minHeight: "100vh", background: PEACH, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={ROSE} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
+        <DesktopNav agency={agency} price={pkg.price} brand={ROSE} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Hero: text LEFT, arched image RIGHT (RTL-aware via order) */}
         <DContainer data-pmx-section="hero" style={{ padding: "80px 80px 64px" }}>
@@ -1171,7 +1174,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.72, margin: "0 0 28px" }}>{pkg.description}</p>
               <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 400, color: ROSE, letterSpacing: "-0.8px", marginBottom: 5, lineHeight: 1 }}>{pkg.price}</div>
               <div style={{ fontSize: 12, color: SMUTED, marginBottom: 24 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
-              <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
+              {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
             </div>
             <div style={{ order: isRtl ? 1 : 2, position: "relative", height: 560, borderRadius: "260px 260px 14px 14px", overflow: "hidden", background: INK }}>
               {coverImage
@@ -1203,7 +1206,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <PtHighlightsSection pkg={pkg} isDesktop={true} lang={lang} />
         <PtHotelsSection pkg={pkg} isDesktop={true} lang={lang} />
         <PtItinerarySection pkg={pkg} isDesktop={true} lang={lang} />
-        <RoomTreatmentsDesktop pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
+        <RoomTreatmentsDesktop pkg={pkg} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
         <PtInclusionsSection pkg={pkg} isDesktop={true} lang={lang} />
         <PtMediaSection pkg={pkg} isDesktop={true} />
         <PtTransfersSection pkg={pkg} isDesktop={true} lang={lang} />
@@ -1217,7 +1220,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         <PtReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <PtOtherPackagesSection pkg={pkg} isDesktop={true} lang={lang} agencySlug={agency.agencySlug} />
-        <PetalDesignerPanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
+        <PetalDesignerPanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
         <PtCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
         <DesktopFooter agency={agency} brand={ROSE} />
       </div>
@@ -1226,7 +1229,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
   return (
     <div style={{ minHeight: "100vh", background: PEACH, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={ROSE} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
+      <AgencyBar agency={agency} price={pkg.price} brand={ROSE} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Arched hero */}
       <div data-pmx-section="hero" style={{ padding: "0 18px" }}>
@@ -1252,7 +1255,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
           </h1>
           <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: ROSE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{pkg.price}</div>
           <div style={{ fontSize: 12, color: SMUTED, marginBottom: 18 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
-          <WAButton label={t.bookWhatsApp} full onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} full onClick={onWhatsApp} />}
         </div>
       </div>
 
@@ -1285,7 +1288,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       <PtHighlightsSection pkg={pkg} isDesktop={false} lang={lang} />
       <PtHotelsSection pkg={pkg} isDesktop={false} lang={lang} />
       <PtItinerarySection pkg={pkg} isDesktop={false} lang={lang} />
-      <RoomTreatments pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
+      <RoomTreatments pkg={pkg} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
       <PtInclusionsSection pkg={pkg} isDesktop={false} lang={lang} />
       <PtMediaSection pkg={pkg} isDesktop={false} />
       <PtTransfersSection pkg={pkg} isDesktop={false} lang={lang} />
@@ -1299,10 +1302,10 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       <PtReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
       <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
       <PtOtherPackagesSection pkg={pkg} isDesktop={false} lang={lang} agencySlug={agency.agencySlug} />
-      <PetalDesignerPanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
+      <PetalDesignerPanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
       <PtCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
       <PtMobileFooter agency={agency} />
-      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={onWhatsApp} lang={lang} />
+      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
     </div>
   );
 }

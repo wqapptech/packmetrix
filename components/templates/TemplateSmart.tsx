@@ -144,7 +144,7 @@ function SmStars({ rating }: { rating: number }) {
 function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
   s: NonNullable<TPackage["sections"]>[number];
   isDesktop: boolean;
-  onWhatsApp: () => void;
+  onWhatsApp?: () => void;
   lang: Lang;
   agency: TAgency;
 }) {
@@ -583,13 +583,13 @@ function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
                       ))}
                     </div>
                   )}
-                  <button onClick={onWhatsApp} style={{
+                  {onWhatsApp && <button onClick={onWhatsApp} style={{
                     width: "100%", padding: isDesktop ? "12px" : "10px", borderRadius: 10, border: "none",
                     cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
                     background: featured ? "rgba(255,255,255,0.2)" : SM.brand, color: "#fff",
                   }}>
                     {t.bookThisOption}
-                  </button>
+                  </button>}
                 </div>
               );
             })}
@@ -795,9 +795,9 @@ function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
                 </div>
                 {a.date && <div style={{ fontSize: 12, color: SM.muted, marginBottom: 4 }}>{a.date}</div>}
                 {a.price && <div style={{ fontSize: isDesktop ? 24 : 20, fontWeight: 800, color: SM.brand, letterSpacing: "-0.5px" }}>{a.price}</div>}
-                <button onClick={onWhatsApp} style={{ marginTop: 10, fontSize: 12, color: SM.brand, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+                {onWhatsApp && <button onClick={onWhatsApp} style={{ marginTop: 10, fontSize: 12, color: SM.brand, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
                   {t.bookThisFlight}
-                </button>
+                </button>}
               </div>
             ))}
           </div>
@@ -905,7 +905,7 @@ function SmGallerySection({ images, videoUrl, mapImage, isDesktop, lang, t }: {
 // ─── SmSections — render all sections in order ────────────────────────────────
 
 function SmSections({ pkg, isDesktop, onWhatsApp, lang, agency }: {
-  pkg: TPackage; isDesktop: boolean; onWhatsApp: () => void; lang: Lang; agency: TAgency;
+  pkg: TPackage; isDesktop: boolean; onWhatsApp?: () => void; lang: Lang; agency: TAgency;
 }) {
   const sections = pkg.sections;
 
@@ -980,9 +980,9 @@ function SmSections({ pkg, isDesktop, onWhatsApp, lang, agency }: {
                   <div style={{ fontSize: 12, color: i === 0 ? "rgba(255,255,255,0.7)" : SM.muted, marginBottom: 8 }}>{localizeTierLabel(tier.label, lang)}</div>
                   <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, color: i === 0 ? "#fff" : SM.ink }}>{tier.price}</div>
                   <div style={{ fontSize: 11, color: i === 0 ? "rgba(255,255,255,0.5)" : SM.superMuted, marginTop: 5, marginBottom: 14 }}>{t.perPerson}</div>
-                  <button onClick={onWhatsApp} style={{ width: "100%", padding: "10px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: i === 0 ? "rgba(255,255,255,0.2)" : SM.brand, color: "#fff" }}>
+                  {onWhatsApp && <button onClick={onWhatsApp} style={{ width: "100%", padding: "10px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: i === 0 ? "rgba(255,255,255,0.2)" : SM.brand, color: "#fff" }}>
                     {t.bookThisOption}
-                  </button>
+                  </button>}
                 </div>
               ))}
             </div>
@@ -1290,7 +1290,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   if (isDesktop) {
     return (
       <div style={{ minHeight: "100vh", background: SM.bg, color: SM.ink, fontFamily: FONT, direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={SM.brand} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
+        <DesktopNav agency={agency} price={pkg.price} brand={SM.brand} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Split hero: image left, text right */}
         <DContainer data-pmx-section="hero" style={{ padding: "56px 80px 48px" }}>
@@ -1310,7 +1310,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
                 <div style={{ fontSize: 14, color: SM.superMuted }}>{t.perPerson} · {t.allInSuffix}</div>
               </div>
               <div style={{ marginTop: 24 }}>
-                <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
+                {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
               </div>
             </div>
           </div>
@@ -1336,7 +1336,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
           </DContainer>
         )}
 
-        <SmSections pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} agency={agency} />
+        <SmSections pkg={pkg} isDesktop={true} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
         <SmReviews pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <SmCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
         <DesktopFooter agency={agency} brand={SM.brand} />
@@ -1346,7 +1346,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
   return (
     <div style={{ minHeight: "100vh", background: SM.bg, color: SM.ink, fontFamily: FONT, direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={SM.brand} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
+      <AgencyBar agency={agency} price={pkg.price} brand={SM.brand} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Hero */}
       <div data-pmx-section="hero" style={{ position: "relative", height: 230, overflow: "hidden" }}>
@@ -1400,15 +1400,15 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               {nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}
             </div>
           </div>
-          <WAButton label={t.bookWhatsApp} size="md" onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="md" onClick={onWhatsApp} />}
         </div>
       </div>
 
-      <SmSections pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} agency={agency} />
+      <SmSections pkg={pkg} isDesktop={false} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
       <SmReviews pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
       <SmCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
       <SmMobileFooter agency={agency} />
-      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={onWhatsApp} lang={lang} />
+      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
     </div>
   );
 }

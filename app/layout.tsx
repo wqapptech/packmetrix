@@ -10,9 +10,8 @@ import {
   Space_Grotesk,
   IBM_Plex_Mono,
   IBM_Plex_Sans,
+  IBM_Plex_Sans_Arabic,
   Source_Serif_4,
-  Noto_Sans_Arabic,
-  Noto_Naskh_Arabic,
   Newsreader,
 } from "next/font/google";
 import "./globals.css";
@@ -90,16 +89,10 @@ const sourceSerif = Source_Serif_4({
   style: ["normal", "italic"],
 });
 
-const notoSansArabic = Noto_Sans_Arabic({
-  variable: "--font-noto-sans-arabic",
+const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
+  variable: "--font-ibm-plex-sans-arabic",
   subsets: ["arabic"],
-  weight: ["400", "500", "600"],
-});
-
-const notoNaskhArabic = Noto_Naskh_Arabic({
-  variable: "--font-noto-naskh-arabic",
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "700"],
 });
 
 const newsreader = Newsreader({
@@ -122,7 +115,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} ${notoSansArabic.variable} ${notoNaskhArabic.variable} ${newsreader.variable} h-full`}
+      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} ${ibmPlexSansArabic.variable} ${newsreader.variable} h-full`}
       style={{ fontFamily: "var(--font-inter-tight), 'Inter Tight', system-ui, sans-serif" }}
     >
       <body className="h-full" style={{ fontFamily: "inherit" }}>
