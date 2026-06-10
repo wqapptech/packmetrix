@@ -282,7 +282,7 @@ function MobileLandingNav({ lang }: { lang: "en" | "ar" }) {
                   background: active ? DA_INK1 : "transparent",
                   color: active ? DA_BG : DA_INK2,
                   cursor: "pointer", userSelect: "none",
-                }} />
+                }}>{l}</div>
               );
             })}
           </div>
@@ -737,10 +737,10 @@ function ShotPaste({ lang }: { lang: "en" | "ar" }) {
     <ShotFrame url="packmetrix.com/builder" height={300}>
       <div dir={isAr ? "rtl" : "ltr"} style={{ padding: 18, height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase", color: DA_GOLD, marginBottom: 4 }}>
-          {isAr ? "خطوة البناء الهيكلي الأول الأول · 1 من 4" : "Guided workspace pipeline · 1 of 4"}
+          {isAr ? "الخطوة 1 من 4" : "Step 1 of 4"}
         </div>
         <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 400, color: DA_INK1, letterSpacing: -0.4, marginBottom: 12 }}>
-          {isAr ? "الصق نصوص ومسودات الباقة السياحية" : "Provide unformatted content input"}
+          {isAr ? "الصق تفاصيل باقتك" : "Paste your package"}
         </div>
         <div style={{
           flex: 1, background: DA_SURFACE2, border: `1px solid ${DA_RULE2}`,
@@ -775,10 +775,10 @@ function ShotPaste({ lang }: { lang: "en" | "ar" }) {
             borderRadius: 8, fontFamily: SANS, fontSize: 12.5, fontWeight: 600,
             display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
           }}>
-            <SparkSVG size={13} />{isAr ? "بدء الاستخراج الذكي الهيكلي" : "Extract & Deploy Framework"}
+            <SparkSVG size={13} />{isAr ? "ابنِ صفحتي" : "Build My Page"}
           </div>
           <span style={{ fontFamily: SANS, fontSize: 11.5, color: DA_INK3 }}>
-            {isAr ? "أو أدخل الحقول يدوياً بالكامل" : "or populate variables manually"}
+            {isAr ? "أو أدخل البيانات يدوياً" : "or fill in manually"}
           </span>
         </div>
       </div>
@@ -789,25 +789,25 @@ function ShotPaste({ lang }: { lang: "en" | "ar" }) {
 function ShotStructured({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
   const fields: [string, string][] = isAr ? [
-    ["الوجهة جغرافياً", "صلالة، سلطنة عُمان"], ["فئة التصنيف", "عطلات عائلية متكاملة"], ["ليالي المبيت", "٥ ليالٍ سياحية"],
-    ["السعر الإجمالي الصافي", "٢٬٩٥٠ ر.س للشخص"], ["مواصفات الإقامة", "منتجع فندق ٤ نجوم"], ["لوجستيات النقل", "سيارة خاصة وسائق شخصي"],
+    ["الوجهة", "صلالة، سلطنة عُمان"], ["الفئة", "عطلات عائلية"], ["الليالي", "٥ ليالٍ"],
+    ["السعر", "٢٬٩٥٠ ر.س للشخص"], ["الفندق", "منتجع ٤ نجوم"], ["المواصلات", "سيارة خاصة"],
   ] : [
-    ["Identified Destination", "Salalah, Oman"], ["Category Classification", "Multi-Gen Family Escape"], ["Calculated Nights", "5 nights holiday"],
-    ["Total Baseline Pricing", "2,950 SAR per guest"], ["Hospitality Asset", "4-star premium resort"], ["Logistical Transfers", "Private chauffeur services"],
+    ["Destination", "Salalah, Oman"], ["Category", "Family Holiday"], ["Nights", "5 nights"],
+    ["Price", "2,950 SAR / person"], ["Hotel", "4-star resort"], ["Transfers", "Private car"],
   ];
   const chips = isAr
-    ? ["طيران دولي", "إقامة فندقية", "تنقلات أرضية", "جولات خريفية", "خصم الأطفال ٢٥٪"]
-    : ["Aviation Routing", "Premium Stay", "Ground Logistics", "Curated Excursions", "Child Credit -25%"];
+    ? ["طيران", "فندق", "تنقلات", "جولات", "أطفال ٢٥٪"]
+    : ["Flights", "Hotel", "Transfers", "Excursions", "Kids -25%"];
   return (
     <ShotFrame url="packmetrix.com/builder" height={300}>
       <div dir={isAr ? "rtl" : "ltr"} style={{ padding: 18, height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div>
             <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase", color: DA_GOLD, marginBottom: 4 }}>
-              {isAr ? "مراجعة وتدقيق البيانات · 2 من 4" : "Data Verification Row · 2 of 4"}
+              {isAr ? "الخطوة 2 من 4" : "Step 2 of 4"}
             </div>
             <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 400, color: DA_INK1, letterSpacing: -0.4 }}>
-              {isAr ? "راجِع وقُم بتدقيق قيم الحقول المستخرجة" : "Verify and map extracted variables"}
+              {isAr ? "راجع التفاصيل" : "Review the details"}
             </div>
           </div>
           <div style={{
@@ -815,7 +815,7 @@ function ShotStructured({ lang }: { lang: "en" | "ar" }) {
             padding: "4px 9px", background: DA_GREEN_SOFT, color: DA_GREEN,
             borderRadius: 999, fontFamily: SANS, fontSize: 10.5, fontWeight: 600,
           }}>
-            <SparkSVG size={10} />{isAr ? "عُبِّئت تلقائياً بنجاح" : "Variables mapped automatically"}
+            <SparkSVG size={10} />{isAr ? "مُعبّأة تلقائياً" : "Auto-filled"}
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
@@ -828,7 +828,7 @@ function ShotStructured({ lang }: { lang: "en" | "ar" }) {
         </div>
         <div style={{ marginTop: 12 }}>
           <div style={{ fontFamily: SANS, fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: "uppercase", color: DA_INK3, marginBottom: 7 }}>
-            {isAr ? "الخدمات والمزايا المشمولة بالكامل في التكلفة" : "Guaranteed package inclusions master list"}
+            {isAr ? "المشمولات" : "What's included"}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {chips.map((c, i) => (
@@ -846,7 +846,7 @@ function ShotStructured({ lang }: { lang: "en" | "ar" }) {
             padding: "8px 15px", background: DA_GOLD, color: "#fff",
             borderRadius: 8, fontFamily: SANS, fontSize: 12, fontWeight: 600,
             display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
-          }}>{isAr ? "متابعة الخطوة التالية" : "Advance design parameters"}</div>
+          }}>{isAr ? "التالي" : "Continue"}</div>
         </div>
       </div>
     </ShotFrame>
@@ -861,10 +861,10 @@ function ShotTemplates({ lang }: { lang: "en" | "ar" }) {
     <ShotFrame url="packmetrix.com/builder" height={300}>
       <div dir={isAr ? "rtl" : "ltr"} style={{ padding: 18, height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase", color: DA_GOLD, marginBottom: 4 }}>
-          {isAr ? "محاذاة القالب الفني البصري · 3 من 4" : "Presentation Style Selector · 3 of 4"}
+          {isAr ? "الخطوة 3 من 4" : "Step 3 of 4"}
         </div>
         <div style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 400, color: DA_INK1, letterSpacing: -0.4, marginBottom: 12 }}>
-          {isAr ? "اختر النمط البصري المناسب لباقتك السياحية" : "Align layout portfolio preset theme"}
+          {isAr ? "اختر قالبك" : "Choose your template"}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, flex: 1 }}>
           {ids.map(id => {
@@ -928,8 +928,8 @@ function ShotPublished({ lang }: { lang: "en" | "ar" }) {
         display: "flex", gap: 16,
       }}>
         {[
-          { v: isAr ? "١٬٢٨٤" : "1,284", l: isAr ? "مشاهدة حقيقية" : "impressions logged", gold: false },
-          { v: isAr ? "٢٣+"   : "+23 threads",   l: isAr ? "عميل مستهدف"   : "captured leads",   gold: true  },
+          { v: isAr ? "١٬٢٨٤" : "1,284", l: isAr ? "مشاهدة" : "views", gold: false },
+          { v: isAr ? "٢٣+"   : "+23",   l: isAr ? "عميل محتمل"   : "leads",   gold: true  },
         ].map((s, i) => (
           <div key={i}>
             <div style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 400, color: s.gold ? DA_GOLD : DA_INK1, letterSpacing: -0.5, lineHeight: 1 }}>{s.v}</div>
@@ -1023,10 +1023,10 @@ function MobileLandingHowItWorks({ lang }: { lang: "en" | "ar" }) {
     title: "من باقتك إلى صفحة بيع مباشرة",
     titleAccent: "في دقائق معدودة.",
     steps: [
-      { title: "1. الصق نصوص مسودات الباقة السياحية", body: "الصق العرض والأسعار كما ترسلها على مجموعات الواتساب تماماً — يدعم عربي، إنجليزي، أو لغتين متزامنتين بمرونة." },
-      { title: "2. معالجة وهيكلة آلية بالذكاء الاصطناعي", body: "تحديد دقيق ومؤتمت قيم حقول الوجهة الجغرافية، ليالي المبيت، السعر المبدئي والمشمولات مع صلاحية تعديل فورية." },
-      { title: "3. اختيار القالب والسمة الفنية للتصميم", body: "تطبيق النمط البصري المناسب لباقتك من محفظة القوالب (عطلات عائلية، مزارات دينية، مغامرات وعرة) ومحاكاة محتواك." },
-      { title: "4. نشر الرابط وتتبع صفقات المبيعات حياً", body: "احصل على صفحة هبوط احترافية مستضافة بنطاقك المخصص الموصول، شارك الرابط بضغطة واحدة وتابع مبيعات صندوق الوارد." },
+      { title: "1. الصق تفاصيل باقتك", body: "الصق أي رسالة واتساب أو مسودة — عربي، إنجليزي، أو لغتين." },
+      { title: "2. الذكاء الاصطناعي يبني صفحتك", body: "يستخرج الذكاء الاصطناعي الوجهة، الأسعار، والمشمولات ويملأ الحقول تلقائياً." },
+      { title: "3. اختر قالباً", body: "اختر من 10 قوالب احترافية وشاهد محتواك الحقيقي فوراً." },
+      { title: "4. انشر وتابع العملاء", body: "صفحة مستضافة على نطاقك، شارك رابطاً واحداً وتابع الاستفسارات." },
     ],
   } : {
     eyebrow: "How It Works",
@@ -1489,7 +1489,7 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
     title: "خطة واحدة، كل شيء مشمول.",
     titleAccent: "اقفل سعر الإطلاق مدى الحياة.",
     sub: "أول 50 وكالة تسجّل الآن تقفل السعر عند 39 € شهرياً للأبد. بعد ذلك، السعر 79 € للمشتركين الجدد.",
-    chip: "سعر الإطلاق · 50 مقعداً فقط", planName: "خطة سعر الإطلاق", perMonth: "/شهرياً",
+    chip: "وصول مبكر · 50 مقعداً فقط", planName: "خطة المؤسسين", perMonth: "/شهرياً",
     locked: "سعر ثابت مدى الحياة · 79 € للمشتركين الجدد لاحقاً",
     spotsLine: spotsRemaining !== null ? `متبقي ${spotsRemaining} مقعداً بسعر الإطلاق` : "مقعد واحد متبقٍ بسعر الإطلاق",
     monthly: "شهري", annual: "سنوي", annualSave: "وفّر 17%",
@@ -1505,8 +1505,8 @@ function LandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spotsRema
     title: "One plan, everything included.",
     titleAccent: "Lock in the launch price for life.",
     sub: "The first 50 agencies to sign up lock in €39/mo forever. After that, new signups pay €79/mo.",
-    chip: "Early access · 50 spots total", planName: "Launch pricing plan", perMonth: "/mo",
-    locked: "Lifetime price lock · rises to €79/mo for new signups after launch",
+    chip: "Early access · 50 spots total", planName: "Founding Plan", perMonth: "/mo",
+    locked: "Lifetime price lock · €79/mo for new signups after launch",
     spotsLine: spotsRemaining !== null ? `${spotsRemaining} spots remaining at launch price` : "1 spot remaining at launch price",
     monthly: "Monthly", annual: "Annual", annualSave: "Save 17%",
     included: "Everything included",
@@ -1622,7 +1622,7 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
   const L = isAr ? {
     eyebrow: "الأسعار", title: "خطة واحدة، كل شيء مشمول.", titleAccent: "اقفل سعر الإطلاق مدى الحياة.",
     spotsLine: spotsRemaining !== null ? `متبقي ${spotsRemaining} مقعداً بسعر الإطلاق` : "مقعد واحد متبقٍ بسعر الإطلاق",
-    chip: "سعر الإطلاق · 50 مقعداً فقط", planName: "خطة سعر الإطلاق", perMonth: "/شهرياً",
+    chip: "وصول مبكر · 50 مقعداً فقط", planName: "خطة المؤسسين", perMonth: "/شهرياً",
     locked: "سعر ثابت مدى الحياة · 79 € للمشتركين الجدد لاحقاً",
     items: ["نشر باقات سياحية غير محدودة", "جميع القوالب الـ 10 مفتوحة بالكامل", "نطاق مخصص + SSL تلقائي", "صندوق الوارد المركزي (واتساب وماسنجر)", "تصدير قوائم المسافرين كـ CSV", "تحليلات كاملة بدون قيود", "مكتبة صور سفر احترافية"],
     cta: "ابدأ تجربتك المجانية — اقفل سعر 39 €",
@@ -1634,8 +1634,8 @@ function MobileLandingPricing({ lang, spotsRemaining }: { lang: "en" | "ar"; spo
     title: "One plan, everything included.",
     titleAccent: "Lock in the launch price for life.",
     spotsLine: spotsRemaining !== null ? `${spotsRemaining} spots remaining at launch price` : "1 spot remaining at launch price",
-    chip: "Early access · 50 spots total", planName: "Launch pricing plan", perMonth: "/mo",
-    locked: "Lifetime price lock · rises to €79/mo for new signups after launch",
+    chip: "Early access · 50 spots total", planName: "Founding Plan", perMonth: "/mo",
+    locked: "Lifetime price lock · €79/mo for new signups after launch",
     items: ["Publish unlimited travel packages", "All 10 templates, fully unlocked", "Custom domain + automatic SSL", "Central lead inbox (WhatsApp & Messenger)", "Export traveler lists as CSV", "Full analytics history, no data caps", "Premium travel photo & video library"],
     cta: "Start free trial — lock in €39/mo",
     trust: `${TRIAL_DAYS}-day free trial · No credit card required · Cancel anytime`,
@@ -1710,11 +1710,11 @@ function WASvg() {
 function DemoSuccessCard({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";
   const t = isAr ? {
-    title: "تم جدولة جلستك الاستشارية بنجاح!",
-    sub: "سيتواصل معك مستشار مبيعات السفر لدينا عبر الواتساب خلال ٢٤ ساعة لتأكيد وتنسيق موعد العرض التوضيحي المخصص لوكالتك السياحية المتميزة.",
+    title: "تم الحجز بنجاح!",
+    sub: "سنتواصل معك عبر الواتساب خلال ٢٤ ساعة لتأكيد الموعد.",
   } : {
-    title: "Product demonstration walkthrough registered!",
-    sub: "An assigned workspace optimization advisor records your query and dispatches standard synchronization metrics straight to your text framework inside 24 hours.",
+    title: "You're all set!",
+    sub: "We'll reach out via WhatsApp within 24 hours to confirm your demo.",
   };
   return (
     <div style={{
@@ -1748,33 +1748,33 @@ function LandingDemo({ lang }: { lang: "en" | "ar" }) {
   const [serverError, setServerError] = useState("");
 
   const L = isAr ? {
-    eyebrow: "طلب عرض توضيحي مباشر وجلسة استشارية خاصة",
-    title: "شاهد كفاءة أدوات منصة PackMetrix",
-    titleAccent: "وهي تعمل مباشرة على عروضك.",
-    sub: "سنرافقك خطوة بخطوة في جلسة قصيرة لنريك كيف تقوم أنظمتنا ببناء ونشر أول صفحة باقة سفر فاخرة لوكالتك في أقل من ١٠ دقائق — مستخدمين نصوص وصور عروضك السياحية الحقيقية.",
-    labelName: "اسمك الكريم الكامل", labelAgency: "الاسم التجاري الرسمي للوكالة",
-    labelWA: "رقم واتساب الأعمال الفعال للخدمة", labelEmail: "البريد الإلكتروني للعمل", labelMessage: "ملاحظات إضافية وتطلعات شركتك السياحية",
-    optional: "(حقل اختياري)",
-    placeholderName: "مثال: عبد الرحمن بن سلمان", placeholderAgency: "مثال: وكالة آفاق السفر الفاخرة",
+    eyebrow: "احجز عرضاً توضيحياً",
+    title: "شاهد PackMetrix",
+    titleAccent: "وهي تعمل على باقاتك.",
+    sub: "في ١٠ دقائق، سنبني أول صفحة باقة لوكالتك مباشرة أمامك — باستخدام محتواك الحقيقي.",
+    labelName: "اسمك", labelAgency: "اسم الوكالة",
+    labelWA: "رقم الواتساب", labelEmail: "البريد الإلكتروني", labelMessage: "رسالة",
+    optional: "(اختياري)",
+    placeholderName: "مثال: عبد الرحمن بن سلمان", placeholderAgency: "مثال: وكالة آفاق السفر",
     placeholderWA: "مثال: 4567 123 55 966+", placeholderEmail: "corporate@youragency.com",
-    placeholderMessage: "أخبرنا باختصار عن فئات ونوعية باقات وعروض السفر التي تقوم وكالتك بتنظيمها والترويج لها…",
-    cta: "تأكيد حجز موعد العرض التوضيحي المفسر", submitting: "جاري تقييد طلب الاستشارة وإرسال البيانات…",
-    errRequired: "هذا الحقل الإداري مطلوب ومفتاح إلزامي للتوثيق", errPhone: "صيغة غير مدعومة: أدخل رقم واتساب صحيحاً وشاملاً رمز الدولة التزاماً باللوائح",
-    errEmail: "صيغة غير مدعومة: أدخل عنوان بريد إلكتروني صحيح ومطابق لقواعد النطاقات", errServer: "حدث خطأ غير متوقع أثناء معالجة إرسال طلبك. يرجى مراجعة البيانات والمحاولة مجدداً.",
+    placeholderMessage: "أخبرنا باختصار عن وكالتك…",
+    cta: "احجز العرض التوضيحي", submitting: "جارٍ الإرسال…",
+    errRequired: "هذا الحقل مطلوب.", errPhone: "أدخل رقم واتساب صحيح مع رمز الدولة.",
+    errEmail: "أدخل عنوان بريد إلكتروني صحيح.", errServer: "حدث خطأ. يرجى المحاولة مجدداً.",
   } : {
-    eyebrow: "Schedule a Managed Capabilities Briefing",
-    title: "Review workspace optimization models",
-    titleAccent: "running live across your content blueprints.",
-    sub: "We will demonstrate how to extract, configure, and publish your initial conversion-optimized page layout framework in under ten minutes flat utilizing your raw travel copy.",
-    labelName: "Your registered full name", labelAgency: "Official travel enterprise name syntax",
-    labelWA: "WhatsApp number input", labelEmail: "Corporate email address string", labelMessage: "General system feedback fields notes",
-    optional: "(optional variable argument)",
+    eyebrow: "Book a Demo",
+    title: "See PackMetrix in action,",
+    titleAccent: "live on your packages.",
+    sub: "We'll build your first package page live in under 10 minutes — using your own content.",
+    labelName: "Your name", labelAgency: "Travel agency name",
+    labelWA: "WhatsApp number", labelEmail: "Email address", labelMessage: "Message",
+    optional: "(optional)",
     placeholderName: "e.g., Sarah Jenkins", placeholderAgency: "e.g., Heritage Horizons Travel",
     placeholderWA: "e.g., +31 6 1234 5678", placeholderEmail: "info@horizons.travel",
-    placeholderMessage: "Detail your operational volume projections or mention target luxury presentation templates needed…",
-    cta: "Submit briefing request documentation", submitting: "Processing secure token generation loops…",
-    errRequired: "Validation constraint check failed. Required field properties value input missing syntax layout rules.", errPhone: "String schema violation. Supply a syntactically correct WhatsApp line framework rule parameters.",
-    errEmail: "String layout violation. Provide a correct destination corporate mail string format syntax parameter.", errServer: "Server connection timeout error occurred. Please force interface processing loops update and submit again.",
+    placeholderMessage: "Tell us about your agency and the packages you sell…",
+    cta: "Book my demo", submitting: "Sending…",
+    errRequired: "This field is required.", errPhone: "Please enter a valid WhatsApp number with country code.",
+    errEmail: "Please enter a valid email address.", errServer: "Something went wrong. Please try again.",
   };
 
   function isValidPhone(val: string) { return /^\d{7,15}$/.test(val.replace(/[^\d]/g, "")); }
@@ -1932,33 +1932,33 @@ function MobileLandingDemo({ lang }: { lang: "en" | "ar" }) {
   const [serverError, setServerError] = useState("");
 
   const L = isAr ? {
-    eyebrow: "عرض توضيحي للمنصة وجلسة استشارية خاصة",
-    title: "شاهد أنظمة PackMetrix",
+    eyebrow: "احجز عرضاً توضيحياً",
+    title: "شاهد PackMetrix",
     titleAccent: "وهي تعمل مباشرة.",
-    sub: "سنرافقك خطوة بخطوة لنريك كيف تنشر أول صفحة باقة سفر سياحية فاخرة ومحسنة مبيعات لوكالتك في أقل من ١٠ دقائق.",
-    labelName: "اسمك الكريم الكامل", labelAgency: "الاسم التجاري للوكالة",
-    labelWA: "رقم واتساب الفعال للخدمة", labelEmail: "البريد الإلكتروني للعمل", labelMessage: "ملاحظات إضافية وتطلعات شركتك السياحية",
+    sub: "في ١٠ دقائق، سنبني أول صفحة باقة لوكالتك مباشرة أمامك.",
+    labelName: "اسمك", labelAgency: "اسم الوكالة",
+    labelWA: "رقم الواتساب", labelEmail: "البريد الإلكتروني", labelMessage: "رسالة",
     optional: "(اختياري)",
     placeholderName: "محمد أحمد", placeholderAgency: "وكالة النجوم للسفر",
     placeholderWA: "+966 55 123 4567", placeholderEmail: "corporate@youragency.com",
-    placeholderMessage: "أخبرنا باختصار عن وكالتك ونوعية عروض السفر التي تنظمها…",
-    cta: "تأكيد حجز موعد العرض التوضيحي", submitting: "جاري تقييد طلب الاستشارة وإرسال البيانات…",
-    errRequired: "هذا الحقل مطلوب ومفتاح إلزامي للتوثيق", errPhone: "أدخل رقم واتساب صحيحاً وشاملاً رمز الدولة التزاماً باللوائح",
-    errEmail: "أدخل عنوان بريد إلكتروني صحيح ومطابق لقواعد النطاقات", errServer: "حدث خطأ غير متوقع. يرجى المحاولة مجدداً.",
+    placeholderMessage: "أخبرنا باختصار عن وكالتك…",
+    cta: "احجز العرض التوضيحي", submitting: "جارٍ الإرسال…",
+    errRequired: "هذا الحقل مطلوب.", errPhone: "أدخل رقم واتساب صحيح مع رمز الدولة.",
+    errEmail: "أدخل عنوان بريد إلكتروني صحيح.", errServer: "حدث خطأ. يرجى المحاولة مجدداً.",
   } : {
-    eyebrow: "Request Product Demo Walkthrough",
-    title: "See PackMetrix tools",
-    titleAccent: "running live natively.",
-    sub: "We will demonstrate how to configure and deploy your initial conversion-optimized travel landing framework in under ten minutes flat.",
-    labelName: "Your full name", labelAgency: "Travel agency name syntax",
-    labelWA: "WhatsApp number input", labelEmail: "Corporate email address", labelMessage: "General feedback properties notes",
-    optional: "(optional variable argument)",
+    eyebrow: "Book a Demo",
+    title: "See PackMetrix",
+    titleAccent: "in action.",
+    sub: "We'll build your first package page live — using your own content, in under 10 minutes.",
+    labelName: "Your name", labelAgency: "Travel agency name",
+    labelWA: "WhatsApp number", labelEmail: "Email address", labelMessage: "Message",
+    optional: "(optional)",
     placeholderName: "Sarah Jenkins", placeholderAgency: "Bespoke Voyages Co.",
     placeholderWA: "+31 6 1234 5678", placeholderEmail: "info@youragency.com",
-    placeholderMessage: "Detail your operational challenges or project volumes…",
-    cta: "Submit briefing request documentation", submitting: "Processing secure token generation loops…",
-    errRequired: "Validation check failed. Required field properties value missing parameter syntax.", errPhone: "String schema format error. Supply a correct WhatsApp line parameter structure.",
-    errEmail: "String layout violation. Provide a valid email target address format syntax parameter.", errServer: "Server connection dropped during authorization loops. Please retry setup execution shortly.",
+    placeholderMessage: "Tell us about your agency…",
+    cta: "Book my demo", submitting: "Sending…",
+    errRequired: "This field is required.", errPhone: "Please enter a valid WhatsApp number with country code.",
+    errEmail: "Please enter a valid email address.", errServer: "Something went wrong. Please try again.",
   };
 
   function isValidPhone(val: string) { return /^\d{7,15}$/.test(val.replace(/[^\d]/g, "")); }
@@ -2020,10 +2020,10 @@ function MobileLandingDemo({ lang }: { lang: "en" | "ar" }) {
             <CheckSVG size={18} />
           </div>
           <div style={{ fontFamily: DISPLAY, fontSize: 24, color: DA_INK1, marginBottom: 8 }}>
-            {isAr ? "تم حجز وجدولة طلبك بنجاح!" : "Walkthrough loop registered successfully!"}
+            {isAr ? "تم الحجز!" : "You're booked!"}
           </div>
           <p style={{ margin: 0, fontFamily: SANS, fontSize: 14, color: DA_INK2, lineHeight: 1.6 }}>
-            {isAr ? "سنتواصل معك عبر واتساب الأعمال خلال ٢٤ ساعة لتأكيد وتنسيق موعد جلستك الاستشارية الخاصة." : "An assigned advisor confirms variables and reaches out directly inside 24 hours."}
+            {isAr ? "سنتواصل معك عبر الواتساب خلال ٢٤ ساعة." : "We'll reach out via WhatsApp within 24 hours to confirm."}
           </p>
         </div>
       ) : (
@@ -2233,39 +2233,39 @@ function ContactModal({ open, onClose, isAr }: { open: boolean; onClose: () => v
         {status === "sent" ? (
           <div style={{ textAlign: "center", padding: "12px 0" }}>
             <div style={{ width: 48, height: 48, borderRadius: "50%", background: DA_GREEN_SOFT, color: DA_GREEN, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 16 }}>✓</div>
-            <div style={{ fontFamily: DISPLAY, fontSize: 22, color: DA_INK1, marginBottom: 8 }}>{isAr ? "تم إرسال رسالتك بنجاح تامة!" : "Operational notice logged successfully!"}</div>
-            <p style={{ fontFamily: SANS, fontSize: 14, color: DA_INK2, margin: "0 0 24px" }}>{isAr ? "سيقوم مستشار السفر لدينا بالرد ومراجعة ملفك في أقرب وقت ممكن بمصداقية." : "Our administrative helpdesk traces structural data fields loops and responds inside short limits."}</p>
+            <div style={{ fontFamily: DISPLAY, fontSize: 22, color: DA_INK1, marginBottom: 8 }}>{isAr ? "تم إرسال رسالتك!" : "Message sent!"}</div>
+            <p style={{ fontFamily: SANS, fontSize: 14, color: DA_INK2, margin: "0 0 24px" }}>{isAr ? "سنرد عليك في أقرب وقت ممكن." : "We'll get back to you as soon as possible."}</p>
             <button onClick={onClose} style={{ padding: "10px 28px", background: DA_INK1, color: DA_BG, border: "none", borderRadius: 8, fontFamily: SANS, fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
-              {isAr ? "إغلاق النافذة والعودة" : "Dismiss view context"}
+              {isAr ? "إغلاق" : "Close"}
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
-            <div style={{ fontFamily: DISPLAY, fontSize: 22, color: DA_INK1, marginBottom: 6 }}>{isAr ? "فتح خط اتصال مباشر وقنوات المراسلة" : "Open communication line framework"}</div>
-            <p style={{ fontFamily: SANS, fontSize: 14, color: DA_INK2, margin: "0 0 22px" }}>{isAr ? "أرسل لنا تفاصيل استفسارك اللوجستي أو التقني وسيقوم المنسق بالرد الفوري بوضوح." : "Dispatched data payloads map directly to remote lookup verification sweeps."}</p>
+            <div style={{ fontFamily: DISPLAY, fontSize: 22, color: DA_INK1, marginBottom: 6 }}>{isAr ? "تواصل معنا" : "Contact Us"}</div>
+            <p style={{ fontFamily: SANS, fontSize: 14, color: DA_INK2, margin: "0 0 22px" }}>{isAr ? "أرسل لنا رسالة وسنرد في أقرب وقت." : "Send us a message and we'll get back to you."}</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "موضوع الرسالة الرئيسي" : "Explicit Message Subject"}</div>
-                <input style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} placeholder={isAr ? "ما هو عنوان استفسارك؟" : "What category parameters require audit?"} required />
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "الموضوع" : "Subject"}</div>
+                <input style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} placeholder={isAr ? "ما هو موضوع رسالتك؟" : "What's your question?"} required />
               </div>
               <div>
-                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "تفاصيل نص الاستفسار الميداني" : "Experiential Description Copy Block"}</div>
-                <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 100 }} value={description} onChange={e => setDescription(e.target.value)} placeholder={isAr ? "اكتب هنا بالتفصيل ما ترغب في استيضاحه من لوائح أو ميزات…" : "Enter unformatted query notes directly here…"} required />
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "رسالتك" : "Message"}</div>
+                <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 100 }} value={description} onChange={e => setDescription(e.target.value)} placeholder={isAr ? "اكتب هنا ما ترغب في استيضاحه…" : "Describe your question or request…"} required />
               </div>
               <div>
-                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "عنوان بريدك الإلكتروني الرسمي للمتابعة" : "Authenticated corporate destination mail address"}</div>
-                <input type="email" style={inputStyle} value={email} placeholder="corporate@agency.com" required />
+                <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 600, color: DA_INK3, marginBottom: 5 }}>{isAr ? "بريدك الإلكتروني" : "Your email"}</div>
+                <input type="email" style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="corporate@agency.com" required />
               </div>
             </div>
             {status === "error" && (
-              <p style={{ fontFamily: SANS, fontSize: 12.5, color: "#c0392b", margin: "12px 0 0" }}>{isAr ? "تعذر تأمين الاتصال بقواعد البيانات. يرجى مراجعة الشبكة وإعادة المحاولة." : "Server handshake failure mapped. Retry dispatch token sequence block loop."}</p>
+              <p style={{ fontFamily: SANS, fontSize: 12.5, color: "#c0392b", margin: "12px 0 0" }}>{isAr ? "حدث خطأ. يرجى المحاولة مجدداً." : "Something went wrong. Please try again."}</p>
             )}
             <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
               <button type="button" onClick={onClose} style={{ flex: 1, padding: "11px 0", background: "transparent", border: `1px solid ${DA_RULE2}`, borderRadius: 8, fontFamily: SANS, fontSize: 13.5, color: DA_INK2, cursor: "pointer" }}>
-                {isAr ? "إلغاء الإجراء والعودة" : "Drop inputs setup adjustment layouts"}
+                {isAr ? "إلغاء" : "Cancel"}
               </button>
               <button type="submit" disabled={status === "sending"} style={{ flex: 2, padding: "11px 0", background: DA_GOLD, color: "#fff", border: "none", borderRadius: 8, fontFamily: SANS, fontSize: 13.5, fontWeight: 600, cursor: "pointer", opacity: status === "sending" ? 0.7 : 1 }}>
-                {status === "sending" ? (isAr ? "جاري معالجة الإرسال السحابي…" : "Processing data write maps…") : (isAr ? "تأكيد إرسال رسالتي الفورية" : "Publish feedback brief properties")}
+                {status === "sending" ? (isAr ? "جارٍ الإرسال…" : "Sending…") : (isAr ? "إرسال" : "Send message")}
               </button>
             </div>
           </form>
@@ -2282,25 +2282,25 @@ function LandingFooter({ lang }: { lang: "en" | "ar" }) {
   const [contactOpen, setContactOpen] = useState(false);
 
   const L = isAr ? {
-    tagline: "منظومة ونظم صفحات الهبوط الاحترافية الذكية لوكالات السفر والبعثات الميدانية — تنشر البرامج الاحترافية، تحلل أداء القنوات، وتضاعف عقود مبيعات السفر بكفاءة وأمان.",
+    tagline: "صفحات هبوط لوكالات السفر — انشر باقاتك، تتبع العملاء، وأنمِ مبيعاتك.",
     cols: [
-      { head: "المنتج وأدوات التشغيل", links: [{ label: "المزايا البرمجية الاستراتيجية", href: "#product" }, { label: "قوالب التصميم واجهات العرض البصري", href: "/templates" }, { label: "خطط الأسعار والاشتراكات المادية للأنظمة", href: "#pricing" }, { label: "تسجيل الدخول لمحيط لوحة عمليات الوكالة", href: `${AGENCY_URL}/login` }] },
-      { head: "الموارد والأدلة اللوجستية", links: [{ label: "دليل مسار العمليات الرقمية للوكالة", href: "#how-it-works" }, { label: "فتح خط اتصال مباشر وقنوات المراسلة", contact: true }] },
-      { head: "الوثائق القانونية والحوكمة والامتثال", links: [{ label: "وثيقة وسياسة حماية البيانات وخصوصية الزوار والمستخدمين", href: "/privacy" }, { label: "وثيقة شروط واتفاقية تقديم الخدمة والالتزامات", href: "/terms" }, { label: "اتفاقية معالجة وحماية البيانات الفيدرالية المبرمجة", href: "/dpa" }] },
+      { head: "المنتج", links: [{ label: "المزايا", href: "#product" }, { label: "القوالب", href: "/templates" }, { label: "الأسعار", href: "#pricing" }, { label: "تسجيل الدخول", href: `${AGENCY_URL}/login` }] },
+      { head: "الموارد", links: [{ label: "كيف يعمل", href: "#how-it-works" }, { label: "تواصل معنا", contact: true }] },
+      { head: "قانوني", links: [{ label: "سياسة الخصوصية", href: "/privacy" }, { label: "شروط الاستخدام", href: "/terms" }, { label: "DPA", href: "/dpa" }] },
     ],
-    operator: "تشغيل وإدارة البنية التحتية وهندسة الخادم برعاية · WQ AppTech",
-    operatorSub: "مؤسسة فردية مسجلة وخاضعة لأحكام وقوانين السجل التجاري والشركات في مملكة هولندا · KvK 91019001",
-    copy: "© ٢٠٢٦ باكميتركس لذكاء باقات السفر السياحية. جميع الحقوق القانونية، العلامات التجارية والأصول البرمجية محفوظة بالكامل وبصفة عالمية ومسجلة.",
+    operator: "تشغيل وإدارة بواسطة WQ AppTech",
+    operatorSub: "مسجلة في هولندا · KvK 91019001",
+    copy: "© ٢٠٢٦ PackMetrix. جميع الحقوق محفوظة.",
   } : {
-    tagline: "Next-Gen Travel Package Conversion Intelligence — empowering specialized travel agencies to publish professionally, evaluate performance scientifically, and scale conversions seamlessly.",
+    tagline: "Landing pages for travel agencies — publish packages, track leads, and grow bookings.",
     cols: [
-      { head: "Platform Core Engine Tools", links: [{ label: "Advanced Generative AI Capabilities Suite", href: "#product" }, { label: "Layout Themes Portfolio Selector", href: "/templates" }, { label: "Subscription Framework Tiers Layout", href: "#pricing" }, { label: "Authenticated dashboard workspace manager terminal", href: `${AGENCY_URL}/login` }] },
-      { head: "Operational Guides Indexes", links: [{ label: "From unstyled travel text updates to published URL asset workflow", href: "#how-it-works" }, { label: "Open communication line framework interface", contact: true }] },
-      { head: "Governance & Compliance Regulatory paths", links: [{ label: "Privacy Policy Framework Rules Guidelines Documentation", href: "/privacy" }, { label: "Terms of Operational Service Agreement Compliance Contracts", href: "/terms" }, { label: "Data Processing Amendment (DPA) security parameters files", href: "/dpa" }] },
+      { head: "Product", links: [{ label: "Features", href: "#product" }, { label: "Templates", href: "/templates" }, { label: "Pricing", href: "#pricing" }, { label: "Log in", href: `${AGENCY_URL}/login` }] },
+      { head: "Resources", links: [{ label: "How it works", href: "#how-it-works" }, { label: "Contact us", contact: true }] },
+      { head: "Legal", links: [{ label: "Privacy Policy", href: "/privacy" }, { label: "Terms of Service", href: "/terms" }, { label: "DPA", href: "/dpa" }] },
     ],
-    operator: "System framework architected and hosted under enterprise operations layer · WQ AppTech",
-    operatorSub: "Eenmanszaak compliance structure officially logged under corporate registry acts within the Kingdom of the Netherlands · KvK 91019001",
-    copy: "© 2026 PackMetrix International Core Environments. All corporate rights and proprietary assets reserved universally.",
+    operator: "Built and operated by WQ AppTech",
+    operatorSub: "Registered in the Netherlands · KvK 91019001",
+    copy: "© 2026 PackMetrix. All rights reserved.",
   };
 
   const linkStyle: React.CSSProperties = { fontFamily: SANS, fontSize: 13, color: DA_INK1, cursor: "pointer", textDecoration: "none" };
@@ -2323,9 +2323,9 @@ function LandingFooter({ lang }: { lang: "en" | "ar" }) {
                 <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.3, textTransform: "uppercase", color: DA_INK3, marginBottom: 14 }}>{col.head}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {col.links.map((link, j) => (
-                    link.contact
-                      ? <button key={j} onClick={() => setContactOpen(true)} style={{ ...linkStyle, background: "none", border: "none", padding: 0, textAlign: isAr ? "right" : "left" }}>{link.label}</button>
-                      : <a key={j} href={link.href} style={linkStyle}>{link.label}</a>
+                    "contact" in link
+                      ? <button key={j} type="button" onClick={() => setContactOpen(true)} style={{ ...linkStyle, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: isAr ? "right" : "left" }}>{link.label}</button>
+                      : <a key={j} href={(link as any).href} style={linkStyle}>{link.label}</a>
                   ))}
                 </div>
               </div>
@@ -2350,21 +2350,21 @@ function MobileLandingFooter({ lang }: { lang: "en" | "ar" }) {
   const [contactOpen, setContactOpen] = useState(false);
 
   const L = isAr ? {
-    tagline: "منظومة ونظم صفحات الهبوط الاحترافية الذكية لوكالات السفر والبعثات الميدانية المعتمدة",
+    tagline: "صفحات هبوط احترافية لوكالات السفر.",
     cols: [
-      { head: "المنتج وأدوات التشغيل", links: [{ label: "المزايا الاستراتيجية", href: "#product" }, { label: "قوالب العرض البصري الواجهات", href: "/templates" }, { label: "خطط الأسعار والاشتراكات المادية", href: "#pricing" }] },
-      { head: "الموارد والأدلة", links: [{ label: "دليل مسار العمليات الرقمية", href: "#how-it-works" }, { label: "قنوات الاتصال المفتوحة المباشرة", contact: true }] },
-      { head: "الوثائق الحوكمة الامتثال", links: [{ label: "وثيقة حماية خصوصية البيانات والزوار", href: "/privacy" }, { label: "وثيقة شروط واتفاقيات تقديم الخدمة", href: "/terms" }] },
+      { head: "المنتج", links: [{ label: "المزايا", href: "#product" }, { label: "القوالب", href: "/templates" }, { label: "الأسعار", href: "#pricing" }] },
+      { head: "الموارد", links: [{ label: "كيف يعمل", href: "#how-it-works" }, { label: "تواصل معنا", contact: true }] },
+      { head: "قانوني", links: [{ label: "سياسة الخصوصية", href: "/privacy" }, { label: "شروط الاستخدام", href: "/terms" }] },
     ],
-    copy: "© ٢٠٢٦ باكميتركس لذكاء باقات السفر السياحية · جميع الحقوق محفوظة ومقيدة مسجَّل في هولندا · مسيرة العمل التشغيلي الموثقة بالأنظمة برعاية KvK 91019001",
+    copy: "© ٢٠٢٦ PackMetrix · جميع الحقوق محفوظة · مسجلة في هولندا · KvK 91019001",
   } : {
-    tagline: "Next-Gen Travel Package Conversion Intelligence Layouts Environments Universal",
+    tagline: "Landing pages for travel agencies.",
     cols: [
-      { head: "Platform Core Tools", links: [{ label: "Advanced Capabilities Suite AI Features", href: "#product" }, { label: "Layout Themes Presets Portfolio", href: "/templates" }, { label: "Subscription Framework Tiers", href: "#pricing" }] },
-      { head: "Operational Strategy Indexes", links: [{ label: "From unstyled updates to published URL workflow", href: "#how-it-works" }, { label: "Open communication line tracking portal", contact: true }] },
-      { head: "Governance Contracts Regulatory", links: [{ label: "Privacy Policy Framework Rules Guidelines", href: "/privacy" }, { label: "Terms of Operational Service Compliance Agreement", href: "/terms" }] },
+      { head: "Product", links: [{ label: "Features", href: "#product" }, { label: "Templates", href: "/templates" }, { label: "Pricing", href: "#pricing" }] },
+      { head: "Resources", links: [{ label: "How it works", href: "#how-it-works" }, { label: "Contact us", contact: true }] },
+      { head: "Legal", links: [{ label: "Privacy Policy", href: "/privacy" }, { label: "Terms of Service", href: "/terms" }] },
     ],
-    copy: "© 2026 PackMetrix International Core Environments · All corporate rights and proprietary assets reserved universally · Registered inside the Kingdom of the Netherlands · KvK 91019001",
+    copy: "© 2026 PackMetrix · All rights reserved · Registered in the Netherlands · KvK 91019001",
   };
 
   return (
@@ -2382,9 +2382,9 @@ function MobileLandingFooter({ lang }: { lang: "en" | "ar" }) {
               <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", color: DA_INK3, marginBottom: 9 }}>{col.head}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {col.links.map((link, j) => (
-                  link.contact
-                    ? <button key={j} onClick={() => setContactOpen(true)} style={{ fontSize: 12, color: DA_INK1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: isAr ? "right" : "left", fontFamily: SANS }}>{link.label}</button>
-                    : <a key={j} href={link.href} style={{ fontSize: 12, color: DA_INK1, textDecoration: "none" }}>{link.label}</a>
+                  "contact" in link
+                    ? <button key={j} type="button" onClick={() => setContactOpen(true)} style={{ fontSize: 12, color: DA_INK1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: isAr ? "right" : "left", fontFamily: SANS }}>{link.label}</button>
+                    : <a key={j} href={(link as any).href} style={{ fontSize: 12, color: DA_INK1, textDecoration: "none" }}>{link.label}</a>
                 ))}
               </div>
             </div>

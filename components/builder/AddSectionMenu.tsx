@@ -73,6 +73,7 @@ export function AddSectionMenu({
     }}>
       <div
         ref={ref}
+        data-testid="section-menu-panel"
         dir={l ? "rtl" : "ltr"}
         style={{
           background: DA_SURFACE2,
