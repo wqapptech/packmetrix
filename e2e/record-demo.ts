@@ -127,14 +127,14 @@ async function main() {
   console.log("Launching browser…");
 
   const browser = await chromium.launch({
-    headless: false,
+    headless: true,
     slowMo: 700,
-    args: ["--start-maximized"],
   });
 
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
-    recordVideo: { dir: videosDir, size: { width: 1440, height: 900 } },
+    viewport: { width: 1920, height: 1080 },
+    recordVideo: { dir: videosDir, size: { width: 1920, height: 1080 } },
+    deviceScaleFactor: 2,
   });
 
   // Cursor overlay auto-applies to every page and new tab.
@@ -398,60 +398,67 @@ Book now before the offer disappears.`;
   async function buildSection(label: string, fill: () => Promise<void>) {
     console.log(`  + Section: ${label}`);
 
+    // Snapshot input count; used to detect whether the section editor mounted.
+    const baseline = await page.evaluate(() =>
+      document.querySelectorAll("input, textarea").length
+    );
+
     // Open the section menu
     const browseBtn = page.getByText(/Browse all \d+ sections/);
     await browseBtn.scrollIntoViewIfNeeded();
     await browseBtn.click();
-
     await page.getByText("Add a section").waitFor({ state: "visible", timeout: 10_000 });
     await beat(page, 600);
 
-    // Select the section type
+    // Select the section type.
+    // AddSectionMenu is the LAST JSX child of SectionList, so its buttons appear
+    // last in DOM order. Using .last() ensures we hit the modal button rather
+    // than any same-named suggestion-strip tile that appears earlier in the DOM.
+    //
+    // Anchor to ^ so that section *descriptions* containing the label word don't
+    // cause false matches (e.g. the "Departures" button description contains
+    // "per-departure pricing" which would otherwise match /Pricing/i).
     const sectionBtn = page
-      .getByRole("button", { name: new RegExp(label, "i") })
-      .first();
+      .getByRole("button", { name: new RegExp("^" + label, "i") })
+      .last();
     await sectionBtn.scrollIntoViewIfNeeded();
-    await sectionBtn.click({ force: true });
+    await sectionBtn.click();
 
     // Modal closes automatically
     await page.getByText("Add a section").waitFor({ state: "hidden", timeout: 8_000 });
     await beat(page, 1_200);
 
-    // Diagnose what's in the DOM before attempting to open the section editor.
-    const dbg = await page.evaluate(() => {
-      const all = Array.from(document.querySelectorAll("button"));
-      const ac  = all.filter((b) => (b.textContent ?? "").includes("Add content"));
-      return { totalBtns: all.length, addContentCount: ac.length };
-    });
-    console.log(`  DOM buttons: ${dbg.totalBtns}, "Add content" found: ${dbg.addContentCount}`);
+    // Open the newly added section's editor.
+    // Use Playwright's native click (force:true bypasses actionability checks while still
+    // dispatching real browser events that React's delegation picks up correctly).
+    // .last() targets the most recently added section's invitation card.
+    const addContentBtn = page
+      .locator("button")
+      .filter({ hasText: /Add content/i })
+      .last();
+    if (await addContentBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await addContentBtn.scrollIntoViewIfNeeded();
+      await addContentBtn.click({ force: true });
+      await beat(page, 1_500);
+    }
 
-    // Open the newly added section card.
-    // Use dispatchEvent with full mouse event so React's synthetic event system picks it up.
-    const openResult = await page.evaluate(() => {
-      const btns = Array.from(document.querySelectorAll("button"));
-      const btn  = [...btns].reverse()
-        .find((b) => (b.textContent ?? "").includes("Add content"));
-      if (!btn) return "not-found";
-      btn.scrollIntoView({ block: "nearest" });
-      btn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true }));
-      return "dispatched";
-    });
-    console.log(`  Add content dispatch: ${openResult}`);
-    await beat(page, 1_500);
-
-    // Diagnose DOM state after the click — did the editor mount?
-    const afterState = await page.evaluate(() => {
-      const acLeft = Array.from(document.querySelectorAll("button"))
-        .filter((b) => (b.textContent ?? "").includes("Add content")).length;
-      const inputs  = Array.from(document.querySelectorAll("input, textarea"));
-      return {
-        addContentRemaining: acLeft,
-        inputCount: inputs.length,
-        placeholders: inputs.map((i) => i.getAttribute("placeholder") ?? i.getAttribute("inputMode") ?? "—"),
-      };
-    });
-    console.log(`  After click → addContent remaining: ${afterState.addContentRemaining}, inputs: ${afterState.inputCount}`);
-    console.log(`  Placeholders: ${JSON.stringify(afterState.placeholders)}`);
+    // Fallback: if the editor still didn't open (no new inputs appeared), the section
+    // ended up in isNew=false, isOpen=false — click the section header to toggle open.
+    const afterCount = await page.evaluate(() =>
+      document.querySelectorAll("input, textarea").length
+    );
+    if (afterCount <= baseline) {
+      console.log(`  Fallback: clicking header for "${label}" (editor didn't mount)`);
+      await page.evaluate(() => {
+        // The last [id^="section-"] wrapper belongs to the most recently added section.
+        // Structure: #section-xxx > div.card-outer > div.header (onClick={onToggle})
+        const wrappers = Array.from(document.querySelectorAll('[id^="section-"]'));
+        const last = wrappers[wrappers.length - 1];
+        const header = last?.firstElementChild?.firstElementChild as HTMLElement | null;
+        header?.click();
+      });
+      await beat(page, 1_500);
+    }
 
     // Fill in the key field(s)
     await fill();
@@ -461,18 +468,25 @@ Book now before the offer disappears.`;
   // ── 9a. SCARCITY & URGENCY ────────────────────────────────────────────────
   // The Pulse hero feature: was-price, spots remaining, live countdown.
   await buildSection("Scarcity", async () => {
-    await page.getByPlaceholder("e.g. €1,499").fill("€1,199");
-    await beat(page, 400);
+    const wasPrice = page.getByPlaceholder("e.g. €1,499").first();
+    if (await wasPrice.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await wasPrice.fill("€1,199");
+      await beat(page, 400);
 
-    // NumberInput renders as type="text" inputMode="numeric".
-    // SectionEditor only mounts when open, so these are the only such inputs.
-    const numInputs = page.locator('input[inputMode="numeric"]');
-    await numInputs.first().fill("3");   // Spots remaining
-    await beat(page, 300);
-    await numInputs.nth(1).fill("20");   // Total spots
-    await beat(page, 300);
+      // NumberInput renders as type="text" inputMode="numeric".
+      const numInputs = page.locator('input[inputMode="numeric"]');
+      if (await numInputs.first().isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await numInputs.first().fill("3");   // Spots remaining
+        await beat(page, 300);
+        await numInputs.nth(1).fill("20");   // Total spots
+        await beat(page, 300);
+      }
 
-    await page.getByPlaceholder("e.g. 2026-06-15").fill("2026-09-20");
+      const depDate = page.getByPlaceholder("e.g. 2026-06-15").first();
+      if (await depDate.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await depDate.fill("2026-09-20");
+      }
+    }
   });
 
   // ── 9b. ITINERARY ─────────────────────────────────────────────────────────
@@ -527,7 +541,7 @@ Book now before the offer disappears.`;
 
   // ── 9g. REVIEWS ───────────────────────────────────────────────────────────
   // Social proof: traveller testimonials with star ratings.
-  await buildSection("Reviews", async () => {
+  await buildSection("Customer Reviews", async () => {
     const reviewerName = page.getByPlaceholder("e.g. Sara M.").first();
     if (await reviewerName.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await reviewerName.fill("Sofia Andersen");
@@ -581,22 +595,28 @@ Book now before the offer disappears.`;
   console.log("Step 12 — Preview live Pulse page");
   const previewBtn = page.getByText("Preview page");
   if (await previewBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    // Intercept the new tab so the live page stays in the SAME recording.
+    // We grab the URL from the new tab, close it, then navigate the main page there.
     const [newTab] = await Promise.all([
       context.waitForEvent("page"),
       previewBtn.click(),
     ]);
-
     await newTab.waitForLoadState("domcontentloaded");
+    const liveUrl = newTab.url();
+    await newTab.close();
+
+    await page.goto(liveUrl);
+    await page.waitForLoadState("domcontentloaded");
     // Let the Pulse page render fully — includes countdown timer JS.
-    await newTab.waitForTimeout(4_000);
+    await page.waitForTimeout(4_000);
 
     // Slow scroll through the entire page so viewers see every section.
-    for (let i = 0; i < 12; i++) {
-      await newTab.evaluate(() => window.scrollBy({ top: 500, behavior: "smooth" }));
-      await newTab.waitForTimeout(1_100);
+    for (let i = 0; i < 14; i++) {
+      await page.evaluate(() => window.scrollBy({ top: 500, behavior: "smooth" }));
+      await page.waitForTimeout(1_100);
     }
 
-    await beat(newTab, 2_000);
+    await beat(page, 2_000);
   }
 
   // ════════════════════════════════════════════════════════════════════════════

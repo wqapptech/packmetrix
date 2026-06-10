@@ -300,10 +300,10 @@ async function main() {
     "-map", "0:v",
     "-map", "[aout]",
     "-c:v", "libx264",
-    "-preset", "fast",
-    "-crf", "20",
+    "-preset", "slow",
+    "-crf", "16",
     "-c:a", "aac",
-    "-b:a", "192k",
+    "-b:a", "256k",
     "-movflags", "+faststart",
     outputPath,
   ];
