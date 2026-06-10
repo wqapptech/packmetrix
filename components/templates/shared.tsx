@@ -33,7 +33,7 @@ export function IsDesktopProvider({ value, children }: { value: boolean; childre
 export function DesktopNav({ agency, price, brand, navLinks, dark, onWhatsApp, lang }: {
   agency: TAgency; price: string; brand: string;
   navLinks?: Array<{ label: string; href: string }>;
-  dark?: boolean; onWhatsApp: () => void; lang?: Lang;
+  dark?: boolean; onWhatsApp?: () => void; lang?: Lang;
 }) {
   const t = T[lang || "en"];
   const initials = agency.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -94,7 +94,7 @@ export function DesktopNav({ agency, price, brand, navLinks, dark, onWhatsApp, l
             {t.navAllPackages}
           </a>
         )}
-        <WAButton label={`Book · ${price}`} size="sm" onClick={onWhatsApp} />
+        {onWhatsApp && <WAButton label={`Book · ${price}`} size="sm" onClick={onWhatsApp} />}
       </div>
     </div>
   );
@@ -187,7 +187,7 @@ export function Eyebrow({ text, brand, light, style }: {
 }
 
 export function AgencyBar({ agency, price, brand: brandProp, dark, onWhatsApp, lang, navLinks }: {
-  agency: TAgency; price: string; brand: string; dark?: boolean; onWhatsApp: () => void; lang?: Lang;
+  agency: TAgency; price: string; brand: string; dark?: boolean; onWhatsApp?: () => void; lang?: Lang;
   navLinks?: Array<{ label: string; href: string }>;
 }) {
   const brand = brandProp;
@@ -233,7 +233,7 @@ export function AgencyBar({ agency, price, brand: brandProp, dark, onWhatsApp, l
             )}
           </div>
         </div>
-        <WAButton label={price} size="sm" onClick={onWhatsApp} />
+        {onWhatsApp && <WAButton label={price} size="sm" onClick={onWhatsApp} />}
       </div>
       {navLinks && navLinks.length > 0 && (
         <div style={{
@@ -263,7 +263,7 @@ export function AgencyBar({ agency, price, brand: brandProp, dark, onWhatsApp, l
 
 export function StickyCTA({ price, nights, label, dark, onWhatsApp, lang }: {
   price: string; nights?: number | null; label?: string; dark?: boolean;
-  onWhatsApp: () => void; lang: Lang;
+  onWhatsApp?: () => void; lang: Lang;
 }) {
   const t = T[lang];
   const bg = dark ? "rgba(13,27,46,0.95)" : "rgba(253,252,249,0.97)";
@@ -282,7 +282,7 @@ export function StickyCTA({ price, nights, label, dark, onWhatsApp, lang }: {
           {nights ? `${nights} ${t.nightsLabel} · ${t.perPerson}` : t.perPerson}
         </div>
       </div>
-      <WAButton label={label || t.bookWhatsApp} size="md" onClick={onWhatsApp} />
+      {onWhatsApp && <WAButton label={label || t.bookWhatsApp} size="md" onClick={onWhatsApp} />}
     </div>
   );
 }
@@ -411,7 +411,7 @@ export function SharedPricing({ pkg, tokens, lang, onWhatsApp }: { pkg: TPackage
 
 // ─── Lightbox carousel ──────────────────────────────────────────────────────
 
-function LightboxCarousel({ images, startIndex, onClose }: {
+export function LightboxCarousel({ images, startIndex, onClose }: {
   images: string[]; startIndex: number; onClose: () => void;
 }) {
   const [idx, setIdx] = React.useState(startIndex);

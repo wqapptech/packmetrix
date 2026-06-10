@@ -181,21 +181,21 @@ body {
 }
 
 body[data-lang="ar"] {
-  font-family: var(--font-noto-sans-arabic), "Noto Sans Arabic", system-ui, sans-serif;
+  font-family: var(--font-ibm-plex-sans-arabic), "IBM Plex Sans Arabic", system-ui, sans-serif;
   direction: rtl;
 }
 
 body[data-lang="ar"] h1,
 body[data-lang="ar"] h2,
 body[data-lang="ar"] h3 {
-  font-family: var(--font-noto-naskh-arabic), "Noto Naskh Arabic", serif;
+  font-family: var(--font-ibm-plex-sans-arabic), "IBM Plex Sans Arabic", system-ui, sans-serif;
   font-weight: 600;
 }
 
 /* Landing-page Arabic font cascade — set on .lp-ar wrapper, resolved via var() in inline styles */
 .lp-ar {
-  --lp-sans: var(--font-noto-sans-arabic), "Noto Sans Arabic", system-ui, sans-serif;
-  --lp-display: var(--font-noto-naskh-arabic), "Noto Naskh Arabic", serif;
+  --lp-sans: var(--font-ibm-plex-sans-arabic), "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --lp-display: var(--font-ibm-plex-sans-arabic), "IBM Plex Sans Arabic", system-ui, sans-serif;
 }
 
 ::-webkit-scrollbar {

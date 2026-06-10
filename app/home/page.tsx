@@ -28,7 +28,7 @@ export default function Home() {
   const lang = useLang();
   const t = T[lang];
   const isRtl = lang === "ar";
-  const arabicFont = "'Cairo', 'Noto Sans Arabic', system-ui, sans-serif";
+  const arabicFont = "var(--font-ibm-plex-sans-arabic), 'IBM Plex Sans Arabic', system-ui, sans-serif";
   const bodyFont = isRtl ? arabicFont : "inherit";
   const headingFont = isRtl ? arabicFont : "var(--font-dm-serif), 'DM Serif Display', serif";
   const [step, setStep] = useState<Step>("paste");

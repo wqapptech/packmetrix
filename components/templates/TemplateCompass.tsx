@@ -13,6 +13,7 @@ import {
   DContainer,
   DesktopFooter,
   getItineraryDays,
+  LightboxCarousel,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -140,6 +141,7 @@ function CmMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
   const mapSrc = cmSecStr(mediaSec, "mapImage") || cmSecStr(mediaSec, "mapSrc") || "";
   const mapCaption = cmSecStr(mediaSec, "mapCaption") || "";
   const images = cmSecStrArr(mediaSec, "images");
+  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
   if (!videoUrl && !mapSrc && !images.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
@@ -182,13 +184,14 @@ function CmMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
         {images.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(images.length, isDesktop ? 4 : 2)}, 1fr)`, gap: 8, marginTop: 10 }}>
             {images.slice(0, isDesktop ? 4 : 4).map((src, i) => (
-              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: 100 }}>
+              <div key={i} onClick={() => setLbIdx(i)} style={{ borderRadius: 10, overflow: "hidden", height: 100, cursor: "pointer" }}>
                 <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
               </div>
             ))}
           </div>
         )}
       </div>
+      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
     </section>
   );
 }
@@ -509,7 +512,7 @@ function HonestDifficultySection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: 
 
 // ─── Guide closing panel ──────────────────────────────────────────────────────
 
-function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp: () => void }) {
+function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
   const agent = pkg.agent;
   const firstName = agent?.name?.split(" ")[0] || agency.name;
@@ -541,7 +544,7 @@ function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps[
           ✓ {t.compassUiagmCertified}
         </div>
       </div>
-      <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} full onClick={onWhatsApp} />
+      {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} full onClick={onWhatsApp} />}
       <button style={{
         width: "100%", marginTop: 10, padding: "12px", borderRadius: 10,
         border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
@@ -553,7 +556,7 @@ function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps[
   );
 }
 
-function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp: () => void }) {
+function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
   const agent = pkg.agent;
   const firstName = agent?.name?.split(" ")[0] || agency.name;
@@ -596,7 +599,7 @@ function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPag
               </div>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-              <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} size="lg" onClick={onWhatsApp} />
+              {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} size="lg" onClick={onWhatsApp} />}
               <button style={{
                 padding: "14px 22px", borderRadius: 10,
                 border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
@@ -775,9 +778,9 @@ function CmPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
                     ))}
                   </ul>
                 )}
-                <button onClick={onWhatsApp} style={{ marginTop: "auto", background: pop ? "rgba(255,255,255,0.2)" : `${ORANGE}12`, border: `1px solid ${pop ? "rgba(255,255,255,0.3)" : `${ORANGE}30`}`, borderRadius: 8, padding: "10px 0", fontSize: 13, fontWeight: 700, color: pop ? "#fff" : ORANGE, fontFamily: INTER, cursor: "pointer" }}>
+                {pkg.whatsapp && <button onClick={onWhatsApp} style={{ marginTop: "auto", background: pop ? "rgba(255,255,255,0.2)" : `${ORANGE}12`, border: `1px solid ${pop ? "rgba(255,255,255,0.3)" : `${ORANGE}30`}`, borderRadius: 8, padding: "10px 0", fontSize: 13, fontWeight: 700, color: pop ? "#fff" : ORANGE, fontFamily: INTER, cursor: "pointer" }}>
                   {t.bookWhatsApp}
-                </button>
+                </button>}
               </div>
             );
           })}
@@ -1005,7 +1008,7 @@ function CmCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
-          <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
           {pkg.messenger && <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 8, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: INTER, cursor: "pointer" }}>{t.coMessenger}</button>}
         </div>
       </div>
@@ -1047,7 +1050,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
   if (isDesktop) {
     return (
       <div style={{ minHeight: "100vh", background: SAND, color: INK, fontFamily: INTER, direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={ORANGE} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
+        <DesktopNav agency={agency} price={pkg.price} brand={ORANGE} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Hero: text LEFT, image RIGHT (50/50 split) */}
         <DContainer style={{ padding: "80px 80px 64px" }} data-pmx-section="hero">
@@ -1068,7 +1071,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
                   <DifficultyBar difficulty={pkg.difficulty} lang={lang} />
                 </div>
               )}
-              <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
+              {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
             </div>
             {/* Image column */}
             <div style={{ order: isRtl ? 1 : 2, position: "relative", height: 520, borderRadius: 16, overflow: "hidden", background: INK }}>
@@ -1142,7 +1145,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
         <CmReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <CmAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} />
         <CmOtherPackagesSection pkg={pkg} isDesktop={true} lang={lang} agencySlug={agency.agencySlug} />
-        <CompassGuidePanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
+        <CompassGuidePanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
         <CmCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
         <DesktopFooter agency={agency} brand={ORANGE} />
       </div>
@@ -1151,7 +1154,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
 
   return (
     <div style={{ minHeight: "100vh", background: SAND, color: INK, fontFamily: INTER, direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={ORANGE} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
+      <AgencyBar agency={agency} price={pkg.price} brand={ORANGE} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Hero: full-bleed with strong bottom gradient on mobile */}
       <div style={{ position: "relative", height: 460, overflow: "hidden" }} data-pmx-section="hero">
@@ -1188,7 +1191,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
             <div style={{ fontFamily: INTER, fontSize: 32, fontWeight: 800, color: ORANGE, letterSpacing: "-0.8px", lineHeight: 1 }} data-pmx-field="price">{pkg.price}</div>
             <div style={{ fontSize: 11, color: SMUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.perPerson}</div>
           </div>
-          <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
         </div>
         {pkg.description && (
           <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, marginTop: 14, marginBottom: 0 }}>{pkg.description}</p>
@@ -1271,10 +1274,10 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
       <CmReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
       <CmAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} />
       <CmOtherPackagesSection pkg={pkg} isDesktop={false} lang={lang} agencySlug={agency.agencySlug} />
-      <CompassGuidePanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
+      <CompassGuidePanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
       <CmCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
       <CmMobileFooter agency={agency} />
-      <StickyCTA price={altitudeLabel} nights={nights} label={t.bookWhatsApp} onWhatsApp={onWhatsApp} lang={lang} />
+      <StickyCTA price={altitudeLabel} nights={nights} label={t.bookWhatsApp} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
     </div>
   );
 }

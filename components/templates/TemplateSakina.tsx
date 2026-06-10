@@ -12,6 +12,7 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
+  LightboxCarousel,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -422,6 +423,7 @@ function SkMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
   const videoUrl  = (data?.videoUrl as string | undefined ?? pkg.videoUrl ?? "").trim();
   const mapImage  = (data?.mapImage as string | undefined) ?? "";
   const mapCaption = (data?.mapCaption as string | undefined) ?? "";
+  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
   if (!images.length && !videoUrl && !mapImage) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
@@ -433,7 +435,7 @@ function SkMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
             <SkSecHead label={t.skGallery} isDesktop={isDesktop} />
             <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: isDesktop ? undefined : "130px 130px", gap: 6, marginBottom: (videoUrl || mapImage) ? 32 : 0 }}>
               {(isDesktop ? images : images.slice(0, 3)).map((src, i) => (
-                <div key={i} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: isDesktop ? "4/3" : undefined, gridRow: !isDesktop && i === 0 ? "span 2" : undefined }}>
+                <div key={i} onClick={() => setLbIdx(i)} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: isDesktop ? "4/3" : undefined, gridRow: !isDesktop && i === 0 ? "span 2" : undefined, cursor: "pointer" }}>
                   <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
                 </div>
               ))}
@@ -456,6 +458,7 @@ function SkMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
           </div>
         )}
       </div>
+      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
     </section>
   );
 }
@@ -533,9 +536,9 @@ function SkPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProp
                     ))}
                   </ul>
                 )}
-                <button onClick={onWhatsApp} style={{ marginTop: 16, background: pop ? "rgba(255,255,255,0.18)" : `${SAGE}15`, border: `1px solid ${pop ? "rgba(255,255,255,0.25)" : `${SAGE}30`}`, borderRadius: 100, padding: "11px 0", fontSize: 13, fontWeight: 700, color: pop ? "#fff" : SAGE, fontFamily: "inherit", cursor: "pointer", width: "100%" }}>
+                {pkg.whatsapp && <button onClick={onWhatsApp} style={{ marginTop: 16, background: pop ? "rgba(255,255,255,0.18)" : `${SAGE}15`, border: `1px solid ${pop ? "rgba(255,255,255,0.25)" : `${SAGE}30`}`, borderRadius: 100, padding: "11px 0", fontSize: 13, fontWeight: 700, color: pop ? "#fff" : SAGE, fontFamily: "inherit", cursor: "pointer", width: "100%" }}>
                   {t.whatsAppTheOffice}
-                </button>
+                </button>}
               </div>
             );
           })}
@@ -559,16 +562,21 @@ function SkDeparturesSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageP
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <SkSecHead label={t.skDepartureDates} isDesktop={isDesktop} />
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
-          {(entries.length ? entries.map(e => ({ date: skItemStr(e, "date"), returnDate: skItemStr(e, "returnDate"), spots: skItemStr(e, "spots"), price: skItemStr(e, "price") })) : legacyDeps.map(d => ({ date: d.date, returnDate: "", spots: String(d.spots ?? ""), price: d.price ?? "" }))).map((dep, i) => (
-            <button key={i} onClick={onWhatsApp} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit", width: "100%" }}>
-              <div>
-                <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 17 : 15, fontWeight: 600, color: INK }}>{dep.date}</div>
-                {dep.returnDate && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{t.skReturns}: {dep.returnDate}</div>}
-                {dep.spots && <div style={{ fontSize: 12, color: SAGE, marginTop: 2, fontWeight: 600 }}>{dep.spots} {t.skSpotsAvailable}</div>}
-              </div>
-              {dep.price && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 22 : 18, color: SAGE, fontWeight: 400 }}>{dep.price}</div>}
-            </button>
-          ))}
+          {(entries.length ? entries.map(e => ({ date: skItemStr(e, "date"), returnDate: skItemStr(e, "returnDate"), spots: skItemStr(e, "spots"), price: skItemStr(e, "price") })) : legacyDeps.map(d => ({ date: d.date, returnDate: "", spots: String(d.spots ?? ""), price: d.price ?? "" }))).map((dep, i) => {
+            const inner = (
+              <>
+                <div>
+                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 17 : 15, fontWeight: 600, color: INK }}>{dep.date}</div>
+                  {dep.returnDate && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{t.skReturns}: {dep.returnDate}</div>}
+                  {dep.spots && <div style={{ fontSize: 12, color: SAGE, marginTop: 2, fontWeight: 600 }}>{dep.spots} {t.skSpotsAvailable}</div>}
+                </div>
+                {dep.price && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 22 : 18, color: SAGE, fontWeight: 400 }}>{dep.price}</div>}
+              </>
+            );
+            return pkg.whatsapp
+              ? <button key={i} onClick={onWhatsApp} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit", width: "100%" }}>{inner}</button>
+              : <div key={i} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>{inner}</div>;
+          })}
         </div>
       </div>
     </section>
@@ -773,7 +781,7 @@ function SkCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
           <div style={{ fontSize: 12, color: MUTED }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
-          <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
           {pkg.messenger && (
             <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 100, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>{t.vyMessenger}</button>
           )}
@@ -889,7 +897,7 @@ function MutawifBand({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: 
           </div>
         </div>
       </div>
-      <WAButton label={t.whatsAppTheOffice} size="sm" full onClick={onWhatsApp} />
+      {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="sm" full onClick={onWhatsApp} />}
     </div>
   );
 }
@@ -936,7 +944,7 @@ function MutawifClosingPanel({ pkg, agency, lang, onWhatsApp }: {
           </span>
         )}
       </div>
-      <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />
+      {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
     </section>
   );
 }
@@ -981,16 +989,7 @@ function MutawifClosingPanelDesktop({ pkg, agency, lang, onWhatsApp }: {
               </span>
             )}
           </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />
-            <button style={{
-              background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)",
-              borderRadius: 100, padding: "14px 24px", color: "#fff", fontSize: 14,
-              fontFamily: "inherit", cursor: "pointer",
-            }}>
-              {t.scheduleCallLabel}
-            </button>
-          </div>
+          {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
         </div>
       </div>
     </section>
@@ -1052,7 +1051,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
   if (isDesktop) {
     return (
       <div style={{ minHeight: "100vh", background: BONE, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={SAGE} navLinks={navLinks} lang={lang} onWhatsApp={onWhatsApp} />
+        <DesktopNav agency={agency} price={pkg.price} brand={SAGE} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Hero: text LEFT, arch image RIGHT (design-correct) */}
         <DContainer data-pmx-section="hero" style={{ padding: "64px 80px" }}>
@@ -1066,7 +1065,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
               <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.72, margin: "0 0 28px" }}>{pkg.description}</p>
               <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 40, fontWeight: 400, color: SAGE, letterSpacing: "-0.8px", marginBottom: 6, lineHeight: 1 }}>{pkg.price}</div>
               <div style={{ fontSize: 12, color: SMUTED, marginBottom: 24 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
-              <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />
+              {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
             </div>
             {/* Arch image column — right */}
             <div style={{ position: "relative", height: 540, borderRadius: "220px 220px 16px 16px", overflow: "hidden", background: INK, order: isRtl ? 1 : 2 }}>
@@ -1121,7 +1120,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
                 <div style={{ fontSize: 13, color: MUTED }}>{pkg.agent.role}{pkg.agent.years ? ` · ${pkg.agent.years} ${t.yearsExpSuffix}` : ""}</div>
               </div>
             )}
-            <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />
+            {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
           </div>
         </DContainer>
 
@@ -1154,7 +1153,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
   // ── Mobile ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: BONE, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={SAGE} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} />
+      <AgencyBar agency={agency} price={pkg.price} brand={SAGE} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Arched hero */}
       <div data-pmx-section="hero" style={{ padding: "0 18px" }}>
@@ -1178,7 +1177,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
           </h1>
           <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: SAGE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{pkg.price}</div>
           <div style={{ fontSize: 12, color: SMUTED, marginBottom: 18 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
-          <WAButton label={t.whatsAppTheOffice} full onClick={onWhatsApp} />
+          {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} full onClick={onWhatsApp} />}
         </div>
       </div>
 
@@ -1260,7 +1259,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
       <SkCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
       <SkMobileFooter agency={agency} lang={lang} />
-      <StickyCTA price={pkg.price} nights={nights} label={t.whatsAppTheOffice} onWhatsApp={onWhatsApp} lang={lang} />
+      <StickyCTA price={pkg.price} nights={nights} label={t.whatsAppTheOffice} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import "@/app/aurora.css";
-import { useIsDesktop, BaseCard } from "./shared";
+import { useIsDesktop, BaseCard, LightboxCarousel } from "./shared";
 import { T, localizeTierLabel } from "@/lib/translations";
 import type { TPageProps, TCardProps, TPackage } from "./types";
 
@@ -279,6 +279,7 @@ function AuHotelsSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
 
 function AuGalleryMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   const images = pkg.gallery?.map((g) => g.src) ?? pkg.images ?? [];
+  const [lbIdx, setLbIdx] = useState<number | null>(null);
   if (!images.length) return null;
   return (
     <section className="au-gal-m" data-pmx-section="media">
@@ -287,11 +288,12 @@ function AuGalleryMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
       </div>
       <div className="au-gal-m__grid">
         {images.slice(0, 5).map((src, i) => (
-          <div key={i} className="au-gal-m__cell">
+          <div key={i} className="au-gal-m__cell" onClick={() => setLbIdx(i)} style={{ cursor: "pointer" }}>
             <img src={src} alt={pkg.destination} />
           </div>
         ))}
       </div>
+      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
     </section>
   );
 }
@@ -300,6 +302,8 @@ function AuGalleryMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
 
 function AuGalleryDesktop({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
   const items = pkg.gallery ?? (pkg.images ?? []).map((src) => ({ src, caption: "" }));
+  const images = items.map((g) => g.src);
+  const [lbIdx, setLbIdx] = useState<number | null>(null);
   if (!items.length) return null;
   return (
     <section className="au-d-gallery" data-pmx-section="media">
@@ -311,12 +315,13 @@ function AuGalleryDesktop({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
       </div>
       <div className="au-d-gallery__grid">
         {items.slice(0, 5).map((g, i) => (
-          <div key={i} className="au-d-gallery__cell">
+          <div key={i} className="au-d-gallery__cell" onClick={() => setLbIdx(i)} style={{ cursor: "pointer" }}>
             <img src={g.src} alt={g.caption || pkg.destination} />
             {g.caption && <div className="au-d-gallery__cap">{g.caption}</div>}
           </div>
         ))}
       </div>
+      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
     </section>
   );
 }
@@ -557,8 +562,8 @@ function AuDeparturesMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" })
                 </div>
                 <div className={`au-deps__spots${d.spots <= 3 ? " low" : ""}`}>
                   {d.spots <= 3
-                    ? (lang === "ar" ? `متبقي ${d.spots} فقط` : `Only ${d.spots} left`)
-                    : (lang === "ar" ? `${d.spots} مقعد` : `${d.spots} spots`)}
+                    ? T[lang].auOnlyNLeft.replace("{n}", String(d.spots))
+                    : `${d.spots} ${T[lang].vySpots}`}
                 </div>
                 {d.price && <div className="au-deps__price">{d.price}</div>}
               </div>
@@ -622,8 +627,8 @@ function AuDeparturesTiersDesktop({ pkg, lang }: { pkg: TPackage; lang: "en" | "
                   <div className="au-deps__sub">{parts[2] ?? ""}</div>
                   <div className={`au-d-dep__spots${d.spots <= 3 ? " low" : ""}`}>
                     {d.spots <= 3
-                      ? (lang === "ar" ? `متبقي ${d.spots} فقط` : `Only ${d.spots} left`)
-                      : (lang === "ar" ? `${d.spots} مقعد` : `${d.spots} spots`)}
+                      ? T[lang].auOnlyNLeft.replace("{n}", String(d.spots))
+                      : `${d.spots} ${T[lang].vySpots}`}
                   </div>
                   {d.price && <div className="au-d-dep__price">{d.price}</div>}
                 </div>
@@ -880,7 +885,7 @@ function AuInclusionsDesktop({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }
 
 // ─── People ───────────────────────────────────────────────────────────────────
 
-function AuPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: "en" | "ar"; onWhatsApp: () => void }) {
+function AuPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: "en" | "ar"; onWhatsApp?: () => void }) {
   const people = pkg.people ?? [];
   if (!people.length) return null;
   const agentPerson = people.find((p) => p.role === "agent" || p.role === "curator" || p.role === "trip_lead");
@@ -918,11 +923,13 @@ function AuPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: "en" 
                   </span>
                 )}
               </div>
+              {onWhatsApp && (
               <div className="au-v2-pp__lead-cta">
                 <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "12px 18px" }} onClick={onWhatsApp}>
                   <WaIcon size={14} /> {T[lang].auMessageWAPrefix} {agentPerson.name.split(" ")[0]} {T[lang].auOnWhatsApp}
                 </button>
               </div>
+              )}
             </div>
           </article>
         )}
@@ -1098,23 +1105,23 @@ function AuCustomSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
 
 // ─── Final CTA (mobile) ───────────────────────────────────────────────────────
 
-function AuFinalCtaMobile({ agentFirst, lang, onWhatsApp }: { agentFirst: string; lang: "en" | "ar"; onWhatsApp: () => void }) {
+function AuFinalCtaMobile({ agentFirst, lang, onWhatsApp }: { agentFirst: string; lang: "en" | "ar"; onWhatsApp?: () => void }) {
   return (
     <section className="au-final">
       <h2 className="au-final__title">{T[lang].auShallWeBegin}</h2>
       <p className="au-final__sub">
         {T[lang].auSendToPrefix} {agentFirst} {T[lang].auSendNote}
       </p>
-      <button data-testid="wa-cta" className="au-cta-wa" style={{ width: "auto", padding: "16px 26px" }} onClick={onWhatsApp}>
+      {onWhatsApp && <button data-testid="wa-cta" className="au-cta-wa" style={{ width: "auto", padding: "16px 26px" }} onClick={onWhatsApp}>
         <WaIcon size={16} /> {T[lang].auMessageWAPrefix} {agentFirst} {T[lang].auOnWhatsApp}
-      </button>
+      </button>}
     </section>
   );
 }
 
 // ─── Final CTA (desktop) ──────────────────────────────────────────────────────
 
-function AuFinalCtaDesktop({ agentFirst, lang, onWhatsApp }: { agentFirst: string; lang: "en" | "ar"; onWhatsApp: () => void }) {
+function AuFinalCtaDesktop({ agentFirst, lang, onWhatsApp }: { agentFirst: string; lang: "en" | "ar"; onWhatsApp?: () => void }) {
   return (
     <section className="au-v2 au-v2-cta">
       <h2 className="au-v2-cta__h">{T[lang].auShallWeBegin}</h2>
@@ -1122,9 +1129,9 @@ function AuFinalCtaDesktop({ agentFirst, lang, onWhatsApp }: { agentFirst: strin
         {T[lang].auSendToPrefix} {agentFirst} {T[lang].auSendNoteLong}
       </p>
       <div className="au-v2-cta__row">
-        <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "16px 28px", fontSize: 14 }} onClick={onWhatsApp}>
+        {onWhatsApp && <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "16px 28px", fontSize: 14 }} onClick={onWhatsApp}>
           <WaIcon size={15} /> {T[lang].auMessageWAPrefix} {agentFirst} {T[lang].auOnWhatsApp}
-        </button>
+        </button>}
       </div>
     </section>
   );
@@ -1196,7 +1203,7 @@ function AuAgentDarkBand({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
       </div>
       <div className="au-agent__pill">
         <span className="au-agent__pulse" />
-        {T[lang].auOnline} · {T[lang].auRepliesIn} {agent.repliesIn ?? "<30 min"}
+        {T[lang].auOnline}{agent.repliesIn ? ` · ${T[lang].auRepliesIn} ${agent.repliesIn}` : ""}
       </div>
     </section>
   );
@@ -1357,9 +1364,9 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
               {pkg.price && (
                 <div className="au-d-nav__price">{T[lang].from} <b>{pkg.price}</b></div>
               )}
-              <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "10px 18px", fontSize: 13 }} onClick={onWhatsApp}>
+              {pkg.whatsapp && <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "10px 18px", fontSize: 13 }} onClick={onWhatsApp}>
                 <WaIcon size={14} /> {T[lang].auSpeakTo} {agentFirst}
-              </button>
+              </button>}
             </div>
           </div>
 
@@ -1385,9 +1392,9 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
                     {nights && <div className="sub">{nights} {T[lang].nightsLabel} · {T[lang].auDoubleOccupancy}</div>}
                   </div>
                   <div className="au-d-hero__buttons">
-                    <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "14px 24px" }} onClick={onWhatsApp}>
+                    {pkg.whatsapp && <button data-testid="wa-cta" className="au-cta-wa" style={{ padding: "14px 24px" }} onClick={onWhatsApp}>
                       <WaIcon size={15} /> {T[lang].auSpeakTo} {agentFirst}
-                    </button>
+                    </button>}
                   </div>
                 </div>
               </div>
@@ -1402,13 +1409,13 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
                   <div className="v">{T[lang].auFree30Days}</div>
                   <div className="l">{T[lang].auCancelNoPenalty}</div>
                 </div>
-                {pkg.spotsRemaining != null && dep && (
+                {pkg.scarcity?.spotsRemaining != null && dep && (
                   <div>
                     <div className="v">{T[lang].auDeparts} {dep.date.split(",")[0]}</div>
                     <div className="l">
-                      {lang === "ar"
-                        ? `متبقي فقط ${pkg.spotsRemaining} من ${pkg.totalSpots} مقعد`
-                        : `Only ${pkg.spotsRemaining} of ${pkg.totalSpots} left`}
+                      {pkg.scarcity.totalSpots != null
+                        ? T[lang].auOnlyNOfMLeft.replace("{n}", String(pkg.scarcity.spotsRemaining)).replace("{m}", String(pkg.scarcity.totalSpots))
+                        : T[lang].auOnlyNLeft.replace("{n}", String(pkg.scarcity.spotsRemaining))}
                     </div>
                   </div>
                 )}
@@ -1421,15 +1428,15 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
           </section>
 
           {/* ── Scarcity ribbon ─────────────────────────────────────────── */}
-          {(pkg.spotsRemaining != null || pkg.viewersNow != null || pkg.recentBookings) && (
+          {(pkg.scarcity?.spotsRemaining != null || pkg.viewersNow != null || pkg.recentBookings) && (
             <div className="au-d-ribbon">
-              {pkg.spotsRemaining != null && (
+              {pkg.scarcity?.spotsRemaining != null && (
                 <div className="au-d-ribbon__group">
                   <span className="au-d-ribbon__dot" />
                   <span>
-                    {lang === "ar"
-                      ? `متبقي فقط ${pkg.spotsRemaining} من ${pkg.totalSpots} مقعد`
-                      : `Only ${pkg.spotsRemaining} of ${pkg.totalSpots} left`}
+                    {pkg.scarcity.totalSpots != null
+                      ? T[lang].auOnlyNOfMLeft.replace("{n}", String(pkg.scarcity.spotsRemaining)).replace("{m}", String(pkg.scarcity.totalSpots))
+                      : T[lang].auOnlyNLeft.replace("{n}", String(pkg.scarcity.spotsRemaining))}
                     {dep ? ` · ${dep.date.split(" ").slice(0, 2).join(" ")}` : ""}
                   </span>
                 </div>
@@ -1504,7 +1511,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
           <AuInclusionsDesktop pkg={pkg} lang={lang} />
 
           {/* ── People (foregrounded) ────────────────────────────────────── */}
-          <AuPeopleSection pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
+          <AuPeopleSection pkg={pkg} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
           {/* ── About agency ────────────────────────────────────────────── */}
           <AuAboutAgencySection pkg={pkg} lang={lang} agency={agency} />
@@ -1516,7 +1523,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
           <AuOtherPackagesSection pkg={pkg} lang={lang} agencySlug={agency.agencySlug} />
 
           {/* ── Final CTA ───────────────────────────────────────────────── */}
-          <AuFinalCtaDesktop agentFirst={agentFirst} lang={lang} onWhatsApp={onWhatsApp} />
+          <AuFinalCtaDesktop agentFirst={agentFirst} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
           {/* ── Footer ──────────────────────────────────────────────────── */}
           <AuDesktopFooter agency={agency} />
@@ -1573,21 +1580,21 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
                 </div>
               )}
             </div>
-            {pkg.spotsRemaining != null && pkg.totalSpots != null && (
+            {pkg.scarcity?.spotsRemaining != null && (
               <div className="au-m-booking__scarcity">
                 <span className="dot" />
                 <span>
-                  {lang === "ar"
-                    ? `متبقي فقط ${pkg.spotsRemaining} من ${pkg.totalSpots} مقعد`
-                    : `Only ${pkg.spotsRemaining} of ${pkg.totalSpots} spots remaining`}
+                  {pkg.scarcity.totalSpots != null
+                    ? T[lang].auOnlyNOfMLeft.replace("{n}", String(pkg.scarcity.spotsRemaining)).replace("{m}", String(pkg.scarcity.totalSpots))
+                    : T[lang].auOnlyNLeft.replace("{n}", String(pkg.scarcity.spotsRemaining))}
                 </span>
               </div>
             )}
-            <div className="au-m-booking__cta">
+            {pkg.whatsapp && <div className="au-m-booking__cta">
               <button data-testid="wa-cta" className="au-cta-wa" onClick={onWhatsApp}>
                 <WaIcon size={15} /> {T[lang].auSpeakTo} {agentFirst}
               </button>
-            </div>
+            </div>}
           </div>
 
           {/* ── Trust strip ─────────────────────────────────────────────── */}
@@ -1638,7 +1645,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
           <AuImportantNotesSection pkg={pkg} lang={lang} />
 
           {/* ── People ──────────────────────────────────────────────────── */}
-          <AuPeopleSection pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
+          <AuPeopleSection pkg={pkg} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
           {/* ── About agency ────────────────────────────────────────────── */}
           <AuAboutAgencySection pkg={pkg} lang={lang} agency={agency} />
@@ -1659,7 +1666,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
           <AuInclusionsMobile pkg={pkg} lang={lang} />
 
           {/* ── Final CTA ───────────────────────────────────────────────── */}
-          <AuFinalCtaMobile agentFirst={agentFirst} lang={lang} onWhatsApp={onWhatsApp} />
+          <AuFinalCtaMobile agentFirst={agentFirst} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
           {/* ── Sticky bottom bar ───────────────────────────────────────── */}
           <div className="au-sticky">
@@ -1671,9 +1678,9 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
                 {dep ? ` · ${dep.date.split(",")[0]}` : ""}
               </div>
             </div>
-            <button data-testid="wa-cta" className="au-cta-wa au-sticky__cta" style={{ padding: "12px 18px" }} onClick={onWhatsApp}>
+            {pkg.whatsapp && <button data-testid="wa-cta" className="au-cta-wa au-sticky__cta" style={{ padding: "12px 18px" }} onClick={onWhatsApp}>
               <WaIcon size={14} /> {T[lang].auSpeakTo} {agentFirst}
-            </button>
+            </button>}
           </div>
         </>
       )}

@@ -12,6 +12,7 @@ import {
   AgencyBar,
   DContainer,
   StickyCTA,
+  LightboxCarousel,
 } from "./shared";
 import type { TPageProps, TCardProps, TPricingTier } from "./types";
 
@@ -124,7 +125,7 @@ function VyTicker({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) 
   const t = T[lang];
   const messages: string[] = [];
   const scarcity = pkg.scarcity;
-  if (scarcity?.spotsRemaining != null) messages.push(`${t.vyOnlyNSpotsLeft} ${scarcity.spotsRemaining} ${lang === "ar" ? t.vySpotsLeft : t.vySpots + " left"}`);
+  if (scarcity?.spotsRemaining != null) messages.push(`${t.vyOnlyNSpotsLeft} ${scarcity.spotsRemaining} ${t.vySpotsLeft}`);
   const depSec = findSec(pkg, "departures");
   const deps = secArr(depSec, "departures").length ? secArr(depSec, "departures") : secArr(depSec, "items");
   if (deps[0]) {
@@ -155,17 +156,19 @@ function VyGalleryMobile({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "
   const t = T[lang];
   const data = findSec(pkg, "media");
   const photos = secStrArr(data, "images").length ? secStrArr(data, "images") : (pkg.images ?? []);
+  const [lbIdx, setLbIdx] = useState<number | null>(null);
   if (!photos.length) return null;
   return (
     <section className="vy-gal" data-pmx-section="media">
       <div className="vy-sec__eb">{t.vyPhotos}</div>
       <div className="vy-gal__grid">
         {photos.slice(0, 6).map((src, i) => (
-          <div key={i} className="vy-gal__cell">
+          <div key={i} className="vy-gal__cell" onClick={() => setLbIdx(i)} style={{ cursor: "pointer" }}>
             <img src={src} alt="photo" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
           </div>
         ))}
       </div>
+      {lbIdx !== null && <LightboxCarousel images={photos} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
     </section>
   );
 }
@@ -174,6 +177,7 @@ function VyGalleryDesktop({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | 
   const t = T[lang];
   const data = findSec(pkg, "media");
   const photos = secStrArr(data, "images").length ? secStrArr(data, "images") : (pkg.images ?? []);
+  const [lbIdx, setLbIdx] = useState<number | null>(null);
   if (!photos.length) return null;
   return (
     <section className="vy-d-sec" data-pmx-section="media">
@@ -185,11 +189,12 @@ function VyGalleryDesktop({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | 
       </div>
       <div className="vy-d-gal">
         {photos.slice(0, 6).map((src, i) => (
-          <div key={i} className="vy-d-gal__cell">
+          <div key={i} className="vy-d-gal__cell" onClick={() => setLbIdx(i)} style={{ cursor: "pointer" }}>
             <img src={src} alt="photo" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
           </div>
         ))}
       </div>
+      {lbIdx !== null && <LightboxCarousel images={photos} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
     </section>
   );
 }
@@ -416,7 +421,7 @@ function VyMediaSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "a
                     <PlayIcon />
                   </button>
                 )}
-                <figcaption>PLAY{videoDuration ? ` · ${videoDuration}` : ""}</figcaption>
+                <figcaption>{t.vyPlay}{videoDuration ? ` · ${videoDuration}` : ""}</figcaption>
               </>
             )}
           </figure>
@@ -425,7 +430,7 @@ function VyMediaSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "a
           <figure className="vy-v2-med__map" style={{ margin: 0 }}>
             <img src={mapSrc} alt="route map" />
             <figcaption>
-              <span className="vy-v2-med__stamp">ROUTE</span>
+              <span className="vy-v2-med__stamp">{t.vyRoute}</span>
               {mapCaption && <span>{mapCaption}</span>}
             </figcaption>
           </figure>
@@ -903,7 +908,7 @@ function VyReviewsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | 
 
 // ─── People ────────────────────────────────────────────────────────────────────
 
-function VyPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: "en" | "ar"; onWhatsApp: () => void }) {
+function VyPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: "en" | "ar"; onWhatsApp?: () => void }) {
   const t = T[lang];
   const data = findSec(pkg, "people");
   const people = secArr(data, "people").length ? secArr(data, "people") : (pkg.people ?? []).map((p) => p as unknown as SD);
@@ -938,10 +943,10 @@ function VyPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; la
                 </span>
               )}
             </div>
-            <button className="vy-v2-pp__cta" onClick={onWhatsApp}>
+            {pkg.whatsapp && <button className="vy-v2-pp__cta" onClick={onWhatsApp}>
               <WaIcon size={14} />
               {t.bookWhatsApp}
-            </button>
+            </button>}
           </div>
         </div>
       )}
@@ -1113,7 +1118,7 @@ function VyFinalCta({ pkg, agency, lang, onWhatsApp, onMessenger }: {
   pkg: TPageProps["pkg"];
   agency: TPageProps["agency"];
   lang: "en" | "ar";
-  onWhatsApp: () => void;
+  onWhatsApp?: () => void;
   onMessenger?: () => void;
 }) {
   const t = T[lang];
@@ -1134,9 +1139,9 @@ function VyFinalCta({ pkg, agency, lang, onWhatsApp, onMessenger }: {
         {firstAgentName} {lang === "ar" ? t.vyIsOnlinePrefixAr : t.vyIsOnlinePrefix}
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-        <button className="vy-v2-cta__btn" onClick={onWhatsApp}>
+        {pkg.whatsapp && <button className="vy-v2-cta__btn" onClick={onWhatsApp}>
           <WaIcon size={15} /> {t.bookWhatsApp}
-        </button>
+        </button>}
         {hasMessenger && onMessenger && (
           <button className="vy-v2-cta__btn" style={{ background: "transparent", border: `2px solid ${ACID}`, color: ACID }} onClick={onMessenger}>
             {t.vyMessenger}
@@ -1182,7 +1187,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
   if (isDesktop) {
     return (
       <div className="vy" style={{ direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={ACID} navLinks={navLinks} lang={lang} dark onWhatsApp={onWhatsApp} />
+        <DesktopNav agency={agency} price={pkg.price} brand={ACID} navLinks={navLinks} lang={lang} dark onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Ticker */}
         <VyTicker pkg={pkg} lang={lang} />
@@ -1225,11 +1230,11 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
                 )}
               </div>
               <div className="vy-d-hero__buy-price" data-pmx-field="price">{pkg.price}</div>
-              <div className="vy-d-hero__buy-cta">
+              {pkg.whatsapp && <div className="vy-d-hero__buy-cta">
                 <button className="vy-cta-d" onClick={onWhatsApp}>
                   <WaIcon size={15} /> {t.bookWhatsApp}
                 </button>
-              </div>
+              </div>}
             </div>
           </div>
         </div>
@@ -1278,11 +1283,11 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <VyFaqSection pkg={pkg} lang={lang} />
         <VyImportantNotesSection pkg={pkg} lang={lang} />
         <VyReviewsSection pkg={pkg} lang={lang} />
-        <VyPeopleSection pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
+        <VyPeopleSection pkg={pkg} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
         <VyAboutAgencySection pkg={pkg} agency={agency} lang={lang} />
         <VyOtherPackagesSection pkg={pkg} lang={lang} agencySlug={agency.agencySlug} />
         <VyCustomSection pkg={pkg} lang={lang} />
-        <VyFinalCta pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
+        <VyFinalCta pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} onMessenger={onMessenger} />
         <DesktopFooter agency={agency} brand={ACID} dark />
       </div>
     );
@@ -1291,7 +1296,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
   // ── Mobile ──────────────────────────────────────────────────────────────────
   return (
     <div className="vy vy--mobile" style={{ direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={ACID} onWhatsApp={onWhatsApp} lang={lang} navLinks={navLinks} dark />
+      <AgencyBar agency={agency} price={pkg.price} brand={ACID} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} dark />
       <VyTicker pkg={pkg} lang={lang} />
 
       {/* Mobile hero */}
@@ -1339,9 +1344,9 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <div style={{ fontFamily: MONO, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 20 }}>
           {nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}
         </div>
-        <button className="vy-cta" onClick={onWhatsApp}>
+        {pkg.whatsapp && <button className="vy-cta" onClick={onWhatsApp}>
           <WaIcon size={14} /> {t.bookWhatsApp}
-        </button>
+        </button>}
       </div>
 
       {/* Description */}
@@ -1365,11 +1370,11 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
       <VyFaqSection pkg={pkg} lang={lang} />
       <VyImportantNotesSection pkg={pkg} lang={lang} />
       <VyReviewsSection pkg={pkg} lang={lang} />
-      <VyPeopleSection pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
+      <VyPeopleSection pkg={pkg} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
       <VyAboutAgencySection pkg={pkg} agency={agency} lang={lang} />
       <VyOtherPackagesSection pkg={pkg} lang={lang} agencySlug={agency.agencySlug} />
       <VyCustomSection pkg={pkg} lang={lang} />
-      <VyFinalCta pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} onMessenger={onMessenger} />
+      <VyFinalCta pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} onMessenger={onMessenger} />
       <VyMobileFooter agency={agency} />
 
       {/* Sticky bar */}
@@ -1381,9 +1386,9 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
             {t.perPerson}
           </div>
         </div>
-        <button className="vy-sticky__btn" onClick={onWhatsApp}>
+        {pkg.whatsapp && <button className="vy-sticky__btn" onClick={onWhatsApp}>
           <WaIcon size={13} /> {t.vyBookNow}
-        </button>
+        </button>}
       </div>
     </div>
   );

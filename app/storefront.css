@@ -360,13 +360,13 @@
 [dir=rtl] .sf-h2,
 [dir=rtl] .sf-serif,
 [dir=rtl] .sf-stat__n {
-  font-family: var(--font-noto-naskh-arabic), "Noto Naskh Arabic", serif;
+  font-family: var(--font-ibm-plex-sans-arabic), "IBM Plex Sans Arabic", system-ui, sans-serif;
 }
 [dir=rtl].sf,
 [dir=rtl] .sf-btn,
 [dir=rtl] .sf-eyebrow,
 [dir=rtl] .sf-link {
-  font-family: var(--font-noto-sans-arabic), "Noto Sans Arabic", system-ui, sans-serif;
+  font-family: var(--font-ibm-plex-sans-arabic), "IBM Plex Sans Arabic", system-ui, sans-serif;
 }
 
 /* ── RTL: eyebrow rule to the end ────────────────────────────────────── */

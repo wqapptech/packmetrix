@@ -342,7 +342,7 @@ export function LivePreviewIframe({
       )}
 
       {/* ── Scaled iframe screen ──────────────────────────────────────────── */}
-      <div style={{
+      <div dir="ltr" style={{
         width: CONTAINER_W,
         height: CONTAINER_H,
         overflow: "hidden",
