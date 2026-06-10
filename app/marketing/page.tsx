@@ -1183,20 +1183,33 @@ const DEMO_TEMPLATE_TAGS: Record<string, { en: string; ar: string }> = {
 };
 
 async function fetchDemoPackages(lang: "en" | "ar"): Promise<ExampleItem[]> {
+  // Resolve the canonical demo account's userId first so we never pull in
+  // packages from other accounts that also happen to have isDemo:true.
+  const DEMO_EMAIL = "hello@packmetrix.com";
+  let demoUserId: string | null = null;
+  let agencyName = lang === "ar" ? "مرايا للأسفار" : "Maraya Journeys";
+  try {
+    const userSnap = await getDocs(
+      query(collection(db, "users"), where("email", "==", DEMO_EMAIL))
+    );
+    if (!userSnap.empty) {
+      demoUserId = userSnap.docs[0].id;
+      agencyName = userSnap.docs[0].data().name || agencyName;
+    }
+  } catch { /* keep defaults */ }
+
+  if (!demoUserId) return [];
+
   const snap = await getDocs(
-    query(collection(db, "packages"), where("isDemo", "==", true))
+    query(
+      collection(db, "packages"),
+      where("userId",  "==", demoUserId),
+      where("isDemo",  "==", true)
+    )
   );
 
   const pkgs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
     .filter(p => (p.primaryLanguage || p.language) === lang && p.status === "active");
-
-  let agencyName = lang === "ar" ? "مرايا للأسفار" : "Maraya Journeys";
-  if (pkgs.length > 0 && pkgs[0].userId) {
-    try {
-      const userSnap = await getDoc(doc(db, "users", pkgs[0].userId));
-      if (userSnap.exists()) agencyName = userSnap.data().name || agencyName;
-    } catch { /* keep default */ }
-  }
 
   return pkgs.slice(0, 6).map(p => {
     const tagObj = DEMO_TEMPLATE_TAGS[p.templateId as string] ?? { en: "Travel Portfolio", ar: "عرض سياحي معتمد" };
