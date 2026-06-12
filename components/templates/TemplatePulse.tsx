@@ -1412,43 +1412,41 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
         position: "sticky", top: 0, zIndex: 20,
         height: 52, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(14px)",
         borderBottom: `1px solid ${PL.line}`,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 16px",
+        display: "flex", alignItems: "center",
+        padding: "0 12px", gap: 10,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexShrink: 1, maxWidth: "40%" }}>
+        {/* Brand mark — fixed size, never shrinks */}
+        <div style={{ flexShrink: 0 }}>
           {agency.logoUrl ? (
-            <img src={agency.logoUrl} alt={agency.name} style={{ height: 26, maxWidth: 80, width: "auto", objectFit: "contain", flexShrink: 0 }} />
+            <img src={agency.logoUrl} alt={agency.name} style={{ height: 26, maxWidth: 72, width: "auto", objectFit: "contain", display: "block" }} />
           ) : (
             <div style={{
               width: 26, height: 26, background: PL.ink, color: "#fff",
               borderRadius: 6, display: "grid", placeItems: "center",
-              fontWeight: 800, fontSize: 12, letterSpacing: -0.5, flexShrink: 0,
+              fontWeight: 800, fontSize: 12, letterSpacing: -0.5,
             }}>{mark}</div>
           )}
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{agency.name}</div>
-            {agency.tagline && <div style={{ fontSize: 10, color: PL.mut, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{agency.tagline}</div>}
-          </div>
         </div>
-        {/* Nav links scroll left-to-right; WA button is pulled to the far right with marginLeft:auto */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, overflowX: "auto", flex: 1, minWidth: 0 }}>
+        {/* Scrollable section links — flex: 1 takes remaining space, clips at edges */}
+        <div style={{ flex: 1, minWidth: 0, overflowX: "auto", display: "flex", alignItems: "center", gap: 14 }}>
           {buildNavLinks(pkg, gallery, hasDeps, hasTiers, t).map(link => (
             <a key={link.href} href={link.href} style={{
-              fontSize: 12, fontWeight: 600, color: PL.mut, textDecoration: "none", whiteSpace: "nowrap",
+              fontSize: 12, fontWeight: 600, color: PL.mut, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
             }}>
               {link.label}
             </a>
           ))}
-          <button data-testid="wa-cta" onClick={onWhatsApp} style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 12, fontWeight: 700, color: "#fff",
-            background: PL.wa, padding: "6px 12px",
-            borderRadius: 8, border: "none", cursor: "pointer", fontFamily: SANS, whiteSpace: "nowrap", flexShrink: 0,
-            marginLeft: "auto",
-          }}>
-            {Ico.wa(12)} {t.bookWhatsApp}
-          </button>
         </div>
+        {/* WA button — fixed size, never shrinks or scrolls away */}
+        <button data-testid="wa-cta" onClick={onWhatsApp} style={{
+          flexShrink: 0,
+          display: "inline-flex", alignItems: "center", gap: 6,
+          fontSize: 12, fontWeight: 700, color: "#fff",
+          background: PL.wa, padding: "6px 12px",
+          borderRadius: 8, border: "none", cursor: "pointer", fontFamily: SANS, whiteSpace: "nowrap",
+        }}>
+          {Ico.wa(12)} {t.bookWhatsApp}
+        </button>
       </div>
 
       {/* ── Hero ── */}

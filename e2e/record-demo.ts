@@ -1,14 +1,14 @@
 /**
- * Packmetrix — full product demo flow driver
+ * Packmetrix — product demo flow driver
  *
- * Drives the browser through the complete demo so you can record it with
- * Screen Studio. Every page is scrolled to its full height before moving on.
+ * Drives the browser through the demo so you can record with Screen Studio.
  *
  * Flow:
- *   Landing page → Login → Packages dashboard → Branding page → New Package →
- *   Template picker (Pulse) → AI extraction → Core fields →
- *   Cover image → 8 sections with content → Publish →
- *   Live page preview → Back to dashboard
+ *   Landing page → Login → Packages dashboard → New Package →
+ *   Template picker (Pulse) → AI extraction → Core fields + cover image →
+ *   Sections: Highlights · Itinerary (3 days) · Hotel · Media (photos + video) ·
+ *             Pricing · Customer Reviews →
+ *   Publish → Live page → Agency Storefront
  *
  * Usage:
  *   DEMO_EMAIL=you@example.com DEMO_PASSWORD=secret npx tsx e2e/record-demo.ts
@@ -240,7 +240,7 @@ async function main() {
   await page.getByTestId("login-password").fill(PASSWORD);
   await beat(page, 600);
   await page.getByTestId("login-submit").click();
-  await page.waitForURL("**/builder**", { timeout: 30_000 });
+  await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 30_000 });
   await beat(page, 1_500);
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -252,55 +252,15 @@ async function main() {
   await page.waitForSelector('a[href*="/builder/"], [data-testid*="package"], .package-card', {
     timeout: 10_000,
   }).catch(() => beat(page, 2_000));
-  await beat(page, 800);
-
-  // Scroll through all package cards then return to top.
-  await scrollFull(page, { back: true, stepPx: 450, pauseMs: 850, bottomPauseMs: 2_000 });
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // 2b. LEAD MANAGEMENT
-  // Show the leads inbox — every WhatsApp/Messenger tap logged automatically.
-  // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 2b — Lead management");
-  await page.goto(`${BASE}/leads`);
-  await page.waitForLoadState("load");
-  await beat(page, 2_500);
-
-  // Scroll the full leads list then return to top.
-  await scrollFull(page, { back: true, stepPx: 450, pauseMs: 850, bottomPauseMs: 2_000 });
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // 3. BRANDING PAGE
-  // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 3 — Branding / profile page");
-  await page.goto(`${BASE}/profile`);
-  await page.waitForLoadState("load");
-  await beat(page, 2_500);
-
-  // Scroll the full branding page — agency name, logo, brand colour, custom domain.
-  await scrollFull(page, { back: false, stepPx: 420, pauseMs: 850, bottomPauseMs: 1_200 });
-
-  // Pause specifically on the custom domain section so the narrator can highlight it.
-  const domainLabel = page.getByText("Your primary business URL").first();
-  if (await domainLabel.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await domainLabel.scrollIntoViewIfNeeded();
-    await page.evaluate(`${FIND_SCROLLER}.scrollBy({ top: 120, behavior: 'smooth' })`);
-    // Narrator: "Connect your own domain — every package page is served from
-    //            your URL, with no Packmetrix branding anywhere."
-    await beat(page, 3_500);
-  }
-
-  await scrollToTop(page);
   await beat(page, 1_000);
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // 4. START A NEW PACKAGE
-  // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 4 — New Package");
-  await page.goto(`${BASE}/packages`);
-  await page.waitForLoadState("load");
-  await beat(page, 1_200);
+  // Scroll through all package cards then return to top.
+  await scrollFull(page, { back: true, stepPx: 450, pauseMs: 850, bottomPauseMs: 1_500 });
 
+  // ════════════════════════════════════════════════════════════════════════════
+  // 3. START A NEW PACKAGE
+  // ════════════════════════════════════════════════════════════════════════════
+  console.log("Step 3 — New Package");
   await page.evaluate(() => localStorage.removeItem("builderDraft_v2"));
 
   const newPkgBtn = page.getByRole("button", { name: /New Package/i }).first();
@@ -310,9 +270,9 @@ async function main() {
   await beat(page, 1_200);
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 5. TEMPLATE PICKER — SELECT PULSE
+  // 4. TEMPLATE PICKER — SELECT PULSE
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 5 — Template picker: select Pulse");
+  console.log("Step 4 — Template picker: select Pulse");
   await page.getByText("Use this").first().waitFor({ state: "visible", timeout: 20_000 });
   await beat(page, 1_000);
 
@@ -327,14 +287,14 @@ async function main() {
   await page.getByText("Active").waitFor({ state: "visible", timeout: 5_000 });
   await beat(page, 1_000);
 
-  // Scroll the full builder page so the viewer sees the selected template and
+  // Scroll the builder page so the viewer sees the selected template and
   // the AI extraction textarea before any typing begins.
   await scrollFull(page, { back: true, stepPx: 420, pauseMs: 850, bottomPauseMs: 1_500 });
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 6. AI EXTRACTION
+  // 5. AI EXTRACTION
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 6 — AI extraction");
+  console.log("Step 5 — AI extraction");
 
   const AI_DESCRIPTION =
 `Santorini Autumn Special — 5 Nights 🇬🇷
@@ -344,8 +304,6 @@ Escape to the caldera this September. Private pool villa in Oia, sunset dinners,
 Price: €599 per person (was €1,199)
 Departure: September 20, 2026
 Duration: 5 nights · Destination: Santorini, Greece
-
-⚠️ Only 3 spots remaining out of 20!
 
 What's included:
 - Return flights from Amsterdam
@@ -390,10 +348,10 @@ Book now before the offer disappears.`;
   await beat(page, 2_000);
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 7. REVIEW PRE-FILLED CORE FIELDS
+  // 6. REVIEW PRE-FILLED CORE FIELDS
   // Scroll the entire build form so every AI-populated field is visible.
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 7 — Review AI-filled core fields");
+  console.log("Step 6 — Review AI-filled core fields");
 
   await scrollFull(page, { back: false, stepPx: 420, pauseMs: 850, bottomPauseMs: 1_200 });
 
@@ -409,16 +367,16 @@ Book now before the offer disappears.`;
   await beat(page, 800);
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 8. COVER IMAGE — SEARCH PHOTOS
+  // 7. COVER IMAGE — SEARCH PHOTOS
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 8 — Cover image");
-  const searchPhotosTab = page.getByText("Search Photos");
-  if (await searchPhotosTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await revealField(searchPhotosTab);
-    await searchPhotosTab.click();
+  console.log("Step 7 — Cover image");
+  const coverSearchPhotosTab = page.getByText("Search Photos").first();
+  if (await coverSearchPhotosTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await revealField(coverSearchPhotosTab);
+    await coverSearchPhotosTab.click();
     await beat(page, 800);
 
-    const photoInput = page.getByPlaceholder("Search for photos…");
+    const photoInput = page.getByPlaceholder("Search for photos…").first();
     await photoInput.waitFor({ state: "visible", timeout: 10_000 });
     await revealField(photoInput);
     await photoInput.fill("Santorini Greece");
@@ -428,7 +386,7 @@ Book now before the offer disappears.`;
     await page.waitForTimeout(3_000);
 
     const firstPhotoContainer = page
-      .locator("img[src*='pexels'], img[src*='unsplash'], img[src*='images.pexels']")
+      .locator("img[src*='pexels'], img[src*='images.pexels']")
       .first()
       .locator("..");
     if (await firstPhotoContainer.isVisible({ timeout: 8_000 }).catch(() => false)) {
@@ -439,9 +397,9 @@ Book now before the offer disappears.`;
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 9. SECTIONS — showcase the full power of packmetrix
+  // 8. SECTIONS — build all content sections
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 9 — Building sections");
+  console.log("Step 8 — Building sections");
 
   async function buildSection(label: string, fill: () => Promise<void>) {
     console.log(`  + Section: ${label}`);
@@ -502,33 +460,17 @@ Book now before the offer disappears.`;
     await beat(page, 1_200);
   }
 
-  // ── 9a. SCARCITY & URGENCY ────────────────────────────────────────────────
-  await buildSection("Scarcity", async () => {
-    const wasPrice = page.getByPlaceholder("e.g. €1,499").first();
-    if (await wasPrice.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await revealField(wasPrice);
-      await wasPrice.fill("€1,199");
-      await beat(page, 400);
-
-      const numInputs = page.locator('input[inputMode="numeric"]');
-      if (await numInputs.first().isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await revealField(numInputs.first());
-        await numInputs.first().fill("3");
-        await beat(page, 300);
-        await revealField(numInputs.nth(1));
-        await numInputs.nth(1).fill("20");
-        await beat(page, 300);
-      }
-
-      const depDate = page.getByPlaceholder("e.g. 2026-06-15").first();
-      if (await depDate.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await revealField(depDate);
-        await depDate.fill("2026-09-20");
-      }
+  // ── 8a. HIGHLIGHTS ────────────────────────────────────────────────────────
+  await buildSection("Highlights", async () => {
+    const tagInput = page.getByPlaceholder("e.g. 5-star hotel included").first();
+    if (await tagInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(tagInput);
+      await tagInput.fill("Private caldera-view villa with infinity pool");
+      await tagInput.press("Enter");
     }
   });
 
-  // ── 9b. ITINERARY ─────────────────────────────────────────────────────────
+  // ── 8b. ITINERARY ─────────────────────────────────────────────────────────
   await buildSection("Itinerary", async () => {
     // The section starts with 3 days pre-populated — fill each by index.
     const dayInputs = page.getByPlaceholder("e.g. Arrival & city tour");
@@ -554,17 +496,7 @@ Book now before the offer disappears.`;
     }
   });
 
-  // ── 9c. HIGHLIGHTS ────────────────────────────────────────────────────────
-  await buildSection("Highlights", async () => {
-    const tagInput = page.getByPlaceholder("e.g. 5-star hotel included").first();
-    if (await tagInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await revealField(tagInput);
-      await tagInput.fill("Private caldera-view villa with infinity pool");
-      await tagInput.press("Enter");
-    }
-  });
-
-  // ── 9d. HOTEL & ACCOMMODATION ─────────────────────────────────────────────
+  // ── 8c. HOTEL & ACCOMMODATION ─────────────────────────────────────────────
   await buildSection("Hotel", async () => {
     const desc = page
       .getByPlaceholder("Describe the hotel: name, location, facilities, star rating…")
@@ -577,16 +509,64 @@ Book now before the offer disappears.`;
     }
   });
 
-  // ── 9e. DEPARTURES ────────────────────────────────────────────────────────
-  await buildSection("Departures", async () => {
-    const dateField = page.getByPlaceholder("e.g. 15 March 2026").first();
-    if (await dateField.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await revealField(dateField);
-      await dateField.fill("20 September 2026");
+  // ── 8d. MEDIA — photos + video ────────────────────────────────────────────
+  await buildSection("Media", async () => {
+    // Photos: click "Search Photos" tab, search, pick 3 images.
+    const searchPhotosTab = page.getByRole("button", { name: /Search Photos/i }).last();
+    if (await searchPhotosTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await revealField(searchPhotosTab, 500);
+      await searchPhotosTab.click();
+      await beat(page, 800);
+
+      const photoSearchInput = page.getByPlaceholder("Search for photos…").last();
+      await photoSearchInput.waitFor({ state: "visible", timeout: 10_000 });
+      await revealField(photoSearchInput);
+      await photoSearchInput.fill("Santorini Greece");
+      await beat(page, 500);
+      await photoSearchInput.press("Enter");
+      await beat(page, 3_500);
+
+      // Click the first 3 photo results.
+      const photoResults = page.locator("img[src*='pexels'], img[src*='images.pexels']");
+      const photoCount = await photoResults.count();
+      for (let i = 0; i < Math.min(3, photoCount); i++) {
+        const photoContainer = photoResults.nth(i).locator("..");
+        if (await photoContainer.isVisible({ timeout: 3_000 }).catch(() => false)) {
+          await revealField(photoContainer, 400);
+          await photoContainer.click();
+          await beat(page, 700);
+        }
+      }
+      await beat(page, 1_000);
+    }
+
+    // Video: click "Search Videos" tab, search, pick first video.
+    const searchVideosTab = page.getByRole("button", { name: /Search Videos/i }).last();
+    if (await searchVideosTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await revealField(searchVideosTab, 500);
+      await searchVideosTab.click();
+      await beat(page, 800);
+
+      const videoSearchInput = page.getByPlaceholder("Search for videos…").last();
+      await videoSearchInput.waitFor({ state: "visible", timeout: 10_000 });
+      await revealField(videoSearchInput);
+      await videoSearchInput.fill("Santorini Greece");
+      await beat(page, 500);
+      await videoSearchInput.press("Enter");
+      await beat(page, 3_500);
+
+      // Click the first video result container.
+      const firstVideo = page.locator("video, [data-testid*='video'], img[src*='pexels.com/video']").first();
+      const firstVideoContainer = firstVideo.locator("..");
+      if (await firstVideoContainer.isVisible({ timeout: 8_000 }).catch(() => false)) {
+        await revealField(firstVideoContainer, 400);
+        await firstVideoContainer.click();
+        await beat(page, 1_500);
+      }
     }
   });
 
-  // ── 9f. PRICING ───────────────────────────────────────────────────────────
+  // ── 8e. PRICING ───────────────────────────────────────────────────────────
   await buildSection("Pricing", async () => {
     const tierLabel = page.getByPlaceholder("e.g. Per person (2 pax)").first();
     if (await tierLabel.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -595,7 +575,7 @@ Book now before the offer disappears.`;
     }
   });
 
-  // ── 9g. REVIEWS ───────────────────────────────────────────────────────────
+  // ── 8f. REVIEWS ───────────────────────────────────────────────────────────
   await buildSection("Customer Reviews", async () => {
     const reviewerName = page.getByPlaceholder("e.g. Sara M.").first();
     if (await reviewerName.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -604,23 +584,10 @@ Book now before the offer disappears.`;
     }
   });
 
-  // ── 9h. ABOUT AGENCY ──────────────────────────────────────────────────────
-  await buildSection("About", async () => {
-    const storyInput = page
-      .getByPlaceholder("Tell travellers about your agency, experience, and values…")
-      .first();
-    if (await storyInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await revealField(storyInput);
-      await storyInput.fill(
-        "10 years crafting intimate Mediterranean escapes. Over 2,400 happy travellers — 4.9★ average rating."
-      );
-    }
-  });
-
   // ════════════════════════════════════════════════════════════════════════════
-  // 10. PUBLISH
+  // 9. PUBLISH
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 10 — Publish");
+  console.log("Step 9 — Publish");
   await beat(page, 1_000);
 
   const publishBtn = page.getByTestId("builder-publish");
@@ -628,22 +595,21 @@ Book now before the offer disappears.`;
   await publishBtn.click();
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 11. SUCCESS SCREEN
+  // 10. SUCCESS SCREEN
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 11 — Success screen");
+  console.log("Step 10 — Success screen");
   await page.getByTestId("builder-done").waitFor({ state: "visible", timeout: 45_000 });
   console.log("  ✓ Package is live!");
 
   await beat(page, 2_000);
 
-  // Scroll the success screen fully — the share URL row with the custom domain
-  // is the key moment for the narrator.
+  // Scroll the success screen fully — the share URL row is the key moment.
   await scrollFull(page, { back: true, stepPx: 400, pauseMs: 900, bottomPauseMs: 3_500 });
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 12. LIVE PACKAGE PAGE — full scroll through every section
+  // 11. LIVE PACKAGE PAGE — full scroll through every section
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 12 — Preview live Pulse page");
+  console.log("Step 11 — Preview live Pulse page");
   const previewBtn = page.getByText("Preview page");
   if (await previewBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
     const [newTab] = await Promise.all([
@@ -660,19 +626,18 @@ Book now before the offer disappears.`;
     await page.waitForTimeout(3_500);
 
     // Scroll the entire live page — hero → highlights → itinerary → hotel →
-    // departures → pricing → reviews → about → footer.
+    // media → pricing → reviews → footer.
     await scrollFull(page, { back: false, stepPx: 460, pauseMs: 1_000, bottomPauseMs: 2_500 });
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 12b. AGENCY STOREFRONT — show the new package appearing on the storefront
-  // Navigate back to the builder success screen to use the "Preview storefront"
-  // link, which now includes the newly published package.
+  // 12. AGENCY STOREFRONT — show the new package on the agency's public page
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 12b — Agency storefront");
+  console.log("Step 12 — Agency storefront");
   await page.goto(`${BASE}/profile`);
   await page.waitForLoadState("load");
   await beat(page, 2_000);
+
   const storefrontBtn = page.getByText("Preview storefront").first();
   if (await storefrontBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
     const [sfTab] = await Promise.all([
@@ -687,29 +652,9 @@ Book now before the offer disappears.`;
     await page.waitForLoadState("load");
     await beat(page, 2_500);
 
-    // Scroll the full storefront so every package card including the new one is visible.
-    await scrollFull(page, { back: true, stepPx: 480, pauseMs: 900, bottomPauseMs: 2_000 });
+    // Scroll the full storefront so every package card is visible.
+    await scrollFull(page, { back: true, stepPx: 480, pauseMs: 900, bottomPauseMs: 2_500 });
   }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // 13. BACK TO PACKAGES DASHBOARD
-  // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 13 — Back to packages dashboard");
-  const backBtn = page.getByText("Back to dashboard");
-  if (await backBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await backBtn.click();
-  } else {
-    await page.goto(`${BASE}/packages`);
-  }
-  await page.waitForLoadState("load");
-  // Wait for package cards (including the newly published one) to render.
-  await page.waitForSelector('a[href*="/builder/"], [data-testid*="package"], .package-card', {
-    timeout: 10_000,
-  }).catch(() => beat(page, 3_000));
-  await beat(page, 1_500);
-
-  // Scroll the full dashboard so every package card is seen, then return to top.
-  await scrollFull(page, { back: true, stepPx: 450, pauseMs: 850, bottomPauseMs: 2_500 });
 
   // ── WRAP UP ───────────────────────────────────────────────────────────────
   console.log("\n✓ Demo flow complete — stop Screen Studio recording now.\n");
