@@ -1415,22 +1415,23 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 16px",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexShrink: 1, maxWidth: "40%" }}>
           {agency.logoUrl ? (
-            <img src={agency.logoUrl} alt={agency.name} style={{ height: 26, width: "auto", objectFit: "contain" }} />
+            <img src={agency.logoUrl} alt={agency.name} style={{ height: 26, maxWidth: 80, width: "auto", objectFit: "contain", flexShrink: 0 }} />
           ) : (
             <div style={{
               width: 26, height: 26, background: PL.ink, color: "#fff",
               borderRadius: 6, display: "grid", placeItems: "center",
-              fontWeight: 800, fontSize: 12, letterSpacing: -0.5,
+              fontWeight: 800, fontSize: 12, letterSpacing: -0.5, flexShrink: 0,
             }}>{mark}</div>
           )}
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>{agency.name}</div>
-            {agency.tagline && <div style={{ fontSize: 10, color: PL.mut, marginTop: 1 }}>{agency.tagline}</div>}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{agency.name}</div>
+            {agency.tagline && <div style={{ fontSize: 10, color: PL.mut, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{agency.tagline}</div>}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, overflowX: "auto", flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
+        {/* Nav links scroll left-to-right; WA button is pulled to the far right with marginLeft:auto */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, overflowX: "auto", flex: 1, minWidth: 0 }}>
           {buildNavLinks(pkg, gallery, hasDeps, hasTiers, t).map(link => (
             <a key={link.href} href={link.href} style={{
               fontSize: 12, fontWeight: 600, color: PL.mut, textDecoration: "none", whiteSpace: "nowrap",
@@ -1443,6 +1444,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
             fontSize: 12, fontWeight: 700, color: "#fff",
             background: PL.wa, padding: "6px 12px",
             borderRadius: 8, border: "none", cursor: "pointer", fontFamily: SANS, whiteSpace: "nowrap", flexShrink: 0,
+            marginLeft: "auto",
           }}>
             {Ico.wa(12)} {t.bookWhatsApp}
           </button>

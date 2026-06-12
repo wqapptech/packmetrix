@@ -1,25 +1,20 @@
 /**
- * Packmetrix — full product demo recorder
+ * Packmetrix — full product demo flow driver
  *
- * Designed for AI voice-over generation. Each step has deliberate pauses
- * so the narrator has time to explain what is happening on screen.
+ * Drives the browser through the complete demo so you can record it with
+ * Screen Studio. Every page is scrolled to its full height before moving on.
  *
  * Flow:
- *   Login → Packages dashboard → Branding page → New Package →
+ *   Landing page → Login → Packages dashboard → Branding page → New Package →
  *   Template picker (Pulse) → AI extraction → Core fields →
  *   Cover image → 8 sections with content → Publish →
  *   Live page preview → Back to dashboard
  *
  * Usage:
  *   DEMO_EMAIL=you@example.com DEMO_PASSWORD=secret npx tsx e2e/record-demo.ts
- *
- * Output: ./videos/<uuid>.webm
- * Convert: ffmpeg -i videos/your-file.webm -c:v libx264 demo.mp4
  */
 
-import * as path from "path";
-import * as fs from "fs";
-import { chromium, type Page } from "@playwright/test";
+import { chromium, type Page, type Locator } from "@playwright/test";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -37,29 +32,111 @@ if (!EMAIL || !PASSWORD) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Pause so the voice-over narrator has time to explain what's on screen. */
 const beat = (page: Page, ms = 1_200) => page.waitForTimeout(ms);
 
-/** Slow scroll — lets the viewer absorb the content as the camera pans. */
-async function slowScroll(page: Page, distance: number, steps = 4) {
-  const step = Math.round(distance / steps);
-  for (let i = 0; i < steps; i++) {
-    await page.evaluate((d) => window.scrollBy({ top: d, behavior: "smooth" }), step);
-    await page.waitForTimeout(700);
+// Finds the AppLayout scroll container (overflow:auto div) or falls back to
+// documentElement. Defined as an inline string so it can be reused in every
+// page.evaluate() call without a closure.
+const FIND_SCROLLER = `(
+  Array.from(document.querySelectorAll('div')).find(el => {
+    const s = window.getComputedStyle(el);
+    return (s.overflowY === 'auto' || s.overflowY === 'scroll') &&
+           el.scrollHeight > el.clientHeight + 10;
+  }) || document.documentElement
+)`;
+
+/** Scroll the AppLayout content pane to the top instantly. */
+async function scrollToTop(page: Page) {
+  await page.evaluate(`${FIND_SCROLLER}.scrollTop = 0`);
+  await page.waitForTimeout(400);
+}
+
+/**
+ * Scroll the AppLayout content pane from top to bottom in smooth steps,
+ * pause at the bottom, then optionally scroll back to top.
+ */
+async function scrollFull(
+  page: Page,
+  opts: { back?: boolean; stepPx?: number; pauseMs?: number; bottomPauseMs?: number } = {}
+) {
+  const { back = true, stepPx = 480, pauseMs = 800, bottomPauseMs = 2_000 } = opts;
+
+  await scrollToTop(page);
+  await page.waitForTimeout(400);
+
+  const maxScroll: number = await page.evaluate(`
+    (() => {
+      const el = ${FIND_SCROLLER};
+      return el.scrollHeight - el.clientHeight;
+    })()
+  `) as number;
+
+  if (maxScroll <= 0) {
+    await page.waitForTimeout(bottomPauseMs);
+    return;
+  }
+
+  let pos = 0;
+  while (pos < maxScroll) {
+    pos = Math.min(pos + stepPx, maxScroll);
+    await page.evaluate(`${FIND_SCROLLER}.scrollTo({ top: ${pos}, behavior: 'smooth' })`);
+    await page.waitForTimeout(pauseMs);
+  }
+
+  await page.waitForTimeout(bottomPauseMs);
+
+  if (back) {
+    await page.evaluate(`${FIND_SCROLLER}.scrollTo({ top: 0, behavior: 'smooth' })`);
+    await page.waitForTimeout(1_200);
   }
 }
 
+/**
+ * Scroll a field into the vertical centre of the viewport and pause so the
+ * camera shows it clearly before any typing begins.
+ */
+async function revealField(locator: Locator, pauseMs = 700) {
+  await locator.scrollIntoViewIfNeeded();
+  await locator.evaluate((el) => {
+    const scroller = (
+      Array.from(document.querySelectorAll("div")).find((e) => {
+        const s = window.getComputedStyle(e);
+        return (s.overflowY === "auto" || s.overflowY === "scroll") &&
+               e.scrollHeight > e.clientHeight + 10;
+      }) || document.documentElement
+    ) as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const containerMid = scroller === document.documentElement
+      ? window.innerHeight / 2
+      : scroller.getBoundingClientRect().height / 2;
+    const offset = rect.top + rect.height / 2 - containerMid;
+    if (Math.abs(offset) > 60) scroller.scrollBy({ top: offset, behavior: "smooth" });
+  });
+  await locator.page().waitForTimeout(pauseMs);
+}
+
 // ── Cursor & click-highlight overlay ─────────────────────────────────────────
-// Injected into every page so the recorded video shows cursor position and clicks.
 
 const CURSOR_SCRIPT = `(function () {
   if (document.getElementById('__demo_cursor__')) return;
 
-  // Hide native scrollbars — they appear as an ugly vertical strip on the right
-  // in the recorded video. Content is still scrollable via the script.
   const scrollbarStyle = document.createElement('style');
   scrollbarStyle.textContent = '::-webkit-scrollbar{display:none!important}*{scrollbar-width:none!important}';
   document.head.appendChild(scrollbarStyle);
+
+  // Hide all toast notifications so empty/noisy toasts don't appear on camera.
+  const toastStyle = document.createElement('style');
+  toastStyle.textContent = [
+    '[data-sonner-toaster]',
+    '[data-sonner-toast]',
+    '[data-radix-toast-viewport]',
+    '[id*="toast"]',
+    '[class*="Toaster"]',
+    '[class*="toaster"]',
+    '[class*="toast-container"]',
+    '#_rht_toaster',
+  ].join(',') + '{display:none!important;pointer-events:none!important}';
+  document.head.appendChild(toastStyle);
 
   const style = document.createElement('style');
   style.textContent = \`
@@ -121,125 +198,109 @@ const CURSOR_SCRIPT = `(function () {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const videosDir = path.join(process.cwd(), "videos");
-  fs.mkdirSync(videosDir, { recursive: true });
-
   console.log("Launching browser…");
 
   const browser = await chromium.launch({
-    headless: true,
-    slowMo: 700,
+    headless: false,
+    slowMo: 600,
   });
 
-  const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
-    recordVideo: { dir: videosDir, size: { width: 1920, height: 1080 } },
-    deviceScaleFactor: 2,
-  });
+  // viewport: null lets the viewport follow the actual window size after we maximize.
+  const context = await browser.newContext({ viewport: null });
 
-  // Cursor overlay auto-applies to every page and new tab.
   await context.addInitScript(CURSOR_SCRIPT);
-
   const page = await context.newPage();
+
+  // Maximize the window via CDP — --start-maximized is ignored on macOS.
+  const cdp = await context.newCDPSession(page);
+  const { windowId } = await cdp.send("Browser.getWindowForTarget");
+  await cdp.send("Browser.setWindowBounds", { windowId, bounds: { windowState: "maximized" } });
+  await page.waitForTimeout(600);
 
   // ════════════════════════════════════════════════════════════════════════════
   // 0. LANDING PAGE — opening shot
-  //
-  // Voice-over narrator says:
-  //   "This is Packmetrix — the platform that turns your travel packages into
-  //    beautiful, branded landing pages under your own domain, in minutes."
-  //
-  // The hero headline on screen reads the same thing, so the narration and
-  // the visual reinforce each other perfectly.
   // ════════════════════════════════════════════════════════════════════════════
-  console.log("Step 0 — Landing page (opening shot)");
+  console.log("Step 0 — Landing page");
   await page.goto(`${BASE}/`);
-  await page.waitForLoadState("domcontentloaded");
+  await page.waitForLoadState("load");
 
-  // Pause on the hero — narrator delivers the opening line.
+  // Hold on the hero so the viewer reads the headline.
   await beat(page, 4_000);
-
-  // Slow scroll to show the feature highlights beneath the hero.
-  await slowScroll(page, 900, 6);
-  await beat(page, 1_500);
 
   // ════════════════════════════════════════════════════════════════════════════
   // 1. LOGIN
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 1 — Login");
   await page.goto(`${BASE}/login`);
-  await beat(page, 800);
+  await page.waitForLoadState("domcontentloaded");
+  await beat(page, 1_000);
+
   await page.getByTestId("login-email").fill(EMAIL);
   await beat(page, 500);
   await page.getByTestId("login-password").fill(PASSWORD);
-  await beat(page, 500);
+  await beat(page, 600);
   await page.getByTestId("login-submit").click();
   await page.waitForURL("**/builder**", { timeout: 30_000 });
   await beat(page, 1_500);
 
   // ════════════════════════════════════════════════════════════════════════════
   // 2. PACKAGES DASHBOARD
-  // Show the agency workspace — all packages at a glance.
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 2 — Packages dashboard");
   await page.goto(`${BASE}/packages`);
-  await page.waitForLoadState("domcontentloaded");
-  await beat(page, 2_000);
+  await page.waitForLoadState("load");
+  await page.waitForSelector('a[href*="/builder/"], [data-testid*="package"], .package-card', {
+    timeout: 10_000,
+  }).catch(() => beat(page, 2_000));
+  await beat(page, 800);
 
-  // Scroll down to show package cards, then back up.
-  await slowScroll(page, 400, 3);
-  await beat(page, 1_500);
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
-  await beat(page, 1_000);
+  // Scroll through all package cards then return to top.
+  await scrollFull(page, { back: true, stepPx: 450, pauseMs: 850, bottomPauseMs: 2_000 });
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // 2b. LEAD MANAGEMENT
+  // Show the leads inbox — every WhatsApp/Messenger tap logged automatically.
+  // ════════════════════════════════════════════════════════════════════════════
+  console.log("Step 2b — Lead management");
+  await page.goto(`${BASE}/leads`);
+  await page.waitForLoadState("load");
+  await beat(page, 2_500);
+
+  // Scroll the full leads list then return to top.
+  await scrollFull(page, { back: true, stepPx: 450, pauseMs: 850, bottomPauseMs: 2_000 });
 
   // ════════════════════════════════════════════════════════════════════════════
   // 3. BRANDING PAGE
-  // Show agency identity settings: name, logo, brand colour, and — crucially —
-  // the custom domain that serves all package pages from the agency's own URL.
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 3 — Branding / profile page");
   await page.goto(`${BASE}/profile`);
-  await page.waitForLoadState("domcontentloaded");
-  await beat(page, 2_000);
+  await page.waitForLoadState("load");
+  await beat(page, 2_500);
 
-  // Scroll through the top section: agency name, logo, brand colour.
-  await slowScroll(page, 500, 4);
-  await beat(page, 1_000);
+  // Scroll the full branding page — agency name, logo, brand colour, custom domain.
+  await scrollFull(page, { back: false, stepPx: 420, pauseMs: 850, bottomPauseMs: 1_200 });
 
-  // Scroll to the custom domain section.
-  // We target the field label text ("Your primary business URL") rather than the
-  // placeholder, because the account already has a domain configured — the input
-  // has a value so its placeholder is never visible.
+  // Pause specifically on the custom domain section so the narrator can highlight it.
   const domainLabel = page.getByText("Your primary business URL").first();
   if (await domainLabel.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await domainLabel.scrollIntoViewIfNeeded();
-    await beat(page, 800);
-    // Scroll a little further so the configured domain value and the
-    // green "Live" status badge are both fully in frame.
-    await page.evaluate(() => window.scrollBy({ top: 120, behavior: "smooth" }));
-    // Long pause — narrator says:
-    //   "Connect your own domain — every package page is served from
-    //    your URL, with no Packmetrix branding anywhere."
+    await page.evaluate(`${FIND_SCROLLER}.scrollBy({ top: 120, behavior: 'smooth' })`);
+    // Narrator: "Connect your own domain — every package page is served from
+    //            your URL, with no Packmetrix branding anywhere."
     await beat(page, 3_500);
-  } else {
-    // Fallback: keep scrolling until something domain-related is visible.
-    await slowScroll(page, 500, 4);
-    await beat(page, 2_500);
   }
 
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  await scrollToTop(page);
   await beat(page, 1_000);
 
   // ════════════════════════════════════════════════════════════════════════════
   // 4. START A NEW PACKAGE
-  // Navigate back to the packages list and click "New Package".
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 4 — New Package");
   await page.goto(`${BASE}/packages`);
-  await page.waitForLoadState("domcontentloaded");
-  await beat(page, 1_500);
+  await page.waitForLoadState("load");
+  await beat(page, 1_200);
 
-  // Clear any stale draft before entering the builder so the template picker shows.
   await page.evaluate(() => localStorage.removeItem("builderDraft_v2"));
 
   const newPkgBtn = page.getByRole("button", { name: /New Package/i }).first();
@@ -250,33 +311,28 @@ async function main() {
 
   // ════════════════════════════════════════════════════════════════════════════
   // 5. TEMPLATE PICKER — SELECT PULSE
-  // Browse the gallery briefly, then choose Pulse for its urgency features.
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 5 — Template picker: select Pulse");
   await page.getByText("Use this").first().waitFor({ state: "visible", timeout: 20_000 });
   await beat(page, 1_000);
 
-  // Brief gallery scroll so the viewer sees all template options.
-  await slowScroll(page, 350, 3);
-  await beat(page, 800);
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
-  await beat(page, 600);
+  // Scroll the full gallery so viewers see all template options.
+  await scrollFull(page, { back: true, stepPx: 400, pauseMs: 800, bottomPauseMs: 1_500 });
 
-  // Click the Pulse card — the outer div has onClick=onPick, clicking the name
-  // text bubbles up to trigger selection.
+  // Select Pulse.
   const pulseCard = page.locator("text=Pulse").first();
   await pulseCard.scrollIntoViewIfNeeded();
   await beat(page, 500);
   await pulseCard.click();
-
-  // Wait for the "Active" badge to confirm Pulse is selected.
   await page.getByText("Active").waitFor({ state: "visible", timeout: 5_000 });
   await beat(page, 1_000);
 
+  // Scroll the full builder page so the viewer sees the selected template and
+  // the AI extraction textarea before any typing begins.
+  await scrollFull(page, { back: true, stepPx: 420, pauseMs: 850, bottomPauseMs: 1_500 });
+
   // ════════════════════════════════════════════════════════════════════════════
   // 6. AI EXTRACTION
-  // Paste a real-world package description — the AI fills all core fields
-  // and transitions directly to the build form (no "Start building" needed).
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 6 — AI extraction");
 
@@ -309,8 +365,7 @@ Book now before the offer disappears.`;
   await aiTextarea.fill(AI_DESCRIPTION);
   await beat(page, 800);
 
-  // Slowly scroll within the textarea so viewers can read the full description,
-  // then reset to top so the Extract button is visible.
+  // Pan through the textarea so viewers can read the description.
   await aiTextarea.evaluate((el: HTMLTextAreaElement) => { el.scrollTop = el.scrollHeight / 2; });
   await beat(page, 700);
   await aiTextarea.evaluate((el: HTMLTextAreaElement) => { el.scrollTop = el.scrollHeight; });
@@ -318,8 +373,6 @@ Book now before the offer disappears.`;
   await aiTextarea.evaluate((el: HTMLTextAreaElement) => { el.scrollTop = 0; });
   await beat(page, 500);
 
-  // Click extract and wait for the API response + build form to appear.
-  // onAiExtract() calls setUiPhase("build"), so the form transitions automatically.
   await page.getByText("Extract with AI").click();
 
   await Promise.all([
@@ -338,21 +391,21 @@ Book now before the offer disappears.`;
 
   // ════════════════════════════════════════════════════════════════════════════
   // 7. REVIEW PRE-FILLED CORE FIELDS
-  // Scroll through so viewers see every field the AI populated.
-  // Only WhatsApp needs to be added manually.
+  // Scroll the entire build form so every AI-populated field is visible.
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 7 — Review AI-filled core fields");
-  await slowScroll(page, 500, 4);
-  await beat(page, 1_000);
 
+  await scrollFull(page, { back: false, stepPx: 420, pauseMs: 850, bottomPauseMs: 1_200 });
+
+  // Fill WhatsApp manually (not extracted by AI).
   const waInput = page.getByPlaceholder("+1 234 567 8900");
   if (await waInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await waInput.scrollIntoViewIfNeeded();
+    await revealField(waInput);
     await waInput.fill("+31 6 1234 5678");
     await beat(page, 700);
   }
 
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  await scrollToTop(page);
   await beat(page, 800);
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -361,28 +414,27 @@ Book now before the offer disappears.`;
   console.log("Step 8 — Cover image");
   const searchPhotosTab = page.getByText("Search Photos");
   if (await searchPhotosTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await searchPhotosTab.scrollIntoViewIfNeeded();
+    await revealField(searchPhotosTab);
     await searchPhotosTab.click();
     await beat(page, 800);
 
     const photoInput = page.getByPlaceholder("Search for photos…");
     await photoInput.waitFor({ state: "visible", timeout: 10_000 });
+    await revealField(photoInput);
     await photoInput.fill("Santorini Greece");
     await beat(page, 500);
     await photoInput.press("Enter");
 
     await page.waitForTimeout(3_000);
-    // Click the photo container div (the element with onClick) rather than the
-    // <img> inside it. The .px-ov overlay covers the img, so targeting the parent
-    // div (which has the actual handleSelect onClick handler) is more reliable.
+
     const firstPhotoContainer = page
       .locator("img[src*='pexels'], img[src*='unsplash'], img[src*='images.pexels']")
       .first()
-      .locator("..");  // parent <div> which carries onClick={() => handleSelect(photo)}
+      .locator("..");
     if (await firstPhotoContainer.isVisible({ timeout: 8_000 }).catch(() => false)) {
-      await firstPhotoContainer.scrollIntoViewIfNeeded();
+      await revealField(firstPhotoContainer);
       await firstPhotoContainer.click();
-      await beat(page, 2_000);  // extra wait so preview iframe debounces and updates
+      await beat(page, 2_000);
     }
   }
 
@@ -391,67 +443,44 @@ Book now before the offer disappears.`;
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 9 — Building sections");
 
-  /**
-   * Opens AddSectionMenu, picks the section matching `label`, then expands it
-   * via "Add content →". The callback `fill` runs to populate key fields.
-   */
   async function buildSection(label: string, fill: () => Promise<void>) {
     console.log(`  + Section: ${label}`);
 
-    // Snapshot input count; used to detect whether the section editor mounted.
     const baseline = await page.evaluate(() =>
       document.querySelectorAll("input, textarea").length
     );
 
-    // Open the section menu
     const browseBtn = page.getByText(/Browse all \d+ sections/);
-    await browseBtn.scrollIntoViewIfNeeded();
+    await revealField(browseBtn, 500);
     await browseBtn.click();
     await page.getByText("Add a section").waitFor({ state: "visible", timeout: 10_000 });
     await beat(page, 600);
 
-    // Select the section type.
-    // AddSectionMenu is the LAST JSX child of SectionList, so its buttons appear
-    // last in DOM order. Using .last() ensures we hit the modal button rather
-    // than any same-named suggestion-strip tile that appears earlier in the DOM.
-    //
-    // Anchor to ^ so that section *descriptions* containing the label word don't
-    // cause false matches (e.g. the "Departures" button description contains
-    // "per-departure pricing" which would otherwise match /Pricing/i).
     const sectionBtn = page
       .getByRole("button", { name: new RegExp("^" + label, "i") })
       .last();
-    await sectionBtn.scrollIntoViewIfNeeded();
+    await revealField(sectionBtn, 500);
     await sectionBtn.click();
 
-    // Modal closes automatically
     await page.getByText("Add a section").waitFor({ state: "hidden", timeout: 8_000 });
     await beat(page, 1_200);
 
-    // Open the newly added section's editor.
-    // Use Playwright's native click (force:true bypasses actionability checks while still
-    // dispatching real browser events that React's delegation picks up correctly).
-    // .last() targets the most recently added section's invitation card.
     const addContentBtn = page
       .locator("button")
       .filter({ hasText: /Add content/i })
       .last();
     if (await addContentBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await addContentBtn.scrollIntoViewIfNeeded();
+      await revealField(addContentBtn, 500);
       await addContentBtn.click({ force: true });
       await beat(page, 1_500);
     }
 
-    // Fallback: if the editor still didn't open (no new inputs appeared), the section
-    // ended up in isNew=false, isOpen=false — click the section header to toggle open.
     const afterCount = await page.evaluate(() =>
       document.querySelectorAll("input, textarea").length
     );
     if (afterCount <= baseline) {
-      console.log(`  Fallback: clicking header for "${label}" (editor didn't mount)`);
+      console.log(`  Fallback: clicking header for "${label}"`);
       await page.evaluate(() => {
-        // The last [id^="section-"] wrapper belongs to the most recently added section.
-        // Structure: #section-xxx > div.card-outer > div.header (onClick={onToggle})
         const wrappers = Array.from(document.querySelectorAll('[id^="section-"]'));
         const last = wrappers[wrappers.length - 1];
         const header = last?.firstElementChild?.firstElementChild as HTMLElement | null;
@@ -460,61 +489,88 @@ Book now before the offer disappears.`;
       await beat(page, 1_500);
     }
 
-    // Fill in the key field(s)
+    // Scroll the whole section editor to the top of the viewport so the camera
+    // sees the full section before any fields are touched.
+    await page.evaluate(() => {
+      const wrappers = Array.from(document.querySelectorAll('[id^="section-"]'));
+      const last = wrappers[wrappers.length - 1] as HTMLElement | undefined;
+      last?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    await beat(page, 1_000);
+
     await fill();
     await beat(page, 1_200);
   }
 
   // ── 9a. SCARCITY & URGENCY ────────────────────────────────────────────────
-  // The Pulse hero feature: was-price, spots remaining, live countdown.
   await buildSection("Scarcity", async () => {
     const wasPrice = page.getByPlaceholder("e.g. €1,499").first();
     if (await wasPrice.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await revealField(wasPrice);
       await wasPrice.fill("€1,199");
       await beat(page, 400);
 
-      // NumberInput renders as type="text" inputMode="numeric".
       const numInputs = page.locator('input[inputMode="numeric"]');
       if (await numInputs.first().isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await numInputs.first().fill("3");   // Spots remaining
+        await revealField(numInputs.first());
+        await numInputs.first().fill("3");
         await beat(page, 300);
-        await numInputs.nth(1).fill("20");   // Total spots
+        await revealField(numInputs.nth(1));
+        await numInputs.nth(1).fill("20");
         await beat(page, 300);
       }
 
       const depDate = page.getByPlaceholder("e.g. 2026-06-15").first();
       if (await depDate.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await revealField(depDate);
         await depDate.fill("2026-09-20");
       }
     }
   });
 
   // ── 9b. ITINERARY ─────────────────────────────────────────────────────────
-  // Day-by-day programme — the backbone of any package.
   await buildSection("Itinerary", async () => {
-    const dayTitle = page.getByPlaceholder("e.g. Arrival & city tour").first();
-    if (await dayTitle.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await dayTitle.fill("Arrival in Santorini · Oia check-in");
+    // The section starts with 3 days pre-populated — fill each by index.
+    const dayInputs = page.getByPlaceholder("e.g. Arrival & city tour");
+
+    const day1 = dayInputs.nth(0);
+    if (await day1.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(day1);
+      await day1.fill("Arrival in Santorini · Oia check-in");
+      await beat(page, 500);
+    }
+
+    const day2 = dayInputs.nth(1);
+    if (await day2.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(day2);
+      await day2.fill("Aegean sunset cruise · Akrotiri ruins");
+      await beat(page, 500);
+    }
+
+    const day3 = dayInputs.nth(2);
+    if (await day3.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(day3);
+      await day3.fill("Beach day at Perissa · Fira evening walk");
     }
   });
 
   // ── 9c. HIGHLIGHTS ────────────────────────────────────────────────────────
-  // Key selling points shown at the top of the page.
   await buildSection("Highlights", async () => {
     const tagInput = page.getByPlaceholder("e.g. 5-star hotel included").first();
     if (await tagInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(tagInput);
       await tagInput.fill("Private caldera-view villa with infinity pool");
       await tagInput.press("Enter");
     }
   });
 
   // ── 9d. HOTEL & ACCOMMODATION ─────────────────────────────────────────────
-  // Hotel details: name, star rating, location, facilities.
   await buildSection("Hotel", async () => {
     const desc = page
       .getByPlaceholder("Describe the hotel: name, location, facilities, star rating…")
       .first();
     if (await desc.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(desc);
       await desc.fill(
         "Cave hotel carved into the volcanic cliff in Oia. Heated private pool, panoramic Aegean views, daily concierge breakfast."
       );
@@ -522,39 +578,39 @@ Book now before the offer disappears.`;
   });
 
   // ── 9e. DEPARTURES ────────────────────────────────────────────────────────
-  // Available travel dates so clients can book a specific slot.
   await buildSection("Departures", async () => {
     const dateField = page.getByPlaceholder("e.g. 15 March 2026").first();
     if (await dateField.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(dateField);
       await dateField.fill("20 September 2026");
     }
   });
 
   // ── 9f. PRICING ───────────────────────────────────────────────────────────
-  // Pricing tiers: per-person, single supplement, child rate, etc.
   await buildSection("Pricing", async () => {
     const tierLabel = page.getByPlaceholder("e.g. Per person (2 pax)").first();
     if (await tierLabel.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(tierLabel);
       await tierLabel.fill("Per person (double room)");
     }
   });
 
   // ── 9g. REVIEWS ───────────────────────────────────────────────────────────
-  // Social proof: traveller testimonials with star ratings.
   await buildSection("Customer Reviews", async () => {
     const reviewerName = page.getByPlaceholder("e.g. Sara M.").first();
     if (await reviewerName.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(reviewerName);
       await reviewerName.fill("Sofia Andersen");
     }
   });
 
   // ── 9h. ABOUT AGENCY ──────────────────────────────────────────────────────
-  // The agency story — builds trust with prospective travellers.
   await buildSection("About", async () => {
     const storyInput = page
       .getByPlaceholder("Tell travellers about your agency, experience, and values…")
       .first();
     if (await storyInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await revealField(storyInput);
       await storyInput.fill(
         "10 years crafting intimate Mediterranean escapes. Over 2,400 happy travellers — 4.9★ average rating."
       );
@@ -568,35 +624,28 @@ Book now before the offer disappears.`;
   await beat(page, 1_000);
 
   const publishBtn = page.getByTestId("builder-publish");
-  await publishBtn.scrollIntoViewIfNeeded();
-  await beat(page, 600);
+  await revealField(publishBtn);
   await publishBtn.click();
 
   // ════════════════════════════════════════════════════════════════════════════
   // 11. SUCCESS SCREEN
-  // The share URL shown here uses the account's custom domain
-  // (e.g. packages.youragency.com/packageId) — not packmetrix.com.
-  // Pause long enough for the narrator to point this out.
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 11 — Success screen");
   await page.getByTestId("builder-done").waitFor({ state: "visible", timeout: 45_000 });
   console.log("  ✓ Package is live!");
 
-  // Let the success screen render fully, then pause on the URL row.
   await beat(page, 2_000);
 
-  // Narrator: "Notice the URL — it's your own domain, not packmetrix.com.
-  //            Every package you publish is served from your brand."
-  await beat(page, 4_000);
+  // Scroll the success screen fully — the share URL row with the custom domain
+  // is the key moment for the narrator.
+  await scrollFull(page, { back: true, stepPx: 400, pauseMs: 900, bottomPauseMs: 3_500 });
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 12. LIVE PACKAGE PAGE — slow scroll to show every section
+  // 12. LIVE PACKAGE PAGE — full scroll through every section
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 12 — Preview live Pulse page");
   const previewBtn = page.getByText("Preview page");
   if (await previewBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    // Intercept the new tab so the live page stays in the SAME recording.
-    // We grab the URL from the new tab, close it, then navigate the main page there.
     const [newTab] = await Promise.all([
       context.waitForEvent("page"),
       previewBtn.click(),
@@ -606,22 +655,44 @@ Book now before the offer disappears.`;
     await newTab.close();
 
     await page.goto(liveUrl);
-    await page.waitForLoadState("domcontentloaded");
-    // Let the Pulse page render fully — includes countdown timer JS.
-    await page.waitForTimeout(4_000);
+    await page.waitForLoadState("load");
+    // Extra wait for countdown timer JS and lazy images.
+    await page.waitForTimeout(3_500);
 
-    // Slow scroll through the entire page so viewers see every section.
-    for (let i = 0; i < 14; i++) {
-      await page.evaluate(() => window.scrollBy({ top: 500, behavior: "smooth" }));
-      await page.waitForTimeout(1_100);
-    }
+    // Scroll the entire live page — hero → highlights → itinerary → hotel →
+    // departures → pricing → reviews → about → footer.
+    await scrollFull(page, { back: false, stepPx: 460, pauseMs: 1_000, bottomPauseMs: 2_500 });
+  }
 
-    await beat(page, 2_000);
+  // ════════════════════════════════════════════════════════════════════════════
+  // 12b. AGENCY STOREFRONT — show the new package appearing on the storefront
+  // Navigate back to the builder success screen to use the "Preview storefront"
+  // link, which now includes the newly published package.
+  // ════════════════════════════════════════════════════════════════════════════
+  console.log("Step 12b — Agency storefront");
+  await page.goto(`${BASE}/profile`);
+  await page.waitForLoadState("load");
+  await beat(page, 2_000);
+  const storefrontBtn = page.getByText("Preview storefront").first();
+  if (await storefrontBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    const [sfTab] = await Promise.all([
+      context.waitForEvent("page"),
+      storefrontBtn.click(),
+    ]);
+    await sfTab.waitForLoadState("domcontentloaded");
+    const sfUrl = sfTab.url();
+    await sfTab.close();
+
+    await page.goto(sfUrl);
+    await page.waitForLoadState("load");
+    await beat(page, 2_500);
+
+    // Scroll the full storefront so every package card including the new one is visible.
+    await scrollFull(page, { back: true, stepPx: 480, pauseMs: 900, bottomPauseMs: 2_000 });
   }
 
   // ════════════════════════════════════════════════════════════════════════════
   // 13. BACK TO PACKAGES DASHBOARD
-  // Show the new package appearing in the list.
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 13 — Back to packages dashboard");
   const backBtn = page.getByText("Back to dashboard");
@@ -630,28 +701,27 @@ Book now before the offer disappears.`;
   } else {
     await page.goto(`${BASE}/packages`);
   }
-  await page.waitForLoadState("domcontentloaded");
-  await beat(page, 2_500);
+  await page.waitForLoadState("load");
+  // Wait for package cards (including the newly published one) to render.
+  await page.waitForSelector('a[href*="/builder/"], [data-testid*="package"], .package-card', {
+    timeout: 10_000,
+  }).catch(() => beat(page, 3_000));
+  await beat(page, 1_500);
 
-  // Scroll to show the newly published package card.
-  await slowScroll(page, 400, 3);
-  await beat(page, 2_000);
+  // Scroll the full dashboard so every package card is seen, then return to top.
+  await scrollFull(page, { back: true, stepPx: 450, pauseMs: 850, bottomPauseMs: 2_500 });
 
   // ── WRAP UP ───────────────────────────────────────────────────────────────
+  console.log("\n✓ Demo flow complete — stop Screen Studio recording now.\n");
+
+  // Keep the browser open briefly so you can stop Screen Studio cleanly.
+  await page.waitForTimeout(5_000);
+
   await context.close();
   await browser.close();
-
-  const files = fs.readdirSync(videosDir)
-    .map((f) => ({ f, mtime: fs.statSync(path.join(videosDir, f)).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime);
-
-  console.log(files.length
-    ? `\n✓ Video saved: videos/${files[0].f}\n`
-    : "\n✓ Done — check the videos/ directory.\n"
-  );
 }
 
 main().catch((err) => {
-  console.error("Recording failed:", err);
+  console.error("Demo flow failed:", err);
   process.exit(1);
 });
