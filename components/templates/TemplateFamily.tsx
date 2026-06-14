@@ -214,7 +214,7 @@ function FaHotel({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const hotels = faSecArr(faFindSec(pkg, "hotels"), "hotels");
   if (!desc && !hotels.length) return null;
   return (
-    <section style={{ padding: "20px 18px" }} data-pmx-section="hotel">
+    <section id="hotel" style={{ padding: "20px 18px", scrollMarginTop: 88 }} data-pmx-section="hotel">
       <FaSectionHead kicker={t.faWhereYouStay} title={t.faFamilyHome} />
       {hotels.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -314,7 +314,7 @@ function FaFaq({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
   const items = faSecArr(data, "items");
   if (!items.length) return null;
   return (
-    <section style={{ padding: "20px 18px" }} data-pmx-section="faq">
+    <section id="faq" style={{ padding: "20px 18px", scrollMarginTop: 88 }} data-pmx-section="faq">
       <FaSectionHead kicker={t.frequentlyAsked} title={t.faFamilyQuestions} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {items.map((f, i) => {
@@ -490,7 +490,7 @@ function FaDepartures({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
     : legacyDeps;
   if (!deps.length) return null;
   return (
-    <section style={{ padding: "20px 18px" }} data-pmx-section="departures">
+    <section id="departures" style={{ padding: "20px 18px", scrollMarginTop: 88 }} data-pmx-section="departures">
       <FaSectionHead kicker={t.faDepartureDates} title={t.faPickPerfectWindow} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {deps.map((d, i) => {
@@ -671,7 +671,7 @@ function FaReviews({ pkg, agency, lang }: { pkg: TPackage; agency: TAgency; lang
   };
 
   return (
-    <section style={{ padding: "20px 18px" }} data-pmx-section="reviews">
+    <section id="reviews" style={{ padding: "20px 18px", scrollMarginTop: 88 }} data-pmx-section="reviews">
       <FaSectionHead
         kicker={t.faWhatFamiliesSay}
         title={t.faRealStories}
@@ -841,7 +841,17 @@ function FaSection({ s, isDesktop, onWhatsApp, lang, agency, pkg }: FaSectionPro
 function FaSections({ pkg, isDesktop, onWhatsApp, lang, agency }: {
   pkg: TPackage; isDesktop: boolean; onWhatsApp?: () => void; lang: Lang; agency: TAgency;
 }) {
-  const sections = [...(pkg.sections ?? [])].sort((a, b) => a.order - b.order);
+  const INCL_TYPES = new Set(["inclusions", "meals", "visa"]);
+  let inclSeen = false;
+  const sections = [...(pkg.sections ?? [])]
+    .sort((a, b) => a.order - b.order)
+    .filter(s => {
+      if (INCL_TYPES.has(s.type)) {
+        if (inclSeen) return false;
+        inclSeen = true;
+      }
+      return true;
+    });
   return (
     <>
       {sections.map((s) => (
@@ -924,6 +934,10 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
     ...((pkg.sections?.some((s) => s.type === "itinerary") || (pkg.itinerary ?? []).some((it) => it.title?.trim())) ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
     ...((pkg.sections?.some((s) => s.type === "inclusions") || pkg.includes?.length || (pkg.advantages ?? []).length) ? [{ label: t.navIncluded, href: "#included" }] : []),
     ...((pkg.sections?.some((s) => s.type === "pricing") || (pkg.pricingTiers ?? []).some((tier) => tier.price)) ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...((pkg.sections?.some((s) => s.type === "hotel") || pkg.sections?.some((s) => s.type === "hotels") || !!pkg.hotelDescription) ? [{ label: t.navHotel, href: "#hotel" }] : []),
+    ...((pkg.sections?.some((s) => s.type === "departures") || (pkg.departures ?? []).length > 0) ? [{ label: t.navDepartures, href: "#departures" }] : []),
+    ...((pkg.sections?.some((s) => s.type === "reviews") || (pkg.reviews ?? []).length > 0) ? [{ label: t.navReviews, href: "#reviews" }] : []),
+    ...((pkg.sections?.some((s) => s.type === "faq")) ? [{ label: t.navFaq, href: "#faq" }] : []),
   ];
 
   // Legacy fallback data for sections not yet migrated
