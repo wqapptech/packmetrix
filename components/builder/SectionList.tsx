@@ -16,7 +16,7 @@ import {
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
 // Sections shown as quick-add tiles (most commonly added)
-const QUICK_ADD_TYPES: SectionTypeKey[] = ["media", "reviews", "faq", "extras"];
+const QUICK_ADD_TYPES: SectionTypeKey[] = ["media", "reviews", "other_packages", "faq", "extras"];
 
 export function SectionList({
   sections,

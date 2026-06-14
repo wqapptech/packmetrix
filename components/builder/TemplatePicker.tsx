@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Icon from "@/components/Icon";
 import { TEMPLATES } from "@/components/templates";
 import { PRESETS } from "@/lib/sections/presets";
@@ -541,6 +541,13 @@ export function VisualTemplatePicker({
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const aiTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoResize = useCallback(() => {
+    const el = aiTextareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, Math.floor(window.innerHeight * 0.6))}px`;
+  }, []);
   const [userPresets, setUserPresets] = useState<UserPreset[]>([]);
 
   useEffect(() => {
@@ -704,10 +711,11 @@ export function VisualTemplatePicker({
 
         {/* Textarea */}
         <textarea
+          ref={aiTextareaRef}
           value={aiText}
-          onChange={e => { setAiText(e.target.value); setAiError(null); }}
+          onChange={e => { setAiText(e.target.value); setAiError(null); autoResize(); }}
+          onPaste={() => { setTimeout(autoResize, 0); }}
           placeholder={L.aiPlaceholder}
-          rows={isMobile ? 4 : 3}
           style={{
             padding: 12,
             background: DA_SURFACE2,
@@ -716,6 +724,8 @@ export function VisualTemplatePicker({
             fontFamily: MONO, fontSize: 11.5, color: DA_INK1, lineHeight: 1.5,
             width: "100%", resize: "vertical", outline: "none",
             boxSizing: "border-box",
+            minHeight: isMobile ? 80 : 72,
+            overflowY: "hidden",
           }}
           onFocus={e => { e.currentTarget.style.borderColor = DA_GOLD; }}
           onBlur={e => { e.currentTarget.style.borderColor = aiError ? "#c0533a" : DA_RULE2; }}
