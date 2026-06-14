@@ -549,7 +549,10 @@ export function VisualTemplatePicker({
     const el = aiTextareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, Math.floor(window.innerHeight * 0.6))}px`;
+    const maxH = Math.floor(window.innerHeight * 0.6);
+    const newH = Math.min(el.scrollHeight, maxH);
+    el.style.height = `${newH}px`;
+    el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
   }, []);
   const [userPresets, setUserPresets] = useState<UserPreset[]>([]);
 
