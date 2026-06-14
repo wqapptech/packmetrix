@@ -221,13 +221,6 @@ function PetalDesignerPanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps
         )}
       </div>
       {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} full onClick={onWhatsApp} />}
-      <button style={{
-        width: "100%", marginTop: 10, padding: "12px", borderRadius: 10,
-        border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
-        color: "rgba(255,255,255,0.75)", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
-      }}>
-        {t.petalDiscoveryCall}
-      </button>
     </section>
   );
 }
@@ -284,13 +277,6 @@ function PetalDesignerPanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPa
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} size="lg" onClick={onWhatsApp} />}
-              <button style={{
-                padding: "14px 22px", borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
-                color: "rgba(255,255,255,0.75)", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
-              }}>
-                {t.petalDiscoveryCall}
-              </button>
             </div>
           </div>
         </div>
@@ -1163,7 +1149,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
   if (isDesktop) {
     return (
-      <div style={{ minHeight: "100vh", background: PEACH, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: PEACH, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={ROSE} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Hero: text LEFT, arched image RIGHT (RTL-aware via order) */}
@@ -1234,7 +1220,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: PEACH, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
+    <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: PEACH, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
       <AgencyBar agency={agency} price={pkg.price} brand={ROSE} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Arched hero */}

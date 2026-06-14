@@ -783,7 +783,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
   if (isDesktop) {
     return (
-      <div style={{ minHeight: "100vh", background: BG, color: INK, fontFamily: SANS, direction: isRtl ? "rtl" : "ltr" }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: BG, color: INK, fontFamily: SANS, direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={BRAND} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Full-bleed hero with floating price card */}
@@ -835,7 +835,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, color: INK, fontFamily: SANS, direction: isRtl ? "rtl" : "ltr" }}>
+    <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: BG, color: INK, fontFamily: SANS, direction: isRtl ? "rtl" : "ltr" }}>
       <AgencyBar agency={agency} price={pkg.price} brand={BRAND} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Hero */}

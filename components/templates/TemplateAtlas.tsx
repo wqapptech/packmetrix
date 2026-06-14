@@ -1069,7 +1069,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
   if (isDesktop) {
     return (
-      <div style={{ minHeight: "100vh", background: AT.bg, color: AT.ink, fontFamily: AT.sans, direction: isRtl ? "rtl" : "ltr" }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: AT.bg, color: AT.ink, fontFamily: AT.sans, direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={AT.brand} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Centered masthead */}
@@ -1145,7 +1145,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   }
 
   return (
-    <div style={{
+    <div dir={isRtl ? "rtl" : "ltr"} style={{
       minHeight: "100vh", background: AT.bg, color: AT.ink,
       fontFamily: AT.sans, direction: isRtl ? "rtl" : "ltr",
     }}>

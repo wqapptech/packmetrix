@@ -1052,7 +1052,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
 
   if (isDesktop) {
     return (
-      <div style={{ minHeight: "100vh", background: SAND, color: INK, fontFamily: INTER, direction: isRtl ? "rtl" : "ltr" }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: SAND, color: INK, fontFamily: INTER, direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={ORANGE} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Hero: text LEFT, image RIGHT (50/50 split) */}

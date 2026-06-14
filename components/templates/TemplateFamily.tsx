@@ -931,7 +931,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
   if (isDesktop) {
     return (
-      <div style={{ minHeight: "100vh", background: FA.bg, color: FA.ink, fontFamily: FA.serif, direction: isRtl ? "rtl" : "ltr" }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: FA.bg, color: FA.ink, fontFamily: FA.serif, direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={FA.brand} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* 50/50 hero: arched image left + overlapping price card, text right */}
@@ -1005,7 +1005,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
   // ── Mobile ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{
+    <div dir={isRtl ? "rtl" : "ltr"} style={{
       minHeight: "100vh", background: FA.bg, color: FA.ink,
       fontFamily: FA.serif, direction: isRtl ? "rtl" : "ltr",
     }}>

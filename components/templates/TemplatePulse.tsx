@@ -1380,7 +1380,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
   const firstDate = firstDepDate?.split(" ").slice(0, 2).join(" ") ?? "";
 
   return (
-    <div style={{ background: PL.bg, color: PL.ink, fontFamily: SANS, direction: dir, minHeight: "100vh", paddingBottom: 80 }}>
+    <div dir={dir} style={{ background: PL.bg, color: PL.ink, fontFamily: SANS, direction: dir, minHeight: "100vh", paddingBottom: 80 }}>
       <style dangerouslySetInnerHTML={{ __html: KF }} />
 
       {/* ── Deal ribbon ── */}
