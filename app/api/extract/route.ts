@@ -38,10 +38,17 @@ Return ONLY valid JSON matching this schema exactly:
   "suggestedPreset": "umrah" | "city_break" | "cruise" | "day_tour" | "safari" | "",
   "advantages": string[],
   "excludes": string[],
+  "highlights": string[],
   "airports": { "name": string, "arrivingAirport": string, "price": string, "date": string, "flyingTime": string, "arrivingTime": string }[],
+  "departures": { "date": string, "returnDate": string, "spots": number, "price": string, "origin": string }[],
   "itinerary": { "day": number, "title": string, "desc": string }[],
   "pricingTiers": { "label": string, "price": string }[],
-  "hotelDescription": string
+  "hotelDescription": string,
+  "importantNotes": string[],
+  "people": { "role": "agent" | "guide" | "mutawif" | "curator" | "trip_lead", "name": string, "bio": string, "languages": string[] }[],
+  "reviews": { "name": string, "rating": number, "text": string }[],
+  "transfers": string[],
+  "meals": "none" | "breakfast" | "half_board" | "full_board" | "all_inclusive"
 }
 
 Rules:
@@ -58,10 +65,17 @@ Rules:
 - "currency": ISO-4217 code inferred from the price string. Map Arabic/symbol cues: ريال/ر.س/﷼ → "SAR", درهم/د.إ → "AED", جنيه/ج.م → "EGP", دينار كويتي/د.ك → "KWD", دينار بحريني → "BHD", ريال عماني/ر.ع → "OMR", دينار أردني → "JOD", ليرة/TL → "TRY", € → "EUR", $ → "USD", £ → "GBP". Leave "" if unclear.
 - "advantages": what is INCLUDED in the package (bullet points).
 - "excludes": what is explicitly NOT included.
-- "airports": one entry per departure city. Fill only the fields present; leave others as "".
+- "highlights": key selling-point highlights listed near the top of the brochure (e.g. "أبرز المعالم" / "Highlights"). Each bullet becomes one string. Empty array if none.
+- "airports": one entry per departure CITY/AIRPORT when flight details (flying time, arrival airport) are provided. Fill only the fields present; leave others as "".
+- "departures": extract departure DATES (e.g. from "مواعيد المغادرة" / "Departures" sections). One entry per date. "spots": 0 = available/unlimited, 3 = limited availability, -1 = sold out. "returnDate" and "origin" are optional.
 - "itinerary": extract or infer day-by-day programme if present. Use sequential day numbers starting at 1.
 - "pricingTiers": any per-person price tiers found (label + price pairs).
 - "hotelDescription": any hotel, accommodation, or star-rating details mentioned.
+- "importantNotes": any warnings, requirements, or important notices for travellers (e.g. from "معلومات مهمة" / "Important Notes"). Each note becomes one string.
+- "people": extract travel designers, guides, agents, or trip leads mentioned. Map role: مصمم رحلات/وكيل → "agent", مرشد → "guide", مطوف → "mutawif". Include name, bio, and languages spoken.
+- "reviews": extract customer testimonials. "rating" must be a number 1–5. If stars are shown (★★★★★), count them.
+- "transfers": list of transfer services included (e.g. airport pickup, private driver). Each item is one string.
+- "meals": infer the meal plan from the text. "breakfast" if only breakfast is mentioned, "half_board" if breakfast + one other meal, "full_board" if all meals, "all_inclusive" if all inclusive, "none" if no meals mentioned.
 - If a field is missing, use "" or [].
 Do NOT include markdown. Do NOT wrap in code blocks.
             `,

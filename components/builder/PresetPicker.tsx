@@ -24,6 +24,7 @@ type ExtractResult = {
   suggestedPreset?: string;
   advantages?: string[];
   excludes?: string[];
+  highlights?: string[];
   airports?: Array<{
     name: string;
     arrivingAirport?: string;
@@ -32,9 +33,21 @@ type ExtractResult = {
     flyingTime?: string;
     arrivingTime?: string;
   }>;
+  departures?: Array<{
+    date: string;
+    returnDate?: string;
+    spots?: number;
+    price?: string;
+    origin?: string;
+  }>;
   itinerary?: Array<{ day: number; title: string; desc: string }>;
   pricingTiers?: Array<{ label: string; price: string }>;
   hotelDescription?: string;
+  importantNotes?: string[];
+  people?: Array<{ role: string; name: string; bio?: string; languages?: string[] }>;
+  reviews?: Array<{ name: string; rating: number; text: string }>;
+  transfers?: string[];
+  meals?: string;
 };
 
 export function PresetPicker({
@@ -121,8 +134,11 @@ export function PresetPicker({
           if (extracted.advantages?.length) section.data = { ...section.data, includes: extracted.advantages };
           if (extracted.excludes?.length)   section.data = { ...section.data, excludes: extracted.excludes };
         }
+        if (section.type === "highlights" && extracted.highlights?.length) {
+          section.data = { ...section.data, items: extracted.highlights };
+        }
         if (section.type === "flights" && extracted.airports?.length) {
-          const departures = extracted.airports.map((a) => ({
+          const flightDeps = extracted.airports.map((a) => ({
             name:            a.name            || "",
             arrivingAirport: a.arrivingAirport || "",
             price:           a.price           || "",
@@ -130,7 +146,21 @@ export function PresetPicker({
             flyingTime:      a.flyingTime      || "",
             arrivingTime:    a.arrivingTime    || "",
           }));
-          section.data = { ...section.data, departures };
+          section.data = { ...section.data, departures: flightDeps };
+        }
+        if (section.type === "departures" && extracted.departures?.length) {
+          const entries = extracted.departures.map((d) => ({
+            date:            d.date            || "",
+            returnDate:      d.returnDate      || "",
+            spots:           d.spots           ?? 0,
+            price:           d.price           || "",
+            origin:          d.origin          || "",
+            arrivingAirport: "",
+            flyingTime:      "",
+            arrivingTime:    "",
+            deal:            false,
+          }));
+          section.data = { ...section.data, entries };
         }
         if (section.type === "itinerary" && extracted.itinerary?.length) {
           section.data = { ...section.data, days: extracted.itinerary };
@@ -140,6 +170,44 @@ export function PresetPicker({
         }
         if (section.type === "hotel" && extracted.hotelDescription) {
           section.data = { ...section.data, description: extracted.hotelDescription };
+        }
+        if (section.type === "important_notes" && extracted.importantNotes?.length) {
+          section.data = { ...section.data, items: extracted.importantNotes.map((text) => ({ text })) };
+        }
+        if (section.type === "people" && extracted.people?.length) {
+          const now = Date.now();
+          section.data = {
+            ...section.data,
+            people: extracted.people.map((p, i) => ({
+              id:        `person_${now}_${i}`,
+              role:      p.role      || "agent",
+              name:      p.name      || "",
+              bio:       p.bio       || "",
+              photo:     "",
+              languages: p.languages || [],
+              years:     0,
+              repliesIn: "",
+            })),
+          };
+        }
+        if (section.type === "reviews" && extracted.reviews?.length) {
+          const now = Date.now();
+          section.data = {
+            ...section.data,
+            reviews: extracted.reviews.map((r, i) => ({
+              id:        `review_${now}_${i}`,
+              name:      r.name   || "",
+              rating:    r.rating ?? 5,
+              text:      r.text   || "",
+              avatarUrl: "",
+            })),
+          };
+        }
+        if (section.type === "transfers" && extracted.transfers?.length) {
+          section.data = { ...section.data, items: extracted.transfers };
+        }
+        if (section.type === "meals" && extracted.meals) {
+          section.data = { ...section.data, plan: extracted.meals };
         }
       }
     }
