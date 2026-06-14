@@ -13,6 +13,7 @@ import {
   DContainer,
   DesktopFooter,
   LightboxCarousel,
+  localizeRole,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -893,7 +894,7 @@ function MutawifBand({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: 
           </div>
           <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, color: INK, lineHeight: 1.1, marginBottom: 3 }}>{agent.name}</div>
           <div style={{ fontSize: 12, color: MUTED }}>
-            {agent.role}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
+            {localizeRole(agent.role, t)}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
           </div>
         </div>
       </div>
@@ -929,7 +930,7 @@ function MutawifClosingPanel({ pkg, agency, lang, onWhatsApp }: {
         <div>
           <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, lineHeight: 1.1, marginBottom: 3 }}>{agent.name}</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }}>
-            {agent.role}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
+            {localizeRole(agent.role, t)}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
           </div>
         </div>
       </div>
@@ -976,7 +977,7 @@ function MutawifClosingPanelDesktop({ pkg, agency, lang, onWhatsApp }: {
           </div>
           <div style={{ fontFamily: SERIF, fontSize: 48, fontWeight: 600, lineHeight: 1, marginBottom: 8 }}>{agent.name}</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginBottom: 24 }}>
-            {agent.role}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
+            {localizeRole(agent.role, t)}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
           </div>
           <div style={{ display: "flex", gap: 10, marginBottom: 32, flexWrap: "wrap" as const }}>
             <span style={{ background: "rgba(255,255,255,0.18)", borderRadius: 100, padding: "6px 14px", fontSize: 12, fontWeight: 700 }}>
@@ -1117,7 +1118,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: SAGE, marginBottom: 6 }}>{t.mutawifLabel}</div>
                 <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 600, color: INK, lineHeight: 1.1, marginBottom: 4 }}>{pkg.agent.name}</div>
-                <div style={{ fontSize: 13, color: MUTED }}>{pkg.agent.role}{pkg.agent.years ? ` · ${pkg.agent.years} ${t.yearsExpSuffix}` : ""}</div>
+                <div style={{ fontSize: 13, color: MUTED }}>{localizeRole(pkg.agent.role, t)}{pkg.agent.years ? ` · ${pkg.agent.years} ${t.yearsExpSuffix}` : ""}</div>
               </div>
             )}
             {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}

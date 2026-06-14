@@ -39,13 +39,16 @@ export default function PackagePage() {
           const othersSnap = await getDocs(
             query(collection(db, "packages"), where("userId", "==", data.userId))
           );
+          const pkgLang = data.primaryLanguage || "ar";
           const cards = othersSnap.docs
             .filter(d => d.id !== packageId && d.data().isActive !== false && d.data().status !== "draft")
             .slice(0, 4)
             .map(d => {
               const pd = d.data();
               const title = typeof pd.title === "object" && pd.title !== null
-                ? ((pd.title as Record<string, string>).en || (pd.title as Record<string, string>).ar || pd.destination || "")
+                ? (pkgLang === "ar"
+                  ? ((pd.title as Record<string, string>).ar || (pd.title as Record<string, string>).en || pd.destination || "")
+                  : ((pd.title as Record<string, string>).en || (pd.title as Record<string, string>).ar || pd.destination || ""))
                 : String(pd.title || pd.destination || "");
               return {
                 title,
