@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import "@/app/aurora.css";
-import { useIsDesktop, BaseCard, LightboxCarousel } from "./shared";
+import { useIsDesktop, BaseCard, LightboxCarousel, localizeRole } from "./shared";
 import { T, localizeTierLabel } from "@/lib/translations";
 import type { TPageProps, TCardProps, TPackage } from "./types";
 
@@ -906,7 +906,7 @@ function AuPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPackage; lang: "en" 
               <img className="au-v2-pp__lead-img" src={agentPerson.photo} alt={agentPerson.name} />
             )}
             <div>
-              <div className="au-v2-pp__lead-role">{agentPerson.role}</div>
+              <div className="au-v2-pp__lead-role">{localizeRole(agentPerson.role, T[lang])}</div>
               <h3 className="au-v2-pp__lead-name">{agentPerson.name}</h3>
               {agentPerson.bio && <p className="au-v2-pp__lead-bio">{agentPerson.bio}</p>}
               <div className="au-v2-pp__lead-row">
@@ -1198,7 +1198,7 @@ function AuAgentDarkBand({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
         )}
         <div>
           <div className="au-agent__name">{agent.name}</div>
-          <div className="au-agent__role">{agent.role}</div>
+          <div className="au-agent__role">{localizeRole(agent.role, T[lang])}</div>
         </div>
       </div>
       <div className="au-agent__pill">

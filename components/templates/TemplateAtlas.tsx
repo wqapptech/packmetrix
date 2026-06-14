@@ -12,6 +12,7 @@ import {
   DContainer,
   DesktopFooter,
   LightboxCarousel,
+  localizeRole,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -506,10 +507,10 @@ function AtSection({
                     {photo ? (
                       <img src={photo} alt={name} style={{ width: "100%", aspectRatio: "1" as React.CSSProperties["aspectRatio"], objectFit: "cover", borderRadius: 4, marginBottom: 10 }} />
                     ) : (
-                      <div style={{ width: "100%", aspectRatio: "1" as React.CSSProperties["aspectRatio"], background: "rgba(13,27,46,0.06)", borderRadius: 4, marginBottom: 10 }} />
+                      <div style={{ width: "100%", aspectRatio: "1" as React.CSSProperties["aspectRatio"], background: "rgba(13,27,46,0.06)", borderRadius: 4, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: AT.serif, fontSize: 48, fontWeight: 600, color: "rgba(13,27,46,0.18)" }}>{name?.[0]?.toUpperCase() || "?"}</div>
                     )}
                     <div style={{ fontFamily: AT.serif, fontSize: 15, fontWeight: 600, color: AT.ink }}>{name}</div>
-                    {role && <div style={{ fontSize: 11, color: AT.superMuted, marginTop: 2, textTransform: "capitalize" as const }}>{role}</div>}
+                    {role && <div style={{ fontSize: 11, color: AT.superMuted, marginTop: 2, textTransform: "capitalize" as const }}>{localizeRole(role, t)}</div>}
                     {years != null && <div style={{ fontSize: 11, color: AT.superMuted, marginTop: 1 }}>{years} {t.atYrsExp}</div>}
                     {bio && <p style={{ fontSize: 12.5, color: AT.muted, lineHeight: 1.55, margin: "6px 0 0" }}>{bio}</p>}
                   </div>

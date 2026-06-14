@@ -14,6 +14,7 @@ import {
   DesktopFooter,
   getItineraryDays,
   LightboxCarousel,
+  localizeRole,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -527,11 +528,11 @@ function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps[
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
           {agent.avatar
             ? <img src={agent.avatar} alt={agent.name} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover" }} />
-            : <div style={{ width: 60, height: 60, borderRadius: "50%", background: `${ORANGE}44`, flexShrink: 0 }} />
+            : <div style={{ width: 60, height: 60, borderRadius: "50%", background: `${ORANGE}44`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, fontSize: 24, fontWeight: 800, color: "#fff" }}>{agent.name?.[0]?.toUpperCase() || "?"}</div>
           }
           <div>
             <div style={{ fontFamily: INTER, fontSize: 20, fontWeight: 800, color: "#fff", lineHeight: 1.1, letterSpacing: "-0.5px" }}>{agent.name}</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>{agent.role}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>{localizeRole(agent.role, t)}</div>
           </div>
         </div>
       )}
@@ -575,7 +576,9 @@ function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPag
           }}>
             {agent?.avatar
               ? <img src={agent.avatar} alt={agent?.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-              : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${ORANGE}44, ${INK})` }} />
+              : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(160deg, ${ORANGE}22, ${INK})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontFamily: INTER, fontSize: 140, fontWeight: 800, color: `${ORANGE}40`, lineHeight: 1, userSelect: "none" as const }}>{agent?.name?.[0]?.toUpperCase() || "?"}</span>
+                </div>
             }
           </div>
           {/* Content */}
@@ -586,7 +589,7 @@ function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPag
             {agent && (
               <>
                 <div style={{ fontFamily: INTER, fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1.5px", lineHeight: 1.05, marginBottom: 6 }}>{agent.name}</div>
-                <div style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", marginBottom: 24 }}>{agent.role}</div>
+                <div style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", marginBottom: 24 }}>{localizeRole(agent.role, t)}</div>
               </>
             )}
             <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10, marginBottom: 28 }}>
@@ -897,7 +900,7 @@ function CmPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
                 }
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: INTER, fontSize: 14, fontWeight: 800, color: INK }}>{name}</div>
-                  {role && <div style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.8px", color: ORANGE, textTransform: "uppercase" as const, marginTop: 2 }}>{role}{years ? ` · ${years}y exp` : ""}</div>}
+                  {role && <div style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.8px", color: ORANGE, textTransform: "uppercase" as const, marginTop: 2 }}>{localizeRole(role, t)}{years ? ` · ${years}y exp` : ""}</div>}
                   {bio && <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.55, marginTop: 8 }}>{bio}</div>}
                   {langs.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4, marginTop: 10 }}>

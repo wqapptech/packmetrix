@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { T, localizeTierLabel } from "@/lib/translations";
-import { BaseCard, useIsDesktop } from "./shared";
+import { BaseCard, useIsDesktop, localizeRole } from "./shared";
 import type { TPageProps, TCardProps, TGalleryItem, TPackage, TAirport, TReview } from "./types";
 import { useActiveViewers } from "@/hooks/useActiveViewers";
 
@@ -955,7 +955,7 @@ function PulseSection({
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 700 }}>{person.name}</div>
-                    {person.role && <div style={{ fontSize: 11, fontWeight: 600, color: PL.mut, textTransform: "uppercase" as const, letterSpacing: 0.4, marginTop: 2 }}>{person.role}</div>}
+                    {person.role && <div style={{ fontSize: 11, fontWeight: 600, color: PL.mut, textTransform: "uppercase" as const, letterSpacing: 0.4, marginTop: 2 }}>{localizeRole(person.role, t)}</div>}
                     {person.bio && <p style={{ fontSize: 13, color: PL.mut, lineHeight: 1.55, margin: "8px 0 0" }}>{person.bio}</p>}
                     {!!person.languages?.length && (
                       <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginTop: 10 }}>
@@ -1757,7 +1757,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: -0.3 }}>{pkg.agent!.name}</div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>
-                {pkg.agent!.role}{pkg.agent!.years ? ` · ${pkg.agent!.years} ${t.yearsExpSuffix}` : ""}
+                {localizeRole(pkg.agent!.role, t)}{pkg.agent!.years ? ` · ${pkg.agent!.years} ${t.yearsExpSuffix}` : ""}
               </div>
               {pkg.agent!.repliesIn && (
                 <div style={{
@@ -2328,7 +2328,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
               {pkg.agent!.name}
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 8 }}>
-              {pkg.agent!.role}{pkg.agent!.years ? ` · ${pkg.agent!.years} ${t.yearsExpSuffix}` : ""}
+              {localizeRole(pkg.agent!.role, t)}{pkg.agent!.years ? ` · ${pkg.agent!.years} ${t.yearsExpSuffix}` : ""}
             </div>
             <p style={{ fontSize: 18, lineHeight: 1.55, marginTop: 22, color: "rgba(255,255,255,0.92)", maxWidth: 560, marginBottom: 0 }}>
               {pkg.description}

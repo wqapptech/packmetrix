@@ -28,6 +28,33 @@ export function IsDesktopProvider({ value, children }: { value: boolean; childre
   return <_DesktopCtx.Provider value={value}>{children}</_DesktopCtx.Provider>;
 }
 
+// ─── Localisation helpers ───────────────────────────────────────────────────
+
+/** Map a raw system role key (e.g. "agent", "guide") to a human-readable,
+ *  translated label.  Human-readable strings (contain a space or non-ASCII)
+ *  are returned unchanged so existing display values are never clobbered. */
+export function localizeRole(
+  role: string,
+  t: { travelDesignerLabel: string; sectionGuideTitle: string },
+): string {
+  const key = (role ?? "").toLowerCase().trim();
+  if (!key || key.includes(" ") || /[^\x00-\x7F]/.test(key)) return role ?? "";
+  switch (key) {
+    case "guide": return t.sectionGuideTitle;
+    case "agent":
+    case "curator":
+    case "trip_designer":
+    case "trip_lead": return t.travelDesignerLabel;
+    default: return role.replace(/_/g, " ");
+  }
+}
+
+/** Normalize the SAR currency abbreviation in a price string.
+ *  Fixes the common data-entry typo "ربس" → "ر.س". */
+export function normalizeSarStr(price: string): string {
+  return price ? price.replace(/ربس/g, "ر.س") : price;
+}
+
 // ─── Desktop primitives ─────────────────────────────────────────────────────
 
 export function DesktopNav({ agency, price, brand, navLinks, dark, onWhatsApp, lang }: {
@@ -277,7 +304,7 @@ export function StickyCTA({ price, nights, label, dark, onWhatsApp, lang }: {
       display: "flex", alignItems: "center", gap: 10,
     }}>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: ink, lineHeight: 1, letterSpacing: "-0.3px" }}>{price}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: ink, lineHeight: 1, letterSpacing: "-0.3px" }}>{normalizeSarStr(price)}</div>
         <div style={{ fontSize: 10.5, color: sub, marginTop: 3 }}>
           {nights ? `${nights} ${t.nightsLabel} · ${t.perPerson}` : t.perPerson}
         </div>

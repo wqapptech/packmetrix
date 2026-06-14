@@ -12,6 +12,7 @@ import {
   DesktopNav,
   DContainer,
   DesktopFooter,
+  localizeRole,
 } from "./shared";
 import type { TPageProps, TCardProps, TPackage, TAgency, TReview } from "./types";
 import type { Lang } from "@/lib/translations";
@@ -412,7 +413,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: isDesktop ? 15 : 14, fontWeight: 700, color: SM.ink }}>{p.name}</div>
                   {p.role && (
-                    <div style={{ fontSize: 11, fontWeight: 600, color: SM.brand, textTransform: "uppercase", letterSpacing: "0.5px", marginTop: 2 }}>{p.role}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: SM.brand, textTransform: "uppercase", letterSpacing: "0.5px", marginTop: 2 }}>{localizeRole(p.role, t)}</div>
                   )}
                   {Array.isArray(p.languages) && p.languages.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>

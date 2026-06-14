@@ -13,6 +13,7 @@ import {
   DContainer,
   StickyCTA,
   LightboxCarousel,
+  localizeRole,
 } from "./shared";
 import type { TPageProps, TCardProps, TPricingTier } from "./types";
 
@@ -926,7 +927,7 @@ function VyPeopleSection({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; la
             <img className="vy-v2-pp__img" src={itemStr(agent, "photo", "avatar")} alt={itemStr(agent, "name")} />
           )}
           <div>
-            <div className="vy-v2-pp__role">{itemStr(agent, "title", "role")}</div>
+            <div className="vy-v2-pp__role">{localizeRole(itemStr(agent, "title", "role"), t)}</div>
             <h3 className="vy-v2-pp__name">{itemStr(agent, "name")}</h3>
             {itemStr(agent, "bio") && <p className="vy-v2-pp__bio">{itemStr(agent, "bio")}</p>}
             <div className="vy-v2-pp__row">

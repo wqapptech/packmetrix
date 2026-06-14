@@ -13,6 +13,8 @@ import {
   DesktopFooter,
   getItineraryDays,
   LightboxCarousel,
+  localizeRole,
+  normalizeSarStr,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -197,11 +199,11 @@ function PetalDesignerPanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
           {agent.avatar
             ? <img src={agent.avatar} alt={agent.name} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover" }} />
-            : <div style={{ width: 60, height: 60, borderRadius: "50%", background: `${ROSE}44`, flexShrink: 0 }} />
+            : <div style={{ width: 60, height: 60, borderRadius: "50%", background: `${ROSE}44`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 26, fontStyle: "italic", color: "#fff" }}>{agent.name?.[0]?.toUpperCase() || "?"}</div>
           }
           <div>
             <div style={{ fontFamily: SERIF, fontSize: 22, color: "#fff", lineHeight: 1.1 }}>{agent.name}</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 3 }}>{agent.role}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 3 }}>{localizeRole(agent.role, t)}</div>
           </div>
         </div>
       )}
@@ -249,7 +251,11 @@ function PetalDesignerPanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPa
           }}>
             {agent?.avatar
               ? <img src={agent.avatar} alt={agent.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-              : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${ROSE}44, ${CLAY}22)` }} />
+              : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(160deg, ${ROSE}18, ${CLAY}10)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontFamily: SERIF, fontSize: 140, fontStyle: "italic", color: `${ROSE}50`, lineHeight: 1, userSelect: "none" as const }}>
+                    {agent?.name?.[0]?.toUpperCase() || "?"}
+                  </span>
+                </div>
             }
           </div>
           {/* Content */}
@@ -260,7 +266,7 @@ function PetalDesignerPanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPa
             {agent && (
               <>
                 <div style={{ fontFamily: SERIF, fontSize: 40, color: "#fff", lineHeight: 1.05, marginBottom: 6 }}>{agent.name}</div>
-                <div style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 24 }}>{agent.role}</div>
+                <div style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 24 }}>{localizeRole(agent.role, t)}</div>
               </>
             )}
             <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10, marginBottom: 28 }}>
@@ -884,7 +890,7 @@ function PtExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
         <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 30, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
           {t.ptLittleExtras} <em style={{ fontStyle: "normal", color: ROSE }}>{t.ptExtrasHeading}</em>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", columnGap: isDesktop ? 48 : 0, rowGap: 0 }}>
           {items.map((item, i) => {
             const name  = ptItemStr(item, "name", "title");
             const price = ptItemStr(item, "price");
@@ -984,7 +990,7 @@ function PtPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
                 }
                 <div>
                   <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 22 : 18, fontStyle: "italic", color: INK, marginBottom: 4 }}>{name}</div>
-                  {role && <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: ROSE, marginBottom: bio ? 10 : 0 }}>{role}{years ? ` · ${years}y` : ""}</div>}
+                  {role && <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: ROSE, marginBottom: bio ? 10 : 0 }}>{localizeRole(role, t)}{years ? ` · ${years}y` : ""}</div>}
                   {bio && <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.65, margin: 0 }}>{bio}</p>}
                 </div>
               </div>
@@ -1112,7 +1118,7 @@ function PtCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined, display: "flex", flexDirection: isDesktop ? "row" as const : "column" as const, justifyContent: "space-between", alignItems: isDesktop ? "center" : "flex-start", gap: 24 }}>
         <div>
           <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.65)", marginBottom: 10 }}>{t.ptReserveDates}</div>
-          <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 34, fontStyle: "italic", lineHeight: 1.05, letterSpacing: "-0.6px", color: "#fff" }}>{pkg.price}</div>
+          <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 34, fontStyle: "italic", lineHeight: 1.05, letterSpacing: "-0.6px", color: "#fff" }}>{normalizeSarStr(pkg.price)}</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
@@ -1172,7 +1178,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
                 {title}
               </h1>
               <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.72, margin: "0 0 28px" }}>{pkg.description}</p>
-              <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 400, color: ROSE, letterSpacing: "-0.8px", marginBottom: 5, lineHeight: 1 }}>{pkg.price}</div>
+              <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 400, color: ROSE, letterSpacing: "-0.8px", marginBottom: 5, lineHeight: 1 }}>{normalizeSarStr(pkg.price)}</div>
               <div style={{ fontSize: 12, color: SMUTED, marginBottom: 24 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
               {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
             </div>
@@ -1253,7 +1259,7 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
           <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: INK, lineHeight: 1.12, letterSpacing: "-0.4px", margin: "0 0 10px" }}>
             {title}
           </h1>
-          <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: ROSE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{pkg.price}</div>
+          <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: ROSE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{normalizeSarStr(pkg.price)}</div>
           <div style={{ fontSize: 12, color: SMUTED, marginBottom: 18 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
           {pkg.whatsapp && <WAButton label={t.bookWhatsApp} full onClick={onWhatsApp} />}
         </div>

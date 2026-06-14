@@ -14,6 +14,7 @@ import {
   DesktopFooter,
   getItineraryDays,
   LightboxCarousel,
+  localizeRole,
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
@@ -304,7 +305,7 @@ function TbPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
                 }
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: INK }}>{name}</div>
-                  {role && <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.8px", color: BRAND, textTransform: "uppercase" as const, marginTop: 2 }}>{role}{years ? ` · ${years}y` : ""}</div>}
+                  {role && <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.8px", color: BRAND, textTransform: "uppercase" as const, marginTop: 2 }}>{localizeRole(role, t)}{years ? ` · ${years}y` : ""}</div>}
                   {bio && <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.55, marginTop: 8 }}>{bio}</div>}
                   {langs.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4, marginTop: 8 }}>

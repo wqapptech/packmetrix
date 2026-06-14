@@ -13,6 +13,7 @@ import {
   DContainer,
   DesktopFooter,
   LightboxCarousel,
+  localizeRole,
 } from "./shared";
 import type { TPageProps, TCardProps, TPackage, TAgency, Lang } from "./types";
 
@@ -405,7 +406,7 @@ function FaPeople({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
               }
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 800, color: FA.ink }}>{name}</div>
-                {role && <div style={{ fontSize: 11.5, color: FA.brand, fontWeight: 600, textTransform: "capitalize", marginTop: 2 }}>{role.replace("_", " ")}</div>}
+                {role && <div style={{ fontSize: 11.5, color: FA.brand, fontWeight: 600, textTransform: "capitalize", marginTop: 2 }}>{localizeRole(role, t)}</div>}
                 {years != null && <div style={{ fontSize: 12, color: FA.muted, marginTop: 2 }}>{years} {t.faYearsExperience}</div>}
                 {bio && <div style={{ fontSize: 12.5, color: FA.muted, marginTop: 6, lineHeight: 1.55 }}>{bio}</div>}
               </div>
