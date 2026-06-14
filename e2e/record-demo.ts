@@ -5,8 +5,8 @@
  *
  * Flow:
  *   Landing page → Login → Packages dashboard → New Package →
- *   Template picker (Pulse) → AI extraction → Core fields + cover image →
- *   Sections: Highlights · Itinerary (3 days) · Hotel · Media (photos + video) ·
+ *   Template picker (Pulse) → AI extraction → Core fields →
+ *   Sections: Highlights · Itinerary (days 1–3) · Hotel · Media (3 photos + video) ·
  *             Pricing · Customer Reviews →
  *   Publish → Live page → Agency Storefront
  *
@@ -367,32 +367,34 @@ Book now before the offer disappears.`;
   await beat(page, 800);
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 7. COVER IMAGE — SEARCH PHOTOS
+  // 7. COVER IMAGE
   // ════════════════════════════════════════════════════════════════════════════
   console.log("Step 7 — Cover image");
-  const coverSearchPhotosTab = page.getByText("Search Photos").first();
-  if (await coverSearchPhotosTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await revealField(coverSearchPhotosTab);
-    await coverSearchPhotosTab.click();
-    await beat(page, 800);
+  {
+    const coverPhotoTab = page.getByRole("button", { name: /Search Photos/i }).first();
+    if (await coverPhotoTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await revealField(coverPhotoTab);
+      await coverPhotoTab.click();
+      await beat(page, 800);
 
-    const photoInput = page.getByPlaceholder("Search for photos…").first();
-    await photoInput.waitFor({ state: "visible", timeout: 10_000 });
-    await revealField(photoInput);
-    await photoInput.fill("Santorini Greece");
-    await beat(page, 500);
-    await photoInput.press("Enter");
+      const coverInput = page.getByPlaceholder("Search for photos…").first();
+      await coverInput.waitFor({ state: "visible", timeout: 10_000 });
+      await revealField(coverInput);
+      await coverInput.fill("Santorini Greece");
+      await beat(page, 500);
+      await coverInput.press("Enter");
 
-    await page.waitForTimeout(3_000);
-
-    const firstPhotoContainer = page
-      .locator("img[src*='pexels'], img[src*='images.pexels']")
-      .first()
-      .locator("..");
-    if (await firstPhotoContainer.isVisible({ timeout: 8_000 }).catch(() => false)) {
-      await revealField(firstPhotoContainer);
-      await firstPhotoContainer.click();
-      await beat(page, 2_000);
+      await page.waitForFunction(() =>
+        document.querySelectorAll('.px-ov').length > 0,
+        { timeout: 15_000 }
+      ).catch(() => console.log("  ⚠ Cover photo results didn't appear"));
+      await beat(page, 400);
+      // Click the first result container via raw JS — bypasses the .px-ov overlay entirely.
+      await page.evaluate(() => {
+        const first = document.querySelector('.px-ov');
+        (first?.parentElement as HTMLElement | null)?.click();
+      });
+      await beat(page, 1_500);
     }
   }
 
@@ -460,7 +462,7 @@ Book now before the offer disappears.`;
     await beat(page, 1_200);
   }
 
-  // ── 8a. HIGHLIGHTS ────────────────────────────────────────────────────────
+  // ── 7a. HIGHLIGHTS ────────────────────────────────────────────────────────
   await buildSection("Highlights", async () => {
     const tagInput = page.getByPlaceholder("e.g. 5-star hotel included").first();
     if (await tagInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -470,33 +472,38 @@ Book now before the offer disappears.`;
     }
   });
 
-  // ── 8b. ITINERARY ─────────────────────────────────────────────────────────
+  // ── 7b. ITINERARY ─────────────────────────────────────────────────────────
   await buildSection("Itinerary", async () => {
-    // The section starts with 3 days pre-populated — fill each by index.
-    const dayInputs = page.getByPlaceholder("e.g. Arrival & city tour");
+    // The repeater only keeps ONE item open at a time (openIdx state).
+    // Items 2 and 3 are fully unmounted until you click their header to expand them.
+    // "Day 2" / "Day 3" are the header summary texts when the title is empty.
+    // After expanding a day, it's the only visible input → always use .first().
+    const sec = page.locator('[id^="section-"]').last();
+    const openInput = () => sec.getByPlaceholder("e.g. Arrival & city tour").first();
 
-    const day1 = dayInputs.nth(0);
-    if (await day1.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await revealField(day1);
-      await day1.fill("Arrival in Santorini · Oia check-in");
-      await beat(page, 500);
-    }
+    // Day 1 is open by default
+    await openInput().waitFor({ state: "visible", timeout: 8_000 }).catch(() => {});
+    await revealField(openInput());
+    await openInput().fill("Arrival in Santorini · Oia check-in");
+    await beat(page, 600);
 
-    const day2 = dayInputs.nth(1);
-    if (await day2.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await revealField(day2);
-      await day2.fill("Aegean sunset cruise · Akrotiri ruins");
-      await beat(page, 500);
-    }
+    // Expand Day 2 — click its header (summary text "Day 2")
+    await sec.getByText("Day 2").first().click();
+    await beat(page, 800);
+    await openInput().waitFor({ state: "visible", timeout: 5_000 }).catch(() => {});
+    await revealField(openInput());
+    await openInput().fill("Aegean sunset cruise · Akrotiri ruins");
+    await beat(page, 600);
 
-    const day3 = dayInputs.nth(2);
-    if (await day3.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await revealField(day3);
-      await day3.fill("Beach day at Perissa · Fira evening walk");
-    }
+    // Expand Day 3 — click its header (summary text "Day 3")
+    await sec.getByText("Day 3").first().click();
+    await beat(page, 800);
+    await openInput().waitFor({ state: "visible", timeout: 5_000 }).catch(() => {});
+    await revealField(openInput());
+    await openInput().fill("Beach day at Perissa · Fira evening walk");
   });
 
-  // ── 8c. HOTEL & ACCOMMODATION ─────────────────────────────────────────────
+  // ── 7c. HOTEL & ACCOMMODATION ─────────────────────────────────────────────
   await buildSection("Hotel", async () => {
     const desc = page
       .getByPlaceholder("Describe the hotel: name, location, facilities, star rating…")
@@ -509,64 +516,140 @@ Book now before the offer disappears.`;
     }
   });
 
-  // ── 8d. MEDIA — photos + video ────────────────────────────────────────────
+  // ── 7d. MEDIA — photos + video ────────────────────────────────────────────
   await buildSection("Media", async () => {
-    // Photos: click "Search Photos" tab, search, pick 3 images.
-    const searchPhotosTab = page.getByRole("button", { name: /Search Photos/i }).last();
-    if (await searchPhotosTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await revealField(searchPhotosTab, 500);
-      await searchPhotosTab.click();
-      await beat(page, 800);
+    // The Media section has TWO "Search Photos" buttons (ImageListField + mapImage ImageField).
+    // Use raw JS throughout to avoid Playwright locator ambiguity.
 
-      const photoSearchInput = page.getByPlaceholder("Search for photos…").last();
-      await photoSearchInput.waitFor({ state: "visible", timeout: 10_000 });
-      await revealField(photoSearchInput);
-      await photoSearchInput.fill("Santorini Greece");
-      await beat(page, 500);
-      await photoSearchInput.press("Enter");
-      await beat(page, 3_500);
+    // ── Photos ──────────────────────────────────────────────────────────────
+    // Click the FIRST "Search Photos" button in the section (belongs to ImageListField).
+    await page.evaluate(() => {
+      const sections = document.querySelectorAll('[id^="section-"]');
+      const last = sections[sections.length - 1];
+      const btns = Array.from(last?.querySelectorAll('button') ?? []);
+      const btn = btns.find(b => b.textContent?.trim().includes('Search Photos'));
+      btn?.click();
+    });
+    console.log("  [Media] Clicked Search Photos tab");
+    await beat(page, 1_200);
 
-      // Click the first 3 photo results.
-      const photoResults = page.locator("img[src*='pexels'], img[src*='images.pexels']");
-      const photoCount = await photoResults.count();
+    // Fill the search input — use last() in case there are multiple visible
+    const photoInput = page.locator('input[placeholder*="Search for photos"]').last();
+    if (await photoInput.isVisible({ timeout: 8_000 }).catch(() => false)) {
+      await photoInput.fill("Santorini Greece");
+      await beat(page, 400);
+      await photoInput.press("Enter");
+      console.log("  [Media] Photo search submitted");
+
+      // Wait for results to load
+      await page.waitForFunction(() => {
+        const sections = document.querySelectorAll('[id^="section-"]');
+        const last = sections[sections.length - 1];
+        return (last?.querySelectorAll('.px-ov').length ?? 0) > 0;
+      }, { timeout: 20_000 }).catch(() => {});
+
+      const photoCount: number = await page.evaluate(() => {
+        const sections = document.querySelectorAll('[id^="section-"]');
+        const last = sections[sections.length - 1];
+        return last?.querySelectorAll('.px-ov').length ?? 0;
+      });
+      console.log(`  [Media] Photo results: ${photoCount}`);
+
       for (let i = 0; i < Math.min(3, photoCount); i++) {
-        const photoContainer = photoResults.nth(i).locator("..");
-        if (await photoContainer.isVisible({ timeout: 3_000 }).catch(() => false)) {
-          await revealField(photoContainer, 400);
-          await photoContainer.click();
-          await beat(page, 700);
-        }
+        await page.evaluate((idx) => {
+          const sections = document.querySelectorAll('[id^="section-"]');
+          const last = sections[sections.length - 1];
+          const pxovs = last?.querySelectorAll('.px-ov');
+          (pxovs?.[idx]?.parentElement as HTMLElement)?.click();
+        }, i);
+        console.log(`  [Media] Photo ${i + 1} clicked`);
+        await beat(page, 1_000);
       }
-      await beat(page, 1_000);
+
+      // Collapse the photo search grid by switching ImageListField back to Upload mode.
+      // This is the FIRST "Upload" button in the section (ImageListField renders before VideoField).
+      await page.evaluate(() => {
+        const sections = document.querySelectorAll('[id^="section-"]');
+        const last = sections[sections.length - 1];
+        const btns = Array.from(last?.querySelectorAll('button') ?? []);
+        const uploadBtn = btns.find(b => (b.textContent ?? '').trim().startsWith('Upload'));
+        uploadBtn?.click();
+      });
+      console.log("  [Media] Photo search collapsed");
+      await beat(page, 800);
+    } else {
+      console.log("  [Media] ⚠ Photo search input not visible");
     }
 
-    // Video: click "Search Videos" tab, search, pick first video.
-    const searchVideosTab = page.getByRole("button", { name: /Search Videos/i }).last();
-    if (await searchVideosTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await revealField(searchVideosTab, 500);
-      await searchVideosTab.click();
-      await beat(page, 800);
+    await beat(page, 400);
 
-      const videoSearchInput = page.getByPlaceholder("Search for videos…").last();
-      await videoSearchInput.waitFor({ state: "visible", timeout: 10_000 });
-      await revealField(videoSearchInput);
-      await videoSearchInput.fill("Santorini Greece");
-      await beat(page, 500);
-      await videoSearchInput.press("Enter");
-      await beat(page, 3_500);
+    // ── Video ────────────────────────────────────────────────────────────────
+    // Click the "Search Videos" button — only one in the section (VideoField).
+    await page.evaluate(() => {
+      const sections = document.querySelectorAll('[id^="section-"]');
+      const last = sections[sections.length - 1];
+      const btns = Array.from(last?.querySelectorAll('button') ?? []);
+      const btn = btns.find(b => b.textContent?.trim().includes('Search Videos'));
+      btn?.click();
+    });
+    console.log("  [Media] Clicked Search Videos tab");
+    await beat(page, 1_200);
 
-      // Click the first video result container.
-      const firstVideo = page.locator("video, [data-testid*='video'], img[src*='pexels.com/video']").first();
-      const firstVideoContainer = firstVideo.locator("..");
-      if (await firstVideoContainer.isVisible({ timeout: 8_000 }).catch(() => false)) {
-        await revealField(firstVideoContainer, 400);
-        await firstVideoContainer.click();
+    const videoInput = page.locator('input[placeholder*="Search for videos"]').last();
+    if (await videoInput.isVisible({ timeout: 8_000 }).catch(() => false)) {
+      // Sample BEFORE submitting so we don't race against a fast API response.
+      const photoOnlyCount: number = await page.evaluate(() => {
+        const sections = document.querySelectorAll('[id^="section-"]');
+        const last = sections[sections.length - 1];
+        return last?.querySelectorAll('.px-ov').length ?? 0;
+      });
+      console.log(`  [Media] Pre-video .px-ov baseline: ${photoOnlyCount}`);
+
+      await videoInput.fill("Santorini Greece");
+      await beat(page, 400);
+      await videoInput.press("Enter");
+      console.log("  [Media] Video search submitted");
+
+      // Wait for video result containers to appear (count increases)
+      await page.waitForFunction((before: number) => {
+        const sections = document.querySelectorAll('[id^="section-"]');
+        const last = sections[sections.length - 1];
+        return (last?.querySelectorAll('.px-ov').length ?? 0) > before;
+      }, photoOnlyCount, { timeout: 20_000 }).catch(() => {});
+
+      const totalCount: number = await page.evaluate(() => {
+        const sections = document.querySelectorAll('[id^="section-"]');
+        const last = sections[sections.length - 1];
+        return last?.querySelectorAll('.px-ov').length ?? 0;
+      });
+      console.log(`  [Media] Video results: ${totalCount - photoOnlyCount}`);
+
+      if (totalCount > photoOnlyCount) {
+        // Scroll the first video result container into view so it's fully visible.
+        await page.evaluate((offset) => {
+          const sections = document.querySelectorAll('[id^="section-"]');
+          const last = sections[sections.length - 1];
+          const pxovs = last?.querySelectorAll('.px-ov');
+          const firstVideo = pxovs?.[offset]?.parentElement as HTMLElement | null;
+          firstVideo?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, photoOnlyCount);
+        await beat(page, 1_000);
+
+        await page.evaluate((offset) => {
+          const sections = document.querySelectorAll('[id^="section-"]');
+          const last = sections[sections.length - 1];
+          const pxovs = last?.querySelectorAll('.px-ov');
+          (pxovs?.[offset]?.parentElement as HTMLElement)?.click();
+        }, photoOnlyCount);
+        console.log("  [Media] Video clicked");
         await beat(page, 1_500);
       }
+    } else {
+      console.log("  [Media] ⚠ Video search input not visible");
     }
   });
 
-  // ── 8e. PRICING ───────────────────────────────────────────────────────────
+  // ── 7e. PRICING ───────────────────────────────────────────────────────────
   await buildSection("Pricing", async () => {
     const tierLabel = page.getByPlaceholder("e.g. Per person (2 pax)").first();
     if (await tierLabel.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -575,7 +658,7 @@ Book now before the offer disappears.`;
     }
   });
 
-  // ── 8f. REVIEWS ───────────────────────────────────────────────────────────
+  // ── 7f. REVIEWS ───────────────────────────────────────────────────────────
   await buildSection("Customer Reviews", async () => {
     const reviewerName = page.getByPlaceholder("e.g. Sara M.").first();
     if (await reviewerName.isVisible({ timeout: 3_000 }).catch(() => false)) {
