@@ -16,7 +16,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "aurora",
     name: "Aurora",
-    nameAr: "أورورا",
+    nameAr: "Aurora",
     target: "Luxury · Boutique",
     targetAr: "فاخر · بوتيك",
     Page: TemplateAuroraPage,
@@ -28,7 +28,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "voyage",
     name: "Voyage",
-    nameAr: "رحلة",
+    nameAr: "Voyage",
     target: "Youth · 18–35",
     targetAr: "الشباب · 18–35",
     Page: TemplateVoyagePage,
@@ -41,7 +41,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "pulse",
     name: "Pulse",
-    nameAr: "نبض",
+    nameAr: "Pulse",
     target: "Last-minute Deals",
     targetAr: "عروض اللحظة الأخيرة",
     Page: TemplatePulsePage,
@@ -53,7 +53,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "sakina",
     name: "Sakina",
-    nameAr: "سكينة",
+    nameAr: "Sakina",
     target: "Religious · Umrah/Hajj",
     targetAr: "رحلات دينية · عمرة وحج",
     Page: TemplateSakinaPage,
@@ -65,7 +65,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "petal",
     name: "Petal",
-    nameAr: "بتلة",
+    nameAr: "Petal",
     target: "Honeymoons · Couples",
     targetAr: "شهر العسل · أزواج",
     Page: TemplatePetalPage,
@@ -77,7 +77,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "compass",
     name: "Compass",
-    nameAr: "بوصلة",
+    nameAr: "Compass",
     target: "Adventure · Trekking",
     targetAr: "مغامرات · رحلات",
     Page: TemplateCompassPage,
@@ -93,7 +93,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "atlas",
     name: "Atlas",
-    nameAr: "أطلس",
+    nameAr: "Atlas",
     target: "Premium Curated",
     targetAr: "تجارب راقية ومنتقاة",
     Page: TemplateAtlasPage,
@@ -105,7 +105,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "tribe",
     name: "Tribe",
-    nameAr: "قبيلة",
+    nameAr: "Tribe",
     target: "Group Tours",
     targetAr: "رحلات جماعية",
     Page: TemplateTribePage,
@@ -117,7 +117,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "smart",
     name: "Smart",
-    nameAr: "ذكي",
+    nameAr: "Smart",
     target: "Budget · Transparent",
     targetAr: "اقتصادي · شفاف",
     Page: TemplateSmartPage,
@@ -129,7 +129,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   {
     id: "family",
     name: "Family",
-    nameAr: "عائلة",
+    nameAr: "Family",
     target: "Family Vacations",
     targetAr: "عطلات عائلية",
     Page: TemplateFamilyPage,
