@@ -73,7 +73,7 @@ function CmHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   if (!hotels.length) {
     return (
-      <section style={{ padding: pad }} data-pmx-section="hotel">
+      <section id="hotel" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="hotel">
         <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Accommodation</div>
           <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.65 }}>{pkg.hotelDescription}</div>
@@ -82,7 +82,7 @@ function CmHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop
     );
   }
   return (
-    <section style={{ padding: pad }} data-pmx-section="hotel">
+    <section id="hotel" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="hotel">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Where you stay</div>
         <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 18px", color: INK }}>Teahouses &amp; lodges</h3>
@@ -210,7 +210,7 @@ function CmDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   };
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }} data-pmx-section="departures">
+    <section id="departures" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="departures">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>{t.coDepartureWindows}</div>
         <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 18px", color: INK }}>{t.coSeasonalOpenings}</h3>
@@ -261,7 +261,7 @@ function CmFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: b
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }} data-pmx-section="faq">
+    <section id="faq" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="faq">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Common questions</div>
         <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? "1fr 1fr" : undefined, flexDirection: isDesktop ? undefined : "column" as const, gap: 0 }}>
@@ -281,7 +281,8 @@ function CmFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: b
   );
 }
 
-function CmImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
+function CmImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const t = T[lang];
   const data = cmFindSec(pkg, "important_notes");
   const notes = cmSecArr(data, "notes");
   const items = notes.length ? notes : cmSecArr(data, "items");
@@ -290,8 +291,8 @@ function CmImportantNotesSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; i
   return (
     <section style={{ padding: pad }} data-pmx-section="important_notes">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Before you go</div>
-        <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 16px", color: INK }}>Important notes</h3>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>{t.coBeforeYouGo}</div>
+        <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 16px", color: INK }}>{t.coImportantNotes}</h3>
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr", gap: 10 }}>
           {items.map((n, i) => {
             const severity = cmItemStr(n, "severity");
@@ -503,32 +504,41 @@ function HonestDifficultySection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: 
 
 function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
-  const agent = pkg.agent;
-  if (!agent?.name) return null;
-  const firstName = agent.name.split(" ")[0];
   const isRtl = lang === "ar";
+
+  const peopleArr     = cmSecArr(cmFindSec(pkg, "people"), "people");
+  const primary       = peopleArr[0];
+  const personName    = (primary ? cmItemStr(primary, "name") : "") || (pkg.agent?.name ?? "");
+  const personRole    = (primary ? cmItemStr(primary, "role") : "") || (pkg.agent?.role ?? "");
+  const personPhoto   = (primary ? cmItemStr(primary, "photo") : "") || (pkg.agent?.avatar ?? "");
+  const rawRepliesIn  = primary ? primary.repliesIn : pkg.agent?.repliesIn;
+  const repliesIn     = typeof rawRepliesIn === "string" ? rawRepliesIn : undefined;
+
+  if (!personName) return null;
+  const firstName   = personName.split(" ")[0];
+  const onlineLabel = repliesIn
+    ? `${lang === "ar" ? "متاح" : "Online"} · ${t.repliesInLabel.replace(/:$/, "")} ${repliesIn}`
+    : t.agentOnlineLabel;
 
   return (
     <section style={{ background: INK, padding: "40px 24px", direction: isRtl ? "rtl" : "ltr" }}>
       <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.45)", marginBottom: 20 }}>
         {t.compassLeadGuide} · {agency.name}
       </div>
-      {agent && (
-        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-          {agent.avatar
-            ? <img src={agent.avatar} alt={agent.name} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover" }} />
-            : <div style={{ width: 60, height: 60, borderRadius: "50%", background: `${ORANGE}44`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, fontSize: 24, fontWeight: 800, color: "#fff" }}>{agent.name?.[0]?.toUpperCase() || "?"}</div>
-          }
-          <div>
-            <div style={{ fontFamily: INTER, fontSize: 20, fontWeight: 800, color: "#fff", lineHeight: 1.1, letterSpacing: "-0.5px" }}>{agent.name}</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>{localizeRole(agent.role, t)}</div>
-          </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+        {personPhoto
+          ? <img src={personPhoto} alt={personName} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover" }} />
+          : <div style={{ width: 60, height: 60, borderRadius: "50%", background: `${ORANGE}44`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, fontSize: 24, fontWeight: 800, color: "#fff" }}>{personName[0]?.toUpperCase() || "?"}</div>
+        }
+        <div>
+          <div style={{ fontFamily: INTER, fontSize: 20, fontWeight: 800, color: "#fff", lineHeight: 1.1, letterSpacing: "-0.5px" }}>{personName}</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>{localizeRole(personRole, t)}</div>
         </div>
-      )}
+      </div>
       <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8, marginBottom: 22 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "6px 12px" }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
-          <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.85)" }}>{t.agentOnlineLabel}</span>
+          <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.85)" }}>{onlineLabel}</span>
         </div>
         <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "6px 12px", fontSize: 11.5, color: "rgba(255,255,255,0.7)" }}>
           ✓ {t.compassUiagmCertified}
@@ -548,10 +558,21 @@ function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps[
 
 function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
-  const agent = pkg.agent;
-  if (!agent?.name) return null;
-  const firstName = agent.name.split(" ")[0];
   const isRtl = lang === "ar";
+
+  const peopleArr     = cmSecArr(cmFindSec(pkg, "people"), "people");
+  const primary       = peopleArr[0];
+  const personName    = (primary ? cmItemStr(primary, "name") : "") || (pkg.agent?.name ?? "");
+  const personRole    = (primary ? cmItemStr(primary, "role") : "") || (pkg.agent?.role ?? "");
+  const personPhoto   = (primary ? cmItemStr(primary, "photo") : "") || (pkg.agent?.avatar ?? "");
+  const rawRepliesIn  = primary ? primary.repliesIn : pkg.agent?.repliesIn;
+  const repliesIn     = typeof rawRepliesIn === "string" ? rawRepliesIn : undefined;
+
+  if (!personName) return null;
+  const firstName   = personName.split(" ")[0];
+  const onlineLabel = repliesIn
+    ? `${lang === "ar" ? "متاح" : "Online"} · ${t.repliesInLabel.replace(/:$/, "")} ${repliesIn}`
+    : t.agentOnlineLabel;
 
   return (
     <section style={{ background: INK }}>
@@ -564,10 +585,10 @@ function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPag
             overflow: "hidden", background: `${ORANGE}22`,
             borderRadius: 16,
           }}>
-            {agent?.avatar
-              ? <img src={agent.avatar} alt={agent?.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+            {personPhoto
+              ? <img src={personPhoto} alt={personName} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
               : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(160deg, ${ORANGE}22, ${INK})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontFamily: INTER, fontSize: 140, fontWeight: 800, color: `${ORANGE}40`, lineHeight: 1, userSelect: "none" as const }}>{agent?.name?.[0]?.toUpperCase() || "?"}</span>
+                  <span style={{ fontFamily: INTER, fontSize: 140, fontWeight: 800, color: `${ORANGE}40`, lineHeight: 1, userSelect: "none" as const }}>{personName[0]?.toUpperCase() || "?"}</span>
                 </div>
             }
           </div>
@@ -576,16 +597,12 @@ function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPag
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.45)", marginBottom: 16 }}>
               {t.compassLeadGuide} · {agency.name}
             </div>
-            {agent && (
-              <>
-                <div style={{ fontFamily: INTER, fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1.5px", lineHeight: 1.05, marginBottom: 6 }}>{agent.name}</div>
-                <div style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", marginBottom: 24 }}>{localizeRole(agent.role, t)}</div>
-              </>
-            )}
+            <div style={{ fontFamily: INTER, fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1.5px", lineHeight: 1.05, marginBottom: 6 }}>{personName}</div>
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", marginBottom: 24 }}>{localizeRole(personRole, t)}</div>
             <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10, marginBottom: 28 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "7px 14px" }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>{t.agentOnlineLabel}</span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>{onlineLabel}</span>
               </div>
               <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "7px 14px", fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
                 ✓ {t.compassUiagmCertified}
@@ -931,7 +948,7 @@ function CmReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
 
   const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad }} data-pmx-section="reviews">
+    <section id="reviews" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="reviews">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>
           {showList ? `${reviews.length} ${t.coVerifiedReviews}` : t.writeReviewTitle}
@@ -1020,7 +1037,11 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
   const navLinks = [
     ...(itinerary.length ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
     ...(includes.length ? [{ label: t.navIncluded, href: "#included" }] : []),
-    ...((pkg.pricingTiers || []).some(t2 => t2.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...((pkg.pricingTiers || []).some(t2 => t2.price) || pkg.sections?.some(s => s.type === "pricing") ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...(pkg.sections?.some(s => s.type === "hotel") || pkg.sections?.some(s => s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#hotel" }] : []),
+    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#departures" }] : []),
+    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#reviews" }] : []),
+    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#faq" }] : []),
   ];
 
   if (isDesktop) {
@@ -1085,7 +1106,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
           <div data-pmx-section="itinerary">
           <DContainer id="itinerary" style={{ padding: "0 80px 64px" }}>
             <Eyebrow text={t.dayByDay} brand={ORANGE} />
-            <h2 style={{ fontFamily: INTER, fontSize: 32, fontWeight: 800, letterSpacing: "-0.7px", margin: "10px 0 24px" }}>{t.compassDailyMetrics}</h2>
+            <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: isRtl ? "0" : "-0.7px", margin: "10px 0 24px" }}>{t.compassDailyMetrics}</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
               {itinerary.map((it, i) => (
                 <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: 20 }}>
@@ -1114,7 +1135,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
         <CmPeopleSection pkg={pkg} isDesktop={true} lang={lang} />
         <CmDeparturesSection pkg={pkg} isDesktop={true} lang={lang} />
         <CmFaqSection pkg={pkg} isDesktop={true} />
-        <CmImportantNotesSection pkg={pkg} isDesktop={true} />
+        <CmImportantNotesSection pkg={pkg} isDesktop={true} lang={lang} />
         <CmReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
         <CmAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} />
         <CmOtherPackagesSection pkg={pkg} isDesktop={true} lang={lang} agencySlug={agency.agencySlug} />
@@ -1226,7 +1247,7 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
       <CmPeopleSection pkg={pkg} isDesktop={false} lang={lang} />
       <CmDeparturesSection pkg={pkg} isDesktop={false} lang={lang} />
       <CmFaqSection pkg={pkg} isDesktop={false} />
-      <CmImportantNotesSection pkg={pkg} isDesktop={false} />
+      <CmImportantNotesSection pkg={pkg} isDesktop={false} lang={lang} />
       <CmReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
       <CmAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} />
       <CmOtherPackagesSection pkg={pkg} isDesktop={false} lang={lang} agencySlug={agency.agencySlug} />
