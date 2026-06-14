@@ -15,8 +15,11 @@ import {
 
 const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
 
-// Sections shown as quick-add tiles (most commonly added)
-const QUICK_ADD_TYPES: SectionTypeKey[] = ["media", "reviews", "other_packages", "faq", "extras"];
+// Sections shown as quick-add tiles — core backbone, filtered by already-added
+const QUICK_ADD_TYPES: SectionTypeKey[] = [
+  "highlights", "itinerary", "hotel", "inclusions",
+  "media", "departures", "pricing", "people", "reviews",
+];
 
 export function SectionList({
   sections,
@@ -85,8 +88,10 @@ export function SectionList({
       data: { ...def.defaultData },
     };
     onChange([...sections, newSection]);
-    // Mark as new so it renders as an invitation
-    setNewIds((prev) => new Set([...prev, id]));
+    // Skip invitation state for auto-populated sections
+    if (!def.skipInviteState) {
+      setNewIds((prev) => new Set([...prev, id]));
+    }
   };
 
   // Opening a "new" section removes the invitation marker and expands the form.
@@ -218,6 +223,7 @@ export function SectionList({
             onMoveDown={() => moveSection(i, 1)}
             userId={userId}
             lang={lang}
+            templateId={templateId}
             isDragOver={dragOver === i}
             dragHandleProps={{ onMouseDown: (e) => e.stopPropagation() }}
             isMobile={isMobile}
@@ -306,6 +312,7 @@ export function SectionList({
           onAdd={addSection}
           onClose={() => setShowMenu(false)}
           lang={lang}
+          templateId={templateId}
         />
       )}
     </div>

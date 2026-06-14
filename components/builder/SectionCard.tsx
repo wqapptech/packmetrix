@@ -5,6 +5,7 @@ import Icon from "@/components/Icon";
 import { SECTION_REGISTRY } from "@/lib/sections/registry";
 import type { AnySectionInstance } from "@/lib/sections/types";
 import { SectionEditor } from "./SectionEditor";
+import { getBuilderHint } from "@/lib/sections/affiliation";
 import {
   DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_DANGER,
@@ -24,6 +25,7 @@ export function SectionCard({
   onMoveDown,
   userId,
   lang,
+  templateId,
   dragHandleProps,
   isDragOver,
   isMobile = false,
@@ -41,6 +43,7 @@ export function SectionCard({
   onMoveDown: () => void;
   userId: string;
   lang: "en" | "ar";
+  templateId?: string;
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
   isDragOver?: boolean;
   isMobile?: boolean;
@@ -60,6 +63,7 @@ export function SectionCard({
   const inviteDesc = l
     ? ((def as any).descriptionAr ?? (def as any).description ?? "")
     : ((def as any).description ?? "");
+  const hint = getBuilderHint(def as any, lang, templateId);
 
   // Close ⋯ menu on outside click
   useEffect(() => {
@@ -118,6 +122,17 @@ export function SectionCard({
             {inviteDesc && (
               <div style={{ fontFamily: SANS, fontSize: 13, color: DA_INK2, marginTop: 3 }}>
                 {inviteDesc}
+              </div>
+            )}
+            {hint && (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 5, marginTop: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  stroke="rgba(176,138,62,.7)" style={{ flexShrink: 0, marginTop: 1 }}>
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span style={{ fontFamily: SANS, fontSize: 11.5, color: "rgba(176,138,62,.8)", lineHeight: 1.45 }}>
+                  {hint.text}
+                </span>
               </div>
             )}
           </div>
@@ -315,6 +330,27 @@ export function SectionCard({
           )}
         </div>
       </div>
+
+      {/* Template-affiliation hint — always visible when section won't render on this template */}
+      {hint && (
+        <div style={{
+          display: "flex", alignItems: "flex-start", gap: 7,
+          padding: "8px 14px 9px",
+          borderTop: `1px solid rgba(176,138,62,.12)`,
+          background: hint.severity === "none"
+            ? "rgba(176,138,62,.07)"
+            : "rgba(176,138,62,.045)",
+          borderRadius: isOpen ? 0 : "0 0 11px 11px",
+        }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            stroke="rgba(176,138,62,.7)" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span style={{ fontFamily: SANS, fontSize: 12, color: "rgba(176,138,62,.85)", lineHeight: 1.5 }}>
+            {hint.text}
+          </span>
+        </div>
+      )}
 
       {/* Body — visible when open */}
       {isOpen && (

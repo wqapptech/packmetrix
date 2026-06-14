@@ -425,17 +425,6 @@ function DifficultyBar({ difficulty, lang, expanded = false }: { difficulty: TPa
   );
 }
 
-// ─── Trust items ──────────────────────────────────────────────────────────────
-
-function buildCompassTrustItems(t: typeof T["en"]): { icon: React.ReactNode; title: string; sub?: string }[] {
-  return [
-    { icon: "✈", title: t.trustHelicopterEvac, sub: t.trustHelicopterEvacSub },
-    { icon: "✓", title: t.trustGuideRatioTrust, sub: t.trustGuideRatioTrustSub },
-    { icon: "◎", title: t.trustAcclimatisationDays, sub: t.trustAcclimatisationDaysSub },
-    { icon: "📡", title: t.trustSatPhone, sub: t.trustSatPhoneSub },
-  ];
-}
-
 // ─── Trek stats band ─────────────────────────────────────────────────────────
 
 function TrekStatsBand({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"] }) {
@@ -451,7 +440,6 @@ function TrekStatsBand({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: TPageProps
     ...(pkg.maxAltitude ? [{ v: pkg.maxAltitude.toLocaleString(), u: t.metersUnit, l: t.altitudeLabel }] : []),
     ...(pkg.distanceKm ? [{ v: String(pkg.distanceKm), u: t.kmUnit, l: t.distanceLabel }] : []),
     ...(nights ? [{ v: String(nights), u: ` ${t.nightsLabel}`, l: t.tripLengthLabel }] : []),
-    { v: "1:4", u: "", l: t.guideRatioLabel },
     ...(pkg.difficulty ? [{ v: diffLabels[pkg.difficulty] || pkg.difficulty, u: "", l: t.difficultyLabel }] : []),
   ];
   if (!cells.length) return null;
@@ -516,7 +504,8 @@ function HonestDifficultySection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: 
 function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
   const agent = pkg.agent;
-  const firstName = agent?.name?.split(" ")[0] || agency.name;
+  if (!agent?.name) return null;
+  const firstName = agent.name.split(" ")[0];
   const isRtl = lang === "ar";
 
   return (
@@ -560,7 +549,8 @@ function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps[
 function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
   const t = T[lang];
   const agent = pkg.agent;
-  const firstName = agent?.name?.split(" ")[0] || agency.name;
+  if (!agent?.name) return null;
+  const firstName = agent.name.split(" ")[0];
   const isRtl = lang === "ar";
 
   return (
@@ -982,22 +972,6 @@ function CmReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
   );
 }
 
-function CmTrustStrip({ items }: { items: { icon: React.ReactNode; title: string; sub?: string }[] }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length}, 1fr)`, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, padding: "16px 80px" }}>
-      {items.map((item, i) => (
-        <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", borderRight: i < items.length - 1 ? `1px solid ${BORDER}` : "none", paddingRight: 16, paddingLeft: i ? 16 : 0 }}>
-          <span style={{ color: ORANGE, display: "flex", marginTop: 1 }}>{item.icon}</span>
-          <div>
-            <div style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: INK }}>{item.title}</div>
-            {item.sub && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{item.sub}</div>}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function CmCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; onWhatsApp: () => void; onMessenger: () => void; lang: TPageProps["lang"] }) {
   const t = T[lang];
   const nights = pkg.nights ? Number(pkg.nights) : null;
@@ -1040,7 +1014,6 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
   const itinerary  = getItineraryDays(pkg).filter(it => it.title?.trim());
   const includes   = pkg.includes?.length ? pkg.includes : (pkg.advantages || []);
   const isDesktop  = useIsDesktop();
-  const trustItems = buildCompassTrustItems(t);
 
   const altitudeLabel = pkg.maxAltitude ? `${pkg.maxAltitude.toLocaleString()}${t.metersUnit}` : pkg.price;
 
@@ -1088,9 +1061,6 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
 
         {/* 5-col stats band */}
         <TrekStatsBand pkg={pkg} lang={lang} />
-
-        {/* Trust strip */}
-        <CmTrustStrip items={trustItems} />
 
         {/* Honest difficulty section */}
         <HonestDifficultySection pkg={pkg} lang={lang} />
@@ -1199,23 +1169,6 @@ export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang
         {pkg.description && (
           <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, marginTop: 14, marginBottom: 0 }}>{pkg.description}</p>
         )}
-      </div>
-
-      {/* Mobile trust strip — horizontal scroll */}
-      <div style={{
-        display: "flex", gap: 0, marginTop: 16,
-        borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`,
-        overflowX: "auto", scrollbarWidth: "none",
-      }}>
-        {trustItems.map((item, i) => (
-          <div key={i} style={{
-            flexShrink: 0, padding: "10px 14px", fontSize: 12, color: INK,
-            fontWeight: 600, whiteSpace: "nowrap" as const,
-            borderRight: i < trustItems.length - 1 ? `1px solid ${BORDER}` : undefined,
-          }}>
-            {item.title}
-          </div>
-        ))}
       </div>
 
       {/* Includes */}

@@ -339,6 +339,7 @@ const REGISTRY = [
     descriptionAr: "خطة الوجبات المشمولة في الباقة",
     category: "content",
     multiple: false,
+    templateAffiliation: { full: ["aurora", "pulse", "smart", "family"], partial: [] },
     fields: [
       {
         key: "plan",
@@ -844,6 +845,7 @@ const REGISTRY = [
     descriptionAr: "متطلبات التأشيرة والمساعدة المقدمة",
     category: "logistics",
     multiple: false,
+    templateAffiliation: { full: ["aurora", "pulse", "smart", "family"], partial: [] },
     fields: [
       {
         key: "included",
@@ -1277,6 +1279,7 @@ const REGISTRY = [
     descriptionAr: "الصعوبة والارتفاع والمسافة — مميَّز في قالب Compass",
     category: "content",
     multiple: false,
+    templateAffiliation: { full: ["compass"], partial: [] },
     fields: [
       {
         key: "difficulty",
@@ -1337,6 +1340,7 @@ const REGISTRY = [
     descriptionAr: "السعر الأصلي، الأماكن المتبقية، تاريخ المغادرة — مميَّز في قالب Pulse",
     category: "logistics",
     multiple: false,
+    templateAffiliation: { full: ["pulse"], partial: ["aurora", "voyage"] },
     fields: [
       {
         key: "wasPrice",
@@ -1446,6 +1450,7 @@ const REGISTRY = [
     descriptionAr: "يعرض تلقائياً باقاتك الأخرى النشطة مع رابط لمتجرك",
     category: "social",
     multiple: false,
+    skipInviteState: true,
     fields: [
       {
         key: "heading",

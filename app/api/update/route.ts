@@ -43,6 +43,7 @@ export async function POST(req: Request) {
       agencySlug,
       destination:      fields.destination      || "",
       price:            fields.price            || "",
+      currency:         fields.currency         || "",
       title:            fields.title            || "",
       description:      fields.description      || "",
       nights:           fields.nights           || null,
