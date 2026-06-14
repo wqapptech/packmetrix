@@ -203,7 +203,7 @@ export function PresetPicker({
               value={extractText}
               onChange={(e) => setExtractText(e.target.value)}
               placeholder={l ? "الصق وصف الرحلة هنا…" : "Paste your trip description, brochure, or social post here…"}
-              style={{ width: "100%", minHeight: 140, background: DA_BG, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 14px", color: DA_INK1, fontSize: 13, fontFamily: "inherit", outline: "none", resize: "vertical" as const, lineHeight: 1.6, marginTop: 12 }}
+              style={{ width: "100%", minHeight: 220, maxHeight: 400, background: DA_BG, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 14px", color: DA_INK1, fontSize: 13, fontFamily: "inherit", outline: "none", resize: "vertical" as const, lineHeight: 1.6, marginTop: 12, overflowY: "auto" }}
               onFocus={(e) => (e.target.style.borderColor = DA_GOLD)}
               onBlur={(e) => (e.target.style.borderColor = DA_RULE)}
             />
