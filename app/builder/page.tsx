@@ -987,7 +987,9 @@ function BuilderPageInner() {
               ...(result.descriptionAr   ? { descriptionAr:   result.descriptionAr }   : {}),
               ...(result.primaryLanguage ? { primaryLanguage: result.primaryLanguage } : {}),
             }));
-            if (result.includes?.length) {
+            if (result.extractedSections?.length) {
+              setSections(result.extractedSections);
+            } else if (result.includes?.length) {
               setSections((prev) => {
                 if (prev.some((s) => s.type === "inclusions")) return prev;
                 return [...prev, {

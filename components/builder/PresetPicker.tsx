@@ -162,6 +162,15 @@ export function PresetPicker({
           }));
           section.data = { ...section.data, entries };
         }
+        if (section.type === "departure_dates" && extracted.departures?.length) {
+          const dates = extracted.departures.map((d) => ({
+            date:       d.date       || "",
+            returnDate: d.returnDate || "",
+            price:      d.price      || "",
+            spots:      d.spots != null ? String(d.spots) : "",
+          }));
+          section.data = { ...section.data, dates };
+        }
         if (section.type === "itinerary" && extracted.itinerary?.length) {
           section.data = { ...section.data, days: extracted.itinerary };
         }
@@ -209,6 +218,78 @@ export function PresetPicker({
         if (section.type === "meals" && extracted.meals) {
           section.data = { ...section.data, plan: extracted.meals };
         }
+      }
+
+      // Inject sections for extracted data that has no matching section in this preset
+      const hasSection = (t: string) => sections.some((s) => s.type === t);
+      const now2 = Date.now();
+
+      if (extracted.people?.length && !hasSection("people")) {
+        const def = SECTION_REGISTRY["people"];
+        sections.push({
+          id: `people_${now2}`,
+          type: "people",
+          order: sections.length,
+          data: {
+            ...def.defaultData,
+            people: extracted.people.map((p, i) => ({
+              id:        `person_${now2}_${i}`,
+              role:      p.role      || "agent",
+              name:      p.name      || "",
+              bio:       p.bio       || "",
+              photo:     "",
+              languages: p.languages || [],
+              years:     0,
+              repliesIn: "",
+            })),
+          },
+        });
+      }
+
+      if (extracted.reviews?.length && !hasSection("reviews")) {
+        const def = SECTION_REGISTRY["reviews"];
+        sections.push({
+          id: `reviews_${now2}`,
+          type: "reviews",
+          order: sections.length,
+          data: {
+            ...def.defaultData,
+            reviews: extracted.reviews.map((r, i) => ({
+              id:        `review_${now2}_${i}`,
+              name:      r.name   || "",
+              rating:    r.rating ?? 5,
+              text:      r.text   || "",
+              avatarUrl: "",
+            })),
+          },
+        });
+      }
+
+      if (
+        extracted.departures?.length &&
+        !hasSection("departures") &&
+        !hasSection("departure_dates")
+      ) {
+        const def = SECTION_REGISTRY["departures"];
+        sections.push({
+          id: `departures_${now2}`,
+          type: "departures",
+          order: sections.length,
+          data: {
+            ...def.defaultData,
+            entries: extracted.departures.map((d) => ({
+              date:            d.date       || "",
+              returnDate:      d.returnDate || "",
+              spots:           d.spots      ?? 0,
+              price:           d.price      || "",
+              origin:          d.origin     || "",
+              arrivingAirport: "",
+              flyingTime:      "",
+              arrivingTime:    "",
+              deal:            false,
+            })),
+          },
+        });
       }
     }
 
