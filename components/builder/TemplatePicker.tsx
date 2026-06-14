@@ -5,6 +5,7 @@ import Icon from "@/components/Icon";
 import { TEMPLATES } from "@/components/templates";
 import { PRESETS } from "@/lib/sections/presets";
 import type { AnySectionInstance } from "@/lib/sections/types";
+import { SECTION_REGISTRY } from "@/lib/sections/registry";
 import {
   DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_GREEN,
@@ -500,6 +501,7 @@ type AiExtractResult = {
   primaryLanguage?: "en" | "ar";
   includes?: string[];
   suggestedTemplateId?: string;
+  extractedSections?: AnySectionInstance[];
 };
 
 type UserPreset = { id: string; name: string; sections: AnySectionInstance[]; createdAt: number };
@@ -607,18 +609,111 @@ export function VisualTemplatePicker({
       const lng: "en" | "ar" = data.language === "ar" ? "ar" : "en";
       const suggestedTemplateId = PRESET_TO_TEMPLATE[data.suggestedPreset ?? ""] ?? localTemplateId;
 
+      // Build sections from all extracted fields
+      const now = Date.now();
+      const extractedSections: AnySectionInstance[] = [];
+      let order = 0;
+      const push = (type: AnySectionInstance["type"], sectionData: Record<string, unknown>) => {
+        const def = SECTION_REGISTRY[type as keyof typeof SECTION_REGISTRY];
+        extractedSections.push({
+          id: `${type}_ai_${now}_${order}`,
+          type,
+          order: order++,
+          data: { ...(def?.defaultData ?? {}), ...sectionData },
+        } as AnySectionInstance);
+      };
+
+      if (Array.isArray(data.highlights) && data.highlights.length)
+        push("highlights", { items: data.highlights });
+
+      if (Array.isArray(data.itinerary) && data.itinerary.length)
+        push("itinerary", { days: data.itinerary });
+
+      if (data.hotelDescription)
+        push("hotel", { description: data.hotelDescription });
+
+      const includes = Array.isArray(data.advantages) ? data.advantages : [];
+      const excludes = Array.isArray(data.excludes)   ? data.excludes   : [];
+      if (includes.length || excludes.length)
+        push("inclusions", { includes, excludes });
+
+      if (data.meals && data.meals !== "none")
+        push("meals", { plan: data.meals });
+
+      if (Array.isArray(data.transfers) && data.transfers.length)
+        push("transfers", { items: data.transfers });
+
+      if (Array.isArray(data.pricingTiers) && data.pricingTiers.length)
+        push("pricing", { tiers: data.pricingTiers });
+
+      if (Array.isArray(data.departures) && data.departures.length)
+        push("departures", {
+          entries: data.departures.map((d: Record<string, unknown>) => ({
+            date:            d.date            || "",
+            returnDate:      d.returnDate      || "",
+            spots:           d.spots           ?? 0,
+            price:           d.price           || "",
+            origin:          d.origin          || "",
+            arrivingAirport: "",
+            flyingTime:      "",
+            arrivingTime:    "",
+            deal:            false,
+          })),
+        });
+
+      if (Array.isArray(data.importantNotes) && data.importantNotes.length)
+        push("important_notes", { items: data.importantNotes.map((text: string) => ({ text })) });
+
+      if (Array.isArray(data.people) && data.people.length)
+        push("people", {
+          people: data.people.map((p: Record<string, unknown>, i: number) => ({
+            id:        `person_${now}_${i}`,
+            role:      p.role      || "agent",
+            name:      p.name      || "",
+            bio:       p.bio       || "",
+            photo:     "",
+            languages: Array.isArray(p.languages) ? p.languages : [],
+            years:     0,
+            repliesIn: "",
+          })),
+        });
+
+      if (Array.isArray(data.reviews) && data.reviews.length)
+        push("reviews", {
+          reviews: data.reviews.map((r: Record<string, unknown>, i: number) => ({
+            id:        `review_${now}_${i}`,
+            name:      r.name   || "",
+            rating:    r.rating ?? 5,
+            text:      r.text   || "",
+            avatarUrl: "",
+          })),
+        });
+
+      if (Array.isArray(data.airports) && data.airports.length)
+        push("flights", {
+          departures: data.airports.map((a: Record<string, unknown>) => ({
+            name:            a.name            || "",
+            arrivingAirport: a.arrivingAirport || "",
+            price:           a.price           || "",
+            date:            a.date            || "",
+            flyingTime:      a.flyingTime       || "",
+            arrivingTime:    a.arrivingTime     || "",
+          })),
+        });
+
       const result: AiExtractResult = {
-        destination:     data.destination    || undefined,
-        price:           data.price          || undefined,
-        currency:        data.currency       || undefined,
-        nights:          data.nights         || undefined,
-        titleEn:         lng === "en" ? (data.title || undefined)       : undefined,
-        titleAr:         lng === "ar" ? (data.title || undefined)       : undefined,
-        descriptionEn:   lng === "en" ? (data.description || undefined) : undefined,
-        descriptionAr:   lng === "ar" ? (data.description || undefined) : undefined,
-        primaryLanguage: lng,
-        includes:        Array.isArray(data.advantages) ? data.advantages : undefined,
+        destination:      data.destination    || undefined,
+        price:            data.price          || undefined,
+        currency:         data.currency       || undefined,
+        nights:           data.nights         || undefined,
+        titleEn:          lng === "en" ? (data.title || undefined)       : undefined,
+        titleAr:          lng === "ar" ? (data.title || undefined)       : undefined,
+        descriptionEn:    lng === "en" ? (data.description || undefined) : undefined,
+        descriptionAr:    lng === "ar" ? (data.description || undefined) : undefined,
+        primaryLanguage:  lng,
+        includes:         includes.length ? includes : undefined,
         suggestedTemplateId,
+        extractedSections: extractedSections.length ? extractedSections : undefined,
       };
 
       onAiExtract?.(result);
