@@ -30,6 +30,7 @@ Return ONLY valid JSON matching this schema exactly:
 {
   "destination": string,
   "price": string,
+  "currency": string,
   "nights": string,
   "title": string,
   "description": string,
@@ -54,6 +55,7 @@ Rules:
     "day_tour"   → Day trips, excursions, short tours under 2 days
     "safari"     → Safari, wildlife, nature, or adventure packages
     Leave empty string "" if none clearly fits.
+- "currency": ISO-4217 code inferred from the price string. Map Arabic/symbol cues: ريال/ر.س/﷼ → "SAR", درهم/د.إ → "AED", جنيه/ج.م → "EGP", دينار كويتي/د.ك → "KWD", دينار بحريني → "BHD", ريال عماني/ر.ع → "OMR", دينار أردني → "JOD", ليرة/TL → "TRY", € → "EUR", $ → "USD", £ → "GBP". Leave "" if unclear.
 - "advantages": what is INCLUDED in the package (bullet points).
 - "excludes": what is explicitly NOT included.
 - "airports": one entry per departure city. Fill only the fields present; leave others as "".

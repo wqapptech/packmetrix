@@ -979,6 +979,7 @@ function BuilderPageInner() {
               ...c,
               ...(result.destination     ? { destination:     result.destination }     : {}),
               ...(result.price           ? { price:           result.price }           : {}),
+              ...(result.currency        ? { currency:        result.currency }        : {}),
               ...(result.nights          ? { nights:          result.nights }          : {}),
               ...(result.titleEn         ? { titleEn:         result.titleEn }         : {}),
               ...(result.titleAr         ? { titleAr:         result.titleAr }         : {}),

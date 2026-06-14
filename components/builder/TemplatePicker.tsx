@@ -491,6 +491,7 @@ function TemplateCard({
 type AiExtractResult = {
   destination?: string;
   price?: string;
+  currency?: string;
   nights?: string;
   titleEn?: string;
   titleAr?: string;
@@ -609,6 +610,7 @@ export function VisualTemplatePicker({
       const result: AiExtractResult = {
         destination:     data.destination    || undefined,
         price:           data.price          || undefined,
+        currency:        data.currency       || undefined,
         nights:          data.nights         || undefined,
         titleEn:         lng === "en" ? (data.title || undefined)       : undefined,
         titleAr:         lng === "ar" ? (data.title || undefined)       : undefined,

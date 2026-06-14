@@ -73,4 +73,22 @@ export type SectionTypeDef = {
    * when adding new sections.
    */
   legacy?: boolean;
+  /**
+   * When set, this section only renders fully on a subset of templates.
+   * Used to surface honest warnings in the builder so users are never
+   * surprised by silently-missing content when switching templates.
+   * Templates absent from both lists are treated as "no render".
+   */
+  templateAffiliation?: {
+    /** Template IDs where every field is rendered */
+    full: string[];
+    /** Template IDs where only some fields are rendered */
+    partial: string[];
+  };
+  /**
+   * When true, newly-added sections skip the "Add content" invitation state
+   * and go straight to the collapsed filled card. Use for auto-populated
+   * sections that don't need user input to show content.
+   */
+  skipInviteState?: boolean;
 };
