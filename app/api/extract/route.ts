@@ -52,7 +52,7 @@ Return ONLY valid JSON matching this schema exactly:
 }
 
 Rules:
-- "title": a short, punchy headline (5–12 words). Use action words and destination name. Empty string if unsure.
+- "title": extract the package title verbatim from the source text (e.g. the first bold line or the heading). Keep it in the same language as the source. Only if no title is present, infer a short headline (5–12 words) in the same language. Empty string if unsure.
 - "description": body copy describing the package (not the headline).
 - "language": "ar" if the source text is predominantly Arabic, otherwise "en".
 - "suggestedPreset": pick the single best-fit category:
