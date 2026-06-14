@@ -1187,7 +1187,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
   if (isDesktop) {
     return (
-      <div className="vy" style={{ direction: isRtl ? "rtl" : "ltr" }}>
+      <div className="vy" dir={isRtl ? "rtl" : "ltr"} style={{ direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={ACID} navLinks={navLinks} lang={lang} dark onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Ticker */}
@@ -1296,7 +1296,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
   // ── Mobile ──────────────────────────────────────────────────────────────────
   return (
-    <div className="vy vy--mobile" style={{ direction: isRtl ? "rtl" : "ltr" }}>
+    <div className="vy vy--mobile" dir={isRtl ? "rtl" : "ltr"} style={{ direction: isRtl ? "rtl" : "ltr" }}>
       <AgencyBar agency={agency} price={pkg.price} brand={ACID} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} dark />
       <VyTicker pkg={pkg} lang={lang} />
 

@@ -1290,7 +1290,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
   if (isDesktop) {
     return (
-      <div style={{ minHeight: "100vh", background: SM.bg, color: SM.ink, fontFamily: FONT, direction: isRtl ? "rtl" : "ltr" }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: SM.bg, color: SM.ink, fontFamily: FONT, direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={SM.brand} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Split hero: image left, text right */}
@@ -1346,7 +1346,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: SM.bg, color: SM.ink, fontFamily: FONT, direction: isRtl ? "rtl" : "ltr" }}>
+    <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: SM.bg, color: SM.ink, fontFamily: FONT, direction: isRtl ? "rtl" : "ltr" }}>
       <AgencyBar agency={agency} price={pkg.price} brand={SM.brand} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Hero */}

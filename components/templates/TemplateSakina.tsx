@@ -1051,7 +1051,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
   if (isDesktop) {
     return (
-      <div style={{ minHeight: "100vh", background: BONE, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: BONE, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={SAGE} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Hero: text LEFT, arch image RIGHT (design-correct) */}
@@ -1153,7 +1153,7 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
   // ── Mobile ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: BONE, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
+    <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: BONE, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
       <AgencyBar agency={agency} price={pkg.price} brand={SAGE} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
       {/* Arched hero */}

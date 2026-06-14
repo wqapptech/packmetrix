@@ -91,7 +91,8 @@ export function SectionCard({
         <div style={{
           display: "flex", alignItems: "center", gap: 13,
           width: isMobile ? "100%" : "auto",
-          flex: isMobile ? "none" : "0 0 auto",
+          flex: isMobile ? "none" : "1 1 auto",
+          minWidth: 0,
         }}>
           <div style={{
             width: 38, height: 38, borderRadius: 9, flexShrink: 0,
