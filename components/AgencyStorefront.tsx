@@ -395,6 +395,7 @@ function Hero({
   hasContact: boolean;
   onContact: () => void;
 }) {
+  const nightsNum = lead.nights ? Number(lead.nights) : null;
   return (
     <div style={{ position: "relative", height: m ? 520 : 760, flexShrink: 0 }}>
       <Cover
@@ -480,7 +481,7 @@ function Hero({
         >
           {lead.destination}
         </h1>
-        {lead.nights && (
+        {nightsNum ? (
           <div
             style={{
               display: "flex",
@@ -500,10 +501,10 @@ function Hero({
                   flexShrink: 0,
                 }}
               />
-              {Number(lead.nights)} {L.nights}
+              {nightsNum} {L.nights}
             </span>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -622,11 +623,12 @@ function PackageCard({
   router: ReturnType<typeof useRouter>;
   basePath: string;
 }) {
+  const nightsNum = pkg.nights ? Number(pkg.nights) : null;
   return (
     <article className="sf-pcard" onClick={() => router.push(`${basePath}/${pkg.id}`)}>
       <Cover pkg={pkg} style={{ height: m ? 196 : 218, position: "relative" }}>
         <div className="sf-scrim-b" />
-        {pkg.nights && (
+        {nightsNum ? (
           <span
             className="sf-pill"
             style={{
@@ -638,9 +640,9 @@ function PackageCard({
               zIndex: 2,
             }}
           >
-            {Number(pkg.nights)} {L.nights}
+            {nightsNum} {L.nights}
           </span>
-        )}
+        ) : null}
       </Cover>
       <div className="sf-pcard__body">
         <h3
