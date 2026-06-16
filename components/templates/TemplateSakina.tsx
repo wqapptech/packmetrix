@@ -67,7 +67,7 @@ function SkFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesk
   if (!items.length) return null;
   const pad = isDesktop ? "64px 80px" : "28px 24px";
   return (
-    <section style={{ padding: pad, background: BONE }} data-pmx-section="faq">
+    <section id="sk-faq" style={{ padding: pad, background: BONE, scrollMarginTop: 88 }} data-pmx-section="faq">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>{t.skCommonQuestions}</div>
         <div style={{ width: 32, height: 1, background: GOLD, marginBottom: 20 }} />
@@ -1044,9 +1044,13 @@ export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang 
   ].slice(0, 5);
 
   const navLinks = [
-    ...(itinerary.length ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
-    ...((pkg.includes?.length || (pkg.advantages || []).length) ? [{ label: t.navIncluded, href: "#included" }] : []),
-    ...((pkg.pricingTiers || []).some(t2 => t2.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...(itinerary.length || pkg.sections?.some(s => s.type === "itinerary") ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
+    ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.sections?.some(s => s.type === "inclusions")) ? [{ label: t.navIncluded, href: "#included" }] : []),
+    ...((pkg.pricingTiers || []).some(t2 => t2.price) || pkg.sections?.some(s => s.type === "pricing") ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...(pkg.sections?.some(s => s.type === "hotel" || s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#sk-hotel" }] : []),
+    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#sk-departures" }] : []),
+    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#sk-reviews" }] : []),
+    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#sk-faq" }] : []),
   ];
 
   if (isDesktop) {

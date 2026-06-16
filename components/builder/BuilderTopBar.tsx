@@ -7,7 +7,7 @@ import {
   DA_SURFACE, DA_RULE2, DA_GOLD, DA_GREEN,
 } from "@/lib/tokens";
 
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const SANS = `var(--font-sans)`;
 
 export function BuilderTopBar({
   pkgName,

@@ -19,8 +19,8 @@ import {
 } from "@/lib/tokens";
 import { ConfirmModal } from "@/components/ConfirmModal";
 
-const SANS    = `var(--font-inter-tight), system-ui, sans-serif`;
-const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
+const SANS    = `var(--font-sans)`;
+const DISPLAY = `var(--font-display)`;
 const MONO    = `var(--font-jetbrains-mono), monospace`;
 
 type Package = {

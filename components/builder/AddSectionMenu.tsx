@@ -11,8 +11,8 @@ import {
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GREEN, DA_GREEN_SOFT,
 } from "@/lib/tokens";
 
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
-const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
+const SANS = `var(--font-sans)`;
+const DISPLAY = `var(--font-display)`;
 
 function SectionCard({
   def,

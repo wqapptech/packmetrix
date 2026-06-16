@@ -20,13 +20,13 @@ import type { TPageProps, TCardProps, TPackage, TAgency, Lang } from "./types";
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const FA = {
-  brand:      "#c46a2f",
+  brand:      "#3a6b4a",
   bg:         "#fefaf2",
   ink:        "#0d1b2e",
   muted:      "rgba(13,27,46,0.55)",
   superMuted: "rgba(13,27,46,0.35)",
   border:     "rgba(13,27,46,0.08)",
-  serif:      "var(--font-dm-sans, sans-serif)",
+  serif:      "var(--font-source-serif, 'Source Serif 4', serif)",
 } as const;
 
 // ─── Section data helpers ─────────────────────────────────────────────────────
@@ -869,7 +869,7 @@ function FaCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
   const t = T[lang];
   return (
     <div style={{
-      background: `linear-gradient(135deg, ${FA.brand} 0%, #e0813d 100%)`,
+      background: `linear-gradient(135deg, ${FA.brand} 0%, #2a5238 100%)`,
       borderRadius: 18, overflow: "hidden", position: "relative",
       padding: isDesktop ? "40px 44px" : "28px 22px",
     }}>

@@ -15,8 +15,8 @@ import { toSlug } from "@/lib/trial";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT, DA_GREEN, DA_GREEN_SOFT, DA_DANGER, DA_DANGER_SOFT } from "@/lib/tokens";
 import { ConfirmModal } from "@/components/ConfirmModal";
 
-const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const DISPLAY = `var(--font-display)`;
+const SANS = `var(--font-sans)`;
 
 type DomainRecord = { type: string; name: string; value: string };
 type DomainStatus = "pending_dns" | "verifying" | "ssl_provisioning" | "active" | "failed" | "";
@@ -66,9 +66,9 @@ function Toggle({ enabled, onChange, label, sub }: { enabled: boolean; onChange:
         transition: "background 0.2s", position: "relative",
       }}>
         <div style={{
-          position: "absolute", top: 3, left: enabled ? 21 : 3,
+          position: "absolute", top: 3, insetInlineStart: enabled ? 21 : 3,
           width: 16, height: 16, borderRadius: "50%", background: "#fff",
-          transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+          transition: "inset-inline-start 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
         }} />
       </div>
       <div>

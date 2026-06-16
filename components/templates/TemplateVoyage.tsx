@@ -330,7 +330,7 @@ function VyHotelsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "
   const heading = secStr(data, "heading");
   const stopsLabel = hotels.length !== 1 ? t.vyStopsPlural : t.vyStops;
   return (
-    <section className="vy-v2 vy-v2-htl" data-pmx-section="hotel">
+    <section id="hotel" className="vy-v2 vy-v2-htl" style={{ scrollMarginTop: 64 }} data-pmx-section="hotel">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyWhereYouCrash} · {hotels.length} {stopsLabel}</div>
         <h2 className="vy-v2__title">
@@ -780,7 +780,7 @@ function VyFaqSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar"
   if (!items.length) return null;
   const heading = secStr(data, "heading");
   return (
-    <section className="vy-v2 vy-v2-faq" data-pmx-section="faq">
+    <section id="faq" className="vy-v2 vy-v2-faq" style={{ scrollMarginTop: 64 }} data-pmx-section="faq">
       <div className="vy-v2__head">
         <div className="vy-v2__eb">{t.vyFaqEyebrow}</div>
         <h2 className="vy-v2__title">{heading || t.vyWhatCrewAsk}</h2>
@@ -845,7 +845,7 @@ function VyReviewsSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | 
   // customer-submitted reviews stored in the flat pkg.reviews field.
   if (secReviews.length > 0) {
     return (
-      <section className="vy-v2" data-pmx-section="reviews">
+      <section id="reviews" className="vy-v2" style={{ scrollMarginTop: 64 }} data-pmx-section="reviews">
         <div className="vy-v2__head">
           <div className="vy-v2__eb">{t.vyWhatCrewSays}</div>
           <h2 className="vy-v2__title">{heading || t.vyRealFeedback}</h2>
@@ -1179,10 +1179,16 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
   const hasDeps   = secArr(depSec, "departures").length > 0 || secArr(depSec, "items").length > 0;
   const hasItin   = !!(findSec(pkg, "itinerary") || pkg.itinerary?.length);
   const hasInc    = !!(findSec(pkg, "inclusions") || pkg.includes?.length);
+  const hasHotel  = !!(findSec(pkg, "hotel") || findSec(pkg, "hotels") || pkg.hotelDescription);
+  const hasReviews = !!(findSec(pkg, "reviews") || (pkg.reviews ?? []).length);
+  const hasFaq    = !!findSec(pkg, "faq");
   const navLinks  = [
-    ...(hasItin ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
-    ...(hasInc  ? [{ label: t.navIncluded,  href: "#included"  }] : []),
-    ...(hasDeps ? [{ label: t.vyDates,      href: "#pricing"   }] : []),
+    ...(hasItin    ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
+    ...(hasInc     ? [{ label: t.navIncluded,  href: "#included"  }] : []),
+    ...(hasDeps    ? [{ label: t.vyDates,      href: "#pricing"   }] : []),
+    ...(hasHotel   ? [{ label: t.navHotel,     href: "#hotel"     }] : []),
+    ...(hasReviews ? [{ label: t.navReviews,   href: "#reviews"   }] : []),
+    ...(hasFaq     ? [{ label: t.navFaq,       href: "#faq"       }] : []),
   ];
 
   if (isDesktop) {

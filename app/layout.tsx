@@ -13,6 +13,8 @@ import {
   IBM_Plex_Sans_Arabic,
   Source_Serif_4,
   Newsreader,
+  Noto_Naskh_Arabic,
+  Tajawal,
 } from "next/font/google";
 import "./globals.css";
 
@@ -105,6 +107,20 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   weight: ["400", "500", "700"],
 });
 
+const notoNaskhArabic = Noto_Naskh_Arabic({
+  variable: "--font-noto-naskh-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  preload: false,
+});
+
+const tajawal = Tajawal({
+  variable: "--font-tajawal",
+  subsets: ["arabic"],
+  weight: ["400", "500", "700"],
+  preload: false,
+});
+
 const newsreader = Newsreader({
   variable: "--font-newsreader",
   subsets: ["latin"],
@@ -126,7 +142,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} ${ibmPlexSansArabic.variable} ${newsreader.variable} h-full`}
+      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} ${ibmPlexSansArabic.variable} ${notoNaskhArabic.variable} ${tajawal.variable} ${newsreader.variable} h-full`}
       style={{ fontFamily: "var(--font-inter-tight), 'Inter Tight', system-ui, sans-serif" }}
     >
       <body className="h-full" style={{ fontFamily: "inherit" }}>

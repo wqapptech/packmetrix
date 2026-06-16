@@ -28,8 +28,8 @@ import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_
 import type { TopbarRenderProps } from "@/components/AppLayout";
 import { ConfirmModal } from "@/components/ConfirmModal";
 
-const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const DISPLAY = `var(--font-display)`;
+const SANS = `var(--font-sans)`;
 const DRAFT_KEY = "builderDraft_v2";
 
 // ─── On-this-page rail (desktop sticky navigation) ────────────────────────────
@@ -876,7 +876,7 @@ function BuilderPageInner() {
         {mob && (
           <span style={{
             flex: 1,
-            fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
+            fontFamily: `var(--font-sans)`,
             fontSize: 14, fontWeight: 500, color: DA_INK1,
           }}>
             {l ? "اختر قالباً" : "Choose template"}
@@ -898,7 +898,7 @@ function BuilderPageInner() {
                   padding: mob ? "3px 9px" : "4px 11px", borderRadius: 999, border: "none",
                   background: active ? DA_INK1 : "transparent",
                   color: active ? DA_BG : DA_INK2,
-                  fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
+                  fontFamily: `var(--font-sans)`,
                   fontSize: mob ? 11 : 11.5, fontWeight: 500, cursor: "pointer", transition: "all .15s",
                 }}
               >
@@ -920,7 +920,7 @@ function BuilderPageInner() {
             fontSize: mob ? 12 : 12.5,
             fontWeight: 500,
             cursor: "pointer",
-            fontFamily: `var(--font-inter-tight), system-ui, sans-serif`,
+            fontFamily: `var(--font-sans)`,
             flexShrink: 0,
           }}
         >
