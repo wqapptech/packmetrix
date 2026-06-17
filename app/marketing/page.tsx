@@ -17,7 +17,7 @@ import {
   DA_GREEN, DA_GREEN_SOFT, DA_DARK, DA_DANGER,
 } from "@/lib/tokens";
 
-const DISPLAY = "var(--lp-display, var(--font-instrument-serif), Georgia, serif)";
+const DISPLAY = "var(--lp-display, var(--font-newsreader), Newsreader, Georgia, serif)";
 const SANS    = "var(--lp-sans, var(--font-inter-tight), system-ui, sans-serif)";
 const MONO    = '"JetBrains Mono", ui-monospace, monospace';
 
@@ -101,7 +101,7 @@ function AuroraMiniPhone({ core, highlights, lang }: { core: CoreForm; highlight
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 9, fontWeight: 600, letterSpacing: 1.4, textTransform: "uppercase", color: gold }}>
           {nights} {isAr ? "ليالٍ" : "Nights"}<span style={{ opacity: .5 }}>·</span>{currency}{price}
         </div>
-        <div style={{ fontFamily: '"Instrument Serif", serif', fontSize: 22, fontWeight: 400, color: ink, letterSpacing: -.5, lineHeight: 1.1, marginBottom: 12 }}>
+        <div style={{ fontFamily: '"Newsreader", Georgia, serif', fontSize: 22, fontWeight: 400, color: ink, letterSpacing: -.5, lineHeight: 1.1, marginBottom: 12 }}>
           {title || (isAr ? "عنوان الباقة" : "Package title")}
         </div>
         {desc && <div style={{ fontSize: 11.5, color: ink2, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{desc}</div>}

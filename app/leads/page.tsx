@@ -17,8 +17,8 @@ import {
   DA_DANGER, DA_DANGER_SOFT,
 } from "@/lib/tokens";
 
-const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const DISPLAY = `var(--font-display)`;
+const SANS = `var(--font-sans)`;
 
 type Lead = {
   id: string;

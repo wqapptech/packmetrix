@@ -13,7 +13,7 @@ import {
   DA_GOLD, DA_GOLD_SOFT, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_SURFACE,
 } from "@/lib/tokens";
 
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const SANS = `var(--font-sans)`;
 
 // Sections shown as quick-add tiles — core backbone, filtered by already-added
 const QUICK_ADD_TYPES: SectionTypeKey[] = [

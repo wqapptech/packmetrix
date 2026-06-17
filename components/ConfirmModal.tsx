@@ -10,8 +10,8 @@ import type { IconName } from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
 import { T } from "@/lib/translations";
 
-const SANS    = `var(--font-inter-tight), system-ui, sans-serif`;
-const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
+const SANS    = `var(--font-sans)`;
+const DISPLAY = `var(--font-display)`;
 
 export type ConfirmVariant = "danger" | "warning" | "default";
 

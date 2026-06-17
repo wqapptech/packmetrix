@@ -301,7 +301,7 @@ function AtSection({
       const fallbackDesc = atSecStr(d, "description") || atSecStr(d, "note");
       if (!hotels.length && !fallbackDesc) return null;
       return (
-        <div style={{ padding: pad }} data-pmx-section="hotel">
+        <div id="hotel" style={{ padding: pad, scrollMarginTop: 64 }} data-pmx-section="hotel">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.hotelLabel} />
@@ -419,7 +419,7 @@ function AtSection({
       const items = atSecArr(d, "items");
       if (!items.length) return null;
       return (
-        <div style={{ padding: pad }} data-pmx-section="faq">
+        <div id="faq" style={{ padding: pad, scrollMarginTop: 64 }} data-pmx-section="faq">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.atFaq} />
@@ -573,7 +573,7 @@ function AtSection({
       const items = atSecArr(d, "departures").length ? atSecArr(d, "departures") : atSecArr(d, "items");
       if (!items.length) return null;
       return (
-        <div id="pricing" style={{ padding: pad, scrollMarginTop: 64 }} data-pmx-section="departures">
+        <div id="departures" style={{ padding: pad, scrollMarginTop: 64 }} data-pmx-section="departures">
           <div style={{ maxWidth: maxW, margin: isDesktop ? "0 auto" : undefined }}>
             <Div />
             <SH label={atSecStr(d, "eyebrow") || t.departures} />
@@ -868,7 +868,7 @@ function AtReviews({
   const avgRating = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
 
   return (
-    <div style={{ padding: pad }} data-pmx-section="reviews">
+    <div id="reviews" style={{ padding: pad, scrollMarginTop: 64 }} data-pmx-section="reviews">
       <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ height: 1, background: AT.border, margin: "0 0 24px" }} />
         {showList && (
@@ -1057,6 +1057,10 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
     ...((pkg.itinerary || []).some(it => it.title?.trim()) || pkg.sections?.some(s => s.type === "itinerary") ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
     ...(pkg.sections?.some(s => s.type === "inclusions") || (pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length) ? [{ label: t.navIncluded, href: "#included" }] : []),
     ...(pkg.sections?.some(s => s.type === "pricing") || (pkg.pricingTiers || []).some(tier => tier.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...(pkg.sections?.some(s => s.type === "hotel" || s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#hotel" }] : []),
+    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#departures" }] : []),
+    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#reviews" }] : []),
+    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#faq" }] : []),
   ];
 
   // Current month + year for masthead

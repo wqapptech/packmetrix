@@ -152,7 +152,7 @@ function TbHotelSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
   if (!desc) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }} data-pmx-section="hotel">
+    <section id="hotel" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="hotel">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbWhereYouStay}</div>
         <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden" }}>
@@ -210,7 +210,7 @@ function TbFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesk
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }} data-pmx-section="faq">
+    <section id="faq" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="faq">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbCommonQuestions}</div>
         <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? "1fr 1fr" : undefined, flexDirection: isDesktop ? undefined : "column" as const, gap: 0 }}>
@@ -477,7 +477,7 @@ function TbDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!deps.length) return null;
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }} data-pmx-section="departures">
+    <section id="departures" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="departures">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.tbDepartureDates}</div>
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
@@ -685,7 +685,7 @@ function TbReviews({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; a
 
   const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
   return (
-    <section style={{ padding: pad }} data-pmx-section="reviews">
+    <section id="reviews" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="reviews">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>
           {showList ? `${reviews.length} ${t.tbVerifiedReviews}` : t.writeReviewTitle}
@@ -777,8 +777,12 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
   const navLinks = [
     ...(itinerary.length || hasV2Itinerary ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
-    ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length) ? [{ label: t.navIncluded, href: "#included" }] : []),
-    ...((pkg.pricingTiers || []).some(tier => tier.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length || pkg.sections?.some(s => s.type === "inclusions")) ? [{ label: t.navIncluded, href: "#included" }] : []),
+    ...((pkg.pricingTiers || []).some(tier => tier.price) || pkg.sections?.some(s => s.type === "pricing") ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...(pkg.sections?.some(s => s.type === "hotel" || s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#hotel" }] : []),
+    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#departures" }] : []),
+    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#reviews" }] : []),
+    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#faq" }] : []),
   ];
 
   if (isDesktop) {

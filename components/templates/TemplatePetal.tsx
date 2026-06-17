@@ -364,7 +364,7 @@ function PtHotelsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isD
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   if (!hotelsSec.length) {
     return (
-      <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="hotel">
+      <section id="hotel" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="hotel">
         <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
           <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptWhereYouStay}</div>
           <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 20 : 16, lineHeight: 1.55, color: MUTED, margin: 0 }}>{pkg.hotelDescription}</p>
@@ -447,7 +447,7 @@ function PtDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!deps.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="departures">
+    <section id="departures" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="departures">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
           {t.ptUpcomingWindows}
@@ -494,7 +494,7 @@ function PtFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesk
   if (!items.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="faq">
+    <section id="faq" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="faq">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
           {t.ptFaqEyebrow}
@@ -746,7 +746,7 @@ function PtInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"];
   if (!includes.length && !excludes.length) return null;
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section id="pt-inclusions" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="inclusions">
+    <section id="included" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="inclusions">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptIncludedInFull}</div>
         {includes.length > 0 && (
@@ -1034,7 +1034,7 @@ function PtReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["p
 
   const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="reviews">
+    <section id="reviews" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="reviews">
       <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
         <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
           {showList ? `${reviews.length} ${t.ptExperiences}` : t.writeReviewTitle}
@@ -1142,9 +1142,13 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   const trustItems = buildPetalTrustItems(t, pkg);
 
   const navLinks = [
-    ...(itinerary.length ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
-    ...(includes.length ? [{ label: t.navIncluded, href: "#included" }] : []),
-    ...((pkg.pricingTiers || []).some(t2 => t2.price) ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...(itinerary.length || pkg.sections?.some(s => s.type === "itinerary") ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
+    ...(includes.length || pkg.sections?.some(s => s.type === "inclusions") ? [{ label: t.navIncluded, href: "#included" }] : []),
+    ...((pkg.pricingTiers || []).some(t2 => t2.price) || pkg.sections?.some(s => s.type === "pricing") ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...(pkg.sections?.some(s => s.type === "hotel" || s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#hotel" }] : []),
+    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#departures" }] : []),
+    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#reviews" }] : []),
+    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#faq" }] : []),
   ];
 
   if (isDesktop) {

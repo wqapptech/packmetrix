@@ -11,8 +11,8 @@ import {
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_GREEN,
 } from "@/lib/tokens";
 
-const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const DISPLAY = `var(--font-display)`;
+const SANS = `var(--font-sans)`;
 const MONO = `"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace`;
 
 // ─── Static mini renders — colors sourced directly from each template's constants ────

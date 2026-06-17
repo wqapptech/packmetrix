@@ -20,7 +20,7 @@ import type { Lang } from "@/lib/translations";
 // ─── Smart palette ───────────────────────────────────────────────────────────
 
 const SM = {
-  brand:      "#1f5f8e",
+  brand:      "#e5b53d",
   bg:         "#fdfcf9",
   ink:        "#0d1b2e",
   muted:      "rgba(13,27,46,0.55)",
@@ -29,7 +29,8 @@ const SM = {
   paper:      "#ffffff",
 } as const;
 
-const FONT = "var(--font-dm-sans, sans-serif)";
+const FONT = "var(--font-ibm-plex-sans, sans-serif)";
+const MONO = "var(--font-ibm-plex-mono, monospace)";
 
 // ─── Section data helpers ─────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ function SmSecHead({ label, title, isDesktop }: { label?: string; title: string;
     <div style={{ marginBottom: isDesktop ? 28 : 18 }}>
       {label && (
         <div style={{
-          fontSize: 10, fontWeight: 800, color: SM.superMuted,
+          fontFamily: MONO, fontSize: 10, fontWeight: 800, color: SM.superMuted,
           textTransform: "uppercase", letterSpacing: "1.4px", marginBottom: 6,
         }}>
           {label}
@@ -233,7 +234,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
       const desc = smSecStr(s as ReturnType<typeof smFindSec>, "description");
       if (!desc) return null;
       return (
-        <section style={secPad} data-pmx-section="hotel">
+        <section id="hotel" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="hotel">
           <SmSecHead label={t.hotelLabel} title={t.hotelSectionTitle} isDesktop={isDesktop} />
           <p style={{ fontSize: isDesktop ? 15 : 14, color: SM.muted, lineHeight: 1.75, margin: 0 }}>{desc}</p>
         </section>
@@ -315,7 +316,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
       if (!items.length) return null;
       const title = t.frequentlyAsked || (isRtl ? "الأسئلة الشائعة" : "FAQ");
       return (
-        <section style={secPad} data-pmx-section="faq">
+        <section id="faq" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="faq">
           <SmSecHead title={title} isDesktop={isDesktop} />
           <div style={isDesktop
             ? { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }
@@ -518,7 +519,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
         .filter(it => it?.date?.trim());
       if (!dates.length) return null;
       return (
-        <section style={secPad} data-pmx-section="departures">
+        <section id="departures" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="departures">
           <SmSecHead title={t.sectionDepartureDatesTitle} isDesktop={isDesktop} />
           {isDesktop ? (
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(dates.length, 3)}, 1fr)`, gap: 12 }}>
@@ -1025,7 +1026,7 @@ function SmReviews({ pkg, agency, isDesktop, lang }: { pkg: TPackage; agency: TA
             ? { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28 }
             : { marginBottom: 18 }}>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", marginBottom: 6 }}>
+              <div style={{ fontFamily: MONO, fontSize: 10, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", marginBottom: 6 }}>
                 {t.reviewsSectionTitle}
               </div>
               <h2 style={{ fontSize: isDesktop ? 32 : 22, fontWeight: 800, letterSpacing: "-0.4px", color: SM.ink, margin: 0, fontFamily: FONT }}>
@@ -1160,7 +1161,7 @@ function SmReviewForm({ pkg, isDesktop, lang, onNewReview }: {
       <section style={secPad} data-pmx-section="reviews">
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 64, alignItems: "start" }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", marginBottom: 8 }}>{t.writeReviewTitle}</div>
+            <div style={{ fontFamily: MONO, fontSize: 10, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", marginBottom: 8 }}>{t.writeReviewTitle}</div>
             <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.5px", color: SM.ink, margin: "0 0 12px", fontFamily: FONT }}>{t.writeReviewTitle}</h2>
             <p style={{ fontSize: 14, color: SM.muted, lineHeight: 1.65, margin: 0 }}>{t.writeReviewSub}</p>
           </div>
@@ -1286,6 +1287,10 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
     ...((pkg.itinerary || []).some(it => it.title?.trim()) || (pkg.sections?.some(s => s.type === "itinerary")) ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
     ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length || pkg.sections?.some(s => s.type === "inclusions")) ? [{ label: t.navIncluded, href: "#included" }] : []),
     ...((pkg.pricingTiers || []).some(tier => tier.price) || pkg.sections?.some(s => s.type === "pricing") ? [{ label: t.navPricing, href: "#pricing" }] : []),
+    ...(pkg.sections?.some(s => s.type === "hotel" || s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#hotel" }] : []),
+    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#departures" }] : []),
+    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#reviews" }] : []),
+    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#faq" }] : []),
   ];
 
   if (isDesktop) {
@@ -1338,7 +1343,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         )}
 
         <SmSections pkg={pkg} isDesktop={true} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
-        <SmReviews pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
+        <div id="reviews" style={{ scrollMarginTop: 88 }}><SmReviews pkg={pkg} agency={agency} isDesktop={true} lang={lang} /></div>
         <SmCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
         <DesktopFooter agency={agency} brand={SM.brand} />
       </div>

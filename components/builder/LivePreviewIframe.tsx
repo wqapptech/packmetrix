@@ -6,7 +6,7 @@ import type { CoreForm, AnySectionInstance } from "@/lib/sections/types";
 import { TEMPLATES } from "@/components/templates";
 import { DA_DARK, DA_GOLD } from "@/lib/tokens";
 
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const SANS = `var(--font-sans)`;
 const STORAGE_KEY = "pmx_preview_draft";
 const DEBOUNCE_MS = 600;
 

@@ -35,8 +35,8 @@ const NAV_SETTINGS: NavItem[] = [
   { href: "/paywall",  icon: "credit_card",  labelKey: "navBilling" },
 ];
 
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
-const DISPLAY = `var(--font-instrument-serif), Georgia, serif`;
+const SANS = `var(--font-sans)`;
+const DISPLAY = `var(--font-display)`;
 
 export default function Sidebar({
   isMobile = false,
@@ -288,7 +288,7 @@ export default function Sidebar({
                   height: 32,
                   borderRadius: "50%",
                   flexShrink: 0,
-                  background: "linear-gradient(135deg, #3a78c4, #5a8acc)",
+                  background: DA_INK1,
                   color: "#fff",
                   display: "flex",
                   alignItems: "center",

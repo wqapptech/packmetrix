@@ -10,10 +10,12 @@
     "smoke": "playwright test",
     "smoke:cleanup": "npx tsx e2e/global-teardown.ts",
     "record": "npx tsx e2e/record-demo.ts",
-    "voiceover": "npx tsx e2e/voiceover.ts"
+    "voiceover": "npx tsx e2e/voiceover.ts",
+    "voiceover:arabic": "npx tsx scripts/generate-arabic-voiceover.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",
+    "elevenlabs": "^1.59.0",
     "firebase": "^12.12.1",
     "firebase-admin": "^13.10.0",
     "next": "^16.2.6",

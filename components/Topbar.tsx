@@ -9,7 +9,7 @@ import {
   DA_RULE, DA_RULE2, DA_SURFACE, DA_GOLD,
 } from "@/lib/tokens";
 
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const SANS = `var(--font-sans)`;
 
 export default function Topbar({
   isMobile = false,

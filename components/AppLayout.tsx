@@ -37,7 +37,7 @@ const MOBILE_NAV: MobileNavItem[] = [
   { href: "/leads",     icon: "users",   labelKey: "navLeads" },
 ];
 
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const SANS = `var(--font-sans)`;
 
 function MobileBottomNav() {
   const pathname = usePathname();

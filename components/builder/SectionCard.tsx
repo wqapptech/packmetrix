@@ -11,7 +11,7 @@ import {
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_DANGER,
 } from "@/lib/tokens";
 
-const SANS = `var(--font-inter-tight), system-ui, sans-serif`;
+const SANS = `var(--font-sans)`;
 
 export function SectionCard({
   section,
