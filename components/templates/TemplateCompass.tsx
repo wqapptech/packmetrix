@@ -683,7 +683,7 @@ function CmOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPa
         </div>
         {agencySlug && (
           <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-            <a href={`/${agencySlug}`} style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: ORANGE, textDecoration: "none" }}>
+            <a href={`/${agencySlug}/packages`} style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: ORANGE, textDecoration: "none" }}>
               {t.navAllPackages} →
             </a>
           </div>

@@ -1,9 +1,16 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/firebase-admin";
-import CustomDomainGallery from "./_gallery";
+import AgencyStorefront from "@/components/AgencyStorefront";
+import Homepage from "@/components/site/Homepage";
+import { resolveSiteMode } from "@/lib/site-mode";
 
 export const dynamic = "force-dynamic";
+
+async function fetchAgencyBySlug(slug: string) {
+  const snap = await db.collection("users").where("agencySlug", "==", slug).limit(1).get();
+  return snap.empty ? null : snap.docs[0].data();
+}
 
 async function resolveAgencySlug(host: string): Promise<string | null> {
   // Primary: fast index kept in sync by upsertDomainState
@@ -69,5 +76,10 @@ export default async function CustomDomainGalleryPage({
   const agencySlug = await resolveAgencySlug(host);
   if (!agencySlug) notFound();
 
-  return <CustomDomainGallery agencySlug={agencySlug} />;
+  // Gated root flip (defaults to catalog — see lib/site-mode).
+  const agency = await fetchAgencyBySlug(agencySlug);
+  if (resolveSiteMode(agency) === "site") {
+    return <Homepage agencySlug={agencySlug} basePath="" />;
+  }
+  return <AgencyStorefront agencySlug={agencySlug} basePath="" siteMode="catalog" />;
 }

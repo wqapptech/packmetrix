@@ -98,16 +98,18 @@ export function SectionList({
   // Also fires onSectionFocus so the preview scrolls to that section.
   const toggleOpen = (id: string) => {
     setNewIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+    const opening = !openIds.has(id);
     setOpenIds((prev) => {
       const n = new Set(prev);
-      const opening = !n.has(id);
       if (n.has(id)) n.delete(id); else n.add(id);
-      if (opening) {
-        const sec = sections.find((s) => s.id === id);
-        if (sec) onSectionFocus?.(sec.type);
-      }
       return n;
     });
+    // Fire focus outside the updater — calling the parent's setState inside a
+    // state updater triggers a setState-during-render warning.
+    if (opening) {
+      const sec = sections.find((s) => s.id === id);
+      if (sec) onSectionFocus?.(sec.type);
+    }
   };
 
   // ── Drag-and-drop ────────────────────────────────────────────────────────────

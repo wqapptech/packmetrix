@@ -8,6 +8,7 @@ import {
   JetBrains_Mono,
   Inter_Tight,
   Space_Grotesk,
+  Inter,
   IBM_Plex_Mono,
   IBM_Plex_Sans,
   IBM_Plex_Sans_Arabic,
@@ -78,6 +79,14 @@ const spaceGrotesk = Space_Grotesk({
   preload: false,
 });
 
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  preload: false,
+});
+
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-ibm-plex-mono",
   subsets: ["latin"],
@@ -142,7 +151,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} ${ibmPlexSansArabic.variable} ${notoNaskhArabic.variable} ${tajawal.variable} ${newsreader.variable} h-full`}
+      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${inter.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} ${ibmPlexSansArabic.variable} ${notoNaskhArabic.variable} ${tajawal.variable} ${newsreader.variable} h-full`}
       style={{ fontFamily: "var(--font-inter-tight), 'Inter Tight', system-ui, sans-serif" }}
     >
       <body className="h-full" style={{ fontFamily: "inherit" }}>

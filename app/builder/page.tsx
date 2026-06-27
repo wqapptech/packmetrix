@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, increment, collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
@@ -21,7 +21,7 @@ import { CoreFieldsEditor } from "@/components/builder/CoreFieldsEditor";
 import { SectionList } from "@/components/builder/SectionList";
 import { BuilderTopBar } from "@/components/builder/BuilderTopBar";
 import { VisualTemplatePicker } from "@/components/builder/TemplatePicker";
-import { LivePreviewIframe } from "@/components/builder/LivePreviewIframe";
+import { LivePreviewIframe, type PreviewPackageCard } from "@/components/builder/LivePreviewIframe";
 import { TEMPLATES, DEFAULT_TEMPLATE_ID } from "@/components/templates";
 import type { TAgency } from "@/components/templates/types";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_SOFT, DA_GOLD_DEEP, DA_GREEN, DA_GREEN_SOFT, DA_DANGER } from "@/lib/tokens";
@@ -111,7 +111,7 @@ function OnThisPageRail({
 function upgradeLegacySections(sections: AnySectionInstance[]): AnySectionInstance[] {
   type Raw = Record<string, unknown>;
 
-  const LEGACY = new Set(["gallery", "video", "map", "flights", "departure_dates", "payment_plan", "booking_terms", "guide"]);
+  const LEGACY = new Set(["gallery", "video", "map", "flights", "departure_dates", "payment_plan", "booking_terms", "guide", "hotels"]);
 
   // Buckets for legacy types
   const galleries    = sections.filter((s) => s.type === "gallery");
@@ -122,6 +122,7 @@ function upgradeLegacySections(sections: AnySectionInstance[]): AnySectionInstan
   const ppSegs       = sections.filter((s) => s.type === "payment_plan");
   const btSegs       = sections.filter((s) => s.type === "booking_terms");
   const guideSegs    = sections.filter((s) => s.type === "guide");
+  const hotelsSegs   = sections.filter((s) => (s.type as string) === "hotels");
 
   // Pass through all non-legacy sections
   const kept: AnySectionInstance[] = sections.filter((s) => !LEGACY.has(s.type));
@@ -249,6 +250,41 @@ function upgradeLegacySections(sections: AnySectionInstance[]): AnySectionInstan
         }],
       },
     } as AnySectionInstance);
+  }
+
+  // 6. hotels (rich card written by legacy imports) → hotel (canonical {description})
+  //    The builder only has an editor for the singular `hotel` section, so a stray
+  //    `hotels` section is invisible (SectionCard returns null for unknown types) and
+  //    cannot be edited or removed. Flatten each hotel entry into a `hotel` description.
+  if (hotelsSegs.length) {
+    const composeDesc = (h: Raw): string => {
+      const lines: string[] = [];
+      if (h.name) lines.push(String(h.name));
+      const meta = [
+        h.location ? String(h.location) : "",
+        h.stars    ? `${h.stars}★`      : "",
+      ].filter(Boolean).join(" · ");
+      if (meta) lines.push(meta);
+      if (h.note) lines.push(String(h.note));
+      const facilities = h.facilities as unknown[] | undefined;
+      if (Array.isArray(facilities) && facilities.length) {
+        lines.push(facilities.filter((f) => typeof f === "string").join("، "));
+      }
+      return lines.join("\n").trim();
+    };
+    for (const seg of hotelsSegs) {
+      const entries = ((seg.data as Raw).hotels as Raw[] | undefined)
+        ?? ((seg.data as Raw).items as Raw[] | undefined)
+        ?? [];
+      entries.forEach((h, i) => {
+        kept.push({
+          id:    `hotel_from_hotels_${seg.id}_${i}`,
+          type:  "hotel",
+          order: (seg.order ?? 0) + i * 0.01,
+          data:  { description: composeDesc(h) },
+        } as AnySectionInstance);
+      });
+    }
   }
 
   kept.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -454,6 +490,7 @@ function BuilderPageInner() {
   const [saveAsStatus, setSaveAsStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [discardOpen, setDiscardOpen] = useState(false);
   const [agency, setAgency] = useState<TAgency | null>(null);
+  const [otherPackages, setOtherPackages] = useState<PreviewPackageCard[]>([]);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [activeField, setActiveField] = useState<string | null>(null);
 
@@ -592,6 +629,43 @@ function BuilderPageInner() {
     });
     return () => unsub();
   }, [router, editId]);
+
+  // ── Load the agency's other packages for the other_packages preview ─────────
+  // Mirrors the live render path (app/[agencySlug]/[packageId]/page.tsx): the
+  // section is auto-populated from the agency's own active, non-draft packages.
+  useEffect(() => {
+    const uid = user?.uid;
+    const slug = agency?.agencySlug;
+    if (!uid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDocs(query(collection(db, "packages"), where("userId", "==", uid)));
+        const pkgLang = core.primaryLanguage === "ar" ? "ar" : "en";
+        const cards: PreviewPackageCard[] = snap.docs
+          .filter(d => d.id !== editId && d.data().isActive !== false && d.data().status !== "draft")
+          .slice(0, 4)
+          .map(d => {
+            const pd = d.data();
+            const title = typeof pd.title === "object" && pd.title !== null
+              ? (pkgLang === "ar"
+                ? ((pd.title as Record<string, string>).ar || (pd.title as Record<string, string>).en || pd.destination || "")
+                : ((pd.title as Record<string, string>).en || (pd.title as Record<string, string>).ar || pd.destination || ""))
+              : String(pd.title || pd.destination || "");
+            return {
+              title,
+              destination: String(pd.destination || ""),
+              price: String(pd.price || ""),
+              nights: pd.nights ? String(pd.nights) : "",
+              image: String(pd.coverImage || ""),
+              link: slug ? `/${slug}/${d.id}` : "",
+            };
+          });
+        if (!cancelled) setOtherPackages(cards);
+      } catch { /* preview-only; ignore fetch failures */ }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.uid, agency?.agencySlug, editId, core.primaryLanguage]);
 
   // ── Autosave draft (includes templateId) ────────────────────────────────────
 
@@ -1208,6 +1282,7 @@ function BuilderPageInner() {
                   lang={lang}
                   templateId={selectedTemplateId}
                   agency={agency}
+                  otherPackages={otherPackages}
                   phoneOnly
                   activeSection={activeSection}
                   activeField={activeField}
@@ -1225,6 +1300,7 @@ function BuilderPageInner() {
                 lang={lang}
                 templateId={selectedTemplateId}
                 agency={agency}
+                otherPackages={otherPackages}
                 activeSection={activeSection}
                 activeField={activeField}
               />

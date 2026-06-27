@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Packmetrix — Present and sell your travel packages, beautifully",
+  title: "Packmetrix — A complete branded website for your travel agency",
   description:
-    "How travel agencies present and sell their packages — beautifully, on their own brand, wherever their customers are. AI-powered pages, lead tracking, and 10 stunning templates.",
+    "Give your travel agency a complete branded website — homepage, storefront, and beautiful package pages — on your own domain, in minutes. Bilingual EN/AR with proper RTL, 10 templates, a modular homepage, and lead tracking.",
 };
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {

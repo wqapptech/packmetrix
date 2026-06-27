@@ -612,7 +612,7 @@ function PtOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPa
         </div>
         {agencySlug && (
           <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-            <a href={`/${agencySlug}`} style={{ fontFamily: SERIF, fontSize: 12, fontStyle: "italic", color: ROSE, textDecoration: "none" }}>
+            <a href={`/${agencySlug}/packages`} style={{ fontFamily: SERIF, fontSize: 12, fontStyle: "italic", color: ROSE, textDecoration: "none" }}>
               {t.navAllPackages} →
             </a>
           </div>

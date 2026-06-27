@@ -23,7 +23,8 @@ test.describe("Storefront EN + AR", () => {
     await expect(root).toBeVisible({ timeout: 10_000 });
 
     // English package content must be present
-    await expect(page.getByText("Smoke Test Maldives")).toBeVisible({
+    // .first() — destination renders in both the filter pill and the package card
+    await expect(page.getByText("Smoke Test Maldives").first()).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -39,7 +40,8 @@ test.describe("Storefront EN + AR", () => {
     await expect(root).toBeVisible({ timeout: 10_000 });
 
     // Arabic package destination must be present (not blank/error)
-    await expect(page.getByText("المالديف اختبار")).toBeVisible({
+    // .first() — destination renders in both the filter pill and the package card
+    await expect(page.getByText("المالديف اختبار").first()).toBeVisible({
       timeout: 10_000,
     });
   });

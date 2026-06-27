@@ -1057,7 +1057,7 @@ function PulseSection({
           </div>
           {agencySlug && (
             <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-              <a href={`/${agencySlug}`} style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: PL.mut, textDecoration: "none" }}>
+              <a href={`/${agencySlug}/packages`} style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: PL.mut, textDecoration: "none" }}>
                 {t.navAllPackages} →
               </a>
             </div>
@@ -1790,7 +1790,7 @@ function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps)
       {/* ── All packages link ── */}
       {agency.agencySlug && (
         <div style={{ padding: "20px 14px 4px", textAlign: "center" as const }}>
-          <a href={`/${agency.agencySlug}`} style={{
+          <a href={`/${agency.agencySlug}/packages`} style={{
             fontSize: 13, fontWeight: 600, color: PL.mut,
             textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5,
           }}>
@@ -2363,7 +2363,7 @@ function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <span>© {agency.name} · {t.iataLicensed}</span>
           {agency.agencySlug && (
-            <a href={`/${agency.agencySlug}`} style={{ color: PL.mut, textDecoration: "none", fontWeight: 600 }}>
+            <a href={`/${agency.agencySlug}/packages`} style={{ color: PL.mut, textDecoration: "none", fontWeight: 600 }}>
               {t.seeAllPackages}
             </a>
           )}

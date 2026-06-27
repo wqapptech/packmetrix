@@ -460,7 +460,7 @@ function TbOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPa
         </div>
         {agencySlug && (
           <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-            <a href={`/${agencySlug}`} style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: BRAND, textDecoration: "none" }}>
+            <a href={`/${agencySlug}/packages`} style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: BRAND, textDecoration: "none" }}>
               {t.navAllPackages} →
             </a>
           </div>

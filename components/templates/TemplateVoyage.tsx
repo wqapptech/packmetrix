@@ -1076,7 +1076,7 @@ function VyOtherPackagesSection({ pkg, lang, agencySlug }: { pkg: TPageProps["pk
       </div>
       {agencySlug && (
         <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-          <a href={`/${agencySlug}`} style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: ACID, textDecoration: "none", letterSpacing: "0.5px" }}>
+          <a href={`/${agencySlug}/packages`} style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: ACID, textDecoration: "none", letterSpacing: "0.5px" }}>
             {t.navAllPackages} →
           </a>
         </div>
