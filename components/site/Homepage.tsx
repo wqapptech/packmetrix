@@ -178,6 +178,7 @@ function HomepageInner({ agencySlug, basePath, editor, override, page }: { agenc
   const homeHref = basePath || "/";
   const packagesHref = `${basePath}/packages`;
   const aboutHref = `${basePath}/about`;
+  const reviewsHref = `${basePath}/reviews`;
   // Show the About nav link only when /about has authored content (always show it
   // while ON the About page). Otherwise hide it — never link to an empty page.
   const showAbout = page === "about" || aboutPageHasContent(agencyDoc);
@@ -202,6 +203,7 @@ function HomepageInner({ agencySlug, basePath, editor, override, page }: { agenc
     basePath,
     packagesHref,
     aboutHref,
+    reviewsHref,
     waLink,
     openPkg: (id: string) => window.location.assign(`${basePath}/${id}`),
     scrollContact,

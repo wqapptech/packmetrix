@@ -148,8 +148,28 @@ export function deriveDestinationItems(
     filter: name,
   }));
 }
-export type Testimonial = { quote: Loc; name: string; trip?: Loc; photo?: string };
-export type TestimonialsContent = { eyebrow?: Loc; heading?: Loc; items: Testimonial[] };
+// A review item. `media` (optional) is a hot-linked image-screenshot or video URL;
+// its kind is INFERRED from the URL extension via reviewKind() — no separate kind
+// field. quote/name are optional so a media-only review (screenshot/video clip with
+// no prose) is valid; a text review keeps the classic quote + name + avatar shape.
+export type Testimonial = { quote?: Loc; name?: string; trip?: Loc; photo?: string; media?: string };
+// `limit`: how many reviews to show on the home section (the rest live on /reviews).
+// `link`: "View all" label linking to the dedicated reviews page.
+export type TestimonialsContent = { eyebrow?: Loc; heading?: Loc; link?: Loc; limit?: number; items: Testimonial[] };
+
+export type ReviewKind = "text" | "image" | "video";
+
+/** Infer a review's kind from its media URL extension (query/hash stripped first).
+ *  No media → "text". A present-but-unrecognized extension defaults to "image"
+ *  (safer to attempt an <img> than to silently drop a hot-linked URL). */
+export function reviewKind(media?: string): ReviewKind {
+  const url = (media || "").trim();
+  if (!url) return "text";
+  const path = url.split(/[?#]/)[0].toLowerCase();
+  if (/\.(mp4|webm|mov|m4v)$/.test(path)) return "video";
+  if (/\.(jpe?g|png|webp|gif|avif|svg)$/.test(path)) return "image";
+  return "image";
+}
 export type ContactContent = { eyebrow?: Loc; heading?: Loc; body?: Loc; note?: Loc };
 // Numbers (years/travellers/rating) are authored HERE — the homepage Stats
 // section is their single source of truth. The renderer reads these first and
@@ -219,7 +239,7 @@ function sectionContentShell(type: HomeSectionType): HomeSection["content"] {
     case "services": return { eyebrow: H("What we do", "ماذا نقدّم"), heading: loc(), items: [] } as ServicesContent;
     case "featured_packages": return { eyebrow: H("Featured packages", "باقات مختارة"), heading: H("Journeys ready to book.", "رحلات جاهزة للحجز."), link: H("See all packages", "كل الباقات"), limit: 4 } as FeaturedPackagesContent;
     case "destinations": return { eyebrow: H("Where we go", "وجهاتنا"), heading: H("Destinations", "الوجهات"), images: {} } as DestinationsContent;
-    case "testimonials": return { eyebrow: H("Travelers' words", "كلمات مسافرينا"), heading: H("What guests say", "ماذا يقول ضيوفنا"), items: [] } as TestimonialsContent;
+    case "testimonials": return { eyebrow: H("Travelers' words", "كلمات مسافرينا"), heading: H("What guests say", "ماذا يقول ضيوفنا"), link: H("View all reviews", "عرض كل المراجعات"), limit: 4, items: [] } as TestimonialsContent;
     case "stats": return { eyebrow: H("By the numbers", "بالأرقام"), heading: H("Honest about where we are.", "صادقون في أرقامنا."), years: 0, travellers: 0, rating: 0, fallbackNote: loc(), qualities: [] } as StatsContent;
     case "seasonal_offers": return { eyebrow: H("Seasonal", "موسمي"), heading: loc(), body: loc(), cta: loc(), image: "" } as SeasonalOffersContent;
     case "accreditation": return { eyebrow: H("Registered & accredited", "مسجّلون ومعتمدون"), badges: [] } as AccreditationContent;

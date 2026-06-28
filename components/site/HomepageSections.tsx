@@ -9,7 +9,7 @@
 import type { AgencyBrand } from "@/lib/brand";
 import { waHref, emailHref } from "@/lib/brand";
 import {
-  pick, type HomeSection,
+  pick, reviewKind, type HomeSection, type Testimonial,
   type HeroContent, type AboutContent, type WhyUsContent, type ServicesContent,
   type FeaturedPackagesContent, type DestinationsContent, type TestimonialsContent,
   type ContactContent, type StatsContent, type SeasonalOffersContent, type AccreditationContent,
@@ -31,6 +31,8 @@ export type Ctx = {
   packagesHref: string;
   /** The About page URL ({basePath}/about) — the "Read our story" link target. */
   aboutHref: string;
+  /** The Reviews page URL ({basePath}/reviews) — the testimonials "View all" target. */
+  reviewsHref: string;
   waLink: string | null;
   openPkg: (id: string) => void;
   scrollContact: () => void;
@@ -44,7 +46,7 @@ const UI = {
     waCta: "Message on WhatsApp", emailCta: "Send an email",
     tstIllus: "Illustrative — your reviews appear here",
     tstQuote: "A traveler's words will appear here once a guest shares their experience.",
-    tstName: "Guest name", tstTrip: "Trip · 2026", tstVideo: "Video review · add yours",
+    tstName: "Guest name", tstTrip: "Trip · 2026", tstVideo: "Video review · add yours", tstViewAll: "View all reviews",
     statFallbackNote: "We show qualities, not numbers, until the numbers are real.",
     learnMore: "Learn more",
   },
@@ -55,7 +57,7 @@ const UI = {
     waCta: "راسلنا على واتساب", emailCta: "أرسل بريداً",
     tstIllus: "نموذجي — تظهر مراجعاتك هنا",
     tstQuote: "هنا تظهر كلمات المسافر بعد أن يشاركك الضيف تجربته.",
-    tstName: "اسم الضيف", tstTrip: "رحلة · 2026", tstVideo: "مراجعة فيديو · أضف هنا",
+    tstName: "اسم الضيف", tstTrip: "رحلة · 2026", tstVideo: "مراجعة فيديو · أضف هنا", tstViewAll: "عرض كل المراجعات",
     statFallbackNote: "نعرض الصفات لا الأرقام، حتى تصبح الأرقام حقيقية.",
     learnMore: "اعرف المزيد",
   },
@@ -316,6 +318,62 @@ function Destinations(c: DestinationsContent, ctx: Ctx) {
   );
 }
 
+// The avatar + name + trip byline shared by every review kind. Renders nothing
+// when a media-only review carries no name/trip/photo (honest — no fabricated
+// attribution).
+function ReviewByline({ it, ctx }: { it: Testimonial; ctx: Ctx }) {
+  const { lang } = ctx;
+  const name = (it.name || "").trim();
+  const trip = pick(it.trip, lang);
+  if (!name && !trip && !it.photo) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "auto", paddingTop: 22 }}>
+      {(it.photo || name) ? (
+        <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#e2dbcc", display: "grid", placeItems: "center", overflow: "hidden", fontSize: 16, fontWeight: 600, color: "#8a7f6a", fontFamily: "var(--font-instrument-serif), serif" }}>
+          {it.photo ? <img src={it.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} /> : name.charAt(0).toUpperCase()}
+        </div>
+      ) : null}
+      <div>
+        {name ? <div style={{ fontSize: 14.5, fontWeight: 600, color: "#2a2620" }}>{name}</div> : null}
+        {trip ? <div style={{ fontSize: 13, color: "var(--ink3)" }}>{trip}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+// One review card. The kind is inferred from the media URL (reviewKind): a video
+// clip, an image screenshot, or — when there's no media — the classic quote card.
+// Branch on kind FIRST so a media review never falls through to an empty quote.
+// Shared by the home Testimonials section and the dedicated /reviews page.
+export function ReviewTile({ it, ctx }: { it: Testimonial; ctx: Ctx }) {
+  const { lang, m } = ctx;
+  const kind = reviewKind(it.media);
+  const frame = { background: "var(--card)", border: "1px solid var(--rule)", borderRadius: 18, overflow: "hidden", display: "flex", flexDirection: "column" } as const;
+  if (kind === "video") {
+    return (
+      <div style={frame}>
+        <video src={it.media} controls playsInline preload="metadata" className="hp-review-media" />
+        <div style={{ padding: "0 20px" }}><ReviewByline it={it} ctx={ctx} /></div>
+      </div>
+    );
+  }
+  if (kind === "image") {
+    return (
+      <div style={frame}>
+        <img src={it.media} alt={it.name || ""} loading="lazy" className="hp-review-media" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+        <div style={{ padding: "0 20px" }}><ReviewByline it={it} ctx={ctx} /></div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ ...frame, padding: "34px 34px 30px" }}>
+      <div className="hp-serif" style={{ fontSize: 54, lineHeight: 0.6, color: "var(--brand-text)", height: 30 }}>&ldquo;</div>
+      <p className="hp-serif" style={{ fontSize: m ? 21 : 26, lineHeight: 1.4, letterSpacing: "-0.01em", color: "#2a2620", margin: "14px 0 0" }}>{pick(it.quote, lang)}</p>
+      <ReviewByline it={it} ctx={ctx} />
+    </div>
+  );
+}
+
 function Testimonials(c: TestimonialsContent, ctx: Ctx) {
   const { lang, m } = ctx;
   const U = UI[lang];
@@ -323,41 +381,45 @@ function Testimonials(c: TestimonialsContent, ctx: Ctx) {
   // Live (editor=false): no real reviews → hide the section entirely. The
   // "appears here" illustrative placeholder is editor-only.
   if (!items.length && !ctx.editor) return null;
+  const limit = Math.max(1, c.limit || 4);
+  const list = items.slice(0, limit);
+  const hasMore = items.length > list.length;
+  const viewAll = pick(c.link, lang) || U.tstViewAll;
   return (
     <section style={{ padding: `${vpad(m)}px 0`, background: "var(--alt)", borderTop: "1px solid var(--rule)", borderBottom: "1px solid var(--rule)" }}>
       <div className="hp-wrap">
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
           <div><SectionHead eyebrow={pick(c.eyebrow, lang)} heading={pick(c.heading, lang)} ctx={ctx} /></div>
-          {items.length === 0 ? <span className="hp-tag">{U.tstIllus}</span> : null}
+          {items.length === 0
+            ? <span className="hp-tag">{U.tstIllus}</span>
+            : hasMore ? <a href={ctx.reviewsHref} className="hp-link" style={{ paddingBottom: 6 }}>{viewAll}<span className="hp-arrow">{U.arrow}</span></a> : null}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(2,1fr)", gap: 20, marginTop: 40 }}>
-          {(items.length ? items : [null]).map((it, i) => (
-            <div key={i} style={{ background: "var(--card)", border: "1px solid var(--rule)", borderRadius: 18, padding: "34px 34px 30px", display: "flex", flexDirection: "column" }}>
-              <div className="hp-serif" style={{ fontSize: 54, lineHeight: 0.6, color: "var(--brand-text)", height: 30 }}>&ldquo;</div>
-              <p className="hp-serif" style={{ fontSize: m ? 21 : 26, lineHeight: 1.4, letterSpacing: "-0.01em", color: "#2a2620", margin: "14px 0 0" }}>
-                {it ? pick(it.quote, lang) : U.tstQuote}
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "auto", paddingTop: 26 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#e2dbcc", border: it && !it.photo ? "none" : it?.photo ? "none" : "1px dashed #c9bd9f", display: "grid", placeItems: "center", overflow: "hidden", fontSize: it && !it.photo ? 16 : 8, fontWeight: 600, letterSpacing: "0.08em", color: "#8a7f6a", fontFamily: it && !it.photo ? "var(--font-instrument-serif), serif" : "ui-monospace,monospace" }}>
-                  {it?.photo ? <img src={it.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : it ? (it.name || "?").trim().charAt(0).toUpperCase() : "PHOTO"}
+        <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(2,1fr)", gap: 20, marginTop: 40, alignItems: "start" }}>
+          {items.length
+            ? list.map((it, i) => <ReviewTile key={i} it={it} ctx={ctx} />)
+            : (
+              <>
+                <div style={{ background: "var(--card)", border: "1px solid var(--rule)", borderRadius: 18, padding: "34px 34px 30px", display: "flex", flexDirection: "column" }}>
+                  <div className="hp-serif" style={{ fontSize: 54, lineHeight: 0.6, color: "var(--brand-text)", height: 30 }}>&ldquo;</div>
+                  <p className="hp-serif" style={{ fontSize: m ? 21 : 26, lineHeight: 1.4, letterSpacing: "-0.01em", color: "#2a2620", margin: "14px 0 0" }}>{U.tstQuote}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "auto", paddingTop: 26 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#e2dbcc", border: "1px dashed #c9bd9f", display: "grid", placeItems: "center", fontSize: 8, fontWeight: 600, letterSpacing: "0.08em", color: "#8a7f6a", fontFamily: "ui-monospace,monospace" }}>PHOTO</div>
+                    <div>
+                      <div style={{ fontSize: 14.5, fontWeight: 600, color: "#2a2620" }}>{U.tstName}</div>
+                      <div style={{ fontSize: 13, color: "var(--ink3)" }}>{U.tstTrip}</div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 600, color: "#2a2620" }}>{it ? it.name : U.tstName}</div>
-                  <div style={{ fontSize: 13, color: "var(--ink3)" }}>{it ? pick(it.trip, lang) : U.tstTrip}</div>
+                <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", backgroundColor: "#dfd8c8", backgroundImage: "repeating-linear-gradient(135deg,rgba(47,93,80,0.06) 0,rgba(47,93,80,0.06) 1px,transparent 1px,transparent 13px)", minHeight: m ? 240 : "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(255,255,255,0.92)", display: "grid", placeItems: "center", margin: "0 auto", boxShadow: "0 10px 24px -8px rgba(0,0,0,0.3)" }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--brand-text)"><path d="M8 5.5v13l11-6.5z" /></svg>
+                    </div>
+                    <div style={{ fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a7f6a", marginTop: 16 }}>{U.tstVideo}</div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-          {items.length === 0 ? (
-            <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", backgroundColor: "#dfd8c8", backgroundImage: "repeating-linear-gradient(135deg,rgba(47,93,80,0.06) 0,rgba(47,93,80,0.06) 1px,transparent 1px,transparent 13px)", minHeight: m ? 240 : "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(255,255,255,0.92)", display: "grid", placeItems: "center", margin: "0 auto", boxShadow: "0 10px 24px -8px rgba(0,0,0,0.3)" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--brand-text)"><path d="M8 5.5v13l11-6.5z" /></svg>
-                </div>
-                <div style={{ fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#8a7f6a", marginTop: 16 }}>{U.tstVideo}</div>
-              </div>
-            </div>
-          ) : null}
+              </>
+            )}
         </div>
       </div>
     </section>

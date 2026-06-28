@@ -170,17 +170,21 @@ export const HOME_FIELD_REGISTRY: Record<HomeSectionType, HSectionDef> = {
     fields: [
       { kind: "loc", key: "eyebrow", label: L("Eyebrow", "تمهيد") },
       { kind: "loc", key: "heading", label: L("Heading", "العنوان") },
+      { kind: "loc", key: "link", label: L("\"View all\" link text", "نص رابط \"عرض الكل\"") },
+      { kind: "number", key: "limit", label: L("How many to show on home", "كم مراجعة تظهر في الرئيسية"), min: 1, max: 24 },
     ],
     repeaters: [{
       key: "items", itemMode: "object",
       label: L("Reviews", "المراجعات"), addLabel: L("Add review", "إضافة مراجعة"), itemNoun: L("Review", "مراجعة"),
       itemFields: [
+        { kind: "plain", key: "media", label: L("Image or video URL", "رابط صورة أو فيديو") },
         { kind: "loc", key: "quote", label: L("Quote", "الاقتباس"), area: true },
         { kind: "plain", key: "name", label: L("Guest name", "اسم الضيف") },
         { kind: "loc", key: "trip", label: L("Trip", "الرحلة") },
         { kind: "image", key: "photo", label: L("Photo", "صورة") },
       ],
     }],
+    derived: [L("Paste an image screenshot or a video (.mp4/.webm) URL — the type is detected automatically. Leave the quote blank for screenshot/video reviews. Extra reviews beyond the limit appear on your /reviews page.", "ألصق رابط صورة أو فيديو (.mp4/.webm) — يُكتشف النوع تلقائياً. اترك الاقتباس فارغاً لمراجعات الصور والفيديو. تظهر المراجعات الزائدة عن الحد في صفحة /reviews.")],
   },
   stats: {
     type: "stats", icon: "chart",
