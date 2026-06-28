@@ -18,6 +18,8 @@ import {
   DA_GREEN, DA_GREEN_SOFT, DA_DANGER,
 } from "@/lib/tokens";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { locStr } from "@/components/templates/types";
+import type { LocStr } from "@/components/templates/types";
 
 const SANS    = `var(--font-sans)`;
 const DISPLAY = `var(--font-display)`;
@@ -26,6 +28,7 @@ const MONO    = `var(--font-jetbrains-mono), monospace`;
 type Package = {
   id: string;
   destination: string;
+  title?: LocStr;
   price: string;
   views: number;
   whatsappClicks: number;
@@ -342,7 +345,7 @@ function PackageRow({
             fontFamily: SANS, fontSize: 13.5, fontWeight: 500, color: DA_INK1,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
-            {pkg.destination}
+            {locStr(pkg.title, pkg.primaryLanguage || lang) || pkg.destination}
           </div>
           <span style={{
             padding: "1px 7px", borderRadius: 99, fontSize: 10, fontWeight: 600,
@@ -535,7 +538,7 @@ function DashboardFirstRun({
 type DateRange = "7" | "30" | "90" | "all";
 
 function DashboardPopulated({
-  agencyName, packages, leads, userId, lang, isMobile, loading, onDeletePackage, customDomain,
+  agencyName, packages, leads, userId, lang, isMobile, loading, onDeletePackage, customDomain, homepageViews,
 }: {
   agencyName: string;
   packages: Package[];
@@ -546,6 +549,7 @@ function DashboardPopulated({
   loading: boolean;
   onDeletePackage: (id: string) => void;
   customDomain?: string;
+  homepageViews: number;
 }) {
   const router = useRouter();
   const t = T[lang];
@@ -594,7 +598,7 @@ function DashboardPopulated({
   const activeRangeLabel = dateRangeOptions.find(o => o.k === dateRange)?.l ?? t.rangeLast30;
 
   const metrics = [
-    { eyebrow: t.pageViews,  value: totalViews.toLocaleString(),  sub: activeRangeLabel },
+    { eyebrow: t.pageViews,  value: homepageViews.toLocaleString(), sub: t.rangeAllTime },
     { eyebrow: t.leads,      value: totalLeads.toLocaleString(),  sub: activeRangeLabel },
     { eyebrow: t.booked,     value: totalBooked.toLocaleString(), sub: activeRangeLabel },
     { eyebrow: t.viewToLead, value: convRate,                     sub: activeRangeLabel },
@@ -967,6 +971,7 @@ export default function Dashboard() {
   const [agencyName,  setAgencyName]  = useState("Agency");
   const [hasBranding, setHasBranding] = useState(false);
   const [customDomain, setCustomDomain] = useState<string | undefined>(undefined);
+  const [homepageViews, setHomepageViews] = useState(0);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -977,6 +982,7 @@ export default function Dashboard() {
         const data = snap.data();
         if (data.name) setAgencyName(data.name);
         setHasBranding(!!(data.name && data.logoUrl));
+        setHomepageViews(Number(data.homepageViews) || 0);
         if (data.customDomainStatus === "active" && data.customDomain) {
           setCustomDomain(data.customDomain);
         }
@@ -1041,6 +1047,7 @@ export default function Dashboard() {
             loading={loading}
             onDeletePackage={(id) => setPackages(prev => prev.filter(p => p.id !== id))}
             customDomain={customDomain}
+            homepageViews={homepageViews}
           />
         ) : (
           <DashboardFirstRun

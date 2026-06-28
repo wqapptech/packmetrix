@@ -19,7 +19,8 @@ test.describe("Publish → Render", () => {
     await page.waitForLoadState("domcontentloaded");
 
     // Content assertions drive the wait — no networkidle (analytics keep sockets open)
-    await expect(page.getByText("Smoke Test Maldives")).toBeVisible({
+    // .first() — destination renders in both the filter pill and the package card
+    await expect(page.getByText("Smoke Test Maldives").first()).toBeVisible({
       timeout: 20_000,
     });
     await expect(page.getByText("1,999").first()).toBeVisible({ timeout: 5_000 });

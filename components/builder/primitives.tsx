@@ -113,12 +113,14 @@ export function NumberInput({
   min,
   max,
   placeholder,
+  decimal,
 }: {
   value: number;
   onChange: (v: number) => void;
   min?: number;
   max?: number;
   placeholder?: string;
+  decimal?: boolean; // allow a single fractional part (e.g. a 4.8 rating)
 }) {
   const [raw, setRaw] = useState(value === 0 ? "" : String(value));
 
@@ -134,15 +136,18 @@ export function NumberInput({
   return (
     <input
       type="text"
-      inputMode="numeric"
-      pattern="[0-9]*"
+      inputMode={decimal ? "decimal" : "numeric"}
+      pattern={decimal ? "[0-9.]*" : "[0-9]*"}
       value={raw}
       placeholder={placeholder}
       onChange={(e) => {
-        const s = e.target.value.replace(/[^0-9]/g, "");
+        const s = decimal
+          ? e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1")
+          : e.target.value.replace(/[^0-9]/g, "");
         setRaw(s);
-        if (s !== "") {
+        if (s !== "" && s !== ".") {
           const n = Number(s);
+          if (Number.isNaN(n)) return;
           if (min !== undefined && n < min) return;
           if (max !== undefined && n > max) return;
           prevRef.current = n;

@@ -26,6 +26,7 @@ type NavItem = {
 const NAV_MAIN: NavItem[] = [
   { href: "/dashboard", icon: "chart",       labelKey: "navDashboard" },
   { href: "/builder",   icon: "package",     labelKey: "navBuilder" },
+  { href: "/homepage",  icon: "home",        labelKey: "navHomepage" },
   { href: "/packages",  icon: "archive",     labelKey: "navPackages" },
   { href: "/leads",     icon: "users",       labelKey: "navLeads" },
 ];

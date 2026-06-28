@@ -779,7 +779,7 @@ function AtSection({
             </div>
             {agency.agencySlug && (
               <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-                <a href={`/${agency.agencySlug}`} style={{ fontFamily: AT.sans, fontSize: 12, fontWeight: 600, color: AT.brand, textDecoration: "none", letterSpacing: "0.4px" }}>
+                <a href={`/${agency.agencySlug}/packages`} style={{ fontFamily: AT.sans, fontSize: 12, fontWeight: 600, color: AT.brand, textDecoration: "none", letterSpacing: "0.4px" }}>
                   {t.navAllPackages} →
                 </a>
               </div>

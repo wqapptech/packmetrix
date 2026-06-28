@@ -14,6 +14,13 @@ import { canUseCustomDomain } from "@/lib/limits";
 import { toSlug } from "@/lib/trial";
 import { DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3, DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT, DA_GREEN, DA_GREEN_SOFT, DA_DANGER, DA_DANGER_SOFT } from "@/lib/tokens";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import SiteHeader from "@/components/site/SiteHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+import {
+  type AgencyBrand, type FontPairingId,
+  DEFAULT_BRAND_COLOR, FONT_PAIRINGS, BRAND_SWATCHES, ACCENT_SWATCHES,
+  brandDocPatch, brandReadable, accentReadable, ratioBand, deriveBrand, fontsForPairing, toFontPairing,
+} from "@/lib/brand";
 
 const DISPLAY = `var(--font-display)`;
 const SANS = `var(--font-sans)`;
@@ -54,26 +61,129 @@ function Input({ value, onChange, placeholder, style, "data-testid": testId }: {
   );
 }
 
-function Toggle({ enabled, onChange, label, sub }: { enabled: boolean; onChange: (v: boolean) => void; label: string; sub?: string }) {
+// ─── Colour control: native picker doubles as preview + curated swatches + a
+// persistent WCAG contrast readout. Hex input is the escape hatch. ────────────
+
+function ColorField({
+  lang, label, role, value, onChange, swatches, brandFallback, hint, children,
+}: {
+  lang: "en" | "ar";
+  label: string;
+  role: "brand" | "accent";
+  value: string;
+  onChange: (v: string) => void;
+  swatches: readonly string[];
+  brandFallback: string;
+  hint?: string;
+  children?: React.ReactNode;
+}) {
+  const isAr = lang === "ar";
+  const isBrand = role === "brand";
+  const effective = value || (isBrand ? DEFAULT_BRAND_COLOR : brandFallback);
+  const br = brandReadable(effective);
+  const ac = accentReadable(effective);
+  const ratio = isBrand ? br.ratio : ac.ratio;
+  const band = ratioBand(ratio);
+  const warn = isBrand ? br.on !== "#ffffff" : !band.ok;
   return (
-    <div
-      onClick={() => onChange(!enabled)}
-      style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: "12px 0" }}
-    >
-      <div style={{
-        width: 40, height: 22, borderRadius: 11, flexShrink: 0,
-        background: enabled ? DA_GREEN : DA_RULE2,
-        transition: "background 0.2s", position: "relative",
-      }}>
-        <div style={{
-          position: "absolute", top: 3, insetInlineStart: enabled ? 21 : 3,
-          width: 16, height: 16, borderRadius: "50%", background: "#fff",
-          transition: "inset-inline-start 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-        }} />
+    <div>
+      <FieldLabel>{label}</FieldLabel>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <input
+          type="color"
+          value={effective}
+          onChange={e => onChange(e.target.value)}
+          style={{ width: 46, height: 46, borderRadius: 10, border: `1px solid ${DA_RULE}`, cursor: "pointer", padding: 2, background: "transparent", flexShrink: 0 }}
+        />
+        <Input
+          value={value}
+          onChange={v => { if (/^#?[0-9a-fA-F]{0,6}$/.test(v)) onChange(v.startsWith("#") || v === "" ? v : "#" + v); }}
+          placeholder={isBrand ? DEFAULT_BRAND_COLOR : (isAr ? "افتراضي: لون الهوية" : "Defaults to brand colour")}
+          style={{ fontFamily: "monospace", maxWidth: 150 }}
+        />
+        <div style={{ display: "flex", gap: 6 }}>
+          {swatches.map((s) => {
+            const sel = s.toLowerCase() === (value || "").toLowerCase();
+            return (
+              <button
+                key={s}
+                onClick={() => onChange(s)}
+                title={s}
+                style={{
+                  width: 24, height: 24, borderRadius: 7, background: s, cursor: "pointer", padding: 0,
+                  border: "none",
+                  boxShadow: sel ? `0 0 0 2px ${DA_BG}, 0 0 0 4px ${DA_INK1}` : "inset 0 0 0 1px rgba(0,0,0,.12)",
+                }}
+              />
+            );
+          })}
+        </div>
+        {children}
       </div>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: DA_INK1 }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, color: DA_INK3, marginTop: 2 }}>{sub}</div>}
+      {hint && <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6 }}>{hint}</div>}
+
+      {/* Persistent contrast readout */}
+      <div style={{
+        marginTop: 12, padding: "10px 12px", borderRadius: 9,
+        background: warn ? DA_DANGER_SOFT : DA_BG,
+        border: `1px solid ${warn ? DA_DANGER : DA_RULE}`,
+        display: "flex", alignItems: "center", gap: 10,
+      }}>
+        {isBrand ? (
+          <div style={{ minWidth: 64, height: 32, borderRadius: 7, background: effective, color: br.on, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SANS, fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>
+            {isAr ? "زر" : "Button"}
+          </div>
+        ) : (
+          <div style={{ minWidth: 64, height: 32, borderRadius: 7, background: "#faf5e8", color: ac.text, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SANS, fontSize: 12.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", flexShrink: 0 }}>
+            {isAr ? "نص" : "Aa"}
+          </div>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 500, color: warn ? DA_DANGER : DA_INK1 }}>{ratio.toFixed(1)}:1</span>
+            <span style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: ".4px", padding: "1px 7px", borderRadius: 999, background: band.ok ? DA_GREEN_SOFT : DA_DANGER_SOFT, color: band.ok ? DA_GREEN : DA_DANGER }}>
+              {isAr ? band.labelAr : band.label}
+            </span>
+          </div>
+          <div style={{ fontFamily: SANS, fontSize: 11.5, color: warn ? DA_DANGER : DA_INK3, marginTop: 2, lineHeight: 1.35 }}>
+            {isBrand
+              ? (warn
+                  ? (isAr ? "النص الأبيض غير واضح — سنستخدم نصاً داكناً على الأزرار." : "White text is hard to read here — we’ll use dark text on buttons.")
+                  : (isAr ? "نص أبيض واضح على لون علامتك." : "White text reads clearly on your brand colour."))
+              : (isAr ? "يُعتَّم تلقائياً ليبقى واضحاً كنص على الورق الكريمي." : "Auto-darkened so it stays legible as text on cream paper.")}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Social link glyphs + row ────────────────────────────────────────────────
+
+const SOCIAL_GLYPH: Record<string, (s: number) => React.ReactNode> = {
+  whatsapp: (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.607zm5.83-7.062c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>,
+  snapchat: (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6c2.6 0 4.4 1.9 4.5 4.6 0 .6 0 1.3-.1 1.9.3.2.7.2 1 .1.6-.2 1.2.5.8 1.1-.3.5-1 .7-1.5.9-.3.1-.4.2-.3.6.3 1.2 1.6 2.4 2.9 2.7.5.1.5.7.1.9-.6.3-1.4.4-1.7.6-.1.2 0 .5-.2.7-.2.2-.7.1-1.2.1-.7 0-1.2.5-1.8 1-.7.5-1.4 1-2.7 1s-2-.5-2.7-1c-.6-.5-1.1-1-1.8-1-.5 0-1 .1-1.2-.1-.2-.2-.1-.5-.2-.7-.3-.2-1.1-.3-1.7-.6-.4-.2-.4-.8.1-.9 1.3-.3 2.6-1.5 2.9-2.7.1-.4 0-.5-.3-.6-.5-.2-1.2-.4-1.5-.9-.4-.6.2-1.3.8-1.1.3.1.7.1 1-.1-.1-.6-.1-1.3-.1-1.9C7.6 4.5 9.4 2.6 12 2.6Z"/></svg>,
+  tiktok: (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor"><path d="M14 3c.3 2 1.6 3.5 3.6 3.8v2.4c-1.3 0-2.5-.4-3.6-1.1v5.7c0 2.9-2 5.2-5 5.2s-5-2.3-5-5.2 2.3-5.1 5.2-4.9v2.5c-1.5-.2-2.8.9-2.8 2.4 0 1.4 1 2.4 2.4 2.4s2.4-1 2.4-2.6V3H14Z"/></svg>,
+  instagram: (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="1.1" fill="currentColor" stroke="none"/></svg>,
+  facebook: (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor"><path d="M14 8.5V6.8c0-.7.2-1.1 1.2-1.1H17V2.8c-.4 0-1.4-.1-2.5-.1-2.6 0-4.2 1.5-4.2 4.3v1.5H7.6v3.1H10V21h3.4v-9.4h2.5l.4-3.1H14Z"/></svg>,
+  youtube: (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor"><path d="M22 8.2c-.2-1.4-.8-2.2-2.3-2.4C17.9 5.5 12 5.5 12 5.5s-5.9 0-7.7.3C2.8 6 2.2 6.8 2 8.2 1.7 9.7 1.7 12 1.7 12s0 2.3.3 3.8c.2 1.4.8 2.2 2.3 2.4 1.8.3 7.7.3 7.7.3s5.9 0 7.7-.3c1.5-.2 2.1-1 2.3-2.4.3-1.5.3-3.8.3-3.8s0-2.3-.3-3.8ZM10 15V9l5.2 3L10 15Z"/></svg>,
+  x: (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 3h3l-6.6 7.6L21.8 21h-6l-4.7-6.1L5.6 21h-3l7-8.1L2.6 3h6.1l4.3 5.7L17.5 3Zm-1 16h1.6L7.6 4.7H5.9L16.5 19Z"/></svg>,
+};
+
+function SocialRow({
+  glyph, value, onChange, placeholder, readOnly,
+}: {
+  glyph: React.ReactNode;
+  value: string;
+  onChange?: (v: string) => void;
+  placeholder?: string;
+  readOnly?: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+      <div style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, background: DA_SURFACE2, border: `1px solid ${DA_RULE2}`, color: DA_INK1, display: "flex", alignItems: "center", justifyContent: "center" }}>{glyph}</div>
+      <div style={{ flex: 1, opacity: value ? 1 : 0.62 }}>
+        <Input value={value} onChange={onChange ?? (() => {})} placeholder={placeholder} style={{ direction: "ltr", ...(readOnly ? { background: DA_BG, color: DA_INK3, pointerEvents: "none" } : {}) }} />
       </div>
     </div>
   );
@@ -213,6 +323,67 @@ function DnsSetupModal({
 }
 
 
+// ─── Profile tab bar (Brand · Account) ───────────────────────────────────────
+// Splits Settings by PURPOSE per the design: Brand = identity & look,
+// Account = domain & account. Sits full-bleed directly under the AppLayout chrome.
+
+function ProfileTabBar({
+  lang, isMobile, active, onChange, t,
+}: {
+  lang: "en" | "ar";
+  isMobile: boolean;
+  active: "brand" | "account";
+  onChange: (tab: "brand" | "account") => void;
+  t: typeof import("@/lib/translations").T.en;
+}) {
+  const tabs = [
+    { id: "brand" as const, icon: "globe" as const, label: t.brandTabLabel, sub: t.brandTabSub },
+    { id: "account" as const, icon: "settings" as const, label: t.accountTabLabel, sub: t.accountTabSub },
+  ];
+  return (
+    <div style={{
+      display: "flex", alignItems: "stretch", gap: 4,
+      padding: isMobile ? "0 12px" : "0 32px", background: DA_SURFACE,
+      borderBottom: `1px solid ${DA_RULE}`, flexShrink: 0,
+    }}>
+      {tabs.map((tab) => {
+        const on = tab.id === active;
+        return (
+          <button
+            key={tab.id}
+            data-testid={`profile-tab-${tab.id}`}
+            onClick={() => onChange(tab.id)}
+            style={{
+              display: "flex", alignItems: "center", gap: 9, cursor: "pointer",
+              padding: "14px 14px 12px", background: "transparent", border: "none",
+              borderBottom: `2px solid ${on ? DA_GOLD : "transparent"}`, marginBottom: -1,
+              textAlign: lang === "ar" ? "right" : "left",
+            }}
+          >
+            <div style={{
+              width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+              background: on ? DA_GOLD_SOFT : DA_SURFACE2,
+              border: `1px solid ${on ? "transparent" : DA_RULE2}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <Icon name={tab.icon} size={15} color={on ? DA_GOLD_DEEP : DA_INK3} />
+            </div>
+            {isMobile ? (
+              <div style={{ fontSize: 13.5, fontWeight: 600, fontFamily: SANS, color: on ? DA_INK1 : DA_INK2 }}>{tab.label}</div>
+            ) : (
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, fontFamily: SANS, color: on ? DA_INK1 : DA_INK2, lineHeight: 1.1 }}>{tab.label}</div>
+                <div style={{ fontSize: 11, fontFamily: SANS, color: DA_INK3, marginTop: 1 }}>{tab.sub}</div>
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function BrandingPage() {
@@ -224,30 +395,49 @@ export default function BrandingPage() {
 
   const [uid, setUid] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"brand" | "account">("brand");
+
+  // Root surface: "site" = homepage at root, "catalog" = package catalog at root.
+  // Mirrors users/{uid}.siteMode (default "site"); persists immediately on change.
+  const [siteMode, setSiteMode] = useState<"catalog" | "site">("site");
+  const [siteModeSaved, setSiteModeSaved] = useState(false);
 
   const [name, setName] = useState("");
   const [tagline, setTagline] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
-  const [enableReviews, setEnableReviews] = useState(false);
-  const [showReviews, setShowReviews] = useState(true);
 
-  // Storefront fields
-  const [storefrontLanguage, setStorefrontLanguage] = useState<"en" | "ar">("en");
-  const [brandColor, setBrandColor] = useState("#1d4e72");
-  const [about_en, setAboutEn] = useState("");
-  const [about_ar, setAboutAr] = useState("");
+  const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
+  const [accentColor, setAccentColor] = useState("");
+  const [fontPairing, setFontPairing] = useState<FontPairingId>("editorial");
   const [whatsapp, setWhatsapp] = useState("");
-  const [statsYears, setStatsYears] = useState("");
-  const [statsTravellers, setStatsTravellers] = useState("");
-  const [statsRating, setStatsRating] = useState("");
+
+  // Social links (all optional)
+  const [instagram, setInstagram] = useState("");
+  const [snapchat, setSnapchat] = useState("");
+  const [tiktok, setTiktok] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [x, setX] = useState("");
+
+  // Which language the live preview renders in.
+  const [previewLang, setPreviewLang] = useState<"en" | "ar">("en");
+
+  // The preview renders the real desktop chrome at a virtual 1160px width and
+  // scales it down to fit the editor column (faithful "what ships" view).
+  const PREVIEW_VW = 1160;
+  const previewFrameRef = useRef<HTMLDivElement>(null);
+  const previewInnerRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(0.45);
+  const [previewH, setPreviewH] = useState(0);
 
   const savedState = useRef({
     name: "", tagline: "", email: "", phone: "", logoUrl: "",
-    enableReviews: false, showReviews: true,
-    storefrontLanguage: "en" as "en" | "ar", brandColor: "#1d4e72",
-    about_en: "", about_ar: "", whatsapp: "", statsYears: "", statsTravellers: "", statsRating: "",
+    brandColor: DEFAULT_BRAND_COLOR,
+    accentColor: "", fontPairing: "editorial" as FontPairingId,
+    whatsapp: "",
+    instagram: "", snapchat: "", tiktok: "", facebook: "", youtube: "", x: "",
   });
   const hasChanges = (
     name !== savedState.current.name ||
@@ -255,16 +445,16 @@ export default function BrandingPage() {
     email !== savedState.current.email ||
     phone !== savedState.current.phone ||
     logoUrl !== savedState.current.logoUrl ||
-    enableReviews !== savedState.current.enableReviews ||
-    showReviews !== savedState.current.showReviews ||
-    storefrontLanguage !== savedState.current.storefrontLanguage ||
     brandColor !== savedState.current.brandColor ||
-    about_en !== savedState.current.about_en ||
-    about_ar !== savedState.current.about_ar ||
+    accentColor !== savedState.current.accentColor ||
+    fontPairing !== savedState.current.fontPairing ||
     whatsapp !== savedState.current.whatsapp ||
-    statsYears !== savedState.current.statsYears ||
-    statsTravellers !== savedState.current.statsTravellers ||
-    statsRating !== savedState.current.statsRating
+    instagram !== savedState.current.instagram ||
+    snapchat !== savedState.current.snapchat ||
+    tiktok !== savedState.current.tiktok ||
+    facebook !== savedState.current.facebook ||
+    youtube !== savedState.current.youtube ||
+    x !== savedState.current.x
   );
 
   const [plan, setPlan] = useState<string>("");
@@ -308,39 +498,43 @@ export default function BrandingPage() {
         const _email = d.email || "";
         const _phone = d.phone || "";
         const _logoUrl = d.logoUrl || "";
-        const _enableReviews = d.enableReviews === true;
-        const _showReviews = d.showReviews !== false;
-        const _storefrontLanguage: "en" | "ar" = d.storefrontLanguage === "ar" ? "ar" : "en";
-        const _brandColor = d.brandColor || "#1d4e72";
-        const _about_en = d.about_en || d.about || "";
-        const _about_ar = d.about_ar || "";
+        const _brandColor = d.brandColor || DEFAULT_BRAND_COLOR;
+        const _accentColor = d.accentColor || "";
+        const _fontPairing = toFontPairing(d.fontPairing);
         const _whatsapp = d.whatsapp || "";
-        const _statsYears = d.statsYears ? String(d.statsYears) : "";
-        const _statsTravellers = d.statsTravellers ? String(d.statsTravellers) : "";
-        const _statsRating = d.statsRating ? String(d.statsRating) : "";
+        const _soc = (d.socials || {}) as Record<string, string>;
+        const _social = (k: string) => String((_soc[k] ?? d[k]) || "");
+        const _instagram = _social("instagram");
+        const _snapchat = _social("snapchat");
+        const _tiktok = _social("tiktok");
+        const _facebook = _social("facebook");
+        const _youtube = _social("youtube");
+        const _x = _social("x");
         setName(_name);
         setTagline(_tagline);
         setEmail(_email);
         setPhone(_phone);
         setLogoUrl(_logoUrl);
-        setEnableReviews(_enableReviews);
-        setShowReviews(_showReviews);
-        setStorefrontLanguage(_storefrontLanguage);
         setBrandColor(_brandColor);
-        setAboutEn(_about_en);
-        setAboutAr(_about_ar);
+        setAccentColor(_accentColor);
+        setFontPairing(_fontPairing);
         setWhatsapp(_whatsapp);
-        setStatsYears(_statsYears);
-        setStatsTravellers(_statsTravellers);
-        setStatsRating(_statsRating);
+        setInstagram(_instagram);
+        setSnapchat(_snapchat);
+        setTiktok(_tiktok);
+        setFacebook(_facebook);
+        setYoutube(_youtube);
+        setX(_x);
         savedState.current = {
           name: _name, tagline: _tagline, email: _email, phone: _phone, logoUrl: _logoUrl,
-          enableReviews: _enableReviews, showReviews: _showReviews,
-          storefrontLanguage: _storefrontLanguage, brandColor: _brandColor,
-          about_en: _about_en, about_ar: _about_ar, whatsapp: _whatsapp,
-          statsYears: _statsYears, statsTravellers: _statsTravellers, statsRating: _statsRating,
+          brandColor: _brandColor,
+          accentColor: _accentColor, fontPairing: _fontPairing,
+          whatsapp: _whatsapp,
+          instagram: _instagram, snapchat: _snapchat, tiktok: _tiktok,
+          facebook: _facebook, youtube: _youtube, x: _x,
         };
         setPlan(d.plan || "");
+        setSiteMode(d.siteMode === "catalog" ? "catalog" : "site");
         const _slug = d.agencySlug ? d.agencySlug : toSlug(d.name || "");
         setAgencySlug(_slug);
         if (!d.agencySlug && _slug) {
@@ -387,22 +581,35 @@ export default function BrandingPage() {
   const handleSave = async () => {
     if (!uid) return;
     setSaving(true);
-    const statsYearsNum = statsYears ? Number(statsYears) : 0;
-    const statsTravellersNum = statsTravellers ? Number(statsTravellers) : 0;
-    const statsRatingNum = statsRating ? Number(parseFloat(statsRating).toFixed(1)) : 0;
+    // One canonical, typed brand write (name/tagline/logo/colours/fonts/contact/
+    // socials). Storefront-language, reviews, about, and stats were retired from
+    // this tab — about + stats are now authored in the homepage builder.
     await updateDoc(doc(db, "users", uid), {
-      name, tagline, email, phone, logoUrl, enableReviews, showReviews,
-      storefrontLanguage, brandColor, about_en, about_ar, whatsapp,
-      statsYears: statsYearsNum, statsTravellers: statsTravellersNum, statsRating: statsRatingNum,
+      ...brandDocPatch({
+        name, tagline, logoUrl, brandColor, accentColor, fontPairing,
+        whatsapp, phone, email,
+        socials: { instagram, snapchat, tiktok, facebook, youtube, x },
+      }),
     });
     savedState.current = {
-      name, tagline, email, phone, logoUrl, enableReviews, showReviews,
-      storefrontLanguage, brandColor, about_en, about_ar, whatsapp,
-      statsYears, statsTravellers, statsRating,
+      name, tagline, email, phone, logoUrl,
+      brandColor, accentColor, fontPairing, whatsapp,
+      instagram, snapchat, tiktok, facebook, youtube, x,
     };
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+  };
+
+  // Root surface is a single-field setting — persist it immediately on change
+  // (the Account tab has no top-level Save button). Optimistic: update UI first.
+  const handleSiteModeChange = async (mode: "catalog" | "site") => {
+    if (mode === siteMode) return;
+    setSiteMode(mode);
+    if (!auth.currentUser) return;
+    await updateDoc(doc(db, "users", auth.currentUser.uid), { siteMode: mode });
+    setSiteModeSaved(true);
+    setTimeout(() => setSiteModeSaved(false), 2500);
   };
 
   const handleSaveDomain = async () => {
@@ -552,6 +759,429 @@ export default function BrandingPage() {
     return () => clearInterval(id);
   }, [domainStatus, domainCfId]);
 
+  // Keep the scaled preview sized to its frame and content. Re-runs whenever the
+  // preview can remount or its container can resize — notably the Brand/Account
+  // tab switch (the frame is a fresh DOM node on return) and the mobile/desktop
+  // slot swap. A zero-width frame (mid-layout) is ignored so we never collapse
+  // the preview to scale 0.
+  useEffect(() => {
+    if (authLoading || activeTab !== "brand") return;
+    const frame = previewFrameRef.current;
+    const inner = previewInnerRef.current;
+    if (!frame || !inner) return;
+    const update = () => {
+      const w = frame.clientWidth;
+      if (!w) return;
+      const s = w / PREVIEW_VW;
+      setPreviewScale(s);
+      setPreviewH(inner.scrollHeight * s);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(frame);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [authLoading, activeTab, isMobile, lang]);
+
+  // ── Live preview: build the REAL AgencyBrand from draft state ──────────────
+  const previewFonts = fontsForPairing(fontPairing, previewLang);
+  const previewBrand: AgencyBrand = {
+    name: name || (previewLang === "ar" ? "وكالتك" : "Your Agency"),
+    tagline: tagline || undefined,
+    logoUrl: logoUrl || undefined,
+    brandColor: brandColor || DEFAULT_BRAND_COLOR,
+    accentColor: accentColor || undefined,
+    displayFont: previewFonts.display,
+    bodyFont: previewFonts.body,
+    whatsapp: whatsapp || undefined,
+    phone: phone || undefined,
+    email: email || undefined,
+    socials: {
+      instagram: instagram || undefined, snapchat: snapchat || undefined,
+      tiktok: tiktok || undefined, facebook: facebook || undefined,
+      youtube: youtube || undefined, x: x || undefined,
+    },
+  };
+  const previewVars = deriveBrand(brandColor || DEFAULT_BRAND_COLOR, accentColor || undefined);
+
+  // The live brand preview — real SiteHeader/SiteFooter, scaled. Rendered in the
+  // sticky right rail on desktop, stacked on mobile.
+  const previewPanel = (
+    <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 600, fontFamily: SANS, color: DA_INK2, textTransform: "uppercase", letterSpacing: ".6px" }}>{t.livePreviewLabel}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11, color: DA_INK3, fontFamily: SANS }}>{t.previewLangLabel}</span>
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["en", "ar"] as const).map((l) => (
+              <button
+                key={l}
+                onClick={() => setPreviewLang(l)}
+                style={{
+                  padding: "4px 10px", borderRadius: 7, fontSize: 11.5, fontWeight: 600, fontFamily: SANS,
+                  cursor: "pointer", transition: "all .15s",
+                  background: previewLang === l ? DA_GOLD : DA_SURFACE,
+                  color: previewLang === l ? "#fff" : DA_INK2,
+                  border: `1px solid ${previewLang === l ? DA_GOLD : DA_RULE}`,
+                }}
+              >
+                {l === "en" ? "EN" : "ع"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div
+        ref={previewFrameRef}
+        style={{
+          borderRadius: 12, border: `1px solid ${DA_RULE}`, overflow: "hidden",
+          background: "#f4f0e8", height: previewH || 360,
+        }}
+      >
+        <div
+          ref={previewInnerRef}
+          dir={previewLang === "ar" ? "rtl" : "ltr"}
+          style={{
+            ...(previewVars as React.CSSProperties),
+            ["--font-display" as string]: previewBrand.displayFont,
+            ["--font-body" as string]: previewBrand.bodyFont,
+            width: PREVIEW_VW,
+            transform: `scale(${previewScale})`,
+            transformOrigin: "top left",
+            background: "#f4f0e8",
+            fontFamily: previewBrand.bodyFont,
+          }}
+        >
+          <SiteHeader brand={previewBrand} lang={previewLang} active="home" packagesHref="#" homeHref="#" />
+          <div style={{ padding: "52px 56px 60px" }}>
+            <div style={{ fontSize: 13, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--brand-text)", fontWeight: 600 }}>
+              {previewLang === "ar" ? "رحلات مختارة بعناية" : "Curated journeys"}
+            </div>
+            <div style={{ fontFamily: previewBrand.displayFont, fontSize: 60, lineHeight: 1.04, color: "#1a1611", margin: "16px 0 0", maxWidth: 820, fontWeight: previewLang === "ar" ? 700 : 400 }}>
+              {previewLang === "ar" ? "رحلات مصمّمة بعناية، على هويتك أنت" : "Beautifully designed journeys, on your own brand"}
+            </div>
+            <p style={{ fontSize: 18, lineHeight: 1.65, color: "#5e564a", margin: "20px 0 0", maxWidth: 640 }}>
+              {previewLang === "ar"
+                ? "هكذا يرى عملاؤك صفحاتك العامة — الشعار واللون والخط كما اخترتها."
+                : "This is how visitors see your public pages — your logo, colour and type, exactly as you set them."}
+            </p>
+            <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
+              <span style={{ background: "var(--brand)", color: "var(--brand-on)", padding: "13px 24px", borderRadius: 10, fontWeight: 600, fontSize: 15 }}>
+                {previewLang === "ar" ? "تصفّح الباقات" : "Browse packages"}
+              </span>
+              <span style={{ background: "transparent", color: "var(--brand-text)", border: "1.5px solid var(--brand)", padding: "13px 24px", borderRadius: 10, fontWeight: 600, fontSize: 15 }}>
+                {previewLang === "ar" ? "تواصل معنا" : "Contact us"}
+              </span>
+            </div>
+          </div>
+          <SiteFooter brand={previewBrand} lang={previewLang} packagesHref="#" homeHref="#" />
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Account-tab cards (root surface + custom domain + danger zone) ─────────
+  // The full custom-domain state machine and the delete-account handlers are
+  // preserved verbatim from the old single-scroll layout — only their HOME moved
+  // from the Brand left column to the Account tab.
+
+  // Root surface: what visitors see at the agency's root URL.
+  const rootModeCard = (
+    <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1 }}>
+          {lang === "ar" ? "صفحة البداية" : "Landing page"}
+        </div>
+        {siteModeSaved && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, fontFamily: SANS, color: DA_GREEN }}>
+            <Icon name="check" size={12} color={DA_GREEN} strokeWidth={2.5} />
+            {lang === "ar" ? "تم الحفظ" : "Saved"}
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 16, lineHeight: 1.5 }}>
+        {lang === "ar"
+          ? "اختر ما يراه الزوار عند فتح رابطك الرئيسي."
+          : "Choose what visitors see when they open your root URL."}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+        {([
+          {
+            id: "site" as const, icon: "home" as const,
+            title: lang === "ar" ? "الصفحة الرئيسية" : "Homepage",
+            desc: lang === "ar"
+              ? "صفحة هبوط كاملة بالأقسام؛ تظهر الباقات على ‎/packages."
+              : "A full landing page with sections; your packages live at /packages.",
+          },
+          {
+            id: "catalog" as const, icon: "package" as const,
+            title: lang === "ar" ? "كتالوج الباقات" : "Package catalog",
+            desc: lang === "ar"
+              ? "شبكة المتجر مباشرةً على رابطك الرئيسي."
+              : "Your storefront grid directly at your root URL.",
+          },
+        ]).map((opt) => {
+          const on = siteMode === opt.id;
+          return (
+            <button
+              key={opt.id}
+              data-testid={`site-mode-${opt.id}`}
+              onClick={() => handleSiteModeChange(opt.id)}
+              dir={lang === "ar" ? "rtl" : "ltr"}
+              style={{
+                textAlign: lang === "ar" ? "right" : "left", cursor: "pointer",
+                padding: "14px 16px", borderRadius: 11, background: on ? DA_GOLD_SOFT : DA_SURFACE,
+                border: `1.5px solid ${on ? DA_GOLD : DA_RULE}`, transition: "all .15s",
+                display: "flex", flexDirection: "column", gap: 6,
+                boxShadow: on ? `0 0 0 3px rgba(176,138,62,.14)` : "none",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontFamily: SANS, fontWeight: 600, color: on ? DA_GOLD_DEEP : DA_INK1 }}>
+                  <Icon name={opt.icon} size={14} color={on ? DA_GOLD_DEEP : DA_INK3} />
+                  {opt.title}
+                </span>
+                {on && <Icon name="check" size={13} color={DA_GOLD} strokeWidth={3} />}
+              </div>
+              <div style={{ fontSize: 11.5, color: DA_INK2, lineHeight: 1.4 }}>{opt.desc}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const customDomainCard = (
+    <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
+      <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 4 }}>{t.customDomainSectionTitle}</div>
+      <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 14 }}>{t.customDomainSectionSub}</div>
+
+      {!canUseCustomDomain(plan) ? (
+        /* ── Upgrade gate ── */
+        <div style={{ borderRadius: 10, background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE2}`, padding: "16px 18px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <Icon name="lock" size={14} color={DA_GOLD} />
+            <div style={{ fontSize: 12.5, fontWeight: 700, fontFamily: SANS, color: DA_GOLD }}>{t.customDomainUpgradeTitle}</div>
+          </div>
+          <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 14 }}>{t.customDomainUpgradeSub}</div>
+          <a href="/paywall" style={{ display: "inline-block", padding: "8px 16px", borderRadius: 8, background: DA_GOLD, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: SANS, textDecoration: "none" }}>
+            {t.customDomainUpgradeBtn}
+          </a>
+        </div>
+      ) : customDomain ? (() => {
+        /* ── Domain registered — CF state-based UI ── */
+        const allRecords: Array<{ purpose: string; type: string; name: string; value: string }> = [
+          ...(cnameRecord ? [{ purpose: lang === "ar" ? "توجيه الزيارات" : "Route traffic", type: cnameRecord.type, name: cnameRecord.name, value: cnameRecord.value }] : []),
+          ...verificationRecords.map(r => ({ purpose: lang === "ar" ? "التحقق من الملكية" : "Ownership verification", type: r.type, name: r.name, value: r.value })),
+          ...sslRecords.map(r => ({ purpose: lang === "ar" ? "شهادة SSL" : "SSL certificate", type: r.type, name: r.name, value: r.value })),
+        ];
+
+        // ── Active ─────────────────────────────────────────────────
+        if (domainStatus === "active") return (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: DA_GREEN_SOFT, border: `1px solid ${DA_GREEN}`, marginBottom: 12 }}>
+              <Icon name="check" size={13} color={DA_GREEN} strokeWidth={2.5} />
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_GREEN, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{t.customDomainStatusActive}</div>
+                <div style={{ fontSize: 12, fontFamily: "monospace", color: DA_INK2, marginTop: 1 }}>{customDomain}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: DA_INK3, marginBottom: 12 }}>{t.customDomainStatusActiveDesc}</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+              <a
+                href={`https://${customDomain}`} target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, background: DA_GOLD, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: SANS, textDecoration: "none" }}
+              >
+                <Icon name="globe" size={13} color="#fff" /> {lang === "ar" ? "زيارة الموقع" : "Visit site"}
+              </a>
+              <button
+                onClick={() => setConfirmRemoveOpen(true)} disabled={domainRemoving}
+                style={{ padding: "8px 14px", borderRadius: 9, background: DA_DANGER_SOFT, border: "none", color: DA_DANGER, fontSize: 12, fontWeight: 600, fontFamily: SANS, cursor: domainRemoving ? "not-allowed" : "pointer" }}
+              >
+                {t.customDomainRemoveBtn}
+              </button>
+            </div>
+            {domainError && <div style={{ fontSize: 11.5, color: DA_DANGER, marginTop: 8 }}>{domainError}</div>}
+          </div>
+        );
+
+        // ── Failed ─────────────────────────────────────────────────
+        if (domainStatus === "failed") return (
+          <div>
+            <div style={{ padding: "12px 14px", borderRadius: 10, background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_DANGER, textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 4 }}>{t.customDomainStatusError}</div>
+              <div style={{ fontSize: 12, fontFamily: "monospace", color: DA_INK2, marginBottom: 6 }}>{customDomain}</div>
+              <div style={{ fontSize: 12, color: DA_INK3, lineHeight: 1.5 }}>
+                {domainError || (lang === "ar"
+                  ? "لم نتمكن من التحقق من نطاقك. تحقق من سجلات DNS وحاول مجدداً، أو تواصل معنا للمساعدة."
+                  : "We couldn't complete domain verification. Check your DNS records and try again, or contact us for help."
+                )}
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: DA_INK3, marginBottom: 12, lineHeight: 1.6 }}>
+              <strong>{lang === "ar" ? "تحقق من:" : "Check:"}</strong>{" "}
+              {lang === "ar"
+                ? "هل السجلات مُضافة بالضبط كما أُرسلت إليك؟ هل انقضت مدة التحقق (48 ساعة)؟ هل هناك تعارض في النطاق؟"
+                : "Are the records added exactly as sent? Did verification time out (48h)? Is there a domain conflict?"}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setConfirmRemoveOpen(true)} disabled={domainRemoving}
+                style={{ padding: "8px 14px", borderRadius: 9, background: DA_GOLD, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: SANS, cursor: domainRemoving ? "not-allowed" : "pointer" }}
+              >
+                {lang === "ar" ? "تجربة نطاق مختلف" : "Try a different domain"}
+              </button>
+              <a href="mailto:support@packmetrix.com" style={{ display: "inline-flex", alignItems: "center", padding: "8px 14px", borderRadius: 9, background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 12, fontWeight: 600, fontFamily: SANS, textDecoration: "none" }}>
+                {lang === "ar" ? "تواصل معنا" : "Contact support"}
+              </a>
+            </div>
+          </div>
+        );
+
+        // ── In-progress: pending_dns | verifying | ssl_provisioning ─
+        const statusLabel =
+          domainStatus === "pending_dns"      ? (lang === "ar" ? "في انتظار سجلات DNS"  : "Waiting for DNS records") :
+          domainStatus === "ssl_provisioning" ? (lang === "ar" ? "جارٍ إعداد SSL"        : "Provisioning SSL certificate") :
+          t.customDomainStatusVerifying;
+        const statusDesc =
+          domainStatus === "pending_dns"      ? (lang === "ar" ? "أضف سجلات DNS التالية عند مسجّل نطاقك لتفعيل نطاقك." : "Add the DNS records below at your domain registrar to activate your domain.") :
+          domainStatus === "ssl_provisioning" ? (lang === "ar" ? "تم التحقق من سجلات DNS. نعمل الآن على إعداد شهادة SSL." : "DNS records verified. We're now provisioning your SSL certificate — this can take a few minutes.") :
+          t.customDomainStatusVerifyingDesc;
+        const statusColor =
+          domainStatus === "ssl_provisioning" ? "#1d4ed8" :
+          domainStatus === "verifying"        ? "#7c3aed" : "#b45309";
+        const statusBg =
+          domainStatus === "ssl_provisioning" ? "rgba(96,165,250,0.07)" :
+          domainStatus === "verifying"        ? "rgba(167,139,250,0.07)" : "rgba(245,158,11,0.07)";
+        const statusBorder =
+          domainStatus === "ssl_provisioning" ? "rgba(96,165,250,0.25)" :
+          domainStatus === "verifying"        ? "rgba(167,139,250,0.25)" : "rgba(245,158,11,0.25)";
+        const spinnerColor =
+          domainStatus === "ssl_provisioning" ? "#2563eb" :
+          domainStatus === "verifying"        ? "#7c3aed" : "#f59e0b";
+
+        return (
+          <div>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", borderRadius: 10, background: statusBg, border: `1px solid ${statusBorder}`, marginBottom: 12 }}>
+              <span className="spinner-warm" style={{ width: 10, height: 10, borderTopColor: spinnerColor, flexShrink: 0, marginTop: 2 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: statusColor, textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 3 }}>{statusLabel}</div>
+                <div style={{ fontSize: 12, fontFamily: "monospace", color: DA_INK3, wordBreak: "break-all" as const }}>{customDomain}</div>
+              </div>
+              <div style={{ fontSize: 10, color: DA_INK3, flexShrink: 0 }}>
+                {lang === "ar" ? "تحديث تلقائي كل 30 ث" : "Auto-refreshing every 30s"}
+              </div>
+            </div>
+
+            <div style={{ fontSize: 12, color: DA_INK3, lineHeight: 1.65, marginBottom: 12 }}>{statusDesc}</div>
+
+            <button
+              onClick={() => setDnsSetupOpen(true)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 8, background: DA_BG, border: `1px solid ${DA_RULE}`, color: DA_GOLD_DEEP, fontSize: 12, fontWeight: 600, fontFamily: SANS, cursor: "pointer", marginBottom: 14, textDecoration: "none" }}
+            >
+              <Icon name="link" size={12} color={DA_GOLD_DEEP} />
+              {lang === "ar" ? "عرض سجلات DNS والتعليمات" : "View DNS records & instructions"}
+            </button>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={handleRefreshStatus} disabled={refreshing}
+                style={{ padding: "7px 12px", borderRadius: 8, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 11, fontWeight: 600, fontFamily: SANS, cursor: refreshing ? "not-allowed" : "pointer" }}
+              >
+                {refreshing ? t.customDomainRefreshingBtn : t.customDomainRefreshBtn}
+              </button>
+              <button
+                onClick={() => setConfirmRemoveOpen(true)} disabled={domainRemoving}
+                style={{ padding: "7px 12px", borderRadius: 8, background: DA_DANGER_SOFT, border: "none", color: DA_DANGER, fontSize: 11, fontWeight: 600, fontFamily: SANS, cursor: domainRemoving ? "not-allowed" : "pointer" }}
+              >
+                {t.customDomainRemoveBtn}
+              </button>
+            </div>
+            {domainError && <div style={{ fontSize: 11.5, color: DA_DANGER, marginTop: 8 }}>{domainError}</div>}
+          </div>
+        );
+      })() : (
+        /* ── No domain yet ── */
+        <div>
+          {agencySlug && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 5 }}>
+                {t.customDomainCurrentUrl}
+              </div>
+              <div style={{ fontSize: 12, color: DA_INK2, fontFamily: "monospace", background: DA_BG, border: `1px solid ${DA_RULE}`, borderRadius: 7, padding: "6px 10px" }}>
+                packmetrix.com/{encodeURIComponent(agencySlug)}
+              </div>
+            </div>
+          )}
+          <FieldLabel>{t.customDomainLabel}</FieldLabel>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={domainInput}
+              onChange={e => { setDomainInput(e.target.value); setDomainError(null); }}
+              placeholder={t.customDomainPlaceholder}
+              style={{ flex: 1, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 14px", color: DA_INK1, fontSize: 13, fontFamily: "monospace", outline: "none", transition: "border-color .15s" }}
+              onFocus={e => (e.target.style.borderColor = DA_GOLD)}
+              onBlur={e => (e.target.style.borderColor = DA_RULE)}
+            />
+            <button
+              onClick={handleSaveDomain}
+              disabled={domainSaving || !domainInput.trim()}
+              style={{
+                padding: "10px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, fontFamily: SANS,
+                background: domainSaved ? DA_GREEN_SOFT : DA_GOLD,
+                border: domainSaved ? `1px solid ${DA_GREEN}` : "none",
+                color: domainSaved ? DA_GREEN : "#fff",
+                cursor: (domainSaving || !domainInput.trim()) ? "not-allowed" : "pointer",
+                opacity: !domainInput.trim() ? 0.5 : 1, flexShrink: 0, whiteSpace: "nowrap" as const,
+              }}
+            >
+              {domainSaving ? t.customDomainSavingBtn : domainSaved ? <><Icon name="check" size={12} color={DA_GREEN} strokeWidth={2.5} /> {t.customDomainSavedBtn}</> : t.customDomainSaveBtn}
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6 }}>{t.customDomainSubdomainHint}</div>
+          {domainError && <div style={{ fontSize: 11.5, color: DA_DANGER, marginTop: 8 }}>{domainError}</div>}
+          <div style={{ marginTop: 12, fontSize: 11.5, color: DA_INK3, lineHeight: 1.6 }}>
+            {lang === "ar"
+              ? "أدخل نطاقك ← احصل على سجلات DNS ← أضفها عند مسجّل النطاق ← يصبح نطاقك مباشراً."
+              : "Submit your domain → get DNS records → add them at your registrar → go live."
+            }
+            {" "}
+            <button
+              onClick={() => setDnsSetupOpen(true)}
+              style={{ background: "none", border: "none", padding: 0, color: DA_GOLD_DEEP, fontSize: 11.5, fontWeight: 600, fontFamily: SANS, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
+            >
+              {lang === "ar" ? "تفاصيل الإعداد" : "Setup details"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const dangerZoneCard = (
+    <div style={{ background: DA_SURFACE, border: `1px solid ${DA_DANGER}`, borderRadius: 14, padding: "20px 22px" }}>
+      <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_DANGER, marginBottom: 4 }}>
+        {lang === "ar" ? "منطقة الخطر" : "Danger zone"}
+      </div>
+      <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 16, lineHeight: 1.5 }}>
+        {lang === "ar"
+          ? "حذف حسابك يزيل جميع الباقات والعملاء والبيانات نهائياً. هذا الإجراء لا يمكن التراجع عنه."
+          : "Deleting your account permanently removes all packages, leads, and data. This cannot be undone."}
+      </div>
+      <button
+        onClick={() => { setDeleteOpen(true); setDeleteConfirmEmail(""); setDeleteError(null); }}
+        style={{
+          padding: "8px 16px", borderRadius: 9,
+          background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`,
+          color: DA_DANGER, fontSize: 12.5, fontWeight: 600, fontFamily: SANS,
+          cursor: "pointer",
+        }}
+      >
+        {lang === "ar" ? "حذف حسابي" : "Delete my account"}
+      </button>
+    </div>
+  );
+
   if (authLoading) {
     return (
       <AppLayout>
@@ -572,89 +1202,102 @@ export default function BrandingPage() {
       <div
         dir={lang === "ar" ? "rtl" : "ltr"}
         style={isMobile ? {
-          padding: "16px 16px 40px",
+          display: "flex", flexDirection: "column",
         } : {
           height: "100%",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          padding: "28px 32px 28px",
           boxSizing: "border-box",
-          maxWidth: 1400,
         }}
       >
-        {/* Page head */}
+        {/* Tabs — Brand · Account (full-bleed under the app chrome) */}
+        <ProfileTabBar lang={lang} isMobile={isMobile} active={activeTab} onChange={setActiveTab} t={t} />
+
+        {/* Tab content */}
+        <div style={isMobile ? {
+          padding: "16px 16px 40px",
+        } : {
+          flex: 1, minHeight: 0, display: "flex", flexDirection: "column",
+          overflow: "hidden", padding: "28px 32px 28px", boxSizing: "border-box",
+          maxWidth: 1400,
+        }}>
+        {/* Page head — reflects the active tab */}
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "flex-start",
           marginBottom: isMobile ? 24 : 20,
           flexShrink: 0,
         }}>
           <div>
-            <div style={{ fontSize: 26, fontWeight: 400, fontFamily: DISPLAY, color: DA_INK1, letterSpacing: "-0.3px" }}>{t.brandingTitle}</div>
-            <div style={{ fontSize: 13, fontFamily: SANS, color: DA_INK3, marginTop: 4 }}>{t.brandingSubtitle}</div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, fontFamily: SANS, color: DA_GOLD, textTransform: "uppercase", letterSpacing: "1.2px" }}>{activeTab === "brand" ? t.brandingCrumb : t.accountCrumb}</div>
+            <div style={{ fontSize: 34, fontWeight: 400, fontFamily: DISPLAY, color: DA_INK1, letterSpacing: "-0.8px", marginTop: 6, lineHeight: 1 }}>{activeTab === "brand" ? t.brandingTitle : t.accountTitle}</div>
+            <div style={{ fontSize: 13, fontFamily: SANS, color: DA_INK3, marginTop: 8, maxWidth: 560, lineHeight: 1.5 }}>{activeTab === "brand" ? t.brandingSubtitle : t.accountSubtitle}</div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {agencySlug && (
-              <a
-                href={
-                  domainStatus === "active" && customDomain
-                    ? `https://${customDomain}`
-                    : process.env.NODE_ENV === "development"
-                    ? `http://localhost:3000/${agencySlug}`
-                    : `https://${agencySlug}.packmetrix.com`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
+            {activeTab === "brand" && (
+              <button
+                data-testid="profile-save"
+                onClick={handleSave}
+                disabled={saving || !hasChanges}
                 style={{
-                  padding: "9px 16px", borderRadius: 9, fontSize: 13, fontWeight: 600, fontFamily: SANS,
-                  background: DA_SURFACE, border: `1px solid ${DA_RULE2}`,
-                  color: DA_INK2, textDecoration: "none",
-                  display: "flex", alignItems: "center", gap: 7,
+                  padding: "9px 20px", borderRadius: 9, fontSize: 13, fontWeight: 700, fontFamily: SANS,
+                  background: saved ? DA_GREEN_SOFT : DA_GOLD,
+                  border: saved ? `1px solid ${DA_GREEN}` : "none",
+                  color: saved ? DA_GREEN : "#fff",
+                  cursor: (saving || !hasChanges) ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", gap: 8, transition: "all .2s",
+                  opacity: hasChanges || saved ? 1 : 0.35,
                 }}
               >
-                <Icon name="globe" size={13} color={DA_INK3} />
-                {lang === "ar" ? "معاينة المتجر" : "Preview storefront"}
-              </a>
+                {saving
+                  ? <><span className="spinner-warm" style={{ width: 13, height: 13, borderTopColor: "#fff" }} /> {t.savingBtn}</>
+                  : saved
+                  ? <><Icon name="check" size={13} color={DA_GREEN} strokeWidth={2.5} /> {t.savedBtn}</>
+                  : t.saveChangesBtn
+                }
+              </button>
             )}
-            <button
-              data-testid="profile-save"
-              onClick={handleSave}
-              disabled={saving || !hasChanges}
-              style={{
-                padding: "9px 20px", borderRadius: 9, fontSize: 13, fontWeight: 700, fontFamily: SANS,
-                background: saved ? DA_GREEN_SOFT : DA_GOLD,
-                border: saved ? `1px solid ${DA_GREEN}` : "none",
-                color: saved ? DA_GREEN : "#fff",
-                cursor: (saving || !hasChanges) ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", gap: 8, transition: "all .2s",
-                opacity: hasChanges || saved ? 1 : 0.35,
-              }}
-            >
-              {saving
-                ? <><span className="spinner-warm" style={{ width: 13, height: 13, borderTopColor: "#fff" }} /> {t.savingBtn}</>
-                : saved
-                ? <><Icon name="check" size={13} color={DA_GREEN} strokeWidth={2.5} /> {t.savedBtn}</>
-                : t.saveChangesBtn
-              }
-            </button>
           </div>
         </div>
 
+        {activeTab === "account" ? (
+          /* ── ACCOUNT tab — custom domain + danger zone only ── */
+          <div style={isMobile ? {
+            display: "flex", flexDirection: "column", gap: 16,
+          } : {
+            flex: 1, minHeight: 0, overflowY: "auto",
+          }}>
+            <div style={{ maxWidth: 760, display: "flex", flexDirection: "column", gap: 16 }}>
+              {rootModeCard}
+              {customDomainCard}
+              {dangerZoneCard}
+            </div>
+          </div>
+        ) : (
         <div style={isMobile ? {
           display: "flex", flexDirection: "column", gap: 16,
         } : {
           flex: 1,
           minHeight: 0,
           overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          maxWidth: 560,
         }}>
+          {/* Mobile: preview on top so colour/font edits are visible immediately */}
+          {isMobile && previewPanel}
+          <div style={isMobile ? {
+            display: "flex", flexDirection: "column", gap: 16, marginTop: 16,
+          } : {
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.55fr) minmax(0, 1fr)",
+            gap: 18,
+            alignItems: "start",
+          }}>
+            {/* LEFT — config */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
 
-            {/* Agency profile */}
+            {/* Agency identity */}
             <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 18 }}>{t.agencyProfileLabel}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 4 }}>{t.agencyProfileLabel}</div>
+              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 16, lineHeight: 1.5 }}>{t.agencyProfileSub}</div>
 
               {/* Logo upload */}
               <div style={{ display: "flex", gap: 14, marginBottom: 18, alignItems: "center" }}>
@@ -692,416 +1335,125 @@ export default function BrandingPage() {
 
               <FieldLabel>{t.taglineLabel}</FieldLabel>
               <Input value={tagline} onChange={setTagline} placeholder="Curated Mediterranean journeys · est. 2014" />
+            </div>
 
-              <FieldLabel>{t.contactLabel}</FieldLabel>
+            {/* Brand colours */}
+            <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 4 }}>{t.brandColorsLabel}</div>
+              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 16, lineHeight: 1.5 }}>{t.colorUsedNote}</div>
+
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
+                <ColorField
+                  lang={lang} label={t.headerColorLabel} role="brand"
+                  value={brandColor} onChange={setBrandColor}
+                  swatches={BRAND_SWATCHES} brandFallback={brandColor || DEFAULT_BRAND_COLOR}
+                />
+                <ColorField
+                  lang={lang} label={t.accentColorLabel} role="accent"
+                  value={accentColor} onChange={setAccentColor}
+                  swatches={ACCENT_SWATCHES} brandFallback={brandColor || DEFAULT_BRAND_COLOR}
+                  hint={t.accentColorHint}
+                >
+                  {accentColor && (
+                    <button onClick={() => setAccentColor("")} style={{ fontSize: 11, color: DA_INK3, background: "none", border: "none", cursor: "pointer", fontFamily: SANS, padding: 0 }}>
+                      {lang === "ar" ? "مسح" : "Clear"}
+                    </button>
+                  )}
+                </ColorField>
+              </div>
+            </div>
+
+            {/* Font pairing */}
+            <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 4 }}>{t.typographyLabel}</div>
+              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 16, lineHeight: 1.5 }}>{t.typographyHint}</div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+                {(Object.keys(FONT_PAIRINGS) as FontPairingId[]).map((id) => {
+                  const p = FONT_PAIRINGS[id];
+                  const set = lang === "ar" ? p.ar : p.en;
+                  const on = fontPairing === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setFontPairing(id)}
+                      dir={lang === "ar" ? "rtl" : "ltr"}
+                      style={{
+                        textAlign: lang === "ar" ? "right" : "left", cursor: "pointer",
+                        padding: "14px 16px", borderRadius: 11, background: on ? DA_GOLD_SOFT : DA_SURFACE,
+                        border: `1.5px solid ${on ? DA_GOLD : DA_RULE}`, transition: "all .15s",
+                        display: "flex", flexDirection: "column", gap: 6,
+                        boxShadow: on ? `0 0 0 3px rgba(176,138,62,.14)` : "none",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 12.5, fontFamily: SANS, fontWeight: 600, color: on ? DA_GOLD_DEEP : DA_INK1 }}>
+                          {lang === "ar" ? p.labelAr : p.label}
+                        </span>
+                        {on && <Icon name="check" size={13} color={DA_GOLD} strokeWidth={3} />}
+                      </div>
+                      <div style={{ fontFamily: set.display, fontSize: 24, lineHeight: 1.1, color: DA_INK1, letterSpacing: "-0.4px", marginTop: 2 }}>
+                        {lang === "ar" ? "اكتشف العالم" : "See the world"}
+                      </div>
+                      <div style={{ fontFamily: set.body, fontSize: 11.5, color: DA_INK2, lineHeight: 1.4 }}>
+                        {lang === "ar" ? p.note.ar : p.note.en}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 16 }}>{t.contactLabel}</div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
                 <Input value={email} onChange={setEmail} placeholder="hello@agency.com" />
                 <Input value={phone} onChange={setPhone} placeholder="+1 555 000 1234" />
               </div>
-            </div>
-
-            {/* Storefront settings */}
-            <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 4 }}>
-                {lang === "ar" ? "إعدادات الواجهة العامة" : "Storefront settings"}
-              </div>
-              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 18, lineHeight: 1.5 }}>
-                {lang === "ar"
-                  ? "هذه الحقول تغذّي صفحتك العامة — تظهر الأقسام فقط عند ملء بياناتها."
-                  : "These fields power your public storefront — sections appear only when their data is filled in."}
-              </div>
-
-              {/* Storefront language */}
-              <FieldLabel>{lang === "ar" ? "لغة الواجهة العامة" : "Storefront language"}</FieldLabel>
-              <div style={{ display: "flex", gap: 8 }}>
-                {(["en", "ar"] as const).map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => setStorefrontLanguage(l)}
-                    style={{
-                      flex: 1, padding: "9px 0", borderRadius: 9, fontSize: 13, fontWeight: 600,
-                      fontFamily: SANS, cursor: "pointer", transition: "all .15s",
-                      background: storefrontLanguage === l ? DA_GOLD : DA_SURFACE,
-                      color: storefrontLanguage === l ? "#fff" : DA_INK2,
-                      border: `1.5px solid ${storefrontLanguage === l ? DA_GOLD : DA_RULE}`,
-                    }}
-                  >
-                    {l === "en" ? "English" : "العربية"}
-                  </button>
-                ))}
-              </div>
-              <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6, lineHeight: 1.5 }}>
-                {lang === "ar"
-                  ? "تحدد هذه اللغة الباقات التي تظهر — تُعرض باقات هذه اللغة فقط."
-                  : "Sets which packages appear — only packages in this language are shown."}
-              </div>
-
-              {/* Brand color */}
-              <FieldLabel>{lang === "ar" ? "لون الهوية" : "Brand color"}</FieldLabel>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                  <input
-                    type="color"
-                    value={brandColor}
-                    onChange={e => setBrandColor(e.target.value)}
-                    style={{ width: 42, height: 42, borderRadius: 9, border: `1px solid ${DA_RULE}`, cursor: "pointer", padding: 2, background: "transparent" }}
-                  />
-                </div>
-                <Input
-                  value={brandColor}
-                  onChange={v => { if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setBrandColor(v); }}
-                  placeholder="#1d4e72"
-                  style={{ fontFamily: "monospace", maxWidth: 120 }}
-                />
-                <div style={{ width: 36, height: 36, borderRadius: 9, background: brandColor, border: `1px solid ${DA_RULE}`, flexShrink: 0 }} />
+              <div style={{ marginTop: 8 }}>
+                <Input value={whatsapp} onChange={setWhatsapp} placeholder="WhatsApp · +971 50 000 0000" />
               </div>
               <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6 }}>
                 {lang === "ar"
-                  ? "يُستخدم على الأزرار والروابط في صفحتك العامة."
-                  : "Used on buttons and links in your storefront."}
-              </div>
-
-              {/* About */}
-              <FieldLabel>{lang === "ar" ? "نبذة عن الوكالة" : "About your agency"}</FieldLabel>
-              <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 8 }}>
-                {lang === "ar" ? "أدخل النص بالإنجليزية والعربية — كلٌّ يظهر في نسخته اللغوية." : "Enter text in both languages — each is shown in its language version."}
-              </div>
-              {[
-                { label: "English", value: about_en, set: setAboutEn, dir: "ltr", placeholder: "A short paragraph about who you are and the kind of journeys you design…" },
-                { label: "العربية", value: about_ar, set: setAboutAr, dir: "rtl", placeholder: "اكتب مقدمة قصيرة عن وكالتك وطبيعة رحلاتك…" },
-              ].map(({ label, value, set, dir, placeholder }) => (
-                <div key={label} style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: DA_INK3, marginBottom: 5, letterSpacing: ".06em" }}>{label}</div>
-                  <textarea
-                    value={value}
-                    onChange={e => set(e.target.value)}
-                    placeholder={placeholder}
-                    dir={dir}
-                    rows={3}
-                    style={{
-                      width: "100%", background: DA_SURFACE, border: `1px solid ${DA_RULE}`,
-                      borderRadius: 10, padding: "10px 14px", color: DA_INK1, fontSize: 13,
-                      fontFamily: SANS, outline: "none", resize: "vertical", lineHeight: 1.6,
-                      transition: "border-color .15s", boxSizing: "border-box",
-                    }}
-                    onFocus={e => (e.target.style.borderColor = DA_GOLD)}
-                    onBlur={e => (e.target.style.borderColor = DA_RULE)}
-                  />
-                </div>
-              ))}
-
-              {/* WhatsApp */}
-              <FieldLabel>{lang === "ar" ? "واتساب (للتواصل)" : "WhatsApp number"}</FieldLabel>
-              <Input
-                value={whatsapp}
-                onChange={setWhatsapp}
-                placeholder="+971 50 000 0000"
-              />
-              <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6 }}>
-                {lang === "ar"
-                  ? "يُفعّل زر واتساب العائم وشريط التواصل في الصفحة العامة."
-                  : "Enables the floating WhatsApp button and contact band on your storefront."}
-              </div>
-
-              {/* Trust stats */}
-              <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${DA_RULE}` }}>
-                <div style={{ fontSize: 12, fontWeight: 600, fontFamily: SANS, color: DA_INK2, marginBottom: 4 }}>
-                  {lang === "ar" ? "أرقام الثقة (اختياري)" : "Trust figures (optional)"}
-                </div>
-                <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 14, lineHeight: 1.5 }}>
-                  {lang === "ar"
-                    ? "تظهر هذه الأرقام فقط عند ملئها. لا تُدخل أرقاماً افتراضية."
-                    : "These appear only when filled in. Only enter real numbers — never invented."}
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 5 }}>
-                      {lang === "ar" ? "سنوات الخبرة" : "Years in business"}
-                    </div>
-                    <Input
-                      value={statsYears}
-                      onChange={v => { if (/^\d*$/.test(v)) setStatsYears(v); }}
-                      placeholder="12"
-                    />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 5 }}>
-                      {lang === "ar" ? "مسافرون استضفتهم" : "Travellers hosted"}
-                    </div>
-                    <Input
-                      value={statsTravellers}
-                      onChange={v => { if (/^\d*$/.test(v)) setStatsTravellers(v); }}
-                      placeholder="2400"
-                    />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: DA_INK3, marginBottom: 5 }}>
-                      {lang === "ar" ? "متوسط التقييم (من 5)" : "Avg. rating (out of 5)"}
-                    </div>
-                    <Input
-                      value={statsRating}
-                      onChange={v => { if (/^\d*\.?\d*$/.test(v) && parseFloat(v || "0") <= 5) setStatsRating(v); }}
-                      placeholder="4.9"
-                    />
-                  </div>
-                </div>
+                  ? "يُفعّل زر واتساب العائم وشريط التواصل في صفحتك العامة."
+                  : "WhatsApp enables the floating chat button and contact band on your storefront."}
               </div>
             </div>
 
-            {/* Reviews settings */}
+            {/* Social links — Gulf essentials first, then More */}
             <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 4 }}>{t.reviewsSettingsTitle}</div>
-              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 14 }}>
-                Ratings & reviews from visitors on your landing pages
+              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 4 }}>{t.socialsLabel}</div>
+              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 16, lineHeight: 1.5 }}>{t.socialsHint}</div>
+
+              <div style={{ fontSize: 10.5, fontWeight: 700, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase", letterSpacing: "1.2px", marginBottom: 12 }}>{t.socialsGulfLabel}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* WhatsApp READS the canonical whatsapp field — edit it in Contact above */}
+                <SocialRow glyph={SOCIAL_GLYPH.whatsapp(16)} value={whatsapp} readOnly placeholder="WhatsApp · +971 50 000 0000" />
+                <SocialRow glyph={SOCIAL_GLYPH.snapchat(16)} value={snapchat} onChange={setSnapchat} placeholder="https://snapchat.com/add/…" />
+                <SocialRow glyph={SOCIAL_GLYPH.tiktok(15)} value={tiktok} onChange={setTiktok} placeholder="https://tiktok.com/@…" />
+                <SocialRow glyph={SOCIAL_GLYPH.instagram(16)} value={instagram} onChange={setInstagram} placeholder="https://instagram.com/…" />
               </div>
-              <div style={{ borderTop: `1px solid ${DA_RULE}` }}>
-                <Toggle
-                  enabled={enableReviews}
-                  onChange={setEnableReviews}
-                  label={t.enableReviewsLabel}
-                  sub={t.enableReviewsSub}
-                />
-                <div style={{ borderTop: `1px solid ${DA_RULE}` }}>
-                  <Toggle
-                    enabled={showReviews}
-                    onChange={setShowReviews}
-                    label={t.showReviewsLabel}
-                    sub={t.showReviewsSub}
-                  />
-                </div>
+
+              <div style={{ fontSize: 10.5, fontWeight: 700, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase", letterSpacing: "1.2px", margin: "18px 0 12px" }}>{t.socialsMoreLabel}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <SocialRow glyph={SOCIAL_GLYPH.facebook(16)} value={facebook} onChange={setFacebook} placeholder="https://facebook.com/…" />
+                <SocialRow glyph={SOCIAL_GLYPH.youtube(16)} value={youtube} onChange={setYoutube} placeholder="https://youtube.com/@…" />
+                <SocialRow glyph={SOCIAL_GLYPH.x(15)} value={x} onChange={setX} placeholder="https://x.com/…" />
               </div>
             </div>
 
-            {/* Custom domain */}
-            <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_INK1, marginBottom: 4 }}>{t.customDomainSectionTitle}</div>
-              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 14 }}>{t.customDomainSectionSub}</div>
+            </div>{/* LEFT column */}
 
-              {!canUseCustomDomain(plan) ? (
-                /* ── Upgrade gate ── */
-                <div style={{ borderRadius: 10, background: DA_GOLD_SOFT, border: `1px solid ${DA_RULE2}`, padding: "16px 18px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                    <Icon name="lock" size={14} color={DA_GOLD} />
-                    <div style={{ fontSize: 12.5, fontWeight: 700, fontFamily: SANS, color: DA_GOLD }}>{t.customDomainUpgradeTitle}</div>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 14 }}>{t.customDomainUpgradeSub}</div>
-                  <a href="/paywall" style={{ display: "inline-block", padding: "8px 16px", borderRadius: 8, background: DA_GOLD, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: SANS, textDecoration: "none" }}>
-                    {t.customDomainUpgradeBtn}
-                  </a>
-                </div>
-              ) : customDomain ? (() => {
-                /* ── Domain registered — CF state-based UI ── */
-                const allRecords: Array<{ purpose: string; type: string; name: string; value: string }> = [
-                  ...(cnameRecord ? [{ purpose: lang === "ar" ? "توجيه الزيارات" : "Route traffic", type: cnameRecord.type, name: cnameRecord.name, value: cnameRecord.value }] : []),
-                  ...verificationRecords.map(r => ({ purpose: lang === "ar" ? "التحقق من الملكية" : "Ownership verification", type: r.type, name: r.name, value: r.value })),
-                  ...sslRecords.map(r => ({ purpose: lang === "ar" ? "شهادة SSL" : "SSL certificate", type: r.type, name: r.name, value: r.value })),
-                ];
-
-                // ── Active ─────────────────────────────────────────────────
-                if (domainStatus === "active") return (
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: DA_GREEN_SOFT, border: `1px solid ${DA_GREEN}`, marginBottom: 12 }}>
-                      <Icon name="check" size={13} color={DA_GREEN} strokeWidth={2.5} />
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_GREEN, textTransform: "uppercase" as const, letterSpacing: ".5px" }}>{t.customDomainStatusActive}</div>
-                        <div style={{ fontSize: 12, fontFamily: "monospace", color: DA_INK2, marginTop: 1 }}>{customDomain}</div>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 12, color: DA_INK3, marginBottom: 12 }}>{t.customDomainStatusActiveDesc}</div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
-                      <a
-                        href={`https://${customDomain}`} target="_blank" rel="noopener noreferrer"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, background: DA_GOLD, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: SANS, textDecoration: "none" }}
-                      >
-                        <Icon name="globe" size={13} color="#fff" /> {lang === "ar" ? "زيارة الموقع" : "Visit site"}
-                      </a>
-                      <button
-                        onClick={() => setConfirmRemoveOpen(true)} disabled={domainRemoving}
-                        style={{ padding: "8px 14px", borderRadius: 9, background: DA_DANGER_SOFT, border: "none", color: DA_DANGER, fontSize: 12, fontWeight: 600, fontFamily: SANS, cursor: domainRemoving ? "not-allowed" : "pointer" }}
-                      >
-                        {t.customDomainRemoveBtn}
-                      </button>
-                    </div>
-                    {domainError && <div style={{ fontSize: 11.5, color: DA_DANGER, marginTop: 8 }}>{domainError}</div>}
-                  </div>
-                );
-
-                // ── Failed ─────────────────────────────────────────────────
-                if (domainStatus === "failed") return (
-                  <div>
-                    <div style={{ padding: "12px 14px", borderRadius: 10, background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`, marginBottom: 12 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: DA_DANGER, textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 4 }}>{t.customDomainStatusError}</div>
-                      <div style={{ fontSize: 12, fontFamily: "monospace", color: DA_INK2, marginBottom: 6 }}>{customDomain}</div>
-                      <div style={{ fontSize: 12, color: DA_INK3, lineHeight: 1.5 }}>
-                        {domainError || (lang === "ar"
-                          ? "لم نتمكن من التحقق من نطاقك. تحقق من سجلات DNS وحاول مجدداً، أو تواصل معنا للمساعدة."
-                          : "We couldn't complete domain verification. Check your DNS records and try again, or contact us for help."
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 12, color: DA_INK3, marginBottom: 12, lineHeight: 1.6 }}>
-                      <strong>{lang === "ar" ? "تحقق من:" : "Check:"}</strong>{" "}
-                      {lang === "ar"
-                        ? "هل السجلات مُضافة بالضبط كما أُرسلت إليك؟ هل انقضت مدة التحقق (48 ساعة)؟ هل هناك تعارض في النطاق؟"
-                        : "Are the records added exactly as sent? Did verification time out (48h)? Is there a domain conflict?"}
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        onClick={() => setConfirmRemoveOpen(true)} disabled={domainRemoving}
-                        style={{ padding: "8px 14px", borderRadius: 9, background: DA_GOLD, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: SANS, cursor: domainRemoving ? "not-allowed" : "pointer" }}
-                      >
-                        {lang === "ar" ? "تجربة نطاق مختلف" : "Try a different domain"}
-                      </button>
-                      <a href="mailto:support@packmetrix.com" style={{ display: "inline-flex", alignItems: "center", padding: "8px 14px", borderRadius: 9, background: DA_SURFACE2, border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 12, fontWeight: 600, fontFamily: SANS, textDecoration: "none" }}>
-                        {lang === "ar" ? "تواصل معنا" : "Contact support"}
-                      </a>
-                    </div>
-                  </div>
-                );
-
-                // ── In-progress: pending_dns | verifying | ssl_provisioning ─
-                const statusLabel =
-                  domainStatus === "pending_dns"      ? (lang === "ar" ? "في انتظار سجلات DNS"  : "Waiting for DNS records") :
-                  domainStatus === "ssl_provisioning" ? (lang === "ar" ? "جارٍ إعداد SSL"        : "Provisioning SSL certificate") :
-                  t.customDomainStatusVerifying;
-                const statusDesc =
-                  domainStatus === "pending_dns"      ? (lang === "ar" ? "أضف سجلات DNS التالية عند مسجّل نطاقك لتفعيل نطاقك." : "Add the DNS records below at your domain registrar to activate your domain.") :
-                  domainStatus === "ssl_provisioning" ? (lang === "ar" ? "تم التحقق من سجلات DNS. نعمل الآن على إعداد شهادة SSL." : "DNS records verified. We're now provisioning your SSL certificate — this can take a few minutes.") :
-                  t.customDomainStatusVerifyingDesc;
-                const statusColor =
-                  domainStatus === "ssl_provisioning" ? "#1d4ed8" :
-                  domainStatus === "verifying"        ? "#7c3aed" : "#b45309";
-                const statusBg =
-                  domainStatus === "ssl_provisioning" ? "rgba(96,165,250,0.07)" :
-                  domainStatus === "verifying"        ? "rgba(167,139,250,0.07)" : "rgba(245,158,11,0.07)";
-                const statusBorder =
-                  domainStatus === "ssl_provisioning" ? "rgba(96,165,250,0.25)" :
-                  domainStatus === "verifying"        ? "rgba(167,139,250,0.25)" : "rgba(245,158,11,0.25)";
-                const spinnerColor =
-                  domainStatus === "ssl_provisioning" ? "#2563eb" :
-                  domainStatus === "verifying"        ? "#7c3aed" : "#f59e0b";
-
-                return (
-                  <div>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", borderRadius: 10, background: statusBg, border: `1px solid ${statusBorder}`, marginBottom: 12 }}>
-                      <span className="spinner-warm" style={{ width: 10, height: 10, borderTopColor: spinnerColor, flexShrink: 0, marginTop: 2 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, fontFamily: SANS, color: statusColor, textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 3 }}>{statusLabel}</div>
-                        <div style={{ fontSize: 12, fontFamily: "monospace", color: DA_INK3, wordBreak: "break-all" as const }}>{customDomain}</div>
-                      </div>
-                      <div style={{ fontSize: 10, color: DA_INK3, flexShrink: 0 }}>
-                        {lang === "ar" ? "تحديث تلقائي كل 30 ث" : "Auto-refreshing every 30s"}
-                      </div>
-                    </div>
-
-                    <div style={{ fontSize: 12, color: DA_INK3, lineHeight: 1.65, marginBottom: 12 }}>{statusDesc}</div>
-
-                    <button
-                      onClick={() => setDnsSetupOpen(true)}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 8, background: DA_BG, border: `1px solid ${DA_RULE}`, color: DA_GOLD_DEEP, fontSize: 12, fontWeight: 600, fontFamily: SANS, cursor: "pointer", marginBottom: 14, textDecoration: "none" }}
-                    >
-                      <Icon name="link" size={12} color={DA_GOLD_DEEP} />
-                      {lang === "ar" ? "عرض سجلات DNS والتعليمات" : "View DNS records & instructions"}
-                    </button>
-
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        onClick={handleRefreshStatus} disabled={refreshing}
-                        style={{ padding: "7px 12px", borderRadius: 8, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, color: DA_INK2, fontSize: 11, fontWeight: 600, fontFamily: SANS, cursor: refreshing ? "not-allowed" : "pointer" }}
-                      >
-                        {refreshing ? t.customDomainRefreshingBtn : t.customDomainRefreshBtn}
-                      </button>
-                      <button
-                        onClick={() => setConfirmRemoveOpen(true)} disabled={domainRemoving}
-                        style={{ padding: "7px 12px", borderRadius: 8, background: DA_DANGER_SOFT, border: "none", color: DA_DANGER, fontSize: 11, fontWeight: 600, fontFamily: SANS, cursor: domainRemoving ? "not-allowed" : "pointer" }}
-                      >
-                        {t.customDomainRemoveBtn}
-                      </button>
-                    </div>
-                    {domainError && <div style={{ fontSize: 11.5, color: DA_DANGER, marginTop: 8 }}>{domainError}</div>}
-                  </div>
-                );
-              })() : (
-                /* ── No domain yet ── */
-                <div>
-                  {agencySlug && (
-                    <div style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 600, fontFamily: SANS, color: DA_INK3, textTransform: "uppercase" as const, letterSpacing: ".5px", marginBottom: 5 }}>
-                        {t.customDomainCurrentUrl}
-                      </div>
-                      <div style={{ fontSize: 12, color: DA_INK2, fontFamily: "monospace", background: DA_BG, border: `1px solid ${DA_RULE}`, borderRadius: 7, padding: "6px 10px" }}>
-                        packmetrix.com/{encodeURIComponent(agencySlug)}
-                      </div>
-                    </div>
-                  )}
-                  <FieldLabel>{t.customDomainLabel}</FieldLabel>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      value={domainInput}
-                      onChange={e => { setDomainInput(e.target.value); setDomainError(null); }}
-                      placeholder={t.customDomainPlaceholder}
-                      style={{ flex: 1, background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 10, padding: "10px 14px", color: DA_INK1, fontSize: 13, fontFamily: "monospace", outline: "none", transition: "border-color .15s" }}
-                      onFocus={e => (e.target.style.borderColor = DA_GOLD)}
-                      onBlur={e => (e.target.style.borderColor = DA_RULE)}
-                    />
-                    <button
-                      onClick={handleSaveDomain}
-                      disabled={domainSaving || !domainInput.trim()}
-                      style={{
-                        padding: "10px 14px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, fontFamily: SANS,
-                        background: domainSaved ? DA_GREEN_SOFT : DA_GOLD,
-                        border: domainSaved ? `1px solid ${DA_GREEN}` : "none",
-                        color: domainSaved ? DA_GREEN : "#fff",
-                        cursor: (domainSaving || !domainInput.trim()) ? "not-allowed" : "pointer",
-                        opacity: !domainInput.trim() ? 0.5 : 1, flexShrink: 0, whiteSpace: "nowrap" as const,
-                      }}
-                    >
-                      {domainSaving ? t.customDomainSavingBtn : domainSaved ? <><Icon name="check" size={12} color={DA_GREEN} strokeWidth={2.5} /> {t.customDomainSavedBtn}</> : t.customDomainSaveBtn}
-                    </button>
-                  </div>
-                  <div style={{ fontSize: 11, color: DA_INK3, marginTop: 6 }}>{t.customDomainSubdomainHint}</div>
-                  {domainError && <div style={{ fontSize: 11.5, color: DA_DANGER, marginTop: 8 }}>{domainError}</div>}
-                  <div style={{ marginTop: 12, fontSize: 11.5, color: DA_INK3, lineHeight: 1.6 }}>
-                    {lang === "ar"
-                      ? "أدخل نطاقك ← احصل على سجلات DNS ← أضفها عند مسجّل النطاق ← يصبح نطاقك مباشراً."
-                      : "Submit your domain → get DNS records → add them at your registrar → go live."
-                    }
-                    {" "}
-                    <button
-                      onClick={() => setDnsSetupOpen(true)}
-                      style={{ background: "none", border: "none", padding: 0, color: DA_GOLD_DEEP, fontSize: 11.5, fontWeight: 600, fontFamily: SANS, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
-                    >
-                      {lang === "ar" ? "تفاصيل الإعداد" : "Setup details"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Danger zone */}
-            <div style={{ background: DA_SURFACE, border: `1px solid ${DA_DANGER}`, borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SANS, color: DA_DANGER, marginBottom: 4 }}>
-                {lang === "ar" ? "منطقة الخطر" : "Danger zone"}
+            {/* RIGHT — sticky live preview (desktop only; mobile shows it on top) */}
+            {!isMobile && (
+              <div style={{ position: "sticky", top: 0, minWidth: 0 }}>
+                {previewPanel}
               </div>
-              <div style={{ fontSize: 11.5, color: DA_INK3, marginBottom: 16, lineHeight: 1.5 }}>
-                {lang === "ar"
-                  ? "حذف حسابك يزيل جميع الباقات والعملاء والبيانات نهائياً. هذا الإجراء لا يمكن التراجع عنه."
-                  : "Deleting your account permanently removes all packages, leads, and data. This cannot be undone."}
-              </div>
-              <button
-                onClick={() => { setDeleteOpen(true); setDeleteConfirmEmail(""); setDeleteError(null); }}
-                style={{
-                  padding: "8px 16px", borderRadius: 9,
-                  background: DA_DANGER_SOFT, border: `1px solid ${DA_DANGER}`,
-                  color: DA_DANGER, fontSize: 12.5, fontWeight: 600, fontFamily: SANS,
-                  cursor: "pointer",
-                }}
-              >
-                {lang === "ar" ? "حذف حسابي" : "Delete my account"}
-              </button>
-            </div>
-
+            )}
+          </div>{/* grid */}
         </div>
+        )}
+        </div>{/* tab content */}
       </div>
       {/* ── Remove domain confirmation modal ── */}
       <ConfirmModal

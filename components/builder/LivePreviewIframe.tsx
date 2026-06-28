@@ -20,10 +20,20 @@ const IFRAME_H = Math.ceil(CONTAINER_H / PHONE_SCALE); // height before scaling
 
 // ─── Converts builder state into a TPackage-compatible wire payload ────────────
 
+export type PreviewPackageCard = {
+  title: string;
+  destination: string;
+  price: string;
+  nights: string;
+  image: string;
+  link: string;
+};
+
 function toPreviewPayload(
   core: CoreForm,
   sections: AnySectionInstance[],
   templateId: string,
+  otherPackages: PreviewPackageCard[],
 ): Record<string, unknown> {
   type ArrStr = string[];
   const get = <T,>(type: string): T | undefined =>
@@ -68,6 +78,18 @@ function toPreviewPayload(
       ...(e.arrivingTime    ? { arrivingTime:    String(e.arrivingTime) }    : {}),
     }));
 
+  // other_packages is auto-populated from the agency's other active packages
+  // at render time on the live page (see app/[agencySlug]/[packageId]/page.tsx).
+  // The builder preview has no such fetch, so inject the agency's real packages
+  // (fetched by the builder and passed in) so the section mirrors the live page.
+  const previewSections = otherPackages.length && sections.some((s) => s.type === "other_packages")
+    ? sections.map((s) =>
+        s.type === "other_packages"
+          ? { ...s, data: { ...(s.data ?? {}), packages: otherPackages } }
+          : s,
+      )
+    : sections;
+
   return {
     id:              "preview",
     templateId,
@@ -90,7 +112,7 @@ function toPreviewPayload(
     images:          mediaSec?.images      ?? [],
     videoUrl:        mediaSec?.videoUrl    ?? "",
     airports,
-    sections,
+    sections: previewSections,
     ...(agent              ? { agent }                                     : { agent: null }),
     ...(trekSec            ? {
                                difficulty:     trekSec.difficulty,
@@ -114,6 +136,7 @@ export function LivePreviewIframe({
   lang,
   templateId,
   agency,
+  otherPackages = [],
   phoneOnly = false,
   activeSection,
   activeField,
@@ -123,6 +146,7 @@ export function LivePreviewIframe({
   lang: "en" | "ar";
   templateId: string;
   agency: TAgency | null;
+  otherPackages?: PreviewPackageCard[];
   phoneOnly?: boolean;
   activeSection?: string | null;
   activeField?: string | null;
@@ -155,7 +179,7 @@ export function LivePreviewIframe({
 
   // ── Build & dispatch preview payload ─────────────────────────────────────
   const pushPreview = useCallback(() => {
-    const payload = toPreviewPayload(core, sections, templateId);
+    const payload = toPreviewPayload(core, sections, templateId, otherPackages);
     const msg     = { payload, templateId, agency: agencyMsg };
 
     // Persist to localStorage so the desktop new-tab view can read it
@@ -168,7 +192,7 @@ export function LivePreviewIframe({
     }
     setUpdating(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [core, sections, templateId, agency]);
+  }, [core, sections, templateId, agency, otherPackages]);
 
   // ── Keep a stable ref to pushPreview so the message handler never goes stale ─
   const pushPreviewRef = useRef(pushPreview);
@@ -249,7 +273,7 @@ export function LivePreviewIframe({
   // ── Open desktop preview in new tab ──────────────────────────────────────
   const openDesktopTab = () => {
     // Sync latest state to localStorage so the new tab reads current draft
-    const payload = toPreviewPayload(core, sections, templateId);
+    const payload = toPreviewPayload(core, sections, templateId, otherPackages);
     const msg = { payload, templateId, agency: agencyMsg };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msg)); } catch {}
     window.open("/preview", "_blank", "noopener,noreferrer");

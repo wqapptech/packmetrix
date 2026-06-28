@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { headers } from "next/headers";
 import { db } from "@/lib/firebase-admin";
 import AgencyStorefront from "@/components/AgencyStorefront";
+import Homepage from "@/components/site/Homepage";
+import { resolveSiteMode } from "@/lib/site-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -59,5 +61,11 @@ export default async function AgencyPackagesPage({
   const isSubdomainAccess = /^[a-z0-9-]+\.packmetrix\.com$/.test(host);
   const basePath = isSubdomainAccess ? "" : `/${agencySlug}`;
 
-  return <AgencyStorefront agencySlug={agencySlug} basePath={basePath} />;
+  // Gated root flip (defaults to catalog — see lib/site-mode). "site" → homepage
+  // at root with the storefront at /packages; otherwise today's storefront.
+  const agency = await fetchAgencyBySlug(agencySlug);
+  if (resolveSiteMode(agency) === "site") {
+    return <Homepage agencySlug={agencySlug} basePath={basePath} />;
+  }
+  return <AgencyStorefront agencySlug={agencySlug} basePath={basePath} siteMode="catalog" />;
 }

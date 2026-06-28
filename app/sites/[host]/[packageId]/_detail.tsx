@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { withFirestoreRecovery } from "@/lib/firestore-recover";
 import PackageRenderer from "@/components/PackageRenderer";
 import type { TPackage, TAgency, Lang } from "@/components/templates/types";
 import { locStr } from "@/components/templates/types";
 import { DEFAULT_TEMPLATE_ID } from "@/components/templates/index";
 import { normalizePkg } from "@/lib/sections/normalize";
+import { useBfcacheReload, useReloadIfStuck } from "@/components/site/useBfcacheReload";
 
 const DEFAULT_BRAND = "#1f5f8e";
 const BG            = "#fdfcf9";
@@ -22,16 +24,21 @@ export default function CustomDomainPackageDetail({
   packageId: string;
 }) {
   const router = useRouter();
+  useBfcacheReload(); // Back/Forward from a frozen page → reload so Firestore re-fetches
 
   const [pkg,     setPkg]     = useState<TPackage | null>(null);
   const [agency,  setAgency]  = useState<TAgency | null>(null);
   const [loading, setLoading] = useState(true);
+  useReloadIfStuck(loading); // safety net for Back-restored hung fetch
 
   useEffect(() => {
     const load = async () => {
       if (!packageId) return;
       try {
-        const pkgSnap = await getDoc(doc(db, "packages", packageId));
+        // Watchdog the first read: if a Back/Forward-wedged Firestore stream
+        // makes it hang, reset the connection and retry so the spinner can't
+        // stick. Later reads in this load then run on the healthy connection.
+        const pkgSnap = await withFirestoreRecovery(() => getDoc(doc(db, "packages", packageId)));
         if (!pkgSnap.exists()) { window.location.replace("/"); return; }
 
         const data = { id: pkgSnap.id, ...pkgSnap.data() } as TPackage;
@@ -76,9 +83,15 @@ export default function CustomDomainPackageDetail({
           const userSnap = await getDoc(doc(db, "users", data.userId));
           if (userSnap.exists()) {
             const u = userSnap.data();
+            // Match the package's authored language for the agency name/tagline:
+            // use the Arabic overrides (nameAr/taglineAr) when rendering an Arabic
+            // package, mirroring brandFromUser()'s fallback logic.
+            const agencyLang = data.primaryLanguage === "ar" ? "ar" : "en";
+            const arOverride = (base: unknown, arVal: unknown) =>
+              agencyLang === "ar" && String(arVal || "").trim() ? String(arVal) : String(base || "");
             setAgency({
-              name:           u.name || u.email || "Travel Agency",
-              tagline:        u.tagline || "",
+              name:           arOverride(u.name || u.email || "Travel Agency", u.nameAr),
+              tagline:        arOverride(u.tagline, u.taglineAr),
               logoUrl:        u.logoUrl || "",
               brandColor:     u.brandColor || DEFAULT_BRAND,
               activeTemplate: u.activeTemplate || DEFAULT_TEMPLATE_ID,
@@ -137,7 +150,7 @@ export default function CustomDomainPackageDetail({
     );
   }
 
-  const lang: Lang           = (pkg.language === "ar" ? "ar" : "en");
+  const lang: Lang           = (pkg.primaryLanguage === "ar" ? "ar" : "en");
   const effectiveAgency: TAgency = agency || {
     name: "Travel Agency",
     brandColor: DEFAULT_BRAND,

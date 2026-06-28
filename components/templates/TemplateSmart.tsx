@@ -850,7 +850,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
             </div>
             {agency.agencySlug && (
               <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-                <a href={`/${agency.agencySlug}`} style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: SM.brand, textDecoration: "none" }}>
+                <a href={`/${agency.agencySlug}/packages`} style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: SM.brand, textDecoration: "none" }}>
                   {t.navAllPackages} →
                 </a>
               </div>

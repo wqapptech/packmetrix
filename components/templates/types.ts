@@ -303,11 +303,19 @@ export type TPackage = {
 
 // ─── Agency type ─────────────────────────────────────────────────────────────
 
+// The canonical brand object lives in `@/lib/brand`. TAgency (templates) and
+// AgencyProfile (storefront) derive from it — they expose a subset of its
+// fields, mapped onto the same names. Re-exported here so template code can
+// import the canonical shape from one place.
+export type { AgencyBrand, AgencySocials } from "@/lib/brand";
+
 export type TAgency = {
+  // ── Derived from AgencyBrand ───────────────────────────────────────────────
   name: string;
   tagline?: string;
   logoUrl?: string;
   brandColor?: string;
+  // ── Template-specific (not part of the brand object) ───────────────────────
   activeTemplate?: string;
   agencySlug?: string;
   enableReviews?: boolean;

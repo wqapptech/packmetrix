@@ -18,6 +18,54 @@ function loadEnvLocal() {
   }
 }
 
+/**
+ * Resolve a Firebase service account so teardown can run even when
+ * FIREBASE_ADMIN_KEY isn't exported. Tries, in order:
+ *   1. FIREBASE_ADMIN_KEY                       (inline JSON — CI / .env.local)
+ *   2. FIREBASE_ADMIN_KEY_FILE / GOOGLE_APPLICATION_CREDENTIALS (path to JSON)
+ *   3. serviceAccountKey*.json in the project root (gitignored local keys)
+ * When multiple keys are available, prefer the one whose project_id matches
+ * the target project so we never clean the wrong Firebase project.
+ * Returns null if no usable credential is found.
+ */
+function resolveServiceAccount(): { project_id?: string; [k: string]: unknown } | null {
+  const inline = process.env.FIREBASE_ADMIN_KEY;
+  if (inline) {
+    try {
+      return JSON.parse(inline);
+    } catch {
+      console.warn("[smoke] FIREBASE_ADMIN_KEY is set but is not valid JSON — ignoring");
+    }
+  }
+
+  const candidatePaths = [
+    process.env.FIREBASE_ADMIN_KEY_FILE,
+    process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    path.join(process.cwd(), "serviceAccountKey.json"),
+    path.join(process.cwd(), "serviceAccountKeyStaging.json"),
+  ].filter((p): p is string => Boolean(p));
+
+  const parsed: Array<{ project_id?: string; [k: string]: unknown }> = [];
+  for (const p of candidatePaths) {
+    if (!fs.existsSync(p)) continue;
+    try {
+      parsed.push(JSON.parse(fs.readFileSync(p, "utf8")));
+    } catch {
+      console.warn(`[smoke] Could not parse service account at ${p} — skipping`);
+    }
+  }
+  if (parsed.length === 0) return null;
+
+  const target =
+    process.env.SMOKE_TARGET_PROJECT ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  if (target) {
+    const match = parsed.find((sa) => sa.project_id === target);
+    if (match) return match;
+  }
+  return parsed[0];
+}
+
 async function globalTeardown(_config: FullConfig) {
   loadEnvLocal();
 
@@ -32,25 +80,42 @@ async function globalTeardown(_config: FullConfig) {
     SMOKE_EMAIL: string;
   };
 
-  const adminKeyRaw = process.env.FIREBASE_ADMIN_KEY;
-  if (!adminKeyRaw) {
+  const signupEmail = state.SMOKE_EMAIL.replace("smoke.", "smoke.signup.");
+  const serviceAccount = resolveServiceAccount();
+  if (!serviceAccount) {
     console.warn(
-      "[smoke] FIREBASE_ADMIN_KEY not set — manual cleanup needed\n" +
-      `[smoke] UID: ${state.SMOKE_UID} | Slug: ${state.SMOKE_AGENCY_SLUG}`
+      "[smoke] No admin credentials found (FIREBASE_ADMIN_KEY, FIREBASE_ADMIN_KEY_FILE, " +
+      "or serviceAccountKey*.json in the project root) — manual cleanup needed\n" +
+      `[smoke] UID: ${state.SMOKE_UID} | Slug: ${state.SMOKE_AGENCY_SLUG} | Signup: ${signupEmail}`
     );
     return;
   }
-
-  const serviceAccount = JSON.parse(adminKeyRaw);
 
   const { initializeApp, getApps, cert } = await import("firebase-admin/app");
   const { getAuth } = await import("firebase-admin/auth");
   const { getFirestore } = await import("firebase-admin/firestore");
 
+  // Guard against the silent-leak failure mode: if the resolved key cleans a
+  // different Firebase project than the one the tests ran against, the signup
+  // user (created on the target project by the deployed app) survives.
+  const target =
+    process.env.SMOKE_TARGET_PROJECT ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  if (target && serviceAccount.project_id !== target) {
+    console.warn(
+      `[smoke] WARNING: admin key project "${serviceAccount.project_id}" does not match ` +
+      `target project "${target}". Users created on the target project will NOT be cleaned.\n` +
+      `[smoke] Provide a service account for "${target}" (FIREBASE_ADMIN_KEY / ` +
+      "serviceAccountKey.json) to clean it. Aborting to avoid touching the wrong project."
+    );
+    return;
+  }
+  console.log(`[smoke] Teardown cleaning project: ${serviceAccount.project_id}`);
+
   const appName = "smoke-teardown";
   const app =
     getApps().find((a) => a.name === appName) ||
-    initializeApp({ credential: cert(serviceAccount) }, appName);
+    initializeApp({ credential: cert(serviceAccount as Parameters<typeof cert>[0]) }, appName);
   const adminAuth = getAuth(app);
   const adminDb = getFirestore(app);
 
@@ -79,9 +144,7 @@ async function globalTeardown(_config: FullConfig) {
 
     // Clean up any side-effect users from the signup test
     try {
-      const signupUser = await adminAuth.getUserByEmail(
-        state.SMOKE_EMAIL.replace("smoke.", "smoke.signup.")
-      );
+      const signupUser = await adminAuth.getUserByEmail(signupEmail);
       await adminAuth.deleteUser(signupUser.uid);
       // Also remove their Firestore doc if it exists
       await adminDb.collection("users").doc(signupUser.uid).delete().catch(() => {});

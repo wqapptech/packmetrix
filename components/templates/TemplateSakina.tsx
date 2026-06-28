@@ -252,7 +252,7 @@ function SkOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPa
         </div>
         {agencySlug && (
           <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-            <a href={`/${agencySlug}`} style={{ fontFamily: SERIF, fontSize: 12, fontWeight: 600, color: GOLD, textDecoration: "none", letterSpacing: "0.3px" }}>
+            <a href={`/${agencySlug}/packages`} style={{ fontFamily: SERIF, fontSize: 12, fontWeight: 600, color: GOLD, textDecoration: "none", letterSpacing: "0.3px" }}>
               {t.navAllPackages} →
             </a>
           </div>

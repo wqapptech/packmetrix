@@ -791,7 +791,7 @@ function FaOtherPackages({ pkg, lang, agencySlug }: { pkg: TPackage; lang: Lang;
       </div>
       {agencySlug && (
         <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-          <a href={`/${agencySlug}`} style={{ fontSize: 12, fontWeight: 700, color: FA.brand, textDecoration: "none" }}>
+          <a href={`/${agencySlug}/packages`} style={{ fontSize: 12, fontWeight: 700, color: FA.brand, textDecoration: "none" }}>
             {t.navAllPackages} →
           </a>
         </div>

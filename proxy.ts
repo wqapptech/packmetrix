@@ -2,10 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Paths that must never be served on a custom agency domain.
 // Auth and app-management routes stay on packmetrix.com only.
+// NOTE: /packages and /home are PUBLIC tenant routes (storefront + homepage),
+// so they are intentionally NOT blocked — they rewrite to /sites/<host>/… .
 const BLOCKED_ON_CUSTOM_DOMAIN = [
   "/login", "/signup", "/dashboard", "/builder", "/profile",
-  "/leads", "/packages", "/paywall", "/home", "/admin",
+  "/leads", "/paywall", "/admin",
 ];
+
+// On slug subdomains these are PUBLIC tenant paths, not app-management routes —
+// they must rewrite to /<slug>/… rather than pass through to the dashboard.
+const TENANT_PATHS = ["/packages", "/home"];
+const isTenantPath = (pathname: string) =>
+  TENANT_PATHS.some((r) => pathname === r || pathname.startsWith(r + "/"));
 
 // App routes that should always pass through on the agency portal subdomain.
 const APP_ROOTS = [
@@ -89,7 +97,9 @@ export function proxy(request: NextRequest) {
       if (pathname === `/${agencySlug}` || pathname.startsWith(`/${agencySlug}/`)) {
         return NextResponse.next();
       }
-      if (APP_ROOTS.some(r => pathname === r || pathname.startsWith(r + "/"))) {
+      // /packages and /home are tenant content on a slug subdomain — fall through
+      // to the rewrite below instead of being treated as app routes.
+      if (!isTenantPath(pathname) && APP_ROOTS.some(r => pathname === r || pathname.startsWith(r + "/"))) {
         return NextResponse.next();
       }
       const url = request.nextUrl.clone();

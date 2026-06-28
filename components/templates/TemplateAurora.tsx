@@ -1074,7 +1074,7 @@ function AuOtherPackagesSection({ pkg, lang, agencySlug }: { pkg: TPackage; lang
       </div>
       {agencySlug && (
         <div style={{ marginTop: 16, textAlign: isRtl ? "left" : "right" }}>
-          <a href={`/${agencySlug}`} style={{ fontSize: 13, fontWeight: 600, color: "var(--au-brand)", textDecoration: "none", fontFamily: "var(--font-inter-tight, sans-serif)" }}>
+          <a href={`/${agencySlug}/packages`} style={{ fontSize: 13, fontWeight: 600, color: "var(--au-brand)", textDecoration: "none", fontFamily: "var(--font-inter-tight, sans-serif)" }}>
             {t.navAllPackages} →
           </a>
         </div>
