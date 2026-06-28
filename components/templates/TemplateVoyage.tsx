@@ -415,7 +415,9 @@ function VyMediaSection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "a
               <>
                 {videoPoster
                   ? <img src={videoPoster} alt="trip film" />
-                  : <div style={{ position: "absolute", inset: 0, background: "#111" }} />
+                  : (videoUrl && !isEmbed
+                      ? <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", background: "#111" }} />
+                      : <div style={{ position: "absolute", inset: 0, background: "#111" }} />)
                 }
                 {videoUrl && (
                   <button className="vy-v2-med__play" aria-label="Play video" onClick={() => setPlaying(true)}>

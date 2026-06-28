@@ -448,7 +448,7 @@ function SkMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDe
             {isEmbed ? (
               <iframe src={skToEmbed(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
             ) : (
-              <video src={videoUrl} controls playsInline style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+              <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} controls playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
             )}
           </div>
         )}

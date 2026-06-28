@@ -620,7 +620,7 @@ function FaMedia({ pkg, lang }: { pkg: TPackage; lang: Lang }) {
         })();
         return isEmbed
           ? <iframe src={embedUrl} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: 220, borderRadius: 12, border: "none", display: "block", marginBottom: 10 }} />
-          : <video src={videoUrl} controls playsInline style={{ width: "100%", borderRadius: 12, background: "#0d1b2e", maxHeight: 220, marginBottom: 10 }} />;
+          : <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} controls playsInline preload="metadata" style={{ width: "100%", borderRadius: 12, background: "#0d1b2e", maxHeight: 220, marginBottom: 10 }} />;
       })()}
       {mapImage && (
         <div style={{ marginBottom: 10, borderRadius: 12, overflow: "hidden" }}>

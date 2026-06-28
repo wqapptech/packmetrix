@@ -352,7 +352,7 @@ export function ReviewTile({ it, ctx }: { it: Testimonial; ctx: Ctx }) {
   if (kind === "video") {
     return (
       <div style={frame}>
-        <video src={it.media} controls playsInline preload="metadata" className="hp-review-media" />
+        <video src={(it.media ?? "").includes("#") ? it.media : (it.media ?? "") + "#t=0.1"} controls playsInline preload="metadata" className="hp-review-media" />
         <div style={{ padding: "0 20px" }}><ReviewByline it={it} ctx={ctx} /></div>
       </div>
     );

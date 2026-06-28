@@ -7,6 +7,7 @@
 // Ported pixel-for-pixel from the locked "Site Header" design, with the fixed
 // Warm-Editorial green swapped for the agency's brand vars (deriveBrand()).
 
+import { useState, type MouseEvent } from "react";
 import type { AgencyBrand } from "@/lib/brand";
 import { waHref } from "@/lib/brand";
 import { useIsDesktop } from "./useIsDesktop";
@@ -70,6 +71,7 @@ export default function SiteHeader({
   hideKeys?: NavKey[];
 }) {
   const desktop = useIsDesktop();
+  const [menuOpen, setMenuOpen] = useState(false);
   const dir = lang === "ar" ? "rtl" : "ltr";
   const cta = lang === "ar" ? "راسلنا" : "Message us";
   const wa = brand.whatsapp ? waHref(brand.whatsapp) : null;
@@ -193,7 +195,7 @@ export default function SiteHeader({
   return (
     <header
       dir={dir}
-      className="sc-header"
+      className="sc-header sc-header-mobile"
       style={{ fontFamily: brand.bodyFont, height: 62, padding: "0 18px", justifyContent: "space-between" }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -215,7 +217,48 @@ export default function SiteHeader({
             <WaIcon size={18} />
           </a>
         )}
+        {nav.length > 0 && (
+          <button
+            type="button"
+            className="sc-burger"
+            aria-label={lang === "ar" ? "القائمة" : "Menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            <span className={`sc-burger-box${menuOpen ? " is-open" : ""}`}>
+              <span />
+              <span />
+              <span />
+            </span>
+          </button>
+        )}
       </div>
+      {menuOpen && nav.length > 0 && (
+        <nav className="sc-mobilemenu" dir={dir}>
+          {nav.map((item) => {
+            const p = navProps(item.key);
+            const isActive = item.key === active;
+            const handleClick = (e: MouseEvent) => {
+              if ("onClick" in p && p.onClick) {
+                e.preventDefault();
+                p.onClick();
+              }
+              setMenuOpen(false);
+            };
+            return (
+              <a
+                key={item.key}
+                href={"href" in p ? p.href : undefined}
+                onClick={handleClick}
+                aria-current={isActive ? "page" : undefined}
+                className={`sc-mobilelink${p.muted ? " is-muted" : ""}${isActive ? " is-active" : ""}`}
+              >
+                {item.label}
+              </a>
+            );
+          })}
+        </nav>
+      )}
     </header>
   );
 }

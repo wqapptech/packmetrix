@@ -139,7 +139,7 @@ function AtMediaSection({ d, isDesktop, lang }: { d: AtSD; isDesktop: boolean; l
               <div style={{ position: "relative", borderRadius: 4, overflow: "hidden", height: 220 }}>
                 {isEmbed
                   ? <iframe src={atToEmbed(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
-                  : <video src={videoUrl} controls playsInline poster={videoPoster || undefined} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  : <video src={videoPoster ? videoUrl : (videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1")} controls playsInline preload="metadata" poster={videoPoster || undefined} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 }
               </div>
             )}
