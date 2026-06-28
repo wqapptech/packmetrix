@@ -24,6 +24,7 @@
   --brand: var(--au-brand);
   --brand-2: var(--au-brand-2);
   --stamp: var(--au-stamp);
+  --au-serif: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
 
   background: var(--bg);
   color: var(--ink);
@@ -31,7 +32,7 @@
 }
 
 .au * { box-sizing: border-box; }
-.au .serif { font-family: "Instrument Serif", "Cormorant Garamond", serif; }
+.au .serif { font-family: var(--au-serif), "Cormorant Garamond", serif; }
 .au .mono  { font-family: "JetBrains Mono", monospace; }
 .au .ital  { font-style: italic; }
 
@@ -69,7 +70,7 @@
   color: #fff;
   border-radius: 50%;
   display: grid; place-items: center;
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-style: italic;
   font-size: 13px;
 }
@@ -121,7 +122,7 @@
   color: #fff;
 }
 .au-m-hero__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 34px;
   line-height: 1.05;
   letter-spacing: -0.6px;
@@ -148,7 +149,7 @@
 }
 .au-m-booking__price-lab { font-family: "JetBrains Mono", monospace; font-size: 9.5px; color: var(--mut); letter-spacing: 1px; text-transform: uppercase; }
 .au-m-booking__price {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 40px; line-height: 1;
   letter-spacing: -1px; margin-top: 4px;
   font-weight: 400;
@@ -157,7 +158,7 @@
 .au-m-booking__nights {
   text-align: right; padding-top: 4px;
 }
-.au-m-booking__nights b { font-family: "Instrument Serif", serif; font-size: 22px; font-weight: 400; letter-spacing: -0.4px; }
+.au-m-booking__nights b { font-family: var(--au-serif), serif; font-size: 22px; font-weight: 400; letter-spacing: -0.4px; }
 .au-m-booking__nights-l { font-size: 10.5px; color: var(--mut); margin-top: 2px; letter-spacing: 0.4px; }
 .au-m-booking__scarcity {
   display: flex; align-items: center; gap: 8px;
@@ -237,7 +238,7 @@
   margin-bottom: 12px;
 }
 .au-section__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 32px;
   line-height: 1.05;
   letter-spacing: -0.6px;
@@ -249,7 +250,7 @@
 
 /* ─── Editorial body paragraph ────────────────────────────────────────── */
 .au-prose {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 22px;
   line-height: 1.4;
   font-weight: 400;
@@ -280,7 +281,7 @@
   margin-bottom: 10px;
 }
 .au-story__day {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 36px;
   font-weight: 400;
   line-height: 1;
@@ -295,7 +296,7 @@
   color: var(--mut);
 }
 .au-story__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 22px;
   line-height: 1.15;
   letter-spacing: -0.3px;
@@ -350,7 +351,7 @@
   cursor: pointer;
 }
 .au-deps__date {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 22px;
   line-height: 1;
   letter-spacing: -0.4px;
@@ -371,7 +372,7 @@
 }
 .au-deps__spots.low { color: var(--stamp); font-weight: 600; }
 .au-deps__price {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 18px;
   font-weight: 400;
   letter-spacing: -0.3px;
@@ -419,7 +420,7 @@
   font-weight: 600;
 }
 .au-tier__price {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 26px;
   letter-spacing: -0.5px;
   font-weight: 400;
@@ -449,11 +450,11 @@
   object-fit: cover;
   border: 2px solid rgba(255,255,255,0.15);
 }
-.au-agent__name { font-family: "Instrument Serif", serif; font-size: 22px; line-height: 1.1; letter-spacing: -0.3px; }
+.au-agent__name { font-family: var(--au-serif), serif; font-size: 22px; line-height: 1.1; letter-spacing: -0.3px; }
 .au-agent__role { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; letter-spacing: 0.2px; }
 .au-agent__line {
   margin-top: 18px;
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-style: italic;
   font-size: 16px;
   line-height: 1.4;
@@ -489,7 +490,7 @@
   padding-bottom: 22px; margin-bottom: 24px;
 }
 .au-rev-summary__big {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 56px;
   font-weight: 400;
   line-height: 1;
@@ -503,7 +504,7 @@
 }
 .au-rev:first-child { border-top: none; padding-top: 0; }
 .au-rev__pull {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-style: italic;
   font-size: 22px;
   line-height: 1.35;
@@ -559,7 +560,7 @@
   text-align: center;
 }
 .au-final__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 36px;
   line-height: 1.05;
   letter-spacing: -0.8px;
@@ -583,7 +584,7 @@
   box-shadow: 0 -8px 24px -10px rgba(0,0,0,0.08);
 }
 .au-sticky__price {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 22px; font-weight: 400; letter-spacing: -0.4px;
   line-height: 1;
 }
@@ -622,7 +623,7 @@
   transition: color 0.15s;
 }
 .au-d-nav__link:hover { color: var(--ink); }
-.au-d-nav__price { font-family: "Instrument Serif", serif; font-size: 18px; letter-spacing: -0.3px; }
+.au-d-nav__price { font-family: var(--au-serif), serif; font-size: 18px; letter-spacing: -0.3px; }
 .au-d-nav__price b { color: var(--brand); }
 
 /* Hero — desktop */
@@ -647,7 +648,7 @@
 }
 .au-d-hero__topbar .rating { display: flex; align-items: center; gap: 6px; color: var(--ink); font-weight: 500; }
 .au-d-hero__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 52px;
   line-height: 1.12;
   letter-spacing: -1.2px;
@@ -669,7 +670,7 @@
   margin-top: 32px;
 }
 .au-d-hero__price-block .lab { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--mut); letter-spacing: 1.2px; text-transform: uppercase; }
-.au-d-hero__price-block .price { font-family: "Instrument Serif", serif; font-size: 56px; line-height: 1; letter-spacing: -1.5px; font-weight: 400; margin-top: 4px; }
+.au-d-hero__price-block .price { font-family: var(--au-serif), serif; font-size: 56px; line-height: 1; letter-spacing: -1.5px; font-weight: 400; margin-top: 4px; }
 .au-d-hero__price-block .sub { font-size: 11.5px; color: var(--mut); margin-top: 6px; }
 .au-d-hero__buttons { display: flex; gap: 10px; }
 .au-d-hero__bottom {
@@ -680,7 +681,7 @@
   margin-top: 40px;
 }
 .au-d-hero__bottom > div { padding-right: 22px; }
-.au-d-hero__bottom .v { font-family: "Instrument Serif", serif; font-size: 22px; font-weight: 400; letter-spacing: -0.4px; }
+.au-d-hero__bottom .v { font-family: var(--au-serif), serif; font-size: 22px; font-weight: 400; letter-spacing: -0.4px; }
 .au-d-hero__bottom .l { font-size: 11px; color: var(--mut); margin-top: 4px; letter-spacing: 0.2px; }
 .au-d-hero__img {
   position: relative; overflow: hidden; background: var(--ink);
@@ -735,7 +736,7 @@
   text-transform: uppercase;
 }
 .au-d-intro__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 44px;
   letter-spacing: -1px;
   font-weight: 400;
@@ -744,7 +745,7 @@
 }
 .au-d-intro__title em { font-style: italic; color: var(--mut); }
 .au-d-intro__prose {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 26px;
   line-height: 1.45;
   font-weight: 400;
@@ -778,7 +779,7 @@
 .au-d-story-section { padding: 84px 64px 32px; }
 .au-d-story-section__head { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: flex-end; margin-bottom: 56px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
 .au-d-story-section__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 56px;
   line-height: 1;
   letter-spacing: -1.5px;
@@ -815,7 +816,7 @@
 .au-d-story__media img { width: 100%; height: 100%; object-fit: cover; }
 .au-d-story__body { padding: 0 20px; }
 .au-d-story__day {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 88px;
   line-height: 1;
   letter-spacing: -3px;
@@ -831,7 +832,7 @@
   margin-top: 6px;
 }
 .au-d-story__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 36px;
   line-height: 1.1;
   letter-spacing: -0.6px;
@@ -887,7 +888,7 @@
   align-items: start;
 }
 .au-d-book__col h3 {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 32px;
   line-height: 1;
   letter-spacing: -0.6px;
@@ -911,11 +912,11 @@
   transition: background 0.15s;
 }
 .au-d-dep:hover { background: rgba(0,0,0,0.02); }
-.au-d-dep__date { font-family: "Instrument Serif", serif; font-size: 24px; letter-spacing: -0.4px; }
+.au-d-dep__date { font-family: var(--au-serif), serif; font-size: 24px; letter-spacing: -0.4px; }
 .au-d-dep__date b { color: var(--brand); }
 .au-d-dep__spots { font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
 .au-d-dep__spots.low { color: var(--stamp); font-weight: 600; }
-.au-d-dep__price { font-family: "Instrument Serif", serif; font-size: 22px; letter-spacing: -0.3px; }
+.au-d-dep__price { font-family: var(--au-serif), serif; font-size: 22px; letter-spacing: -0.3px; }
 .au-d-dep__arrow { color: var(--mut); }
 
 .au-d-tiers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
@@ -943,7 +944,7 @@
   border-radius: 4px;
 }
 .au-d-tier__label { font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--mut); letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
-.au-d-tier__price { font-family: "Instrument Serif", serif; font-size: 36px; letter-spacing: -1px; font-weight: 400; margin: 8px 0 4px; }
+.au-d-tier__price { font-family: var(--au-serif), serif; font-size: 36px; letter-spacing: -1px; font-weight: 400; margin: 8px 0 4px; }
 .au-d-tier__from { font-size: 10.5px; color: var(--mut); }
 .au-d-tier__perks { list-style: none; padding: 18px 0 0; margin: 14px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink-2); flex: 1; }
 .au-d-tier__perks li { display: flex; align-items: flex-start; gap: 8px; line-height: 1.45; }
@@ -965,11 +966,11 @@
   padding-bottom: 24px;
   border-bottom: 1px solid var(--line);
 }
-.au-d-reviews__big { font-family: "Instrument Serif", serif; font-size: 120px; line-height: 0.9; letter-spacing: -4px; font-weight: 400; }
+.au-d-reviews__big { font-family: var(--au-serif), serif; font-size: 120px; line-height: 0.9; letter-spacing: -4px; font-weight: 400; }
 .au-d-reviews__big-sub { font-size: 12px; color: var(--mut); margin-top: 8px; font-family: "JetBrains Mono", monospace; letter-spacing: 0.6px; text-transform: uppercase; }
 .au-d-reviews__big-sub b { color: var(--ink); }
 .au-d-reviews__sub {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 24px; line-height: 1.4;
   font-weight: 400;
   letter-spacing: -0.2px;
@@ -985,7 +986,7 @@
   padding-top: 22px;
 }
 .au-d-rev__pull {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-style: italic;
   font-size: 22px;
   line-height: 1.4;
@@ -1005,7 +1006,7 @@
   gap: 56px;
 }
 .au-d-incl__title {
-  font-family: "Instrument Serif", serif; font-size: 44px; letter-spacing: -1px; line-height: 1.05; font-weight: 400; margin: 0;
+  font-family: var(--au-serif), serif; font-size: 44px; letter-spacing: -1px; line-height: 1.05; font-weight: 400; margin: 0;
 }
 .au-d-incl__title em { font-style: italic; color: var(--mut); }
 .au-d-incl__cols { display: grid; grid-template-columns: 1.5fr 1fr; gap: 48px; }
@@ -1039,14 +1040,14 @@
 .au-d-designer__portrait img { width: 100%; height: 100%; object-fit: cover; }
 .au-d-designer__eb { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
 .au-d-designer__name {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 56px; line-height: 1; letter-spacing: -1.2px;
   margin: 14px 0 0; font-weight: 400;
 }
 .au-d-designer__role { font-size: 14px; color: rgba(255,255,255,0.55); margin-top: 8px; letter-spacing: 0.2px; }
 .au-d-designer__line {
   margin-top: 28px;
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-style: italic;
   font-size: 24px; line-height: 1.4;
   color: #fff;
@@ -1116,7 +1117,7 @@
   border-bottom: 1px solid var(--line);
 }
 .au-v2__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 52px;
   line-height: 1;
   letter-spacing: -1.4px;
@@ -1144,7 +1145,7 @@
 .au-v2-hl__card:last-child { border-right: 0; padding-right: 0; }
 .au-v2-hl__card:not(:first-child) { padding-left: 32px; }
 .au-v2-hl__num {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 64px; line-height: 1;
   letter-spacing: -2px;
   color: var(--brand);
@@ -1152,7 +1153,7 @@
   margin-bottom: 20px;
 }
 .au-v2-hl__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 28px; line-height: 1.15;
   letter-spacing: -0.5px;
   font-weight: 400;
@@ -1216,7 +1217,7 @@
   margin-bottom: 6px;
 }
 .au-v2-htl__name {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 30px;
   letter-spacing: -0.6px;
   font-weight: 400;
@@ -1224,7 +1225,7 @@
   margin: 0;
 }
 .au-v2-htl__note {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-style: italic;
   font-size: 18px;
   line-height: 1.45;
@@ -1306,7 +1307,7 @@
 }
 .au-v2-mv__chip .au-eb { margin-bottom: 10px; }
 .au-v2-mv__chip-body h4 {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 22px;
   letter-spacing: -0.3px;
   font-weight: 400;
@@ -1333,7 +1334,7 @@
 }
 .au-v2-ex__row:first-child { border-top: 1px solid var(--line); }
 .au-v2-ex__name {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 26px;
   letter-spacing: -0.4px;
   font-weight: 400;
@@ -1346,7 +1347,7 @@
   max-width: 640px; text-wrap: pretty;
 }
 .au-v2-ex__price {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 26px;
   letter-spacing: -0.4px;
   color: var(--brand);
@@ -1367,7 +1368,7 @@
   border-bottom: 1px solid var(--line);
 }
 .au-v2-tx__num {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 38px;
   font-weight: 400;
   line-height: 0.9;
@@ -1376,7 +1377,7 @@
   min-width: 56px;
 }
 .au-v2-tx__leg {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 22px;
   letter-spacing: -0.3px;
   font-weight: 400;
@@ -1448,7 +1449,7 @@
 }
 .au-v2-pr__step:last-child { border-bottom: 0; }
 .au-v2-pr__amount {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 36px;
   font-weight: 400;
   letter-spacing: -1px;
@@ -1458,7 +1459,7 @@
   align-self: center;
 }
 .au-v2-pr__when {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 19px;
   letter-spacing: -0.3px;
   font-weight: 400;
@@ -1476,7 +1477,7 @@
 }
 .au-v2-pr__cancel li:last-child { border-bottom: 0; }
 .au-v2-pr__window {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 19px;
   letter-spacing: -0.3px;
   margin-bottom: 4px;
@@ -1518,7 +1519,7 @@
   padding-top: 8px;
 }
 .au-v2-faq__qt {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-style: italic;
   font-size: 24px;
   line-height: 1.25;
@@ -1565,7 +1566,7 @@
   margin-bottom: 14px;
 }
 .au-v2-no__title {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 22px;
   letter-spacing: -0.3px;
   font-weight: 400;
@@ -1603,7 +1604,7 @@
   text-transform: uppercase;
 }
 .au-v2-pp__lead-name {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 36px;
   letter-spacing: -0.6px;
   font-weight: 400;
@@ -1611,7 +1612,7 @@
   line-height: 1;
 }
 .au-v2-pp__lead-bio {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 18px;
   line-height: 1.5;
   letter-spacing: -0.2px;
@@ -1651,7 +1652,7 @@
   width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
 }
 .au-v2-pp__guide h4 {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 18px; letter-spacing: -0.3px; font-weight: 400;
   margin: 0 0 2px;
 }
@@ -1684,7 +1685,7 @@
   align-items: center;
 }
 .au-v2-ag__story {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 22px;
   line-height: 1.5;
   letter-spacing: -0.2px;
@@ -1699,7 +1700,7 @@
   border-bottom: 1px solid var(--line);
 }
 .au-v2-ag__stats .v {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 48px;
   letter-spacing: -1.4px;
   line-height: 1;
@@ -1740,7 +1741,7 @@
 }
 .au-v2-cu__block .au-eb { display: inline-flex; }
 .au-v2-cu__h {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 36px;
   letter-spacing: -0.6px;
   font-style: italic;
@@ -1749,7 +1750,7 @@
   line-height: 1.15;
 }
 .au-v2-cu__p {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 20px;
   line-height: 1.55;
   letter-spacing: -0.2px;
@@ -1766,7 +1767,7 @@
   padding: 96px 64px;
 }
 .au-v2-cta__h {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 72px;
   letter-spacing: -2px;
   font-weight: 400;
@@ -1774,7 +1775,7 @@
 }
 .au-v2-cta__h em { font-style: italic; color: var(--brand); }
 .au-v2-cta__p {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--au-serif), serif;
   font-size: 22px;
   line-height: 1.45;
   letter-spacing: -0.2px;

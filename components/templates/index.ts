@@ -135,7 +135,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     Page: TemplateFamilyPage,
     Card: TemplateFamilyCard,
     previewBg: "#fef9f0",
-    templateColor: "#3a6b4a", // --fm-green from family.css
+    templateColor: "#c46a2f", // warm orange (was forest green #3a6b4a)
     available: true,
   },
 ];

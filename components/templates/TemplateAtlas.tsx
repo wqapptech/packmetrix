@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import "@/app/atlas.css";
 import { T, localizeTierLabel } from "@/lib/translations";
 import {
   WAButton,
@@ -1071,6 +1072,12 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   const extraImages = (pkg.images || []).filter(Boolean);
   const desc = pkg.description || "";
 
+  // Pull-quote source: first highlight, falling back to the opening sentence of the description.
+  const highlightItems = atArrMixed(atFindSec(pkg, "highlights"), "items");
+  const firstHighlight = highlightItems.length ? atItemStr(highlightItems[0], "title") : "";
+  const firstSentence = desc.split(/(?<=[.!؟?])\s/)[0] || desc;
+  const pullQuote = firstHighlight || firstSentence;
+
   if (isDesktop) {
     return (
       <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: AT.bg, color: AT.ink, fontFamily: AT.sans, direction: isRtl ? "rtl" : "ltr" }}>
@@ -1107,7 +1114,7 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         {/* Two-column body text */}
         <DContainer max={1080} style={{ padding: "56px 80px 32px" }}>
           <div style={{ columns: 2, columnGap: 48 }}>
-            <p style={{ fontFamily: AT.serif, fontSize: 18, lineHeight: 1.55, margin: "0 0 16px" }}>
+            <p className="atlas-intro" style={{ fontFamily: AT.serif, fontSize: 18, lineHeight: 1.55, margin: "0 0 16px" }}>
               {pkg.description || ""}
             </p>
             <p style={{ fontFamily: AT.serif, fontSize: 18, lineHeight: 1.55, margin: "0 0 16px" }}>
@@ -1115,6 +1122,15 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
             </p>
           </div>
         </DContainer>
+
+        {/* Pull quote */}
+        {pullQuote && (
+          <DContainer max={1080} style={{ padding: "0 80px 24px" }}>
+            <blockquote className="atlas-pullquote">
+              <p>{pullQuote}</p>
+            </blockquote>
+          </DContainer>
+        )}
 
         {/* Photo essay 3-col */}
         {galleryImages.length > 1 && (
@@ -1192,9 +1208,18 @@ export function TemplateAtlasPage({ pkg, agency, onWhatsApp, onMessenger, lang }
       {/* Description */}
       {desc && (
         <div style={{ padding: "22px 22px 0" }}>
-          <p style={{ fontSize: 15, lineHeight: 1.75, color: AT.muted, margin: 0 }}>
+          <p className="atlas-intro" style={{ color: AT.muted, margin: 0 }}>
             {desc}
           </p>
+        </div>
+      )}
+
+      {/* Pull quote */}
+      {pullQuote && (
+        <div style={{ padding: "0 22px" }}>
+          <blockquote className="atlas-pullquote">
+            <p>{pullQuote}</p>
+          </blockquote>
         </div>
       )}
 

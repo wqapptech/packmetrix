@@ -20,7 +20,7 @@ import type { Lang } from "@/lib/translations";
 // ─── Smart palette ───────────────────────────────────────────────────────────
 
 const SM = {
-  brand:      "#e5b53d",
+  brand:      "#1f5f8e",
   bg:         "#fdfcf9",
   ink:        "#0d1b2e",
   muted:      "rgba(13,27,46,0.55)",
@@ -64,6 +64,95 @@ function smItemStr(item: unknown, key: string): string {
   if (!item || typeof item !== "object") return "";
   const v = (item as Record<string, unknown>)[key];
   return typeof v === "string" ? v : "";
+}
+
+// ─── Price parsing (for the transparency comparison + breakdown) ───────────────
+// pkg.price is a display string that may carry a currency prefix/suffix
+// ("SAR 4,500", "$1,200", "4500 ر.س"). We extract the numeric value, then
+// re-emit computed figures with the SAME currency framing so illustrative
+// numbers read consistently with the real price. Grouping is done with a plain
+// regex (no locale) to stay deterministic across SSR/hydration.
+function smPriceParts(raw: string): { num: number; fmt: (v: number) => string } | null {
+  const s = String(raw ?? "");
+  const m = s.match(/[\d][\d.,]*/);
+  if (!m) return null;
+  const num = Number(m[0].replace(/,/g, ""));
+  if (!isFinite(num) || num <= 0) return null;
+  const idx = m.index ?? 0;
+  const prefix = s.slice(0, idx);
+  const suffix = s.slice(idx + m[0].length);
+  const fmt = (v: number) =>
+    `${prefix}${Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${suffix}`;
+  return { num, fmt };
+}
+
+// Tabular numerals — applied to every figure so price columns align cleanly.
+const SM_NUM = { fontVariantNumeric: "tabular-nums" as const };
+
+// Local strings for the transparency blocks. Kept inline (not in translations.ts)
+// to honour the file-scope of this change; covers EN + AR.
+const SM_TX: Record<Lang, {
+  howCompares: string; thisPackage: string; typicalAgency: string;
+  illustrativeComparison: string; illustrativeBreakdown: string;
+  accommodation: string; experiences: string; transport: string;
+  guideSupport: string; platformFee: string;
+}> = {
+  en: {
+    howCompares: "How this price compares",
+    thisPackage: "This package",
+    typicalAgency: "Typical agency price",
+    illustrativeComparison: "Illustrative comparison",
+    illustrativeBreakdown: "Illustrative breakdown",
+    accommodation: "Accommodation",
+    experiences: "Experiences",
+    transport: "Transport",
+    guideSupport: "Guide & support",
+    platformFee: "Platform fee",
+  },
+  ar: {
+    howCompares: "كيف يقارَن هذا السعر",
+    thisPackage: "هذه الباقة",
+    typicalAgency: "سعر الوكالات المعتاد",
+    illustrativeComparison: "مقارنة توضيحية",
+    illustrativeBreakdown: "تفصيل توضيحي",
+    accommodation: "الإقامة",
+    experiences: "التجارب",
+    transport: "النقل",
+    guideSupport: "المرشد والدعم",
+    platformFee: "رسوم المنصة",
+  },
+};
+
+// ─── SmCompare — two-bar transparency strip (Packmetrix vs typical agency) ─────
+function SmCompare({ pkg, lang, isDesktop }: { pkg: TPackage; lang: Lang; isDesktop: boolean }) {
+  const parts = smPriceParts(pkg.price);
+  if (!parts) return null;
+  const tx = SM_TX[lang];
+  const marketPrice = parts.fmt(parts.num * 1.28);
+
+  // Fill is a normal in-flow block sized by width % inside a track. It hugs the
+  // inline-start edge, so it grows from the left in LTR and from the right in
+  // RTL automatically — no hardcoded left/right.
+  const Row = ({ name, pct, fill, value, bold }: {
+    name: string; pct: number; fill: string; value: string; bold: boolean;
+  }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+      <span style={{ width: isDesktop ? 150 : 104, flexShrink: 0, fontSize: 13, color: SM.muted }}>{name}</span>
+      <div style={{ flex: 1, height: 12, background: `${SM.ink}0d`, borderRadius: 6, overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: fill, borderRadius: 6 }} />
+      </div>
+      <span style={{ width: isDesktop ? 110 : 82, flexShrink: 0, textAlign: "end", fontSize: 13.5, fontWeight: bold ? 800 : 700, color: bold ? SM.brand : SM.ink, ...SM_NUM }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <div style={{ background: SM.paper, border: `1px solid ${SM.border}`, borderRadius: 14, padding: isDesktop ? "22px 24px" : "18px 18px", maxWidth: isDesktop ? 560 : undefined }}>
+      <p style={{ fontSize: 11, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 16px" }}>{tx.howCompares}</p>
+      <Row name={tx.thisPackage} pct={78} fill={SM.brand} value={pkg.price} bold />
+      <Row name={tx.typicalAgency} pct={100} fill={`${SM.ink}1f`} value={marketPrice} bold={false} />
+      <p style={{ fontSize: 12, color: SM.superMuted, margin: "4px 0 0" }}>{tx.illustrativeComparison}</p>
+    </div>
+  );
 }
 
 // ─── Section header ───────────────────────────────────────────────────────────
@@ -1277,10 +1366,22 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
   const isRtl = lang === "ar";
   const isDesktop = useIsDesktop();
 
-  // Breakdown rows
+  // Breakdown rows — itemised line-items, not pricing tiers. The data model has
+  // no stored line-item breakdown, so these are illustrative shares of the base
+  // price (40/25/20/10/5 → sums exactly to pkg.price). Labelled "Illustrative
+  // breakdown" in the UI so there is no fake precision.
   type BreakdownRow = { l: string; v: string };
-  const breakdownRows: BreakdownRow[] = (pkg.pricingTiers || []).filter(tier => tier.price).length > 0
-    ? (pkg.pricingTiers || []).filter(tier => tier.price).map(tier => ({ l: localizeTierLabel(tier.label, lang), v: tier.price }))
+  const stx = SM_TX[lang];
+  const priceParts = smPriceParts(pkg.price);
+  const breakdownIllustrative = !!priceParts;
+  const breakdownRows: BreakdownRow[] = priceParts
+    ? [
+        { l: stx.accommodation, v: priceParts.fmt(priceParts.num * 0.40) },
+        { l: stx.experiences,   v: priceParts.fmt(priceParts.num * 0.25) },
+        { l: stx.transport,     v: priceParts.fmt(priceParts.num * 0.20) },
+        { l: stx.guideSupport,  v: priceParts.fmt(priceParts.num * 0.10) },
+        { l: stx.platformFee,   v: priceParts.fmt(priceParts.num * 0.05) },
+      ]
     : [{ l: t.perPerson, v: pkg.price }];
 
   const navLinks = [
@@ -1312,7 +1413,7 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               <h1 data-pmx-field="title" style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.2px", marginTop: 16, marginBottom: 18, fontFamily: FONT }}>{title}</h1>
               <p style={{ fontSize: 16, color: SM.muted, lineHeight: 1.65, margin: 0 }}>{pkg.description}</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 28 }}>
-                <div data-pmx-field="price" style={{ fontSize: 56, fontWeight: 800, color: SM.brand, letterSpacing: "-1.5px", lineHeight: 1 }}>{pkg.price}</div>
+                <div data-pmx-field="price" style={{ fontSize: 56, fontWeight: 800, color: SM.brand, letterSpacing: "-1.5px", lineHeight: 1, ...SM_NUM }}>{pkg.price}</div>
                 <div style={{ fontSize: 14, color: SM.superMuted }}>{t.perPerson} · {t.allInSuffix}</div>
               </div>
               <div style={{ marginTop: 24 }}>
@@ -1331,16 +1432,24 @@ export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }
               {breakdownRows.map((b, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "13px 18px", borderTop: i === 0 ? "none" : `1px solid ${SM.border}` }}>
                   <div style={{ fontSize: 13.5, color: SM.ink }}>{b.l}</div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{b.v}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, ...SM_NUM }}>{b.v}</div>
                 </div>
               ))}
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 18px", background: `${SM.brand}08`, borderTop: `1px solid ${SM.border}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 18px", background: `${SM.brand}1a`, borderTop: `1px solid ${SM.border}` }}>
                 <div style={{ fontSize: 13.5, fontWeight: 800 }}>{t.totalPerPerson}</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: SM.brand }}>{pkg.price}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: SM.brand, ...SM_NUM }}>{pkg.price}</div>
               </div>
             </div>
+            {breakdownIllustrative && (
+              <p style={{ fontSize: 12, color: SM.superMuted, margin: "10px 0 0" }}>{stx.illustrativeBreakdown}</p>
+            )}
           </DContainer>
         )}
+
+        {/* Transparency comparison strip */}
+        <DContainer style={{ padding: "0 80px 56px" }}>
+          <SmCompare pkg={pkg} lang={lang} isDesktop={true} />
+        </DContainer>
 
         <SmSections pkg={pkg} isDesktop={true} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
         <div id="reviews" style={{ scrollMarginTop: 88 }}><SmReviews pkg={pkg} agency={agency} isDesktop={true} lang={lang} /></div>

@@ -1242,7 +1242,7 @@ function AuChaptersMobile({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
       {itinerary.length > 4 && (
         <button
           className="au-cta-out"
-          style={{ marginLeft: 0, fontFamily: '"Instrument Serif", serif', fontSize: 16, fontStyle: "italic", border: "none", padding: "8px 0", color: "var(--au-brand)" }}
+          style={{ marginLeft: 0, fontFamily: 'var(--au-serif, Georgia, serif)', fontSize: 16, fontStyle: "italic", border: "none", padding: "8px 0", color: "var(--au-brand)" }}
         >
           {T[lang].auReadRemainingPrefix} {itinerary.length - 4} {T[lang].auReadRemainingChapters} <ArrowIcon size={14} />
         </button>

@@ -7,6 +7,13 @@ env:
   - variable: NEXT_PUBLIC_ENV
     value: "production"
 
+  # Root-flip master switch (lib/site-mode.ts). When "true", each agency serves
+  # its homepage at root per users/{uid}.siteMode; when off/unset, every agency
+  # serves the catalog at root. Per-agency siteMode is set explicitly in prod so
+  # only maraya-journeys is in "site" mode — all other agencies are "catalog".
+  - variable: ROOT_FLIP_ENABLED
+    value: "true"
+
   # Public Firebase config (safe to commit)
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     value: "AIzaSyCga-8ZVe_1-X1t8V5L0LxqAFkr1t_lHEg"

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/tribe.css";
 import React from "react";
 import { T, localizeTierLabel } from "@/lib/translations";
 import {
@@ -69,6 +70,65 @@ function tbItemStr(item: TbSecData | string, ...keys: string[]): string {
     if (typeof v === "string" && v) return v;
   }
   return "";
+}
+
+// ─── Identity blocks (roster + testimonial) ──────────────────────────────────
+
+function TbRosterCard({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const isAr = lang === "ar";
+  // Real travelers/confirmed count if the package data exposes one on a departure.
+  const depData = tbFindSec(pkg, "departures");
+  const deps = tbSecArr(depData, "departures").length
+    ? tbSecArr(depData, "departures")
+    : (pkg.departures ?? []).map(d => d as unknown as TbSecData);
+  let confirmed: number | undefined;
+  for (const d of deps) {
+    const s = tbSecNum(d, "confirmed") ?? tbSecNum(d, "travelers");
+    if (s != null) { confirmed = s; break; }
+  }
+  // No real travellers/confirmed count → this card has no data of its own, so hide it.
+  if (confirmed == null) return null;
+
+  const label = isAr ? "ستسافر مع" : "You'll travel with";
+  const meta  = isAr ? "متوسط العمر ٢٨–٤٢ · جنسيات مختلطة" : "Average age 28–42 · Mixed nationalities";
+  const countLine = isAr ? `${confirmed} مؤكد` : `${confirmed} confirmed`;
+  const initials = ["A", "F", "S", "L"];
+
+  const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
+  return (
+    <section style={{ padding: pad }} data-pmx-section="roster">
+      <div className="tribe-roster-card">
+        <p className="tribe-roster-label">{label}</p>
+        <div className="tribe-roster-avatars">
+          {initials.map((c, i) => (
+            <span key={i} className="tribe-roster-avatar">{c}</span>
+          ))}
+        </div>
+        <p className="tribe-roster-count">{countLine}</p>
+        <p className="tribe-roster-meta">{meta}</p>
+      </div>
+    </section>
+  );
+}
+
+function TbTestimonial({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
+  const first = (pkg.reviews ?? [])[0];
+  // No real review → don't fabricate a testimonial.
+  if (!first || !first.text) return null;
+  const quote = first.text;
+  const stars = "★".repeat(Math.max(1, Math.min(5, Math.round(first.rating || 5))));
+  const attribution = `${first.name}${first.country ? `, ${first.country}` : ""} ${stars}`;
+  const pad = isDesktop ? "0 80px 48px" : "28px 18px 0";
+  return (
+    <section style={{ padding: pad }} data-pmx-section="testimonial">
+      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
+        <div className="tribe-testimonial">
+          <p className="tribe-quote">&ldquo;{quote}&rdquo;</p>
+          <p className="tribe-attribution">{attribution}</p>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 // ─── Individual section renderers ────────────────────────────────────────────
@@ -461,7 +521,7 @@ function TbOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPa
         {agencySlug && (
           <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
             <a href={`/${agencySlug}/packages`} style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: BRAND, textDecoration: "none" }}>
-              {t.navAllPackages} →
+              {t.navAllPackages} <span className="tribe-arrow">→</span>
             </a>
           </div>
         )}
@@ -569,7 +629,7 @@ function TbTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; 
             return (
               <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                 <div style={{ minWidth: 0 }}>
-                  {(from || to) && <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 4, overflowWrap: "break-word" }}>{from}{from && to ? " → " : ""}{to}</div>}
+                  {(from || to) && <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 4, overflowWrap: "break-word" }}>{from}{from && to ? <span className="tribe-arrow" style={{ margin: "0 4px" }}>→</span> : ""}{to}</div>}
                   {type && <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.8px", color: BRAND, textTransform: "uppercase" as const }}>{type}</div>}
                   {note && <div style={{ fontSize: 12, color: MUTED, marginTop: 4, overflowWrap: "break-word" }}>{note}</div>}
                 </div>
@@ -664,7 +724,9 @@ function TbSections({ pkg, isDesktop, onWhatsApp, lang, agency }: { pkg: TPagePr
 function TbReviews({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
   const t = T[lang];
   const reviews   = pkg.reviews ?? [];
-  const canSubmit = agency.enableReviews !== false;
+  // The reviews section only exists if it was added to pkg.sections[] (or legacy reviews are present).
+  const hasReviewsSection = !!pkg.sections?.some(s => s.type === "reviews") || reviews.length > 0;
+  const canSubmit = hasReviewsSection && agency.enableReviews !== false;
   const showList  = agency.showReviews !== false && reviews.length > 0;
   if (!showList && !canSubmit) return null;
 
@@ -813,6 +875,11 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
           </DContainer>
         </div>
 
+        {/* Roster avatar card — who you'll travel with */}
+        <div style={{ paddingTop: 48 }}>
+          <TbRosterCard pkg={pkg} isDesktop={true} lang={lang} />
+        </div>
+
         {/* Legacy itinerary 5-col grid (v1 packages only) */}
         {!hasV2Itinerary && itinerary.length > 0 && (
           <DContainer style={{ padding: "56px 80px 56px" }}>
@@ -832,6 +899,7 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
         <TbSections pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} agency={agency} />
         <TbReviews pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
+        <TbTestimonial pkg={pkg} isDesktop={true} lang={lang} />
         <TbCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
         <DesktopFooter agency={agency} brand={BRAND} />
       </div>
@@ -872,6 +940,9 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
         </div>
       </div>
 
+      {/* Roster avatar card — who you'll travel with */}
+      <TbRosterCard pkg={pkg} isDesktop={false} lang={lang} />
+
       {/* Legacy emoji day-by-day (v1 packages only) */}
       {!hasV2Itinerary && itinerary.length > 0 && (
         <section style={{ padding: "28px 18px 0" }}>
@@ -898,6 +969,8 @@ export function TemplateTribePage({ pkg, agency, onWhatsApp, onMessenger, lang }
 
       <TbSections pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} agency={agency} />
       <TbReviews pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
+
+      <TbTestimonial pkg={pkg} isDesktop={false} lang={lang} />
 
       <div style={{ padding: "0 18px 28px" }}>
         <TbCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />

@@ -20,13 +20,15 @@ import type { TPageProps, TCardProps, TPackage, TAgency, Lang } from "./types";
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const FA = {
-  brand:      "#3a6b4a",
+  brand:      "#c46a2f",        // warm orange (was forest green #3a6b4a)
+  brandDark:  "#9a4d1f",        // darker orange for gradient end (was #2a5238)
   bg:         "#fefaf2",
   ink:        "#0d1b2e",
   muted:      "rgba(13,27,46,0.55)",
   superMuted: "rgba(13,27,46,0.35)",
   border:     "rgba(13,27,46,0.08)",
   serif:      "var(--font-source-serif, 'Source Serif 4', serif)",
+  sans:       "var(--font-sans, 'Inter', system-ui, sans-serif)",
 } as const;
 
 // ─── Section data helpers ─────────────────────────────────────────────────────
@@ -869,7 +871,7 @@ function FaCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: 
   const t = T[lang];
   return (
     <div style={{
-      background: `linear-gradient(135deg, ${FA.brand} 0%, #2a5238 100%)`,
+      background: `linear-gradient(135deg, ${FA.brand} 0%, ${FA.brandDark} 100%)`,
       borderRadius: 18, overflow: "hidden", position: "relative",
       padding: isDesktop ? "40px 44px" : "28px 22px",
     }}>
@@ -920,6 +922,97 @@ function FaMobileFooter({ agency }: { agency: TAgency }) {
   );
 }
 
+// ─── FaAgeTabs ───────────────────────────────────────────────────────────────
+// Age-group tab row. Labels + descriptors are hardcoded EN/AR (the i18n table in
+// @/lib/translations is out of scope for this change). UI-only: switching the tab
+// recolors the active pill and swaps the one-line descriptor — no data filtering.
+
+const FA_AGE_TABS: Array<{ key: string; en: string; ar: string; descEn: string; descAr: string }> = [
+  {
+    key: "toddlers",
+    en: "Toddlers 0–4",
+    ar: "الرضّع ٠–٤",
+    descEn: "Pram-friendly pacing, nap-time breaks, baby-safe pools",
+    descAr: "إيقاع مريح للعربات، فترات راحة للقيلولة، ومسابح آمنة للصغار",
+  },
+  {
+    key: "kids",
+    en: "Kids 5–11",
+    ar: "الأطفال ٥–١١",
+    descEn: "Adventure-paced days, pools, kids' clubs, and room to run",
+    descAr: "أيام مليئة بالمغامرة، مسابح، أندية للأطفال، ومساحة للعب",
+  },
+  {
+    key: "teens",
+    en: "Teens 12–17",
+    ar: "المراهقون ١٢–١٧",
+    descEn: "Surf lessons, night markets, and enough freedom to feel cool",
+    descAr: "دروس ركوب الأمواج، أسواق ليلية، وحرية كافية للشعور بالاستقلالية",
+  },
+];
+
+function FaAgeTabs({ lang }: { lang: Lang }) {
+  const [active, setActive] = React.useState("kids"); // default: Kids
+  const isRtl = lang === "ar";
+  const activeTab = FA_AGE_TABS.find((tb) => tb.key === active) ?? FA_AGE_TABS[1];
+  return (
+    <div data-pmx-section="age_tabs">
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          overflowX: "auto",
+          paddingBottom: 4,
+          flexDirection: isRtl ? "row-reverse" : "row",
+          WebkitOverflowScrolling: "touch",
+          scrollbarWidth: "none",
+        }}
+      >
+        {FA_AGE_TABS.map((tb) => {
+          const on = tb.key === active;
+          return (
+            <button
+              key={tb.key}
+              type="button"
+              onClick={() => setActive(tb.key)}
+              aria-pressed={on}
+              style={{
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+                fontFamily: FA.sans,
+                fontSize: 14,
+                fontWeight: 600,
+                lineHeight: 1.2,
+                padding: "9px 18px",
+                borderRadius: 99,
+                border: on ? "1px solid transparent" : `1px solid ${FA.border}`,
+                background: on ? FA.brand : "#fff",
+                color: on ? "#fff" : FA.muted,
+                transition: "background 0.15s ease, color 0.15s ease",
+              }}
+            >
+              {isRtl ? tb.ar : tb.en}
+            </button>
+          );
+        })}
+      </div>
+      <div
+        style={{
+          fontFamily: FA.sans,
+          fontSize: 13,
+          color: FA.muted,
+          lineHeight: 1.55,
+          marginTop: 10,
+          textAlign: isRtl ? "right" : "left",
+        }}
+      >
+        {isRtl ? activeTab.descAr : activeTab.descEn}
+      </div>
+    </div>
+  );
+}
+
 // ─── TemplateFamilyPage ──────────────────────────────────────────────────────
 
 export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
@@ -945,7 +1038,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
 
   if (isDesktop) {
     return (
-      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: FA.bg, color: FA.ink, fontFamily: FA.serif, direction: isRtl ? "rtl" : "ltr" }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: FA.bg, color: FA.ink, fontFamily: FA.sans, direction: isRtl ? "rtl" : "ltr" }}>
         <DesktopNav agency={agency} price={pkg.price} brand={FA.brand} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* 50/50 hero: arched image left + overlapping price card, text right */}
@@ -961,17 +1054,22 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
               {/* Overlapping price card */}
               <div style={{ position: "absolute", bottom: -16, right: -16, background: "#fff", borderRadius: 14, padding: "16px 20px", boxShadow: "0 10px 24px rgba(0,0,0,0.08)", border: `1px solid ${FA.border}` }}>
                 <div style={{ fontSize: 10.5, color: FA.superMuted, letterSpacing: "0.7px", textTransform: "uppercase" }}>{t.familyOf4}</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: FA.brand, marginTop: 4, letterSpacing: "-0.5px" }} data-pmx-field="price">{pkg.price}</div>
+                <div style={{ fontFamily: FA.serif, fontSize: 28, fontWeight: 800, color: FA.brand, marginTop: 4, letterSpacing: "-0.5px" }} data-pmx-field="price">{pkg.price}</div>
                 <div style={{ fontSize: 11, color: FA.superMuted, marginTop: 2 }}>{t.kidsUnder6Free}</div>
               </div>
             </div>
             <div data-pmx-field="destination">
               <Eyebrow text={pkg.destination} brand={FA.brand} />
-              <h1 style={{ fontSize: 60, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.5px", marginTop: 16, marginBottom: 18 }} data-pmx-field="title">{title}</h1>
+              <h1 style={{ fontFamily: FA.serif, fontSize: 60, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.5px", marginTop: 16, marginBottom: 18 }} data-pmx-field="title">{title}</h1>
               <p style={{ fontSize: 16.5, color: FA.muted, lineHeight: 1.7, margin: "0 0 24px" }}>{pkg.description}</p>
               {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
             </div>
           </div>
+        </DContainer>
+
+        {/* Age tabs (below hero, above highlights) */}
+        <DContainer style={{ padding: "8px 80px 0" }}>
+          <FaAgeTabs lang={lang} />
         </DContainer>
 
         {/* Family features 3-col (legacy fallback) */}
@@ -1021,7 +1119,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
   return (
     <div dir={isRtl ? "rtl" : "ltr"} style={{
       minHeight: "100vh", background: FA.bg, color: FA.ink,
-      fontFamily: FA.serif, direction: isRtl ? "rtl" : "ltr",
+      fontFamily: FA.sans, direction: isRtl ? "rtl" : "ltr",
     }}>
       <AgencyBar agency={agency} price={pkg.price} brand={FA.brand} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
 
@@ -1042,12 +1140,17 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
       {/* Title + description */}
       <div style={{ padding: "8px 18px 0" }} data-pmx-field="destination">
         <Eyebrow text={pkg.destination} brand={FA.brand} />
-        <h1 style={{ fontSize: 30, fontWeight: 800, color: FA.ink, margin: "10px 0 12px", letterSpacing: "-0.5px", lineHeight: 1.2 }} data-pmx-field="title">
+        <h1 style={{ fontFamily: FA.serif, fontSize: 30, fontWeight: 800, color: FA.ink, margin: "10px 0 12px", letterSpacing: "-0.5px", lineHeight: 1.2 }} data-pmx-field="title">
           {title}
         </h1>
         {pkg.description && (
           <p style={{ fontSize: 14, color: FA.muted, lineHeight: 1.7, margin: 0 }}>{pkg.description}</p>
         )}
+      </div>
+
+      {/* Age tabs (below hero, above highlights) */}
+      <div style={{ padding: "18px 18px 0" }}>
+        <FaAgeTabs lang={lang} />
       </div>
 
       {/* Family pricing card */}
@@ -1065,7 +1168,7 @@ export function TemplateFamilyPage({ pkg, agency, onWhatsApp, onMessenger, lang 
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 8, fontWeight: 600 }}>
               {t.perFamilyOfFour}
             </div>
-            <div style={{ fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1px", lineHeight: 1, marginBottom: 6 }} data-pmx-field="price">
+            <div style={{ fontFamily: FA.serif, fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1px", lineHeight: 1, marginBottom: 6 }} data-pmx-field="price">
               {pkg.price}
             </div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 20 }}>
