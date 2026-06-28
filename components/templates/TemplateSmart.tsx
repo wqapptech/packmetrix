@@ -776,7 +776,7 @@ function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
       return (
         <section style={secPad} data-pmx-section="video">
           <SmSecHead title={title} isDesktop={isDesktop} />
-          <video src={videoUrl} controls muted style={{ width: "100%", borderRadius: isDesktop ? 16 : 12, background: "#000", maxHeight: isDesktop ? 500 : 280, display: "block" }} />
+          <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} controls muted preload="metadata" style={{ width: "100%", borderRadius: isDesktop ? 16 : 12, background: "#000", maxHeight: isDesktop ? 500 : 280, display: "block" }} />
         </section>
       );
     }

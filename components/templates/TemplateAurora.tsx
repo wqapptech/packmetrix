@@ -362,7 +362,11 @@ function AuMediaSection({ pkg, lang }: { pkg: TPackage; lang: "en" | "ar" }) {
                 : <video src={videoUrl} controls autoPlay playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", background: "#000" }} />
             ) : (
               <>
-                {videoPoster && <img src={videoPoster} alt="" />}
+                {videoPoster
+                  ? <img src={videoPoster} alt="" />
+                  : (videoUrl && !isEmbed
+                      ? <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", background: "#000" }} />
+                      : null)}
                 {videoUrl && (
                   <button className="au-v2-med__play" aria-label="Play video" onClick={() => setPlaying(true)}>
                     <PlayIcon size={22} />
@@ -1329,6 +1333,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
   const agentFirst = agentName.split(" ")[0] || (lang === "ar" ? "الفريق" : "us");
   const dep = pkg.departures?.[0];
   const hasDepartures = (pkg.departures?.length ?? 0) > 0;
+  const hasReviews = (pkg.reviews?.length ?? 0) > 0 && agency.showReviews !== false;
   const agencyInitial = agency.name?.[0] ?? "A";
 
   return (
@@ -1352,7 +1357,7 @@ export function TemplateAuroraPage({ pkg, agency, onWhatsApp, lang = "en" }: TPa
                 { label: T[lang].auNavChapters,   id: "au-itinerary" },
                 { label: T[lang].auNavStay,        id: "au-stay" },
                 ...(hasDepartures ? [{ label: T[lang].departures, id: "au-departures" }] : []),
-                { label: T[lang].auNavGuestLetters, id: "au-reviews" },
+                ...(hasReviews ? [{ label: T[lang].auNavGuestLetters, id: "au-reviews" }] : []),
               ].map(({ label, id }) => (
                 <a
                   key={label}

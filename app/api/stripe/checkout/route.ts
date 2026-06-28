@@ -63,6 +63,9 @@ export async function POST(req: Request) {
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
+      // Enables the "Add promotion code" field on Stripe's hosted checkout so
+      // customers can redeem coupons created manually in the Stripe Dashboard.
+      allow_promotion_codes: true,
       // {CHECKOUT_SESSION_ID} is replaced by Stripe with the real session ID at redirect time.
       // The paywall page reads this param and calls /api/stripe/confirm-session to update
       // Firestore immediately, making subscription display webhook-independent.

@@ -211,7 +211,8 @@ function HomepageInner({ agencySlug, basePath, editor, override, page }: { agenc
 
   const sections = enabledSections(config);
 
-  // Chrome nav behavior (desktop only — mobile has no nav tabs):
+  // Chrome nav behavior (desktop nav tabs; mobile shows the same tabs in a
+  // hamburger dropdown):
   //  • Home links back to root; Packages → catalog; Contact scrolls to the CTA.
   //  • About is now a dedicated page (/about) — the nav links there on every
   //    surface, and highlights when we're on it. The homepage's About SECTION

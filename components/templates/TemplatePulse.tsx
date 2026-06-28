@@ -924,9 +924,10 @@ function PulseSection({
               />
             ) : (
               <video
-                src={videoUrl}
+                src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"}
                 controls
                 playsInline
+                preload="metadata"
                 style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
               />
             )}
@@ -1001,7 +1002,7 @@ function PulseSection({
               {(isYT || isVimeo) ? (
                 <iframe src={toEmbedUrl(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
               ) : (
-                <video src={videoUrl} controls playsInline style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+                <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} controls playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
               )}
             </div>
           )}
@@ -1314,13 +1315,14 @@ function sectionNavLabel(type: string, t: TranslationT): string {
 }
 
 function buildNavLinks(pkg: TPackage, gallery: TGalleryItem[], hasDeps: boolean, hasTiers: boolean, t: TranslationT): SectionNavItem[] {
+  const hasReviews = !!(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length);
   if (pkg.sections?.length) {
     const sorted = [...pkg.sections].sort((a, b) => a.order - b.order);
     const links: SectionNavItem[] = sorted
       .filter(s => SECTION_NAV_HREFS[s.type])
       .map(s => ({ label: sectionNavLabel(s.type, t), href: SECTION_NAV_HREFS[s.type]! }))
       .filter(l => l.label);
-    links.push({ label: t.reviewsLabel, href: "#pl-reviews" });
+    if (hasReviews) links.push({ label: t.reviewsLabel, href: "#pl-reviews" });
     return links;
   }
   const links: SectionNavItem[] = [];
@@ -1328,7 +1330,7 @@ function buildNavLinks(pkg: TPackage, gallery: TGalleryItem[], hasDeps: boolean,
   if (gallery.length)         links.push({ label: t.gallery,     href: "#pl-gallery" });
   if (hasDeps)                links.push({ label: t.departures,  href: "#pl-departures" });
   if (hasTiers)               links.push({ label: t.navPricing,  href: "#pl-pricing" });
-  links.push({ label: t.reviewsLabel, href: "#pl-reviews" });
+  if (hasReviews) links.push({ label: t.reviewsLabel, href: "#pl-reviews" });
   return links;
 }
 
