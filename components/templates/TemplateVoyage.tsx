@@ -19,15 +19,19 @@ import type { TPageProps, TCardProps, TPricingTier } from "./types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ACID  = "#d6f43d";
-const BG    = "#0a0b0c";
-const FG    = "#f0ede6";
-const MUT   = "rgba(240,237,230,0.55)";
-const SMUT  = "rgba(240,237,230,0.35)";
-const LINE  = "rgba(255,255,255,0.09)";
-const PINK  = "#e03660";
+const BRAND = "#e8197d";          // hot pink
+const BG    = "#0d1b2e";          // navy canvas
+const FG    = "#ffffff";
+const MUT   = "rgba(255,255,255,0.65)";
+const SMUT  = "rgba(255,255,255,0.4)";
+const LINE  = "rgba(255,255,255,0.10)";
+const PINK  = "#e8197d";
 const ARCH  = "var(--font-archivo-black,'Archivo Black',sans-serif)";
 const MONO  = "var(--font-jetbrains-mono,'JetBrains Mono',monospace)";
+
+// Hero stories + vibe accent palette (navy/pink + supporting hues)
+const STORY_COLORS = ["#e8197d", "#f5a623", "#2dd4a0", "#7c3aed", "#25d366", "#e94e77"];
+const VIBE_COLORS  = ["#e8197d", "#2dd4a0", "#f5a623", "#7c3aed"];
 
 // ─── Data helpers ──────────────────────────────────────────────────────────────
 
@@ -1063,12 +1067,12 @@ function VyOtherPackagesSection({ pkg, lang, agencySlug }: { pkg: TPageProps["pk
                 {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
               </div>
               <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-                {dest && <div style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: ACID }}>{dest}</div>}
+                {dest && <div style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: BRAND }}>{dest}</div>}
                 <div style={{ fontFamily: ARCH, fontSize: 13, fontWeight: 700, color: FG, lineHeight: 1.3 }}>{title}</div>
                 {(nights || price) && (
                   <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
                     {nights && <span style={{ fontFamily: MONO, fontSize: 10.5, color: MUT }}>{nights}</span>}
-                    {price && <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: ACID }}>{price}</span>}
+                    {price && <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: BRAND }}>{price}</span>}
                   </div>
                 )}
               </div>
@@ -1078,7 +1082,7 @@ function VyOtherPackagesSection({ pkg, lang, agencySlug }: { pkg: TPageProps["pk
       </div>
       {agencySlug && (
         <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-          <a href={`/${agencySlug}/packages`} style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: ACID, textDecoration: "none", letterSpacing: "0.5px" }}>
+          <a href={`/${agencySlug}/packages`} style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: BRAND, textDecoration: "none", letterSpacing: "0.5px" }}>
             {t.navAllPackages} →
           </a>
         </div>
@@ -1146,7 +1150,7 @@ function VyFinalCta({ pkg, agency, lang, onWhatsApp, onMessenger }: {
           <WaIcon size={15} /> {t.bookWhatsApp}
         </button>}
         {hasMessenger && onMessenger && (
-          <button className="vy-v2-cta__btn" style={{ background: "transparent", border: `2px solid ${ACID}`, color: ACID }} onClick={onMessenger}>
+          <button className="vy-v2-cta__btn" style={{ background: "transparent", border: `2px solid ${BRAND}`, color: BRAND }} onClick={onMessenger}>
             {t.vyMessenger}
           </button>
         )}
@@ -1164,6 +1168,110 @@ function VyMobileFooter({ agency }: { agency: TPageProps["agency"] }) {
       {agency.tagline && <div>{agency.tagline}</div>}
       <div style={{ marginTop: 8 }}>{T["en"].poweredBy}</div>
     </footer>
+  );
+}
+
+// ─── Hero data helpers (stories + vibe grid) ───────────────────────────────────
+
+// Split a destination string into its punchy parts for the stacked H1.
+function vyDestParts(dest?: string): string[] {
+  if (!dest) return [];
+  return dest.split(/\s*[,&/]\s*|\s+and\s+/i).map((s) => s.trim()).filter(Boolean);
+}
+
+// Stories-strip labels: package highlights → itinerary chapters → static fallback.
+function vyStoryLabels(pkg: TPageProps["pkg"], t: (typeof T)["en"]): string[] {
+  const labels: string[] = [];
+  const push = (raw: string) => {
+    const w = raw.trim().split(/\s+/)[0];
+    if (w && !labels.some((l) => l.toLowerCase() === w.toLowerCase())) labels.push(w);
+  };
+  for (const h of secArr(findSec(pkg, "highlights"), "items")) {
+    if (labels.length >= 6) break;
+    push(itemStr(h, "title"));
+  }
+  if (labels.length < 4) {
+    const itin = findSec(pkg, "itinerary");
+    const items = secArr(itin, "items").length ? secArr(itin, "items") : secArr(itin, "days");
+    for (const d of items) {
+      if (labels.length >= 6) break;
+      push(itemStr(d, "chapter") || itemStr(d, "title"));
+    }
+  }
+  if (labels.length < 3) {
+    [t.vyStoryBeach, t.vyStoryBoat, t.vyStoryHike, t.vyStoryEats, t.vyStoryCrew, t.vyStoryNightlife]
+      .forEach(push);
+  }
+  return labels.slice(0, 6);
+}
+
+// Four mood/vibe cards. Names are fixed (per design); subtitles prefer real
+// highlight copy, falling back to sensible static lines.
+function vyVibes(pkg: TPageProps["pkg"], t: (typeof T)["en"]): Array<{ name: string; sub: string; color: string }> {
+  const hi = secArr(findSec(pkg, "highlights"), "items");
+  const sub = (i: number, fb: string) => {
+    const h = hi[i];
+    const s = h ? itemStr(h, "title") : "";
+    return s || fb;
+  };
+  return [
+    { name: t.vyVibeAdventure, sub: sub(0, t.vyVibeAdventureSub), color: VIBE_COLORS[0] },
+    { name: t.vyVibeSocial,    sub: sub(1, t.vyVibeSocialSub),    color: VIBE_COLORS[1] },
+    { name: t.vyVibeCulture,   sub: sub(2, t.vyVibeCultureSub),   color: VIBE_COLORS[2] },
+    { name: t.vyVibeNightlife, sub: sub(3, t.vyVibeNightlifeSub), color: VIBE_COLORS[3] },
+  ];
+}
+
+function VyStories({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: "en" | "ar" }) {
+  const t = T[lang];
+  const labels = vyStoryLabels(pkg, t);
+  if (labels.length < 3) return null;
+  return (
+    <div className="vy-stories">
+      {labels.map((label, i) => {
+        const c = STORY_COLORS[i % STORY_COLORS.length];
+        return (
+          <div key={i} className="vy-story">
+            <div className="vy-story__ring" style={{ background: `conic-gradient(${c}, ${PINK}, ${c})` }}>
+              <div className="vy-story__inner">{label.charAt(0).toUpperCase()}</div>
+            </div>
+            <div className="vy-story__label">{label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function VyVibeGrid({ pkg, lang, desktop }: { pkg: TPageProps["pkg"]; lang: "en" | "ar"; desktop?: boolean }) {
+  const t = T[lang];
+  const vibes = vyVibes(pkg, t);
+  if (desktop) {
+    return (
+      <div className="vy-dvibe">
+        <div className="vy-dvibe__grid">
+          {vibes.map((v, i) => (
+            <div key={i} className="vy-dvibe__card">
+              <div className="vy-dvibe__v" style={{ color: v.color }}>{v.name}</div>
+              <div className="vy-dvibe__l">{v.sub}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <section className="vy-vibe">
+      <div className="vy-vibe__eb">{t.vyVibeEyebrow}</div>
+      <div className="vy-vibe__grid">
+        {vibes.map((v, i) => (
+          <div key={i} className="vy-vibe__card">
+            <div className="vy-vibe__v" style={{ color: v.color }}>{v.name}</div>
+            <div className="vy-vibe__l">{v.sub}</div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -1196,7 +1304,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
   if (isDesktop) {
     return (
       <div className="vy" dir={isRtl ? "rtl" : "ltr"} style={{ direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={ACID} navLinks={navLinks} lang={lang} dark onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
+        <DesktopNav agency={agency} price={pkg.price} brand={BRAND} navLinks={navLinks} lang={lang} dark onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
 
         {/* Ticker */}
         <VyTicker pkg={pkg} lang={lang} />
@@ -1222,7 +1330,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
             <div className="vy-d-hero__img">
               {cover
                 ? <img src={cover} alt={pkg.destination} />
-                : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${ACID}22, ${BG})` }} />
+                : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${BRAND}22, ${BG})` }} />
               }
               {pkg.destination && (
                 <div className="vy-d-hero__img-cap" data-pmx-field="destination">{pkg.destination.split(",")[0].toUpperCase()}</div>
@@ -1297,7 +1405,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
         <VyOtherPackagesSection pkg={pkg} lang={lang} agencySlug={agency.agencySlug} />
         <VyCustomSection pkg={pkg} lang={lang} />
         <VyFinalCta pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} onMessenger={onMessenger} />
-        <DesktopFooter agency={agency} brand={ACID} dark />
+        <DesktopFooter agency={agency} brand={BRAND} dark />
       </div>
     );
   }
@@ -1305,7 +1413,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
   // ── Mobile ──────────────────────────────────────────────────────────────────
   return (
     <div className="vy vy--mobile" dir={isRtl ? "rtl" : "ltr"} style={{ direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={ACID} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} dark />
+      <AgencyBar agency={agency} price={pkg.price} brand={BRAND} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} dark />
       <VyTicker pkg={pkg} lang={lang} />
 
       {/* Mobile hero */}
@@ -1315,7 +1423,7 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: MONO, fontSize: 10, color: MUT, letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: 12 }}>
             <span data-pmx-field="destination">{pkg.destination}</span>
             {pkg.scarcity?.spotsRemaining != null && (
-              <span style={{ color: ACID, fontWeight: 700 }}>{pkg.scarcity.spotsRemaining} {t.vySpots}</span>
+              <span style={{ color: BRAND, fontWeight: 700 }}>{pkg.scarcity.spotsRemaining} {t.vySpots}</span>
             )}
           </div>
           {nights && (
@@ -1339,11 +1447,11 @@ export function TemplateVoyagePage({ pkg, agency, onWhatsApp, onMessenger, lang 
       </div>
 
       {/* Poster price card */}
-      <div style={{ margin: "16px 16px", background: ACID, color: BG, padding: "20px 20px", borderRadius: 6 }}>
+      <div style={{ margin: "16px 16px", background: BRAND, color: BG, padding: "20px 20px", borderRadius: 6 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
           <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.6px", textTransform: "uppercase", fontWeight: 700 }}>{t.vyAllInFrom}</div>
           {pkg.scarcity?.spotsRemaining != null && (
-            <div style={{ fontFamily: MONO, fontSize: 10, background: BG, color: ACID, padding: "3px 7px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <div style={{ fontFamily: MONO, fontSize: 10, background: BG, color: BRAND, padding: "3px 7px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", background: PINK, display: "inline-block" }} />
               {pkg.scarcity.spotsRemaining} {t.vyNLeft}
             </div>

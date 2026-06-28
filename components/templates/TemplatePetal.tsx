@@ -18,17 +18,19 @@ import {
 } from "./shared";
 import type { TPageProps, TCardProps } from "./types";
 
-const ROSE      = "#c8576f";
+// --pe-accent: dusty mauve — primary accent token (was candy coral #c8576f)
+const ROSE      = "#9e6b7a";
 const PEACH     = "#faf3ef";
 const CLAY      = "#d4896a";
 const INK       = "#1a0d0d";
 const MUTED     = "rgba(26,13,13,0.52)";
 const SMUTED    = "rgba(26,13,13,0.32)";
 const BORDER    = "rgba(26,13,13,0.07)";
-const SERIF     = "var(--font-instrument-serif, var(--font-cormorant), serif)";
+// --pe-serif: Cormorant Garamond is the romantic serif voice (italic where applied)
+const SERIF     = "var(--font-cormorant, 'Cormorant Garamond', 'Cormorant', Georgia, serif)";
 const MONO      = "var(--font-jetbrains-mono, ui-monospace, monospace)";
 const GOLD      = "#b09142";
-const ROSE_SOFT = "#f3d3d8";
+const ROSE_SOFT = "#e2ccd3"; // soft dusty mauve tint (was candy pink #f3d3d8)
 
 // ─── Trust items ──────────────────────────────────────────────────────────────
 
@@ -551,7 +553,7 @@ function PtImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pk
             const isWarn = severity === "warn";
             return (
               <article key={i} style={{
-                background: isWarn ? "rgba(200,87,111,0.04)" : "#fff",
+                background: isWarn ? "rgba(158,107,122,0.05)" : "#fff",
                 border: `1px solid ${isWarn ? ROSE_SOFT : BORDER}`,
                 padding: isDesktop ? "26px 28px" : "18px 20px",
               }}>
@@ -1243,14 +1245,14 @@ export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }
         </div>
       </div>
 
-      {/* Price + title card */}
+      {/* Price + title card — brand-filled, centered (matches desktop) */}
       <div style={{ padding: "0 18px" }}>
-        <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 6px 32px rgba(26,13,13,0.10)", padding: "22px 22px 20px", marginTop: -28, position: "relative", zIndex: 2 }}>
-          <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: INK, lineHeight: 1.12, letterSpacing: "-0.4px", margin: "0 0 10px" }}>
+        <div style={{ background: ROSE, color: "#fff", borderRadius: 18, boxShadow: "0 10px 32px rgba(26,13,13,0.18)", padding: "28px 22px 24px", marginTop: -28, position: "relative", zIndex: 2, textAlign: "center" as const }}>
+          <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: "#fff", lineHeight: 1.12, letterSpacing: "-0.4px", margin: "0 0 16px" }}>
             {title}
           </h1>
-          <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: ROSE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{normalizeSarStr(pkg.price)}</div>
-          <div style={{ fontSize: 12, color: SMUTED, marginBottom: 18 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
+          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14, color: "rgba(255,255,255,0.78)", marginBottom: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
+          <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 52, fontWeight: 400, fontStyle: "italic", color: "#fff", lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 20 }}>{normalizeSarStr(pkg.price)}</div>
           {pkg.whatsapp && <WAButton label={t.bookWhatsApp} full onClick={onWhatsApp} />}
         </div>
       </div>
