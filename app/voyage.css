@@ -163,7 +163,7 @@
 .vy-dvibe { padding: 0 56px 56px; }
 .vy-dvibe__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 .vy-dvibe__card { background: var(--vy-panel); border: 1px solid var(--vy-panel-line); border-radius: 16px; padding: 24px 22px; }
-.vy-dvibe__v { font-family: var(--font-archivo-black, "Archivo Black", sans-serif); font-size: 40px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+.vy-dvibe__v { font-family: var(--font-archivo-black, "Archivo Black", sans-serif); font-size: 34px; font-weight: 900; letter-spacing: -1px; line-height: 1.02; overflow-wrap: anywhere; }
 .vy-dvibe__l { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 10px; text-transform: uppercase; letter-spacing: 0.6px; }
 
 /* ─── Section pattern ─────────────────────────────────────────────────────── */

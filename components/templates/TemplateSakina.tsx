@@ -1,1276 +1,947 @@
 "use client";
 
-import React from "react";
-import { T, localizeTierLabel } from "@/lib/translations";
-import {
-  WAButton,
-  Eyebrow,
-  AgencyBar,
-  StickyCTA,
-  BaseCard,
-  useIsDesktop,
-  DesktopNav,
-  DContainer,
-  DesktopFooter,
-  LightboxCarousel,
-  localizeRole,
-} from "./shared";
-import type { TPageProps, TCardProps } from "./types";
+// ═══════════════════════════════════════════════════════════════════════════
+// SAKINA V2 — Religious / Umrah · a quiet, reverent journal.
+// Ivory paper, deep ink, gold thread, Cormorant/Amiri serif, Jost labels,
+// Mukta body, mihrab arches, centred rhythm, calm. Scarcity is reassurance.
+// Dynamic brand colour themes arches, rules, numerals, CTAs.
+// One component renders all 4 surfaces. Wired to real pkg.sections data.
+// ═══════════════════════════════════════════════════════════════════════════
 
-const SAGE   = "#1a5d4a";
-const GOLD   = "#b09142";
-const BONE   = "#f7f4ed";
-const INK    = "#0d1b2e";
-const MUTED  = "rgba(13,27,46,0.55)";
-const SMUTED = "rgba(13,27,46,0.35)";
-const BORDER = "rgba(13,27,46,0.08)";
-const SERIF  = "var(--font-cormorant, serif)";
+import React, { useRef, useState } from "react";
+import { useIsDesktop, BaseCard, LightboxCarousel } from "./shared";
+import { localizeTierLabel } from "@/lib/translations";
+import type { TPageProps, TCardProps, TPackage } from "./types";
 
-// ─── Section data helpers ─────────────────────────────────────────────────────
+type SecData = Record<string, unknown>;
 
-type SkSecData = Record<string, unknown>;
-
-function skFindSec(pkg: TPageProps["pkg"], type: string): SkSecData | undefined {
-  return pkg.sections?.find((s) => s.type === type)?.data as SkSecData | undefined;
+// ─── Brand colour math ────────────────────────────────────────────────────────
+function skHex(h: string): [number, number, number] {
+  h = h.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
-function skSecArr(data: SkSecData | undefined, key: string): SkSecData[] {
-  if (!data) return [];
-  const v = data[key];
-  if (!Array.isArray(v)) return [];
-  return v.filter((x): x is SkSecData => x != null && typeof x === "object");
+function skRgba(hex: string, a: number): string { const [r, g, b] = skHex(hex); return `rgba(${r},${g},${b},${a})`; }
+function skMix(hex: string, target: string, t: number): string {
+  const a = skHex(hex), b = skHex(target);
+  const m = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${m[0]},${m[1]},${m[2]})`;
 }
-function skSecStr(data: SkSecData | undefined, key: string): string {
-  if (!data) return "";
-  const v = data[key];
+function skLighten(hex: string, t: number) { return skMix(hex, "#ffffff", t); }
+function skLum(hex: string) { const [r, g, b] = skHex(hex); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+function skOn(hex: string) { return skLum(hex) > 0.62 ? "#1f2a22" : "#ffffff"; }
+
+const GOLD = "#b0894e";
+
+// ─── i18n ─────────────────────────────────────────────────────────────────────
+const L_EN = {
+  sections: {
+    highlights: "Why you'll love it", media: "See for yourself", itinerary: "Day by day",
+    hotel: "Where you'll stay", meals: "What you'll eat", inclusions: "What's included",
+    transfers: "Getting around", visa: "Visa & entry", departures: "Departures",
+    pricing: "Choose your room", extras: "Make it yours", scarcity: "Before it's gone",
+    people: "Your trip designer", reviews: "Travellers say", agency: "About the agency",
+    notes: "Good to know", faq: "Questions, answered", custom: "A note from us", others: "More journeys",
+  },
+  nav: { highlights: "Highlights", itinerary: "Itinerary", hotel: "Stay", inclusions: "Included", departures: "Dates", pricing: "Pricing", reviews: "Reviews", faq: "FAQ" },
+  ui: {
+    from: "From", perPerson: "per person", night: "night", nights: "nights", included: "Included",
+    notIncluded: "Not included", mostPopular: "Most popular", soldOut: "Sold out", left: "left",
+    seatsLeft: "places left", book: "Reserve", reserve: "Reserve your place", enquire: "Enquire on WhatsApp",
+    bookWhatsapp: "Book on WhatsApp", messenger: "Messenger", message: "Message us", nextDeparture: "Next departure",
+    date: "Date", depart: "Times", price: "Price", availability: "Availability", to: "To",
+    cancellation: "Cancellation policy", paymentSchedule: "Payment schedule", basedOn: "based on", review: "reviews",
+    stars: "stars", route: "Your route", years: "years", replyTime: "Usually replies within an hour",
+    watch: "Watch the film", noVideo: "Video coming soon", play: "Play", pause: "Pause", mute: "Mute",
+    unmute: "Unmute", poweredBy: "Powered by PackMetrix", duration: "Duration", destination: "Destination",
+    board: "Board", begin: "Begin your journey.",
+    spotsLine: (n: number) => `A small group — ${n} ${n === 1 ? "place" : "places"} remain.`,
+    reassure: "Take the time you need. We'll hold your enquiry and answer every question before you commit.",
+  },
+};
+const L_AR: typeof L_EN = {
+  sections: {
+    highlights: "لماذا ستحبّها", media: "شاهد بنفسك", itinerary: "يومًا بيوم",
+    hotel: "مكان إقامتك", meals: "ما ستتناوله", inclusions: "ما يشمله البرنامج",
+    transfers: "التنقّلات", visa: "التأشيرة والدخول", departures: "مواعيد المغادرة",
+    pricing: "اختر غرفتك", extras: "أضِف لمستك", scarcity: "قبل أن تنفد",
+    people: "مصمّم رحلتك", reviews: "آراء المسافرين", agency: "عن الوكالة",
+    notes: "معلومات تهمّك", faq: "إجابات على أسئلتك", custom: "كلمة منّا", others: "رحلات أخرى",
+  },
+  nav: { highlights: "المميزات", itinerary: "البرنامج", hotel: "الإقامة", inclusions: "المشمول", departures: "المواعيد", pricing: "الأسعار", reviews: "التقييمات", faq: "الأسئلة" },
+  ui: {
+    from: "ابتداءً من", perPerson: "للفرد", night: "ليلة", nights: "ليالٍ", included: "مشمول",
+    notIncluded: "غير مشمول", mostPopular: "الأكثر طلبًا", soldOut: "نفدت", left: "متبقّية",
+    seatsLeft: "أماكن متبقّية", book: "احجز", reserve: "احجز مكانك", enquire: "استفسر عبر واتساب",
+    bookWhatsapp: "احجز عبر واتساب", messenger: "ماسنجر", message: "راسلنا", nextDeparture: "أقرب موعد",
+    date: "التاريخ", depart: "الأوقات", price: "السعر", availability: "التوفّر", to: "إلى",
+    cancellation: "سياسة الإلغاء", paymentSchedule: "جدول الدفع", basedOn: "من", review: "تقييم",
+    stars: "نجوم", route: "مسار رحلتك", years: "سنة", replyTime: "نردّ عادةً خلال ساعة",
+    watch: "شاهد الفيديو", noVideo: "الفيديو قريبًا", play: "تشغيل", pause: "إيقاف", mute: "كتم",
+    unmute: "تشغيل الصوت", poweredBy: "مُشغّل بواسطة باكمتريكس", duration: "المدة", destination: "الوجهة",
+    board: "الإقامة", begin: "ابدأ رحلتك.",
+    spotsLine: (n: number) => `مجموعة صغيرة — بقي ${n} ${n === 1 ? "مكان" : "أماكن"}.`,
+    reassure: "خذ وقتك. سنحتفظ باستفسارك ونجيب عن كل سؤال قبل أن تلتزم.",
+  },
+};
+
+const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
+  none: { en: "No meals", ar: "بدون وجبات" }, breakfast: { en: "Breakfast", ar: "إفطار" },
+  half_board: { en: "Half board", ar: "نصف إقامة" }, full_board: { en: "Full board", ar: "إقامة كاملة" },
+  all_inclusive: { en: "All inclusive", ar: "شامل بالكامل" },
+};
+const VISA_HEAD: Record<string, { en: string; ar: string }> = {
+  included: { en: "Visa included", ar: "التأشيرة مشمولة" }, assistance: { en: "Visa assistance provided", ar: "نقدّم المساعدة في التأشيرة" },
+  not_included: { en: "Visa not included", ar: "التأشيرة غير مشمولة" }, not_required: { en: "No visa required", ar: "لا تحتاج تأشيرة" },
+};
+const ROLE_LABELS: Record<string, { en: string; ar: string }> = {
+  agent: { en: "Travel designer", ar: "مصمّم الرحلات" }, curator: { en: "Travel designer", ar: "مصمّم الرحلات" },
+  trip_lead: { en: "Trip lead", ar: "قائد الرحلة" }, trip_designer: { en: "Travel designer", ar: "مصمّم الرحلات" },
+  guide: { en: "Guide", ar: "المرشد" }, mutawif: { en: "Mutawif", ar: "المطوّف" },
+};
+
+// ─── Section-data helpers ─────────────────────────────────────────────────────
+function findSec(pkg: TPackage, type: string): SecData | undefined {
+  return pkg.sections?.find((s) => s.type === type)?.data as SecData | undefined;
+}
+function secArr(data: SecData | undefined, key: string): SecData[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is SecData => i != null && typeof i === "object") : [];
+}
+function secStr(data: SecData | undefined, key: string): string {
+  const v = data?.[key];
   return typeof v === "string" ? v : "";
 }
-function skSecNum(data: SkSecData | undefined, key: string): number | undefined {
-  if (!data) return undefined;
-  const v = data[key];
-  return typeof v === "number" ? v : undefined;
+function secStrArr(data: SecData | undefined, key: string): string[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is string => typeof i === "string") : [];
 }
-function skItemStr(item: SkSecData | string, ...keys: string[]): string {
+function secItemStr(item: unknown, ...keys: string[]): string {
   if (typeof item === "string") return item;
-  for (const k of keys) {
-    const v = (item as SkSecData)[k];
-    if (typeof v === "string" && v) return v;
-  }
+  if (!item || typeof item !== "object") return "";
+  const obj = item as SecData;
+  for (const k of keys) { const v = secStr(obj, k); if (v) return v; }
   return "";
 }
+function secMixed(data: SecData | undefined, key: string): Array<SecData | string> {
+  const v = data?.[key];
+  return Array.isArray(v) ? (v.filter((i) => i != null) as Array<SecData | string>) : [];
+}
+function lines(s: string): string[] {
+  return s.split(/\r?\n/).map((l) => l.replace(/^[-•·]\s*/, "").trim()).filter(Boolean);
+}
 
-// ─── Sakina section components ────────────────────────────────────────────────
+// ─── WhatsApp icon ────────────────────────────────────────────────────────────
+function WAIcon({ s = 16, fill = "currentColor" }: { s?: number; fill?: string }) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill={fill}><path d="M20.5 3.5C18.2 1.2 15.2 0 12 0 5.4 0 .1 5.3.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.4-1.7c1.7.9 3.7 1.4 5.6 1.4 6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.2-3.4-8.3zM12 21.8c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.7 1 1-3.6-.2-.4c-.9-1.5-1.4-3.3-1.4-5 0-5.5 4.5-9.9 9.9-9.9 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.4 2.9 7-.1 5.4-4.5 9.5-10.2 9.5z" /></svg>;
+}
 
-function SkFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "faq");
-  const items = skSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
+// ─── Star rating ──────────────────────────────────────────────────────────────
+function SkStars({ n = 5, of = 5, size = 14, color = GOLD }: { n?: number; of?: number; size?: number; color?: string }) {
+  const star = (fill: string) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} style={{ display: "block" }}><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 5.9 20.8l1.2-6.6L2.3 9.6l6.6-.9z" /></svg>
+  );
+  return <span style={{ display: "inline-flex", gap: 2 }}>{Array.from({ length: of }).map((_, i) => <span key={i}>{star(i < n ? color : skRgba(color, 0.25))}</span>)}</span>;
+}
+
+// ─── Abstract route map ───────────────────────────────────────────────────────
+function SkRouteMap({ stops, line, land, ink = "#1f2a22", height = 220, rounded = 14, rtl = false }: { stops: { label: string }[]; line: string; land: string; ink?: string; height?: number; rounded?: number; rtl?: boolean }) {
+  const W = 1000, H = 420;
+  const pts = stops.map((s, i) => {
+    const x = stops.length === 1 ? W / 2 : 120 + (i * (W - 240)) / (stops.length - 1);
+    const y = 150 + Math.sin(i * 1.3 + 0.6) * 70 + (i % 2 ? 20 : -10);
+    return { ...s, x: rtl ? W - x : x, y };
+  });
+  const path = pts.map((p, i) => { if (i === 0) return `M ${p.x} ${p.y}`; const prev = pts[i - 1]; const mx = (prev.x + p.x) / 2; return `Q ${mx} ${prev.y - 40} ${p.x} ${p.y}`; }).join(" ");
   return (
-    <section id="sk-faq" style={{ padding: pad, background: BONE, scrollMarginTop: 88 }} data-pmx-section="faq">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>{t.skCommonQuestions}</div>
-        <div style={{ width: 32, height: 1, background: GOLD, marginBottom: 20 }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          {items.map((f, i) => {
-            const q = skItemStr(f, "q", "question");
-            const a = skItemStr(f, "a", "answer");
-            return (
-              <div key={i} style={{ borderBottom: `1px solid ${BORDER}`, padding: "18px 0" }}>
-                <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 19 : 17, fontStyle: "italic", color: INK, lineHeight: 1.3, marginBottom: 8 }}>{q}</div>
-                <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.7, paddingLeft: 16, borderLeft: `2px solid ${GOLD}` }}>{a}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height, display: "block", borderRadius: rounded, background: "#f0ecdf" }} preserveAspectRatio="xMidYMid slice">
+      <g fill={land} opacity="0.9"><path d="M-40 300 Q 180 250 360 300 T 760 290 Q 920 270 1060 320 L1060 460 L-40 460 Z" /><ellipse cx="220" cy="120" rx="190" ry="90" opacity="0.5" /><ellipse cx="780" cy="100" rx="160" ry="80" opacity="0.5" /></g>
+      <g stroke={skRgba(ink, 0.05)} strokeWidth="1">{[80, 180, 280, 360].map((y) => <line key={y} x1="0" x2={W} y1={y} y2={y} />)}{[200, 400, 600, 800].map((x) => <line key={x} y1="0" y2={H} x1={x} x2={x} />)}</g>
+      <path d={path} fill="none" stroke={line} strokeWidth="3" strokeDasharray="2 12" strokeLinecap="round" opacity="0.85" />
+      {pts.map((p, i) => <g key={i}><circle cx={p.x} cy={p.y} r="10" fill="#fdfbf4" stroke={line} strokeWidth="3" /><circle cx={p.x} cy={p.y} r="3.5" fill={line} /><text x={p.x} y={p.y - 22} textAnchor="middle" fill={ink} fontSize="22" fontWeight="500" fontFamily="inherit">{p.label}</text></g>)}
+    </svg>
   );
 }
 
-function SkImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "important_notes");
-  const notes = skSecArr(data, "notes");
-  const items = notes.length ? notes : skSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section style={{ padding: pad, background: "#fff" }} data-pmx-section="important_notes">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>
-          {t.skImportantNotes}
-        </div>
-        <div style={{ width: 32, height: 1, background: GOLD, marginBottom: 20 }} />
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2, 1fr)" : "1fr", gap: 12 }}>
-          {items.map((n, i) => {
-            const severity = skItemStr(n, "severity");
-            const title = skItemStr(n, "title", "text");
-            const body = skItemStr(n, "body");
-            const isWarn = severity === "warn";
-            return (
-              <div key={i} style={{
-                background: BONE,
-                borderLeft: `3px solid ${isWarn ? GOLD : `rgba(13,27,46,0.15)`}`,
-                borderRadius: "0 8px 8px 0",
-                padding: "16px 18px",
-              }}>
-                {isWarn && (
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: GOLD, marginBottom: 6 }}>{t.skRequired}</div>
-                )}
-                <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 18 : 16, fontStyle: isWarn ? "normal" : "italic", fontWeight: 600, color: INK, lineHeight: 1.3, marginBottom: body ? 6 : 0 }}>{title}</div>
-                {body && <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.65 }}>{body}</div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function SkAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "about_agency");
-  if (!data && !agency.tagline) return null;
-  const story = skItemStr(data || {}, "story", "content");
-  const foundedRaw = (data as SkSecData | undefined)?.founded;
-  const founded = typeof foundedRaw === "number" ? foundedRaw : undefined;
-  const teamSize = skSecStr(data, "teamSize");
-  const teamPhoto = skSecStr(data, "teamPhoto") || skSecStr(data, "image");
-  const currentYear = new Date().getFullYear();
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section style={{ padding: pad, background: SAGE }} data-pmx-section="about_agency">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        {isDesktop && teamPhoto ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.5)", marginBottom: 12 }}>{t.skAboutAgencyLabel} {agency.name}</div>
-              {story && <p style={{ fontFamily: SERIF, fontSize: 17, color: "rgba(255,255,255,0.88)", lineHeight: 1.75, margin: "0 0 24px" }}>{story}</p>}
-              {(founded || teamSize) && (
-                <div style={{ display: "flex", gap: 32, borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 20 }}>
-                  {founded && (
-                    <div>
-                      <div style={{ fontFamily: SERIF, fontSize: 36, color: GOLD, lineHeight: 1 }}>{currentYear - founded}+</div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 4, letterSpacing: "1px", textTransform: "uppercase" as const }}>{t.skYearsServingPilgrims}</div>
-                    </div>
-                  )}
-                  {teamSize && (
-                    <div>
-                      <div style={{ fontFamily: SERIF, fontSize: 36, color: GOLD, lineHeight: 1 }}>{teamSize}</div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 4, letterSpacing: "1px", textTransform: "uppercase" as const }}>{t.skTeamMembers}</div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <div style={{ height: 380, borderRadius: 12, overflow: "hidden" }}>
-              <img src={teamPhoto} alt={`${agency.name} team`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            </div>
-          </div>
-        ) : (
-          <>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.5)", marginBottom: 12 }}>{t.skAboutAgencyLabel} {agency.name}</div>
-            {teamPhoto && (
-              <div style={{ height: 200, borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
-                <img src={teamPhoto} alt={`${agency.name} team`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
-            )}
-            {story && <p style={{ fontFamily: SERIF, fontSize: 16, fontStyle: "italic", color: "rgba(255,255,255,0.85)", lineHeight: 1.75, margin: "0 0 20px" }}>{story}</p>}
-            {(founded || teamSize) && (
-              <div style={{ display: "flex", gap: 0, borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 16 }}>
-                {founded && (
-                  <div style={{ flex: 1, textAlign: "center" as const, borderRight: "1px solid rgba(255,255,255,0.15)", padding: "8px 0" }}>
-                    <div style={{ fontFamily: SERIF, fontSize: 28, color: GOLD, lineHeight: 1 }}>{currentYear - founded}+</div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "1px" }}>{t.auYearsLabel}</div>
-                  </div>
-                )}
-                {teamSize && (
-                  <div style={{ flex: 1, textAlign: "center" as const, padding: "8px 0" }}>
-                    <div style={{ fontFamily: SERIF, fontSize: 28, color: GOLD, lineHeight: 1 }}>{teamSize}</div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "1px" }}>{t.skTeam}</div>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// ─── Other Packages ──────────────────────────────────────────────────────────
-
-function SkOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"]; agencySlug?: string }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "other_packages");
-  const cards = skSecArr(data, "packages");
-  if (!cards.length) return null;
-  const heading = skSecStr(data, "heading") || t.otherPackagesHeading;
-  const pad = isDesktop ? "0 72px 64px" : "32px 18px 0";
-  const isRtl = lang === "ar";
-  return (
-    <section style={{ padding: pad, background: BONE }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
-      <div style={{ maxWidth: isDesktop ? 1140 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>{heading}</div>
-          <div style={{ width: 32, height: 1, background: GOLD }} />
-        </div>
-        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
-          {cards.map((card, i) => {
-            const img = skSecStr(card, "image");
-            const title = skSecStr(card, "title");
-            const dest = skSecStr(card, "destination");
-            const price = skSecStr(card, "price");
-            const nights = skSecStr(card, "nights");
-            const link = skSecStr(card, "link");
-            return (
-              <a key={i} href={link || undefined} style={{
-                flex: "0 0 190px", minWidth: 190, borderRadius: 8, overflow: "hidden",
-                textDecoration: "none", border: `1px solid ${BORDER}`,
-                background: "#fff", scrollSnapAlign: "start",
-                display: "flex", flexDirection: "column",
-              }}>
-                <div style={{ width: "100%", height: 120, background: BORDER, flexShrink: 0 }}>
-                  {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-                </div>
-                <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-                  {dest && <div style={{ fontFamily: SERIF, fontSize: 10, color: GOLD, letterSpacing: "1px", textTransform: "uppercase" as const }}>{dest}</div>}
-                  <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: INK, lineHeight: 1.3 }}>{title}</div>
-                  {(nights || price) && (
-                    <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                      {nights && <span style={{ fontFamily: SERIF, fontSize: 11, color: MUTED }}>{nights}</span>}
-                      {price && <span style={{ fontFamily: SERIF, fontSize: 13, fontWeight: 700, color: GOLD }}>{price}</span>}
-                    </div>
-                  )}
-                </div>
-              </a>
-            );
-          })}
-        </div>
-        {agencySlug && (
-          <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-            <a href={`/${agencySlug}/packages`} style={{ fontFamily: SERIF, fontSize: 12, fontWeight: 600, color: GOLD, textDecoration: "none", letterSpacing: "0.3px" }}>
-              {t.navAllPackages} →
-            </a>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// ─── Shared section head ─────────────────────────────────────────────────────
-
-function SkSecHead({ label, isDesktop }: { label: string; isDesktop: boolean }) {
-  return (
-    <div style={{ marginBottom: isDesktop ? 28 : 20 }}>
-      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 6 }}>{label}</div>
-      <div style={{ width: 32, height: 1, background: GOLD }} />
-    </div>
-  );
-}
-
-// ─── Highlights ───────────────────────────────────────────────────────────────
-
-function SkHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "highlights");
-  const items = skSecArr(data, "items").map(i => skItemStr(i, "text")).filter(Boolean);
-  if (!items.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="sk-highlights" style={{ padding: pad, background: BONE }} data-pmx-section="highlights">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={t.skHighlights} isDesktop={isDesktop} />
-        <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10 }}>
-          {items.map((item, i) => (
-            <div key={i} style={{ background: `${SAGE}10`, border: `1px solid ${SAGE}30`, borderRadius: 100, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: SAGE }}>{item}</div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Itinerary ────────────────────────────────────────────────────────────────
-
-function SkItinerarySection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "itinerary");
-  const days = skSecArr(data, "days").length ? skSecArr(data, "days") : (pkg.itinerary ?? []).map(d => ({ day: d.day, title: d.title, desc: d.desc, chapter: d.chapter }));
-  if (!days.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="itinerary" style={{ padding: pad, background: "#fff", scrollMarginTop: 88 }} data-pmx-section="itinerary">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={`${t.skDayByDay} · ${days.length} ${t.skDays}`} isDesktop={isDesktop} />
-        <div style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
-          {days.map((d, i) => {
-            const day   = typeof d.day === "number" ? d.day : Number(d.day) || (i + 1);
-            const title = skItemStr(d, "title");
-            const desc  = skItemStr(d, "desc", "description");
-            const chap  = skItemStr(d, "chapter");
-            return (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: isDesktop ? "80px 1fr" : "60px 1fr", gap: 20, alignItems: "start", borderBottom: i < days.length - 1 ? `1px solid ${BORDER}` : "none", padding: "22px 0" }}>
-                <div style={{ background: `${SAGE}10`, border: `1px solid ${SAGE}25`, borderRadius: 12, padding: "12px 8px", textAlign: "center" as const }}>
-                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 24 : 20, fontWeight: 400, color: SAGE, lineHeight: 1 }}>{day}</div>
-                  {chap && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: MUTED, marginTop: 4 }}>{chap}</div>}
-                </div>
-                <div style={{ paddingTop: 4 }}>
-                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 20 : 17, fontWeight: 600, color: INK, lineHeight: 1.25, marginBottom: 8 }}>{title}</div>
-                  {desc && <div style={{ fontSize: isDesktop ? 14 : 13, color: MUTED, lineHeight: 1.7 }}>{desc}</div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Hotel ────────────────────────────────────────────────────────────────────
-
-function SkHotelSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "hotel");
-  const desc = skSecStr(data, "description") || pkg.hotelDescription || "";
-  const image = skSecStr(data, "image");
-  if (!desc) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="sk-hotel" style={{ padding: pad, background: BONE }} data-pmx-section="hotel">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={t.skAccommodation} isDesktop={isDesktop} />
-        <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden" }}>
-          {image && <img src={image} alt="Hotel" style={{ width: "100%", height: isDesktop ? 260 : 180, objectFit: "cover", display: "block" }} />}
-          <div style={{ padding: isDesktop ? "24px 28px" : "18px 18px" }}>
-            <p style={{ fontFamily: SERIF, fontSize: isDesktop ? 17 : 15, fontStyle: "italic", color: INK, lineHeight: 1.75, margin: 0 }}>{desc}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Inclusions ───────────────────────────────────────────────────────────────
-
-function SkInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "inclusions");
-  const includes = (data?.includes as string[] | undefined) ?? pkg.includes ?? [];
-  const excludes = (data?.excludes as string[] | undefined) ?? pkg.excludes ?? [];
-  const advantages = (data?.advantages as string[] | undefined) ?? pkg.advantages ?? [];
-  if (!includes.length && !excludes.length && !advantages.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  const cols = isDesktop ? "repeat(3,1fr)" : "1fr";
-  return (
-    <section id="included" style={{ padding: pad, background: "#fff", scrollMarginTop: 88 }} data-pmx-section="inclusions">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={t.skIncludedInPackage} isDesktop={isDesktop} />
-        {includes.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, marginBottom: excludes.length ? 20 : 0 }}>
-            {includes.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={SAGE} strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 2 }}><polyline points="20 6 9 17 4 12"/></svg>
-                <span style={{ fontSize: 13.5, lineHeight: 1.5, color: INK }}>{item}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {advantages.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, marginBottom: excludes.length ? 20 : 0 }}>
-            {advantages.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 2 }}><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                <span style={{ fontSize: 13.5, lineHeight: 1.5, color: INK }}>{item}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {excludes.length > 0 && (
-          <div style={{ marginTop: includes.length ? 16 : 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>{t.skNotIncluded}</div>
-            {excludes.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, color: MUTED, marginBottom: 8 }}>
-                <span style={{ color: "rgba(13,27,46,0.3)", fontWeight: 700 }}>—</span>
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// ─── Media ────────────────────────────────────────────────────────────────────
-
-function skToEmbed(url: string): string {
-  const yt = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
-  if (yt) return `https://www.youtube.com/embed/${yt[1]}?rel=0&modestbranding=1`;
-  const vi = url.match(/vimeo\.com\/(\d+)/);
-  if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
-  return url;
-}
-
-function SkMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "media");
-  const images    = (data?.images as string[] | undefined) ?? pkg.images ?? [];
-  const videoUrl  = (data?.videoUrl as string | undefined ?? pkg.videoUrl ?? "").trim();
-  const mapImage  = (data?.mapImage as string | undefined) ?? "";
-  const mapCaption = (data?.mapCaption as string | undefined) ?? "";
-  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
-  if (!images.length && !videoUrl && !mapImage) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
-  return (
-    <section id="sk-media" style={{ padding: pad, background: BONE }} data-pmx-section="media">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        {images.length > 0 && (
-          <>
-            <SkSecHead label={t.skGallery} isDesktop={isDesktop} />
-            <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: isDesktop ? undefined : "130px 130px", gap: 6, marginBottom: (videoUrl || mapImage) ? 32 : 0 }}>
-              {(isDesktop ? images : images.slice(0, 3)).map((src, i) => (
-                <div key={i} onClick={() => setLbIdx(i)} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: isDesktop ? "4/3" : undefined, gridRow: !isDesktop && i === 0 ? "span 2" : undefined, cursor: "pointer" }}>
-                  <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-        {videoUrl && (
-          <div style={{ borderRadius: 14, overflow: "hidden", aspectRatio: "16/9", border: `1px solid ${BORDER}`, marginBottom: mapImage ? 20 : 0 }}>
-            {isEmbed ? (
-              <iframe src={skToEmbed(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
-            ) : (
-              <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} controls playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
-            )}
-          </div>
-        )}
-        {mapImage && (
-          <div style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${BORDER}` }}>
-            <img src={mapImage} alt={mapCaption} style={{ width: "100%", maxHeight: isDesktop ? 380 : 220, objectFit: "cover", display: "block" }} />
-            {mapCaption && <div style={{ padding: "10px 14px", background: "#fff", fontSize: 12.5, color: MUTED }}>{mapCaption}</div>}
-          </div>
-        )}
-      </div>
-      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
-    </section>
-  );
-}
-
-// ─── Transfers ────────────────────────────────────────────────────────────────
-
-function SkTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "transfers");
-  const items = skSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="sk-transfers" style={{ padding: pad, background: "#fff" }} data-pmx-section="transfers">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={t.skTransfers} isDesktop={isDesktop} />
-        <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
-          {items.map((item, i) => {
-            const from = skItemStr(item, "from");
-            const to   = skItemStr(item, "to");
-            const type = skItemStr(item, "type", "transportType");
-            const note = skItemStr(item, "note", "details");
-            return (
-              <div key={i} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 12 }}>
-                <div style={{ minWidth: 0 }}>
-                  {(from || to) && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 16 : 14, fontWeight: 600, color: INK, marginBottom: 4, overflowWrap: "break-word" }}>{from}{from && to ? " → " : ""}{to}</div>}
-                  {type && <div style={{ fontSize: 12, color: SAGE, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.6px", marginBottom: note ? 4 : 0 }}>{type}</div>}
-                  {note && <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5, overflowWrap: "break-word" }}>{note}</div>}
-                </div>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SAGE} strokeWidth="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h5l3 3v5h-8V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Pricing ─────────────────────────────────────────────────────────────────
-
-function SkPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; onWhatsApp: () => void; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "pricing");
-  const tiers = skSecArr(data, "tiers").length ? skSecArr(data, "tiers") : (pkg.pricingTiers ?? []).map(t2 => ({ label: t2.label, price: t2.price, was: t2.was, perks: t2.perks, pop: t2.pop }));
-  if (!tiers.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="pricing" style={{ padding: pad, background: BONE, scrollMarginTop: 88 }} data-pmx-section="pricing">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={t.skPricing} isDesktop={isDesktop} />
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 14 }}>
-          {tiers.map((tier, i) => {
-            const pop   = !!tier.pop;
-            const label = localizeTierLabel(skItemStr(tier, "label"), lang);
-            const price = skItemStr(tier, "price");
-            const was   = skItemStr(tier, "was");
-            const perks = (tier.perks as string[] | undefined) ?? [];
-            return (
-              <div key={i} style={{ background: pop ? SAGE : "#fff", color: pop ? "#fff" : INK, border: `1.5px solid ${pop ? SAGE : BORDER}`, borderRadius: 18, padding: "22px 22px", display: "flex", flexDirection: "column" as const, gap: 6 }}>
-                {pop && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.65)", marginBottom: 4 }}>{t.skMostPopular}</div>}
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: pop ? "rgba(255,255,255,0.8)" : MUTED, letterSpacing: "-0.1px" }}>{label}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 36 : 32, fontWeight: 400, color: pop ? "#fff" : SAGE, lineHeight: 1 }}>{price}</div>
-                  {was && <div style={{ fontSize: 13, textDecoration: "line-through", color: pop ? "rgba(255,255,255,0.45)" : MUTED }}>{was}</div>}
-                </div>
-                <div style={{ fontSize: 11.5, color: pop ? "rgba(255,255,255,0.6)" : MUTED, marginBottom: 4 }}>{t.perPerson}</div>
-                {perks.length > 0 && (
-                  <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0", display: "flex", flexDirection: "column" as const, gap: 8 }}>
-                    {perks.map((p, j) => (
-                      <li key={j} style={{ display: "flex", gap: 8, fontSize: 13, color: pop ? "rgba(255,255,255,0.85)" : MUTED }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={pop ? "rgba(255,255,255,0.7)" : SAGE} strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 1 }}><polyline points="20 6 9 17 4 12"/></svg>
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {pkg.whatsapp && <button onClick={onWhatsApp} style={{ marginTop: 16, background: pop ? "rgba(255,255,255,0.18)" : `${SAGE}15`, border: `1px solid ${pop ? "rgba(255,255,255,0.25)" : `${SAGE}30`}`, borderRadius: 100, padding: "11px 0", fontSize: 13, fontWeight: 700, color: pop ? "#fff" : SAGE, fontFamily: "inherit", cursor: "pointer", width: "100%" }}>
-                  {t.whatsAppTheOffice}
-                </button>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Departures ───────────────────────────────────────────────────────────────
-
-function SkDeparturesSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; onWhatsApp: () => void; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "departures") ?? skFindSec(pkg, "departure_dates");
-  const entries = skSecArr(data, "entries").length ? skSecArr(data, "entries") : skSecArr(data, "dates");
-  const legacyDeps = pkg.departures ?? [];
-  if (!entries.length && !legacyDeps.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="sk-departures" style={{ padding: pad, background: "#fff" }} data-pmx-section="departures">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={t.skDepartureDates} isDesktop={isDesktop} />
-        <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
-          {(entries.length ? entries.map(e => ({ date: skItemStr(e, "date"), returnDate: skItemStr(e, "returnDate"), spots: skItemStr(e, "spots"), price: skItemStr(e, "price") })) : legacyDeps.map(d => ({ date: d.date, returnDate: "", spots: String(d.spots ?? ""), price: d.price ?? "" }))).map((dep, i) => {
-            const inner = (
-              <>
-                <div>
-                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 17 : 15, fontWeight: 600, color: INK }}>{dep.date}</div>
-                  {dep.returnDate && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{t.skReturns}: {dep.returnDate}</div>}
-                  {dep.spots && <div style={{ fontSize: 12, color: SAGE, marginTop: 2, fontWeight: 600 }}>{dep.spots} {t.skSpotsAvailable}</div>}
-                </div>
-                {dep.price && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 22 : 18, color: SAGE, fontWeight: 400 }}>{dep.price}</div>}
-              </>
-            );
-            return pkg.whatsapp
-              ? <button key={i} onClick={onWhatsApp} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit", width: "100%" }}>{inner}</button>
-              : <div key={i} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>{inner}</div>;
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Extras ───────────────────────────────────────────────────────────────────
-
-function SkExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "extras");
-  const items = skSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="sk-extras" style={{ padding: pad, background: BONE }} data-pmx-section="extras">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={t.skOptionalExtras} isDesktop={isDesktop} />
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 10 }}>
-          {items.map((item, i) => {
-            const name  = skItemStr(item, "name", "title");
-            const price = skItemStr(item, "price");
-            const desc  = skItemStr(item, "description", "desc");
-            return (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: INK, marginBottom: desc ? 4 : 0 }}>{name}</div>
-                  {desc && <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.55 }}>{desc}</div>}
-                </div>
-                {price && <div style={{ fontFamily: SERIF, fontSize: 16, color: SAGE, fontWeight: 400, flexShrink: 0 }}>{price}</div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Custom section ───────────────────────────────────────────────────────────
-
-function SkCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
-  const data = skFindSec(pkg, "custom");
-  const heading = skSecStr(data, "heading");
-  const content = skSecStr(data, "content");
-  const image   = skSecStr(data, "image");
-  if (!heading && !content) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="sk-custom" style={{ padding: pad, background: "#fff" }} data-pmx-section="custom">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        {heading && <SkSecHead label={heading} isDesktop={isDesktop} />}
-        {image && <img src={image} alt={heading} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, marginBottom: 18, display: "block" }} />}
-        {content && <p style={{ fontFamily: SERIF, fontSize: isDesktop ? 17 : 15, fontStyle: "italic", color: MUTED, lineHeight: 1.75, margin: 0 }}>{content}</p>}
-      </div>
-    </section>
-  );
-}
-
-// ─── People ───────────────────────────────────────────────────────────────────
-
-function SkPeopleSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; onWhatsApp: () => void; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = skFindSec(pkg, "people");
-  const people = skSecArr(data, "people");
-  if (!people.length) return null;
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="sk-people" style={{ padding: pad, background: `${SAGE}0a` }} data-pmx-section="people">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={t.mutawifLabel} isDesktop={isDesktop} />
-        <div style={{ display: "flex", flexDirection: "column" as const, gap: 16 }}>
-          {people.map((person, i) => {
-            const name   = skItemStr(person, "name");
-            const role   = skItemStr(person, "role");
-            const bio    = skItemStr(person, "bio");
-            const photo  = skItemStr(person, "photo");
-            const langs  = (person.languages as string[] | undefined) ?? [];
-            const years  = person.years as number | undefined;
-            return (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${SAGE}20`, borderRadius: 16, padding: isDesktop ? "24px 28px" : "18px 18px", display: "flex", gap: 18, alignItems: "flex-start" }}>
-                {photo
-                  ? <img src={photo} alt={name} style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: `2px solid ${SAGE}20` }} />
-                  : <div style={{ width: 72, height: 72, borderRadius: "50%", background: `${SAGE}12`, border: `1px solid ${SAGE}30`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 28, color: SAGE, flexShrink: 0 }}>{name?.[0] ?? "م"}</div>
-                }
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: SAGE, marginBottom: 4 }}>{role || t.mutawifLabel}</div>
-                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 22 : 18, fontWeight: 600, color: INK, lineHeight: 1.1, marginBottom: 6 }}>{name}</div>
-                  {years && <div style={{ fontSize: 12.5, color: MUTED, marginBottom: bio ? 8 : 0 }}>{years} {t.yearsExpSuffix}</div>}
-                  {bio && <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.65, margin: "0 0 12px" }}>{bio}</p>}
-                  {langs.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
-                      {langs.map((l, j) => (
-                        <div key={j} style={{ background: `${SAGE}0c`, border: `1px solid ${SAGE}20`, borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: SAGE }}>{l}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Reviews ──────────────────────────────────────────────────────────────────
-
-function SkReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const reviews   = pkg.reviews ?? [];
-  const canSubmit = agency.enableReviews !== false;
-  const showList  = agency.showReviews !== false && reviews.length > 0;
-  if (!showList && !canSubmit) return null;
-
-  const [name,   setName]   = React.useState("");
-  const [text,   setText]   = React.useState("");
-  const [rating, setRating] = React.useState(0);
-  const [hover,  setHover]  = React.useState(0);
-  const [status, setStatus] = React.useState<"idle"|"sending"|"ok"|"err">("idle");
-
-  const handleSubmit = async () => {
-    if (!name.trim() || !text.trim() || !rating || !pkg.id) return;
-    setStatus("sending");
-    try {
-      const res = await fetch("/api/submit-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ packageId: pkg.id, name: name.trim(), text: text.trim(), rating }) });
-      setStatus(res.ok ? "ok" : "err");
-    } catch { setStatus("err"); }
-  };
-
-  const pad = isDesktop ? "64px 80px" : "28px 24px";
-  return (
-    <section id="sk-reviews" style={{ padding: pad, background: "#fff" }} data-pmx-section="reviews">
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <SkSecHead label={showList ? `${reviews.length} ${t.skVerifiedReviews}` : t.writeReviewTitle} isDesktop={isDesktop} />
-        {showList && (
-          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 16, marginBottom: canSubmit ? 32 : 0 }}>
-            {reviews.map((r, i) => (
-              <div key={i} style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "18px 20px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                  <div>
-                    <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: INK }}>{r.name}</div>
-                    {r.country && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{r.country}</div>}
-                  </div>
-                  <div style={{ display: "flex", gap: 2 }}>{[1,2,3,4,5].map(n => <span key={n} style={{ color: n <= r.rating ? GOLD : "rgba(13,27,46,0.15)", fontSize: 14 }}>★</span>)}</div>
-                </div>
-                <p style={{ fontFamily: SERIF, fontSize: 14, fontStyle: "italic", color: MUTED, lineHeight: 1.7, margin: 0 }}>{r.text}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        {canSubmit && status !== "ok" && (
-          <div style={{ background: BONE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: isDesktop ? "28px 32px" : "20px 20px" }}>
-            <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 20 : 17, fontWeight: 600, color: INK, marginBottom: 16 }}>{t.writeReviewTitle}</div>
-            <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-              {[1,2,3,4,5].map(n => (
-                <button key={n} onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => setRating(n)} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", fontSize: 24, color: n <= (hover || rating) ? GOLD : "rgba(13,27,46,0.2)", lineHeight: 1 }}>★</button>
-              ))}
-            </div>
-            <input placeholder={t.reviewYourName} value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "12px 14px", fontSize: 14, fontFamily: "inherit", background: "#fff", color: INK, marginBottom: 10, boxSizing: "border-box" as const }} />
-            <textarea placeholder={t.reviewPlaceholder} value={text} onChange={e => setText(e.target.value)} rows={3} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "12px 14px", fontSize: 14, fontFamily: "inherit", background: "#fff", color: INK, marginBottom: 14, resize: "none" as const, boxSizing: "border-box" as const }} />
-            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: SAGE, color: "#fff", border: "none", borderRadius: 100, padding: "13px 28px", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>{status === "sending" ? t.skSending : t.submitReviewBtn}</button>
-            {status === "err" && <div style={{ fontSize: 13, color: "#c0392b", marginTop: 10 }}>{t.reviewSubmitError}</div>}
-          </div>
-        )}
-        {status === "ok" && <div style={{ background: `${SAGE}12`, border: `1px solid ${SAGE}30`, borderRadius: 14, padding: "20px 24px", fontSize: 14, color: SAGE, fontWeight: 600 }}>{t.reviewSubmitSuccess}</div>}
-      </div>
-    </section>
-  );
-}
-
-// ─── Trust strip (desktop) ────────────────────────────────────────────────────
-
-function SkTrustStrip({ items, style }: { items: { icon: React.ReactNode; title: string; sub?: string }[]; style?: React.CSSProperties }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length}, 1fr)`, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, ...style }}>
-      {items.map((item, i) => (
-        <div key={i} style={{ padding: "18px 20px", borderRight: i < items.length - 1 ? `1px solid ${BORDER}` : "none", display: "flex", gap: 10, alignItems: "flex-start" }}>
-          <span style={{ color: SAGE, display: "flex", marginTop: 2 }}>{item.icon}</span>
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: INK }}>{item.title}</div>
-            {item.sub && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{item.sub}</div>}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── CTA banner ───────────────────────────────────────────────────────────────
-
-function SkCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; onWhatsApp: () => void; onMessenger: () => void; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const nights = pkg.nights ? Number(pkg.nights) : null;
-  return (
-    <section style={{ background: BONE, padding: isDesktop ? "48px 80px" : "24px 18px" }}>
-      <div style={{ maxWidth: isDesktop ? 1080 : undefined, margin: isDesktop ? "0 auto" : undefined, background: `${SAGE}0a`, border: `1px solid ${SAGE}25`, borderRadius: 18, padding: isDesktop ? "36px 40px" : "24px 22px", display: "flex", flexDirection: isDesktop ? "row" as const : "column" as const, alignItems: isDesktop ? "center" : "flex-start", gap: 20, justifyContent: "space-between" }}>
-        <div>
-          <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 28 : 22, fontWeight: 600, color: INK, marginBottom: 6 }}>{t.readyToExplore}</div>
-          <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 36 : 30, color: SAGE, lineHeight: 1, marginBottom: 4 }}>{pkg.price}</div>
-          <div style={{ fontSize: 12, color: MUTED }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
-          {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
-          {pkg.messenger && (
-            <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 100, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>{t.vyMessenger}</button>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Mobile footer ────────────────────────────────────────────────────────────
-
-function SkMobileFooter({ agency, lang }: { agency: TPageProps["agency"]; lang: TPageProps["lang"] }) {
-  return (
-    <div style={{ padding: "28px 18px", background: BONE, borderTop: `1px solid ${BORDER}`, textAlign: "center" as const }}>
-      {agency.logoUrl && <img src={agency.logoUrl} alt={agency.name} style={{ height: 32, objectFit: "contain", marginBottom: 10, display: "block", margin: "0 auto 10px" }} />}
-      <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: INK, marginBottom: 4 }}>{agency.name}</div>
-      {agency.tagline && <div style={{ fontSize: 12, color: MUTED }}>{agency.tagline}</div>}
-    </div>
-  );
-}
-
-// ─── Prayer times card ────────────────────────────────────────────────────────
-
-function PrayerTimesCard({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const pt = pkg.prayerTimes;
-  const isRtl = lang === "ar";
-
-  const prayers: { key: keyof NonNullable<typeof pt>; label: string }[] = [
-    { key: "fajr",    label: t.fajr },
-    { key: "dhuhr",   label: t.dhuhr },
-    { key: "asr",     label: t.asr },
-    { key: "maghrib", label: t.maghrib },
-    { key: "isha",    label: t.isha },
-  ];
-
-  // Show card even without times — spiritual context is the value
-  return (
-    <div style={{
-      background: `${SAGE}08`, border: `1px solid ${SAGE}25`,
-      borderRadius: 16, padding: "18px 18px",
-      direction: isRtl ? "rtl" : "ltr",
-    }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: SAGE, marginBottom: 14 }}>
-        {t.prayerTimesTitle}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
-        {prayers.map(({ key, label }) => (
-          <div key={key} style={{ textAlign: "center" as const, padding: "10px 4px", background: "#fff", borderRadius: 10, border: `1px solid ${BORDER}` }}>
-            <div style={{ fontFamily: SERIF, fontSize: 12, color: SAGE, fontWeight: 600, marginBottom: pt?.[key] ? 4 : 0 }}>{label}</div>
-            {pt?.[key] && (
-              <div style={{ fontSize: 11, color: INK, fontWeight: 700 }}>{pt[key]}</div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Trust items for Sakina ───────────────────────────────────────────────────
-
-function buildSakinaTrustItems(t: typeof T["en"]) {
-  const shieldSvg = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
-  const waSvg = <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>;
-  const checkSvg = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>;
-  const homeSvg = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
-
-  return [
-    { icon: shieldSvg, title: t.trustMinistryLicensed, sub: t.trustMinistryLicensedSub },
-    { icon: checkSvg,  title: t.trustVisaAssistance,   sub: t.trustVisaAssistanceSub },
-    { icon: homeSvg,   title: t.trustSameMosque,       sub: t.trustSameMosqueSub },
-    { icon: waSvg,     title: t.bookWhatsApp,           sub: t.trustPayWhatsAppSub },
-  ];
-}
-
-// ─── MutawifBand (mid-page light) ────────────────────────────────────────────
-
-function MutawifBand({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"]; onWhatsApp: () => void }) {
-  const t = T[lang];
-  const agent = pkg.agent;
-  if (!agent) return null;
-  const isRtl = lang === "ar";
-  return (
-    <div style={{
-      margin: "0 18px",
-      background: `${SAGE}0c`, border: `1px solid ${SAGE}30`,
-      borderRadius: 16, padding: "20px 20px",
-      display: "flex", flexDirection: "column", gap: 14,
-      direction: isRtl ? "rtl" : "ltr",
-    }}>
-      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-        {agent.avatar
-          ? <img src={agent.avatar} alt={agent.name} style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-          : (
-            <div style={{
-              width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
-              background: `${SAGE}18`, border: `1px solid ${SAGE}40`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: SERIF, fontSize: 24, color: SAGE,
-            }}>
-              {agent.name[0]}
-            </div>
-          )
-        }
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: SAGE, marginBottom: 4 }}>
-            {t.mutawifLabel}
-          </div>
-          <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 600, color: INK, lineHeight: 1.1, marginBottom: 3 }}>{agent.name}</div>
-          <div style={{ fontSize: 12, color: MUTED }}>
-            {localizeRole(agent.role, t)}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
-          </div>
-        </div>
-      </div>
-      {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="sm" full onClick={onWhatsApp} />}
-    </div>
-  );
-}
-
-// ─── Mutawif dark closing panel ───────────────────────────────────────────────
-
-function MutawifClosingPanel({ pkg, agency, lang, onWhatsApp }: {
-  pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp: () => void;
-}) {
-  const t = T[lang];
-  const agent = pkg.agent;
-  if (!agent) return null;
-  const isRtl = lang === "ar";
-
-  return (
-    <section style={{
-      background: SAGE, color: "#fff",
-      padding: "40px 20px 44px",
-      direction: isRtl ? "rtl" : "ltr",
-    }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.65)", marginBottom: 20 }}>
-        {t.mutawifLabel} · {agency.name}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-        {agent.avatar
-          ? <img src={agent.avatar} alt={agent.name} style={{ width: 68, height: 68, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "2px solid rgba(255,255,255,0.3)" }} />
-          : <div style={{ width: 68, height: 68, borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 28, color: "#fff", flexShrink: 0 }}>{agent.name[0]}</div>
-        }
-        <div>
-          <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, lineHeight: 1.1, marginBottom: 3 }}>{agent.name}</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }}>
-            {localizeRole(agent.role, t)}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
-          </div>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 22, flexWrap: "wrap" as const }}>
-        <span style={{ background: "rgba(255,255,255,0.18)", borderRadius: 100, padding: "5px 12px", fontSize: 11, fontWeight: 700 }}>
-          ✓ {t.hajjCertifiedLabel}
-        </span>
-        {agent.repliesIn && (
-          <span style={{ background: "rgba(255,255,255,0.18)", borderRadius: 100, padding: "5px 12px", fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
-            {t.agentOnlineLabel}
-          </span>
-        )}
-      </div>
-      {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
-    </section>
-  );
-}
-
-function MutawifClosingPanelDesktop({ pkg, agency, lang, onWhatsApp }: {
-  pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp: () => void;
-}) {
-  const t = T[lang];
-  const agent = pkg.agent;
-  if (!agent) return null;
-  const isRtl = lang === "ar";
-
-  return (
-    <section style={{ background: SAGE, color: "#fff", direction: isRtl ? "rtl" : "ltr" }}>
-      <div style={{
-        maxWidth: 1180, margin: "0 auto",
-        display: "grid", gridTemplateColumns: isRtl ? "3fr 2fr" : "2fr 3fr",
-        minHeight: 460, overflow: "hidden",
-      }}>
-        <div style={{ position: "relative", overflow: "hidden", background: `rgba(0,0,0,0.15)`, order: isRtl ? 2 : 1 }}>
-          {agent.avatar
-            ? <img src={agent.avatar} alt={agent.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.9 }} />
-            : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 100, color: "rgba(255,255,255,0.2)" }}>{agent.name[0]}</div>
-          }
-        </div>
-        <div style={{ padding: "64px 64px", display: "flex", flexDirection: "column", justifyContent: "center", order: isRtl ? 1 : 2 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.6)", marginBottom: 16 }}>
-            {t.mutawifLabel} · {agency.name}
-          </div>
-          <div style={{ fontFamily: SERIF, fontSize: 48, fontWeight: 600, lineHeight: 1, marginBottom: 8 }}>{agent.name}</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginBottom: 24 }}>
-            {localizeRole(agent.role, t)}{agent.years ? ` · ${agent.years} ${t.yearsExpSuffix}` : ""}
-          </div>
-          <div style={{ display: "flex", gap: 10, marginBottom: 32, flexWrap: "wrap" as const }}>
-            <span style={{ background: "rgba(255,255,255,0.18)", borderRadius: 100, padding: "6px 14px", fontSize: 12, fontWeight: 700 }}>
-              ✓ {t.hajjCertifiedLabel}
-            </span>
-            {agent.repliesIn && (
-              <span style={{ background: "rgba(255,255,255,0.18)", borderRadius: 100, padding: "6px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
-                {t.agentOnlineLabel}
-              </span>
-            )}
-          </div>
-          {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Logistical facts strip ───────────────────────────────────────────────────
-
-function LogisticsStrip({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const nights   = pkg.nights ? Number(pkg.nights) : null;
-  const airports = (pkg.airports || []).filter(a => a.name?.trim());
-  const items = [
-    { l: t.fieldDestination,  v: pkg.destination },
-    ...(nights ? [{ l: t.logisticsDuration, v: `${nights} ${t.nightsLabel}` }] : []),
-    ...(airports[0] ? [{ l: t.logisticsFlight, v: airports[0].name }] : []),
-    ...(pkg.hotelDescription ? [{ l: t.logisticsHotel, v: pkg.hotelDescription.slice(0, 28) + "…" }] : []),
-  ].slice(0, 4);
-  if (!items.length) return null;
-  return (
-    <div style={{ padding: "18px 18px 0", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-      {items.map((it, i) => (
-        <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 14px" }}>
-          <div style={{ fontSize: 9.5, color: SMUTED, letterSpacing: "0.8px", textTransform: "uppercase" as const, marginBottom: 5 }}>{it.l}</div>
-          <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 600, color: INK, lineHeight: 1.2 }}>{it.v}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── TemplateSakinaPage ───────────────────────────────────────────────────────
-
-export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
-  const t = T[lang];
-  const nights     = pkg.nights ? Number(pkg.nights) : null;
-  const coverImage = pkg.coverImage || "";
-  const title      = pkg.title || pkg.destination;
-  const isRtl      = lang === "ar";
-  const itinerary  = (pkg.itinerary || []).filter(it => it.title?.trim());
-  const airports   = (pkg.airports || []).filter(a => a.name?.trim());
-  const isDesktop  = useIsDesktop();
-  const trustItems = buildSakinaTrustItems(t);
-
-  const logisticsItems = [
-    { l: t.fieldDestination, v: pkg.destination },
-    ...(nights ? [{ l: t.logisticsDuration, v: `${nights} ${t.nightsLabel}` }] : []),
-    ...(airports[0] ? [{ l: t.logisticsFlight, v: airports[0].name }] : []),
-    ...(pkg.hotelDescription ? [{ l: t.logisticsHotel, v: pkg.hotelDescription.slice(0, 30) + "…" }] : []),
-    { l: t.visaSupport, v: t.includedLabel },
-  ].slice(0, 5);
-
-  const navLinks = [
-    ...(itinerary.length || pkg.sections?.some(s => s.type === "itinerary") ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
-    ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.sections?.some(s => s.type === "inclusions")) ? [{ label: t.navIncluded, href: "#included" }] : []),
-    ...((pkg.pricingTiers || []).some(t2 => t2.price) || pkg.sections?.some(s => s.type === "pricing") ? [{ label: t.navPricing, href: "#pricing" }] : []),
-    ...(pkg.sections?.some(s => s.type === "hotel" || s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#sk-hotel" }] : []),
-    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#sk-departures" }] : []),
-    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#sk-reviews" }] : []),
-    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#sk-faq" }] : []),
-  ];
-
-  if (isDesktop) {
+// ─── Video player ─────────────────────────────────────────────────────────────
+function SkVideo({ src, poster, accent, rtl = false, sans, height = 320, ui }: { src?: string; poster?: string; accent: string; rtl?: boolean; sans: string; height?: number; ui: typeof L_EN["ui"] }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const ctrl: React.CSSProperties = { width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 };
+  const onAccent = skOn(accent);
+  if (!src) {
     return (
-      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: BONE, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={SAGE} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-
-        {/* Hero: text LEFT, arch image RIGHT (design-correct) */}
-        <DContainer data-pmx-section="hero" style={{ padding: "64px 80px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 64, alignItems: "center" }}>
-            {/* Text column — left */}
-            <div style={{ order: isRtl ? 2 : 1 }}>
-              <Eyebrow text={t.spiritualJourney} brand={SAGE} />
-              <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 60, fontWeight: 600, lineHeight: 1.02, letterSpacing: "-0.8px", marginTop: 18, marginBottom: 20, color: INK }}>
-                {title}
-              </h1>
-              <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.72, margin: "0 0 28px" }}>{pkg.description}</p>
-              <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 40, fontWeight: 400, color: SAGE, letterSpacing: "-0.8px", marginBottom: 6, lineHeight: 1 }}>{pkg.price}</div>
-              <div style={{ fontSize: 12, color: SMUTED, marginBottom: 24 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
-              {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
-            </div>
-            {/* Arch image column — right */}
-            <div style={{ position: "relative", height: 540, borderRadius: "220px 220px 16px 16px", overflow: "hidden", background: INK, order: isRtl ? 1 : 2 }}>
-              {coverImage
-                ? <img src={coverImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${SAGE}cc, ${SAGE}55)` }} />
-              }
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,0.32))" }} />
-            </div>
+      <div style={{ position: "relative", overflow: "hidden", height, background: "#1f2a22" }}>
+        {poster && <img src={poster} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(0.3) brightness(0.55)" }} />}
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "#fff" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.5)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><path d="M8 5v14l11-7z" /></svg>
+            <div style={{ position: "absolute", width: 64, height: 1.5, background: "rgba(255,255,255,0.7)", transform: "rotate(-45deg)" }} />
           </div>
-        </DContainer>
-
-        {/* Trust strip */}
-        <SkTrustStrip items={trustItems} style={{ padding: "0 80px" }} />
-
-        {/* Logistics 5-col */}
-        {logisticsItems.length > 0 && (
-          <DContainer style={{ padding: "24px 80px 48px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${logisticsItems.length}, 1fr)`, gap: 12 }}>
-              {logisticsItems.map((it, i) => (
-                <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 16px" }}>
-                  <div style={{ fontSize: 10, color: SMUTED, letterSpacing: "0.8px", textTransform: "uppercase" as const, marginBottom: 6 }}>{it.l}</div>
-                  <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 600, lineHeight: 1.2, color: INK }}>{it.v}</div>
-                </div>
-              ))}
-            </div>
-          </DContainer>
-        )}
-
-        {/* Prayer times card */}
-        <DContainer style={{ padding: "0 80px 48px" }}>
-          <PrayerTimesCard pkg={pkg} lang={lang} />
-        </DContainer>
-
-        {/* Mutawif mid-page band */}
-        <DContainer style={{ padding: "0 80px 64px" }}>
-          <div style={{
-            background: `${SAGE}0a`, border: `1px solid ${SAGE}25`,
-            borderRadius: 18, padding: "28px 32px",
-            display: "flex", gap: 24, alignItems: "center",
-          }}>
-            {pkg.agent?.avatar
-              ? <img src={pkg.agent.avatar} alt={pkg.agent.name} style={{ width: 68, height: 68, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-              : <div style={{ width: 68, height: 68, borderRadius: "50%", flexShrink: 0, background: `${SAGE}18`, border: `1px solid ${SAGE}40`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 28, color: SAGE }}>
-                  {pkg.agent?.name[0] ?? "م"}
-                </div>
-            }
-            {pkg.agent && (
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: SAGE, marginBottom: 6 }}>{t.mutawifLabel}</div>
-                <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 600, color: INK, lineHeight: 1.1, marginBottom: 4 }}>{pkg.agent.name}</div>
-                <div style={{ fontSize: 13, color: MUTED }}>{localizeRole(pkg.agent.role, t)}{pkg.agent.years ? ` · ${pkg.agent.years} ${t.yearsExpSuffix}` : ""}</div>
-              </div>
-            )}
-            {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} size="lg" onClick={onWhatsApp} />}
-          </div>
-        </DContainer>
-
-        <SkHighlightsSection pkg={pkg} isDesktop={true} lang={lang} />
-        <SkItinerarySection pkg={pkg} isDesktop={true} lang={lang} />
-        <SkHotelSection pkg={pkg} isDesktop={true} lang={lang} />
-        <SkInclusionsSection pkg={pkg} isDesktop={true} lang={lang} />
-        <SkMediaSection pkg={pkg} isDesktop={true} lang={lang} />
-        <SkTransfersSection pkg={pkg} isDesktop={true} lang={lang} />
-        <SkPricingSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
-        <SkDeparturesSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
-        <SkExtrasSection pkg={pkg} isDesktop={true} lang={lang} />
-        <SkCustomSection pkg={pkg} isDesktop={true} />
-        <SkImportantNotesSection pkg={pkg} isDesktop={true} lang={lang} />
-        <SkFaqSection pkg={pkg} isDesktop={true} lang={lang} />
-        <SkReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
-        <SkPeopleSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
-        <SkAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
-        <SkOtherPackagesSection pkg={pkg} isDesktop={true} lang={lang} agencySlug={agency.agencySlug} />
-
-        {/* Mutawif dark closing panel (legacy agent field) */}
-        <MutawifClosingPanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
-
-        <SkCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
-        <DesktopFooter agency={agency} brand={SAGE} />
+          <div style={{ fontFamily: sans, fontSize: 13, opacity: 0.85 }}>{ui.noVideo}</div>
+        </div>
       </div>
     );
   }
-
-  // ── Mobile ──────────────────────────────────────────────────────────────────
+  const toggle = () => { const v = ref.current; if (!v) return; if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); setPlaying(true); } else { v.pause(); setPlaying(false); } };
+  const toggleMute = () => { const v = ref.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); };
+  const IconPlay = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>;
+  const IconPause = <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>;
+  const IconMuted = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12.5 3l2.5 2.5-1 1L15.5 13 13 15.5l-1-1L14.5 12 12 9.5l1-1L15.5 11 18 8.5l1 1L16.5 12z" /></svg>;
+  const IconSound = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12 3a4 4 0 00-2-3.5v7A4 4 0 0016 12zm-2-7.7v2.1a6 6 0 010 11.2v2.1a8 8 0 000-15.4z" /></svg>;
   return (
-    <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: BONE, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={SAGE} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
-
-      {/* Arched hero */}
-      <div data-pmx-section="hero" style={{ padding: "0 18px" }}>
-        <div style={{ position: "relative", height: 420, borderRadius: "200px 200px 16px 16px", overflow: "hidden", background: INK }}>
-          {coverImage
-            ? <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            : <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${SAGE}cc, ${SAGE}55)` }} />
-          }
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.55))" }} />
-          <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, textAlign: "center" as const }}>
-            <Eyebrow text={t.spiritualJourney} brand={SAGE} light />
+    <div onClick={toggle} style={{ position: "relative", overflow: "hidden", height, background: "#000", cursor: "pointer" }}>
+      <video ref={ref} src={src} poster={poster} muted loop playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      {!playing && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "linear-gradient(rgba(0,0,0,0.05),rgba(0,0,0,0.35))" }}>
+          <div style={{ width: 72, height: 72, borderRadius: "50%", background: accent, color: onAccent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 32px rgba(0,0,0,0.4)" }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style={{ marginInlineStart: 3 }}><path d="M8 5v14l11-7z" /></svg>
           </div>
-        </div>
-      </div>
-
-      {/* Title + price card */}
-      <div style={{ padding: "0 18px" }}>
-        <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 6px 32px rgba(13,27,46,0.10)", padding: "22px 22px 20px", marginTop: -28, position: "relative", zIndex: 2 }}>
-          <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 600, color: INK, lineHeight: 1.12, letterSpacing: "-0.4px", margin: "0 0 10px" }}>
-            {title}
-          </h1>
-          <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, color: SAGE, lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 5 }}>{pkg.price}</div>
-          <div style={{ fontSize: 12, color: SMUTED, marginBottom: 18 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
-          {pkg.whatsapp && <WAButton label={t.whatsAppTheOffice} full onClick={onWhatsApp} />}
-        </div>
-      </div>
-
-      {/* Trust strip */}
-      <div style={{ overflowX: "auto", display: "flex", borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, marginTop: 16, msOverflowStyle: "none" } as React.CSSProperties}>
-        {trustItems.map((item, i) => (
-          <div key={i} style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "12px 16px",
-            borderRight: isRtl ? "none" : (i < trustItems.length - 1 ? `1px solid ${BORDER}` : "none"),
-            borderLeft:  isRtl ? (i < trustItems.length - 1 ? `1px solid ${BORDER}` : "none") : "none",
-            flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: INK, whiteSpace: "nowrap" as const,
-          }}>
-            <span style={{ color: SAGE, display: "flex" }}>{item.icon}</span>
-            {item.title}
-          </div>
-        ))}
-      </div>
-
-      {/* Logistics facts */}
-      <LogisticsStrip pkg={pkg} lang={lang} />
-
-      {/* Description */}
-      {pkg.description && (
-        <div style={{ padding: "18px 18px 0" }}>
-          <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.75, margin: 0 }}>{pkg.description}</p>
+          <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: "#fff", letterSpacing: "0.4px", textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>{ui.watch}</div>
         </div>
       )}
-
-      {/* Prayer times card */}
-      <div style={{ padding: "18px 18px 0" }}>
-        <PrayerTimesCard pkg={pkg} lang={lang} />
+      <div dir={rtl ? "rtl" : "ltr"} style={{ position: "absolute", insetInline: 0, bottom: 0, padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "linear-gradient(transparent, rgba(0,0,0,0.4))" }}>
+        <button onClick={(e) => { e.stopPropagation(); toggle(); }} aria-label={playing ? ui.pause : ui.play} title={playing ? ui.pause : ui.play} style={ctrl}>{playing ? IconPause : IconPlay}</button>
+        <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} aria-label={muted ? ui.unmute : ui.mute} title={muted ? ui.unmute : ui.mute} style={ctrl}>{muted ? IconMuted : IconSound}</button>
       </div>
-
-      {/* Mutawif band */}
-      <div style={{ marginTop: 20 }}>
-        <MutawifBand pkg={pkg} lang={lang} onWhatsApp={onWhatsApp} />
-      </div>
-
-      {/* Departure group dates */}
-      {airports.length > 0 && (
-        <section id="departures" style={{ padding: "22px 18px 0", scrollMarginTop: 88 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" as const, color: SAGE, marginBottom: 12 }}>
-            {t.groupDepartures}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {airports.map((a, i) => (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: INK }}>{a.name}{a.arrivingAirport ? ` → ${a.arrivingAirport}` : ""}</div>
-                  {a.date && <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{a.date}</div>}
-                </div>
-                <div style={{ fontFamily: SERIF, fontSize: 20, color: SAGE, fontWeight: 400 }}>{a.price}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <SkHighlightsSection pkg={pkg} isDesktop={false} lang={lang} />
-      <SkItinerarySection pkg={pkg} isDesktop={false} lang={lang} />
-      <SkHotelSection pkg={pkg} isDesktop={false} lang={lang} />
-      <SkInclusionsSection pkg={pkg} isDesktop={false} lang={lang} />
-      <SkMediaSection pkg={pkg} isDesktop={false} lang={lang} />
-      <SkTransfersSection pkg={pkg} isDesktop={false} lang={lang} />
-      <SkPricingSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
-      <SkDeparturesSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
-      <SkExtrasSection pkg={pkg} isDesktop={false} lang={lang} />
-      <SkCustomSection pkg={pkg} isDesktop={false} />
-      <SkImportantNotesSection pkg={pkg} isDesktop={false} lang={lang} />
-      <SkFaqSection pkg={pkg} isDesktop={false} lang={lang} />
-      <SkReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
-      <SkPeopleSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
-      <SkAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
-      <SkOtherPackagesSection pkg={pkg} isDesktop={false} lang={lang} agencySlug={agency.agencySlug} />
-
-      {/* Mutawif dark closing panel (legacy agent field) */}
-      <MutawifClosingPanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={onWhatsApp} />
-
-      <SkCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
-      <SkMobileFooter agency={agency} lang={lang} />
-      <StickyCTA price={pkg.price} nights={nights} label={t.whatsAppTheOffice} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
     </div>
   );
 }
 
-// ─── TemplateSakinaCard ───────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+export function TemplateSakinaPage({ pkg, agency, onWhatsApp, onMessenger, lang = "en" }: TPageProps) {
+  const D = useIsDesktop();
+  const rtl = lang === "ar";
+  const L = rtl ? L_AR : L_EN;
+  const brand = agency.brandColor || "#1f6f6b";
+  const onBrand = skOn(brand);
+  const soft = skLighten(brand, 0.82);
+  const softer = skLighten(brand, 0.92);
+  const tint = (a: number) => skRgba(brand, a);
 
+  const PAPER = "#f6f2e9", CARD = "#fdfbf4", INK = "#1f2a22";
+  const MUT = "rgba(31,42,34,0.66)", FAINT = "rgba(31,42,34,0.42)", RULE = "rgba(31,42,34,0.14)";
+  const serif = rtl ? "var(--font-amiri), 'Amiri', serif" : "var(--font-cormorant), 'Cormorant Garamond', serif";
+  const label = rtl ? "var(--font-tajawal), 'Tajawal', sans-serif" : "var(--font-jost), 'Jost', sans-serif";
+  const body = rtl ? "var(--font-tajawal), 'Tajawal', sans-serif" : "var(--font-mukta), 'Mukta', sans-serif";
+  const px = D ? 76 : 22;
+  const ar = (en: string, a: string) => (rtl ? a : en);
+  const dig = (s: string | number) => (rtl ? String(s).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]) : String(s));
+  const uc: React.CSSProperties["textTransform"] = rtl ? "none" : "uppercase";
+  const ARCH = D ? "200px 200px 16px 16px" : "120px 120px 12px 12px";
+
+  const title = pkg.title || pkg.destination || "";
+  const nightsN = pkg.nights ? Number(pkg.nights) : null;
+  const cover = pkg.coverImage || pkg.images?.[0] || secStrArr(findSec(pkg, "media"), "images")[0] || "";
+  const mediaImgs = secStrArr(findSec(pkg, "media"), "images");
+  const itinDays = secArr(findSec(pkg, "itinerary"), "days").filter((d) => secItemStr(d, "title"));
+  const depEntries = secArr(findSec(pkg, "departures"), "entries");
+  const mealPlan = secStr(findSec(pkg, "meals"), "plan");
+  const hasDepart = depEntries.length > 0 || (pkg.departures?.length ?? 0) > 0;
+  const person = pkg.people?.find((p) => p.role === "agent" || p.role === "curator" || p.role === "trip_lead")
+    ?? pkg.people?.[0] ?? (pkg.agent ? { name: pkg.agent.name, role: pkg.agent.role || "agent", photo: pkg.agent.avatar, years: pkg.agent.years } : undefined);
+
+  // hotels (rich list or single description) → cards
+  const hRich = findSec(pkg, "hotels");
+  const richList = secArr(hRich, "hotels").length ? secArr(hRich, "hotels") : secArr(hRich, "items");
+  const hotelDesc = secStr(findSec(pkg, "hotel"), "description") || pkg.hotelDescription || "";
+  const hotels = richList.length
+    ? richList.map((r) => ({ name: secItemStr(r, "name"), stars: typeof r.stars === "number" ? (r.stars as number) : 0, blurb: secItemStr(r, "note", "description", "blurb"), features: secStrArr(r, "facilities").concat(secStrArr(r, "features")) }))
+    : (hotelDesc ? [{ name: "", stars: 0, blurb: hotelDesc, features: [] as string[] }] : []);
+
+  // ---- clickable gallery → lightbox ----
+  const photos = Array.from(new Set([cover, ...mediaImgs].filter(Boolean)));
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const zoom = (url: string) => { const i = photos.indexOf(url); if (i >= 0) setLightbox(i); };
+
+  // ---- nav ----
+  const goTo = (type: string) => { if (typeof document === "undefined") return; document.querySelector(`[data-pmx-section="${type}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  const navItems = Object.entries(L.nav).filter(([key]) => {
+    if (key === "reviews") return (pkg.reviews?.length ?? 0) > 0 && agency.showReviews !== false;
+    if (key === "hotel") return hotels.length > 0;
+    if (key === "itinerary") return secArr(findSec(pkg, "itinerary"), "days").length > 0;
+    if (key === "inclusions") return secStrArr(findSec(pkg, "inclusions"), "includes").length + secStrArr(findSec(pkg, "inclusions"), "excludes").length + (pkg.includes?.length ?? 0) + (pkg.excludes?.length ?? 0) > 0;
+    if (key === "departures") return secArr(findSec(pkg, "departures"), "entries").length > 0 || (pkg.departures?.length ?? 0) > 0;
+    if (key === "pricing") return (pkg.pricingTiers?.length ?? 0) > 0 || !!findSec(pkg, "pricing");
+    if (key === "faq") return secArr(findSec(pkg, "faq"), "items").length > 0;
+    return !!findSec(pkg, key);
+  });
+
+  // hero meta from real facts
+  const meta: { k: string; v: string }[] = [
+    nightsN ? { k: L.ui.duration, v: `${dig(nightsN)} ${L.ui.nights}` } : null,
+    pkg.destination ? { k: L.ui.destination, v: pkg.destination } : null,
+    mealPlan && mealPlan !== "none" ? { k: L.ui.board, v: MEAL_LABELS[mealPlan]?.[lang] || mealPlan } : null,
+  ].filter(Boolean).slice(0, 3) as { k: string; v: string }[];
+
+  // ---- atoms ----
+  const Diamond = ({ color = GOLD, s = 7 }: { color?: string; s?: number }) => (
+    <span style={{ display: "inline-block", width: s, height: s, transform: "rotate(45deg)", background: color, opacity: 0.9 }} />
+  );
+  const RuleM = ({ center }: { center?: boolean }) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: center ? "center" : "flex-start", gap: 10 }}>
+      <span style={{ height: 1, width: center ? 44 : 30, background: GOLD, opacity: 0.6 }} />
+      <Diamond />
+      {center && <span style={{ height: 1, width: 44, background: GOLD, opacity: 0.6 }} />}
+    </div>
+  );
+  const Kicker = ({ children, light, center }: { children: React.ReactNode; light?: boolean; center?: boolean }) => (
+    <div style={{ fontFamily: label, fontSize: D ? 11 : 10, fontWeight: 500, letterSpacing: rtl ? 0 : "3px", textTransform: uc, color: light ? "rgba(255,255,255,0.82)" : brand, marginBottom: 14, textAlign: center ? "center" : "start" }}>{children}</div>
+  );
+  const Primary = ({ children, full, big, ghost, onClick }: { children: React.ReactNode; full?: boolean; big?: boolean; ghost?: boolean; onClick?: () => void }) => (
+    <button data-testid="wa-cta" onClick={onClick} style={{ fontFamily: label, background: ghost ? "transparent" : brand, color: ghost ? brand : onBrand, border: ghost ? `1px solid ${brand}` : "none", borderRadius: 999, padding: big ? "15px 30px" : "12px 24px", fontSize: D ? 12.5 : 12, fontWeight: 500, letterSpacing: rtl ? 0 : "1.2px", textTransform: uc, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, width: full ? "100%" : "auto" }}>
+      {!ghost && <WAIcon s={14} fill={onBrand} />} {children}
+    </button>
+  );
+  const H2 = ({ children, size, center }: { children: React.ReactNode; size?: number; center?: boolean }) => (
+    <h2 style={{ fontFamily: serif, fontSize: size || (D ? 46 : 30), fontWeight: 500, lineHeight: 1.08, letterSpacing: rtl ? 0 : "0.2px", color: INK, margin: 0, textAlign: center ? "center" : "start" }}>{children}</h2>
+  );
+  const Wrap = ({ children, pt, pb, style, id, section }: { children: React.ReactNode; pt?: number; pb?: number; style?: React.CSSProperties; id?: string; section?: string }) => (
+    <section id={id} data-pmx-section={section} style={{ scrollMarginTop: D ? 60 : 52, padding: `${pt != null ? pt : (D ? 84 : 48)}px ${px}px ${pb != null ? pb : (D ? 84 : 48)}px`, ...style }}>{children}</section>
+  );
+  const SecHead = ({ kicker, title: t, sub, center }: { kicker: string; title: string; sub?: string; center?: boolean }) => (
+    <div style={{ marginBottom: D ? 46 : 30, textAlign: center ? "center" : "start", display: center ? "flex" : "block", flexDirection: "column", alignItems: center ? "center" : "stretch" }}>
+      {center && <div style={{ marginBottom: 16 }}><RuleM center /></div>}
+      <Kicker center={center}>{kicker}</Kicker>
+      <H2 center={center}>{t}</H2>
+      {sub && <p style={{ fontFamily: serif, fontStyle: "italic", fontSize: D ? 22 : 18, color: MUT, lineHeight: 1.5, margin: `${D ? 14 : 10}px 0 0`, maxWidth: 600 }}>{sub}</p>}
+    </div>
+  );
+
+  // ════════ HERO ════════
+  const Hero = () => (
+    <div data-pmx-section="hero">
+      <div style={{ position: "relative", height: D ? 600 : 470, overflow: "hidden", background: INK, borderRadius: `0 0 ${D ? 50 : 28}px ${D ? 50 : 28}px` }}>
+        {cover && <img src={cover} alt="" onClick={() => zoom(cover)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in" }} />}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(to bottom, rgba(15,22,17,0.5) 0%, rgba(15,22,17,0.15) 40%, rgba(15,22,17,0.82) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", textAlign: "center", padding: `0 ${px}px ${D ? 56 : 34}px`, color: "#fff", pointerEvents: "none" }}>
+          <div style={{ marginBottom: 18 }}><RuleM center /></div>
+          <Kicker light center><span data-pmx-field="destination">{pkg.destination}</span></Kicker>
+          <h1 style={{ fontFamily: serif, fontSize: D ? 76 : 44, fontWeight: 500, lineHeight: 1.02, letterSpacing: rtl ? 0 : "0.3px", margin: 0, maxWidth: 900 }} data-pmx-field="title">{title}</h1>
+        </div>
+      </div>
+      <Wrap pt={D ? 52 : 32} pb={0}>
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1.4fr 1fr" : "1fr", gap: D ? 56 : 26, alignItems: "center" }}>
+          {pkg.description && <p style={{ fontFamily: serif, fontSize: D ? 27 : 20, fontStyle: "italic", lineHeight: 1.5, color: INK, margin: 0 }}>{pkg.description}</p>}
+          <div style={{ background: CARD, border: `1px solid ${RULE}`, borderRadius: 20, padding: D ? 26 : 20, gridColumn: pkg.description ? "auto" : (D ? "1 / -1" : "auto") }}>
+            {meta.map((m, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "11px 0", borderBottom: `1px solid ${RULE}` }}>
+                <span style={{ fontFamily: label, fontSize: 10.5, fontWeight: 500, letterSpacing: rtl ? 0 : "1.4px", textTransform: uc, color: FAINT }}>{m.k}</span>
+                <span style={{ fontFamily: serif, fontSize: D ? 20 : 17, color: INK }}>{m.v}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "14px 0 16px" }}>
+              <span style={{ fontFamily: label, fontSize: 10.5, fontWeight: 500, letterSpacing: rtl ? 0 : "1.4px", textTransform: uc, color: FAINT }}>{L.ui.from}</span>
+              <span style={{ fontFamily: serif, fontSize: D ? 32 : 26, color: brand }} data-pmx-field="price">{dig(pkg.price || "")}</span>
+            </div>
+            {pkg.whatsapp && <Primary full big onClick={onWhatsApp}>{L.ui.reserve}</Primary>}
+          </div>
+        </div>
+      </Wrap>
+    </div>
+  );
+
+  // ════════ HIGHLIGHTS ════════
+  const Highlights = () => {
+    const items = secMixed(findSec(pkg, "highlights"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="highlights">
+        <SecHead center kicker={L.nav.highlights} title={ar("Why travellers choose this journey", "لماذا يختار المسافرون هذه الرحلة")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(2,1fr)" : "1fr", gap: D ? 28 : 18 }}>
+          {items.map((h, i) => {
+            const t = secItemStr(h, "title", "text", "label");
+            const d = typeof h === "object" ? secItemStr(h, "desc", "description") : "";
+            return (
+              <div key={i} style={{ background: CARD, border: `1px solid ${RULE}`, borderRadius: 20, padding: D ? 30 : 22, display: "flex", gap: 18, alignItems: "flex-start" }}>
+                <div style={{ minWidth: D ? 46 : 40, width: D ? 46 : 40, height: D ? 56 : 50, borderRadius: "999px 999px 6px 6px", border: `1.5px solid ${brand}`, display: "flex", alignItems: "center", justifyContent: "center", color: brand, fontFamily: serif, fontSize: D ? 22 : 19 }}>{dig(i + 1)}</div>
+                <div>
+                  <div style={{ fontFamily: serif, fontSize: D ? 24 : 20, color: INK, marginBottom: d ? 6 : 0, lineHeight: 1.15 }}>{t}</div>
+                  {d && <div style={{ fontFamily: body, fontSize: 14, color: MUT, lineHeight: 1.7 }}>{d}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ MEDIA ════════
+  const Media = () => {
+    const m = findSec(pkg, "media");
+    const imgs = mediaImgs;
+    const video = secStr(m, "videoUrl") || pkg.videoUrl || "";
+    const mapImage = secStr(m, "mapImage");
+    const mapCaption = secStr(m, "mapCaption");
+    if (!imgs.length && !video && !mapImage) return null;
+    const tiles = imgs.slice(0, D ? 3 : 2);
+    const stops = mapImage ? [] : itinDays.slice(0, 5).map((d) => ({ label: secItemStr(d, "title") })).filter((s) => s.label);
+    return (
+      <Wrap style={{ background: CARD }} section="media">
+        <SecHead center kicker={L.sections.media} title={ar("See for yourself", "شاهد بنفسك")} />
+        {video && (
+          <div style={{ borderRadius: ARCH, overflow: "hidden", border: `1px solid ${RULE}`, boxShadow: "0 18px 50px -28px rgba(31,42,34,0.5)" }}>
+            <SkVideo src={video} poster={cover || imgs[0]} accent={brand} rtl={rtl} sans={body} height={D ? 440 : 250} ui={L.ui} />
+          </div>
+        )}
+        {tiles.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr 1fr", gap: D ? 16 : 10, marginTop: video ? (D ? 22 : 14) : 0 }}>
+            {tiles.map((u, k) => (
+              <div key={k} style={{ borderRadius: D ? "120px 120px 12px 12px" : "70px 70px 8px 8px", overflow: "hidden", border: `1px solid ${RULE}` }}>
+                <img src={u} onClick={() => zoom(u)} style={{ width: "100%", height: D ? 230 : 150, objectFit: "cover", display: "block", cursor: "zoom-in" }} />
+              </div>
+            ))}
+          </div>
+        )}
+        {(mapImage || stops.length > 0) && (
+          <div style={{ marginTop: D ? 34 : 24, background: PAPER, border: `1px solid ${RULE}`, borderRadius: 20, padding: D ? 26 : 18 }}>
+            <Kicker>{L.ui.route}</Kicker>
+            {mapImage
+              ? <img src={mapImage} alt={mapCaption} style={{ width: "100%", height: D ? 220 : 160, objectFit: "cover", borderRadius: 14, display: "block" }} />
+              : <SkRouteMap stops={stops} line={brand} land={soft} ink={INK} height={D ? 220 : 160} rounded={14} rtl={rtl} />}
+            {mapCaption && <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 15, color: FAINT, marginTop: 14, textAlign: "center" }}>{mapCaption}</div>}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ ITINERARY ════════
+  const Itinerary = () => {
+    if (!itinDays.length) return null;
+    return (
+      <Wrap section="itinerary">
+        <SecHead center kicker={L.sections.itinerary} title={ar(`${itinDays.length} nights, day by day`, `${dig(itinDays.length)} ليالٍ، يومًا بيوم`)} />
+        <div style={{ maxWidth: 760, margin: "0 auto", position: "relative" }}>
+          <div style={{ position: "absolute", insetInlineStart: D ? 23 : 19, top: 8, bottom: 8, width: 1.5, background: `linear-gradient(${tint(0.45)}, ${RULE})` }} />
+          {itinDays.map((it, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: D ? "48px 1fr" : "40px 1fr", gap: D ? 26 : 18, padding: "12px 0", position: "relative" }}>
+              <div style={{ width: D ? 48 : 40, height: D ? 48 : 40, borderRadius: "50%", background: CARD, border: `1.5px solid ${brand}`, color: brand, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: D ? 21 : 18, zIndex: 1 }}>{dig((it.day as number) ?? i + 1)}</div>
+              <div style={{ paddingTop: D ? 6 : 4, paddingBottom: 14, borderBottom: i < itinDays.length - 1 ? `1px solid ${RULE}` : "none" }}>
+                <div style={{ fontFamily: serif, fontSize: D ? 23 : 19, color: INK, lineHeight: 1.2 }}>{secItemStr(it, "title")}</div>
+                {secItemStr(it, "desc", "description") && <div style={{ fontFamily: body, fontSize: 13.5, color: MUT, lineHeight: 1.65, marginTop: 4 }}>{secItemStr(it, "desc", "description")}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ HOTEL ════════
+  const Hotel = () => {
+    if (!hotels.length) return null;
+    const img = (k: number) => mediaImgs[k % Math.max(mediaImgs.length, 1)] || mediaImgs[0] || cover;
+    return (
+      <Wrap style={{ background: CARD }} section="hotel">
+        <SecHead center kicker={L.sections.hotel} title={ar("Where you'll stay", "مكان إقامتك")} />
+        <div style={{ display: "grid", gridTemplateColumns: D && hotels.length > 1 ? "1fr 1fr" : "1fr", gap: D ? 28 : 20, maxWidth: hotels.length === 1 ? 760 : "none", margin: hotels.length === 1 ? "0 auto" : 0 }}>
+          {hotels.map((h, k) => (
+            <div key={k} style={{ background: PAPER, border: `1px solid ${RULE}`, borderRadius: 22, overflow: "hidden" }}>
+              {img(k) && <img src={img(k)} alt="" onClick={() => zoom(img(k))} style={{ width: "100%", height: D ? 220 : 170, objectFit: "cover", display: "block", cursor: "zoom-in" }} />}
+              <div style={{ padding: D ? 26 : 20 }}>
+                {h.stars > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <SkStars n={h.stars} size={D ? 15 : 13} color={GOLD} />
+                    <span style={{ fontFamily: label, fontSize: 10.5, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc }}>{dig(h.stars)} {L.ui.stars}</span>
+                  </div>
+                )}
+                {h.name && <div style={{ fontFamily: serif, fontSize: D ? 27 : 22, color: INK }}>{h.name}</div>}
+                {h.blurb && <p style={{ fontFamily: body, fontSize: 13.5, color: MUT, lineHeight: 1.7, margin: h.name ? "14px 0 0" : 0, whiteSpace: "pre-line" }}>{h.blurb}</p>}
+                {h.features.length > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 14px", marginTop: 16 }}>
+                    {h.features.map((f, i) => <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline", fontFamily: body, fontSize: 12.5, color: INK }}><Diamond color={GOLD} s={5} /> {f}</div>)}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ INCLUSIONS ════════
+  const Inclusions = () => {
+    const inc = findSec(pkg, "inclusions");
+    const includes = secStrArr(inc, "includes").length ? secStrArr(inc, "includes") : (pkg.includes ?? []);
+    const excludes = secStrArr(inc, "excludes").length ? secStrArr(inc, "excludes") : (pkg.excludes ?? []);
+    if (!includes.length && !excludes.length) return null;
+    return (
+      <Wrap section="inclusions">
+        <SecHead center kicker={L.sections.inclusions} title={ar("What's included", "ما يشمله البرنامج")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 28 : 20, maxWidth: 980, margin: "0 auto" }}>
+          {includes.length > 0 && (
+            <div style={{ background: softer, border: `1px solid ${tint(0.25)}`, borderRadius: 20, padding: D ? 28 : 22 }}>
+              <div style={{ fontFamily: label, fontSize: 11, fontWeight: 500, color: brand, letterSpacing: rtl ? 0 : "1.6px", textTransform: uc, marginBottom: 14 }}>{L.ui.included}</div>
+              {includes.map((it, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderTop: i ? `1px solid ${RULE}` : "none", alignItems: "flex-start" }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={brand} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 2, flexShrink: 0 }}><path d="M20 6L9 17l-5-5" /></svg>
+                  <span style={{ fontFamily: body, fontSize: 14, color: INK, lineHeight: 1.55 }}>{it}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {excludes.length > 0 && (
+            <div style={{ borderRadius: 20, padding: D ? 28 : 22, border: `1px solid ${RULE}` }}>
+              <div style={{ fontFamily: label, fontSize: 11, fontWeight: 500, color: FAINT, letterSpacing: rtl ? 0 : "1.6px", textTransform: uc, marginBottom: 14 }}>{L.ui.notIncluded}</div>
+              {excludes.map((it, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderTop: i ? `1px solid ${RULE}` : "none", alignItems: "flex-start" }}>
+                  <span style={{ color: FAINT, fontSize: 16, lineHeight: 1.2, flexShrink: 0 }}>×</span>
+                  <span style={{ fontFamily: body, fontSize: 14, color: MUT, lineHeight: 1.55 }}>{it}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ MEALS ════════
+  const Meals = () => {
+    const m = findSec(pkg, "meals");
+    const plan = secStr(m, "plan");
+    const notes = secStr(m, "notes");
+    if (!plan && !notes) return null;
+    const planLabel = MEAL_LABELS[plan]?.[lang] || plan || ar("Dining", "الطعام");
+    return (
+      <Wrap style={{ background: CARD }} section="meals">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1.1fr" : "1fr", gap: D ? 56 : 26, alignItems: "center" }}>
+          <SecHead kicker={L.sections.meals} title={planLabel} />
+          {notes && <p style={{ fontFamily: serif, fontStyle: "italic", fontSize: D ? 21 : 18, color: MUT, lineHeight: 1.6, margin: 0, whiteSpace: "pre-line" }}>{notes}</p>}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ VISA ════════
+  const Visa = () => {
+    const v = findSec(pkg, "visa");
+    const included = secStr(v, "included");
+    const content = secStr(v, "content");
+    if (!included && !content) return null;
+    return (
+      <Wrap section="visa">
+        <div style={{ background: brand, color: onBrand, borderRadius: 26, padding: D ? 48 : 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: D && content ? "1fr 1fr" : "1fr", gap: D ? 48 : 24 }}>
+            <div>
+              <div style={{ fontFamily: label, fontSize: 11, fontWeight: 500, letterSpacing: rtl ? 0 : "3px", textTransform: uc, opacity: 0.82, marginBottom: 14 }}>{L.sections.visa}</div>
+              <h2 style={{ fontFamily: serif, fontSize: D ? 40 : 28, fontWeight: 500, lineHeight: 1.1, margin: 0 }}>{VISA_HEAD[included]?.[lang] || ar("Visa & entry", "التأشيرة والدخول")}</h2>
+            </div>
+            {content && <p style={{ fontFamily: body, fontSize: 14.5, lineHeight: 1.8, margin: 0, opacity: 0.9, alignSelf: "center", whiteSpace: "pre-line" }}>{content}</p>}
+          </div>
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ TRANSFERS ════════
+  const Transfers = () => {
+    const tx = findSec(pkg, "transfers");
+    const desc = secStr(tx, "description");
+    const items = secMixed(tx, "items");
+    if (!desc && !items.length) return null;
+    return (
+      <Wrap style={{ background: CARD }} section="transfers">
+        <SecHead center kicker={L.sections.transfers} title={ar("Getting around", "التنقّلات")} sub={items.length ? undefined : desc} />
+        {items.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 24 : 16 }}>
+            {items.map((t, i) => (
+              <div key={i} style={{ background: PAPER, border: `1px solid ${RULE}`, borderRadius: 18, padding: D ? 26 : 20, textAlign: "center" }}>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><Diamond color={brand} s={9} /></div>
+                <div style={{ fontFamily: serif, fontSize: D ? 22 : 19, color: INK }}>{secItemStr(t, "leg", "title", "name", "text")}</div>
+                {typeof t === "object" && secItemStr(t, "desc", "description") && <div style={{ fontFamily: body, fontSize: 13.5, color: MUT, lineHeight: 1.65, marginTop: 6 }}>{secItemStr(t, "desc", "description")}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ DEPARTURES ════════
+  const Departures = () => {
+    const rows = depEntries.length ? depEntries : (pkg.departures ?? []).map((d) => ({ date: d.date, price: d.price, spots: d.spots } as SecData));
+    if (!rows.length) return null;
+    return (
+      <Wrap id="sk-departures" section="departures">
+        <SecHead center kicker={L.sections.departures} title={ar("Departures & airports", "المغادرة والمطارات")} />
+        {D ? (
+          <div style={{ border: `1px solid ${RULE}`, borderRadius: 20, overflow: "hidden", maxWidth: 1000, margin: "0 auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1.2fr 1fr 0.9fr auto", padding: "16px 24px", fontFamily: label, fontSize: 10.5, fontWeight: 500, letterSpacing: rtl ? 0 : "1.2px", textTransform: uc, color: FAINT, background: CARD, borderBottom: `1px solid ${RULE}` }}>
+              <div>{L.ui.from}</div><div>{L.ui.date}</div><div>{L.ui.depart}</div><div>{L.ui.availability}</div><div style={{ textAlign: "end" }}>{L.ui.price}</div><div />
+            </div>
+            {rows.map((r, i) => {
+              const spots = typeof r.spots === "number" ? r.spots : Number(r.spots) || 0; const sold = spots <= 0;
+              const from = secItemStr(r, "origin", "from"); const date = secItemStr(r, "date");
+              const dep = secItemStr(r, "flyingTime"); const arrt = secItemStr(r, "arrivingTime"); const price = secItemStr(r, "price");
+              return (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1.2fr 1fr 0.9fr auto", padding: "18px 24px", alignItems: "center", borderBottom: i < rows.length - 1 ? `1px solid ${RULE}` : "none", opacity: sold ? 0.5 : 1 }}>
+                  <div style={{ fontFamily: serif, fontSize: 20, color: INK }}>{from || dig(date)}</div>
+                  <div style={{ fontFamily: body, fontSize: 13.5, color: MUT }}>{dig(date)}</div>
+                  <div style={{ fontFamily: body, fontSize: 12.5, color: MUT }}>{dep ? `${dig(dep)}${arrt ? ` → ${dig(arrt)}` : ""}` : "—"}</div>
+                  <div style={{ fontFamily: body, fontSize: 12.5, color: sold ? FAINT : (spots <= 3 ? GOLD : brand), fontWeight: 600 }}>{sold ? L.ui.soldOut : `${dig(spots)} ${L.ui.seatsLeft}`}</div>
+                  <div style={{ fontFamily: serif, fontSize: 21, color: brand, textAlign: "end" }}>{dig(price)}</div>
+                  <div style={{ textAlign: "end", paddingInlineStart: 18 }}>{sold ? <span style={{ fontFamily: body, fontSize: 12, color: FAINT }}>—</span> : (pkg.whatsapp ? <Primary onClick={onWhatsApp}>{L.ui.book}</Primary> : null)}</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {rows.map((r, i) => {
+              const spots = typeof r.spots === "number" ? r.spots : Number(r.spots) || 0; const sold = spots <= 0;
+              const from = secItemStr(r, "origin", "from"); const date = secItemStr(r, "date"); const price = secItemStr(r, "price");
+              return (
+                <div key={i} style={{ border: `1px solid ${RULE}`, borderRadius: 16, padding: 18, background: CARD, opacity: sold ? 0.55 : 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <div style={{ fontFamily: serif, fontSize: 21, color: INK }}>{from || dig(date)}</div>
+                    {price && <div style={{ fontFamily: serif, fontSize: 21, color: brand }}>{dig(price)}</div>}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: body, fontSize: 12.5, color: MUT }}>
+                    <span>{dig(date)}</span><span style={{ color: sold ? FAINT : (spots <= 3 ? GOLD : brand), fontWeight: 600 }}>{sold ? L.ui.soldOut : `${dig(spots)} ${L.ui.seatsLeft}`}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ PRICING ════════
+  const Pricing = () => {
+    const pr = findSec(pkg, "pricing");
+    const tiers = pkg.pricingTiers ?? [];
+    const cancellation = lines(secStr(pr, "cancellation") || pkg.cancellation || "");
+    const schedule = secArr(pr, "paymentSteps");
+    if (!tiers.length && !cancellation.length && !schedule.length) return null;
+    return (
+      <Wrap style={{ background: CARD }} id="sk-pricing" section="pricing">
+        <SecHead center kicker={L.sections.pricing} title={ar("Choose your room", "اختر غرفتك")} />
+        {tiers.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: D ? 22 : 16, maxWidth: 980, margin: "0 auto" }}>
+            {tiers.map((t, i) => {
+              const featured = tiers.length === 3 && i === 1;
+              return (
+                <div key={i} style={{ background: featured ? brand : PAPER, color: featured ? onBrand : INK, border: featured ? "none" : `1px solid ${RULE}`, borderRadius: 22, padding: D ? 30 : 24, textAlign: "center", position: "relative" }}>
+                  {featured && <div style={{ fontFamily: label, fontSize: 9.5, fontWeight: 500, letterSpacing: rtl ? 0 : "1.6px", textTransform: uc, opacity: 0.9, marginBottom: 10 }}>★ {L.ui.mostPopular}</div>}
+                  <div style={{ fontFamily: serif, fontSize: D ? 26 : 22 }}>{localizeTierLabel(t.label, lang)}</div>
+                  <div style={{ fontFamily: serif, fontSize: D ? 42 : 34, marginTop: 14, color: featured ? onBrand : brand }}>{dig(t.price)}</div>
+                  <div style={{ fontFamily: body, fontSize: 11.5, opacity: 0.65, marginTop: 2 }}>{L.ui.perPerson}</div>
+                  {pkg.whatsapp && <div style={{ marginTop: 20 }}><Primary full ghost={!featured} onClick={onWhatsApp}>{L.ui.book}</Primary></div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {(cancellation.length > 0 || schedule.length > 0) && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 40 : 22, marginTop: tiers.length ? 36 : 0, maxWidth: 980, marginInline: "auto" }}>
+            {cancellation.length > 0 && (
+              <div>
+                <div style={{ fontFamily: label, fontSize: 11, fontWeight: 500, color: brand, letterSpacing: rtl ? 0 : "1.4px", textTransform: uc, marginBottom: 10 }}>{L.ui.cancellation}</div>
+                {cancellation.map((s, i) => <div key={i} style={{ fontFamily: body, fontSize: 13.5, color: MUT, padding: "8px 0", lineHeight: 1.5, borderTop: `1px solid ${RULE}`, display: "flex", gap: 10 }}><Diamond color={GOLD} s={5} /> {s}</div>)}
+              </div>
+            )}
+            {schedule.length > 0 && (
+              <div>
+                <div style={{ fontFamily: label, fontSize: 11, fontWeight: 500, color: brand, letterSpacing: rtl ? 0 : "1.4px", textTransform: uc, marginBottom: 10 }}>{L.ui.paymentSchedule}</div>
+                {schedule.map((s, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: `1px solid ${RULE}` }}>
+                    <span style={{ fontFamily: body, fontSize: 13.5, color: INK }}>{secItemStr(s, "dueDate", "label")}</span><span style={{ fontFamily: serif, fontSize: 18, color: brand }}>{dig(secItemStr(s, "amount"))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ EXTRAS ════════
+  const Extras = () => {
+    const items = secArr(findSec(pkg, "extras"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="extras">
+        <SecHead center kicker={L.sections.extras} title={ar("Make it yours", "أضِف لمستك")} />
+        <div style={{ maxWidth: 820, margin: "0 auto" }}>
+          {items.map((e, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: D ? "20px 0" : "16px 0", borderTop: `1px solid ${RULE}`, borderBottom: i === items.length - 1 ? `1px solid ${RULE}` : "none" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: serif, fontSize: D ? 23 : 19, color: INK }}>{secItemStr(e, "name", "title")}</div>
+                {secItemStr(e, "description", "desc") && <div style={{ fontFamily: body, fontSize: 13, color: MUT, marginTop: 3, lineHeight: 1.5 }}>{secItemStr(e, "description", "desc")}</div>}
+              </div>
+              {secItemStr(e, "price") && <div style={{ fontFamily: serif, fontSize: D ? 22 : 18, color: brand, whiteSpace: "nowrap" }}>{dig(secItemStr(e, "price"))}</div>}
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ SCARCITY ════════
+  const Scarcity = () => {
+    const sc = pkg.scarcity;
+    if (!sc || sc.spotsRemaining == null) return null;
+    const total = sc.totalSpots && sc.totalSpots > 0 ? sc.totalSpots : Math.max(sc.spotsRemaining, 12);
+    const pct = Math.round(((total - sc.spotsRemaining) / total) * 100);
+    return (
+      <Wrap style={{ background: CARD }} section="scarcity">
+        <div style={{ background: softer, border: `1px solid ${tint(0.25)}`, borderRadius: 26, padding: D ? 44 : 26, textAlign: "center", maxWidth: 820, margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><Kicker center>{L.sections.scarcity}</Kicker></div>
+          <h2 style={{ fontFamily: serif, fontSize: D ? 34 : 25, fontWeight: 500, color: INK, lineHeight: 1.3, margin: "0 auto", maxWidth: 620 }}>{L.ui.spotsLine(sc.spotsRemaining)}</h2>
+          <div style={{ maxWidth: 420, margin: "26px auto 0" }}>
+            <div style={{ height: 8, borderRadius: 999, background: tint(0.18), overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: brand, borderRadius: 999 }} /></div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontFamily: label, fontSize: 11, color: MUT, letterSpacing: rtl ? 0 : "0.5px" }}>
+              <span>{dig(sc.spotsRemaining)} {L.ui.seatsLeft}</span>
+              {sc.firstDepartureDate && <span>{L.ui.nextDeparture}: {dig(sc.firstDepartureDate)}</span>}
+            </div>
+          </div>
+          <p style={{ fontFamily: serif, fontStyle: "italic", fontSize: D ? 18 : 15.5, color: MUT, lineHeight: 1.6, margin: "22px auto 0", maxWidth: 520 }}>{L.ui.reassure}</p>
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ PEOPLE ════════
+  const People = () => {
+    if (!person?.name) return null;
+    const role = person.role ? (ROLE_LABELS[person.role]?.[lang] || person.role.replace(/_/g, " ")) : "";
+    const bio = (person as { bio?: string }).bio || "";
+    return (
+      <Wrap section="people">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "auto 1fr" : "1fr", gap: D ? 48 : 24, alignItems: "center", maxWidth: 960, margin: "0 auto" }}>
+          <div style={{ justifySelf: "center", width: D ? 240 : 200, borderRadius: ARCH, overflow: "hidden", border: `1px solid ${RULE}` }}>
+            {person.photo
+              ? <img src={person.photo} alt="" style={{ width: "100%", height: D ? 300 : 240, objectFit: "cover", display: "block" }} />
+              : <div style={{ width: "100%", height: D ? 300 : 240, background: softer, color: brand, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: D ? 90 : 64 }}>{person.name[0]}</div>}
+          </div>
+          <div>
+            <Kicker>{L.sections.people}</Kicker>
+            <div style={{ fontFamily: serif, fontSize: D ? 36 : 28, color: INK }}>{person.name}</div>
+            {role && <div style={{ fontFamily: label, fontSize: 11, color: brand, fontWeight: 500, letterSpacing: rtl ? 0 : "1.6px", textTransform: uc, marginTop: 6 }}>{role}</div>}
+            {bio && <p style={{ fontFamily: body, fontSize: 14.5, color: MUT, lineHeight: 1.75, marginTop: 16 }}>{bio}</p>}
+            {pkg.whatsapp && <div style={{ marginTop: 22 }}><Primary onClick={onWhatsApp}>{L.ui.message}</Primary></div>}
+          </div>
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ REVIEWS ════════
+  const Reviews = () => {
+    if (agency.showReviews === false) return null;
+    const items = pkg.reviews ?? [];
+    if (!items.length) return null;
+    const rating = pkg.rating ?? 5;
+    const count = pkg.reviewCount ?? items.length;
+    return (
+      <Wrap style={{ background: CARD }} id="sk-reviews" section="reviews">
+        <div style={{ textAlign: "center", marginBottom: D ? 40 : 28, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <RuleM center />
+          <div style={{ fontFamily: serif, fontSize: D ? 58 : 44, color: brand, lineHeight: 1, marginTop: 16 }}>{dig(rating)}</div>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}><SkStars n={Math.round(rating)} size={16} color={GOLD} /></div>
+          <div style={{ fontFamily: body, fontSize: 12.5, color: FAINT, marginTop: 8 }}>{L.ui.basedOn} {dig(count)} {L.ui.review}</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 24 : 18 }}>
+          {items.slice(0, 6).map((r, i) => (
+            <div key={i} style={{ background: PAPER, border: `1px solid ${RULE}`, borderRadius: 20, padding: D ? 28 : 22 }}>
+              <SkStars n={Math.round(r.rating || 5)} size={13} color={GOLD} />
+              <p style={{ fontFamily: serif, fontSize: D ? 20 : 17.5, fontStyle: "italic", color: INK, lineHeight: 1.55, margin: "12px 0 16px" }}>&ldquo;{r.text}&rdquo;</p>
+              <div style={{ fontFamily: label, fontSize: 12, fontWeight: 500, color: INK }}>{r.name}</div>
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ ABOUT ════════
+  const About = () => {
+    const a = findSec(pkg, "about_agency");
+    const story = secStr(a, "content");
+    const image = secStr(a, "image");
+    if (!a || (!story && !image)) return null;
+    return (
+      <Wrap section="about_agency">
+        <SecHead center kicker={L.sections.agency} title={agency.name} sub={agency.tagline} />
+        {story && <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center" }}><p style={{ fontFamily: serif, fontSize: D ? 22 : 18, fontStyle: "italic", color: MUT, lineHeight: 1.6, margin: 0, whiteSpace: "pre-line" }}>{story}</p></div>}
+        {image && <div style={{ maxWidth: 760, margin: "28px auto 0", borderRadius: 20, overflow: "hidden", border: `1px solid ${RULE}` }}><img src={image} alt="" style={{ width: "100%", height: D ? 320 : 220, objectFit: "cover", display: "block" }} /></div>}
+      </Wrap>
+    );
+  };
+
+  // ════════ NOTES ════════
+  const Notes = () => {
+    const items = secMixed(findSec(pkg, "important_notes"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap style={{ background: CARD }} section="important_notes">
+        <SecHead center kicker={L.sections.notes} title={ar("Good to know", "معلومات تهمّك")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 24 : 16 }}>
+          {items.map((n, i) => {
+            const t = secItemStr(n, "title");
+            const body2 = secItemStr(n, "text", "desc", "description") || (typeof n === "string" ? n : "");
+            return (
+              <div key={i} style={{ background: PAPER, border: `1px solid ${RULE}`, borderRadius: 18, padding: D ? 26 : 20 }}>
+                {t && <div style={{ fontFamily: serif, fontSize: D ? 21 : 18, color: INK, marginBottom: 6 }}>{t}</div>}
+                <div style={{ fontFamily: body, fontSize: 13.5, color: MUT, lineHeight: 1.65 }}>{body2}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ FAQ ════════
+  const Faq = () => {
+    const items = secArr(findSec(pkg, "faq"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="faq">
+        <SecHead center kicker={L.sections.faq} title={ar("Questions, answered", "إجابات على أسئلتك")} />
+        <div style={{ maxWidth: 820, margin: "0 auto" }}>
+          {items.map((f, i) => (
+            <div key={i} style={{ padding: D ? "24px 0" : "18px 0", borderTop: `1px solid ${RULE}`, borderBottom: i === items.length - 1 ? `1px solid ${RULE}` : "none" }}>
+              <div style={{ fontFamily: serif, fontSize: D ? 24 : 20, color: INK, lineHeight: 1.25, marginBottom: secItemStr(f, "answer", "a") ? 8 : 0 }}>{secItemStr(f, "question", "q")}</div>
+              {secItemStr(f, "answer", "a") && <p style={{ fontFamily: body, fontSize: 14, color: MUT, lineHeight: 1.75, margin: 0 }}>{secItemStr(f, "answer", "a")}</p>}
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ CUSTOM ════════
+  const Custom = () => {
+    const cs = findSec(pkg, "custom");
+    const heading = secStr(cs, "heading");
+    const text = secStr(cs, "content");
+    const image = secStr(cs, "image") || cover;
+    if (!heading && !text) return null;
+    return (
+      <div data-pmx-section="custom" style={{ position: "relative", overflow: "hidden", background: INK }}>
+        {image && <img src={image} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.22 }} />}
+        <section style={{ position: "relative", textAlign: "center", padding: `${D ? 84 : 48}px ${px}px` }}>
+          <div style={{ maxWidth: 720, margin: "0 auto", color: "#fff" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><Diamond color={GOLD} s={10} /></div>
+            <div style={{ fontFamily: label, fontSize: 11, fontWeight: 500, letterSpacing: rtl ? 0 : "3px", textTransform: uc, color: "rgba(255,255,255,0.7)", marginBottom: 16 }}>{L.sections.custom}</div>
+            {heading && <div style={{ fontFamily: serif, fontSize: D ? 46 : 30, fontWeight: 500, lineHeight: 1.15, marginBottom: 18 }}>{heading}</div>}
+            {text && <p style={{ fontFamily: serif, fontStyle: "italic", fontSize: D ? 23 : 18, color: "rgba(255,255,255,0.86)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-line" }}>{text}</p>}
+          </div>
+        </section>
+      </div>
+    );
+  };
+
+  // ════════ OTHERS ════════
+  const Others = () => {
+    const list = secArr(findSec(pkg, "other_packages"), "packages");
+    if (!list.length) return null;
+    return (
+      <Wrap section="other_packages">
+        <SecHead center kicker={L.sections.others} title={ar("More journeys", "رحلات أخرى")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 24 : 18 }}>
+          {list.map((o, i) => {
+            const oTitle = secItemStr(o, "title"); const place = secItemStr(o, "destination", "place");
+            const price = secItemStr(o, "price"); const oNights = secItemStr(o, "nights");
+            const img = secItemStr(o, "image"); const link = secItemStr(o, "link");
+            const Inner = (
+              <div style={{ background: CARD, border: `1px solid ${RULE}`, borderRadius: 20, overflow: "hidden", height: "100%" }}>
+                <div style={{ height: D ? 180 : 160, background: PAPER }}>{img && <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}</div>
+                <div style={{ padding: D ? 22 : 18 }}>
+                  {place && <div style={{ fontFamily: label, fontSize: 10.5, color: brand, fontWeight: 500, letterSpacing: rtl ? 0 : "1.4px", textTransform: uc }}>{place}</div>}
+                  <div style={{ fontFamily: serif, fontSize: D ? 23 : 20, color: INK, margin: "8px 0 12px", lineHeight: 1.15 }}>{oTitle}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderTop: `1px solid ${RULE}`, paddingTop: 12 }}>
+                    {price && <span style={{ fontFamily: serif, fontSize: 20, color: brand }}>{dig(price)}</span>}
+                    {oNights && <span style={{ fontFamily: body, fontSize: 12, color: FAINT }}>{dig(oNights)} {L.ui.nights}</span>}
+                  </div>
+                </div>
+              </div>
+            );
+            return link ? <a key={i} href={link} style={{ textDecoration: "none" }}>{Inner}</a> : <div key={i}>{Inner}</div>;
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ FOOTER ════════
+  const Footer = () => (
+    <div>
+      <div style={{ background: brand, color: onBrand }}>
+        <section style={{ padding: `${D ? 76 : 46}px ${px}px`, textAlign: "center" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><Diamond color={onBrand} s={9} /></div>
+          <div style={{ fontFamily: serif, fontSize: D ? 50 : 32, fontWeight: 500, lineHeight: 1.1, maxWidth: 700, margin: "0 auto" }}>{L.ui.begin}</div>
+          <div style={{ fontFamily: body, fontSize: 14, opacity: 0.85, margin: "14px 0 26px" }}>{L.ui.replyTime}{pkg.whatsapp ? ` · ${dig(pkg.whatsapp)}` : ""}</div>
+          <div style={{ display: "inline-flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+            {pkg.whatsapp && <button onClick={onWhatsApp} data-testid="wa-cta" style={{ fontFamily: label, background: "#fff", color: brand, border: "none", borderRadius: 999, padding: "15px 30px", fontSize: D ? 12.5 : 12, fontWeight: 600, letterSpacing: rtl ? 0 : "1.2px", textTransform: uc, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 9 }}><WAIcon s={14} fill={brand} /> {L.ui.bookWhatsapp}</button>}
+            {pkg.messenger && onMessenger && <Primary big ghost onClick={onMessenger}>{L.ui.messenger}</Primary>}
+          </div>
+        </section>
+      </div>
+      <div style={{ padding: `22px ${px}px`, display: "flex", justifyContent: "space-between", alignItems: "center", background: PAPER }}>
+        <div style={{ fontFamily: serif, fontSize: 19, color: INK }}>{agency.name}</div>
+        <div style={{ fontFamily: label, fontSize: 9.5, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc }}>{L.ui.poweredBy}</div>
+      </div>
+    </div>
+  );
+
+  // ════════ BAR ════════
+  const Bar = () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${px}px`, height: D ? 60 : 52, borderBottom: `1px solid ${RULE}`, background: skRgba(PAPER, 0.9), backdropFilter: "blur(10px)", position: "sticky", top: 0, zIndex: 30 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Diamond color={brand} s={9} />
+        <span style={{ fontFamily: serif, fontSize: D ? 22 : 19, fontWeight: 500, color: INK, letterSpacing: rtl ? 0 : "0.3px" }}>{agency.name}</span>
+      </div>
+      {D ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
+          {navItems.map(([key, lbl]) => <button key={key} onClick={() => goTo(key)} style={{ fontFamily: label, fontSize: 11, fontWeight: 500, letterSpacing: rtl ? 0 : "1px", textTransform: uc, color: MUT, background: "none", border: "none", cursor: "pointer", padding: 0 }}>{lbl}</button>)}
+          {pkg.whatsapp && <Primary onClick={onWhatsApp}>{L.ui.book}</Primary>}
+        </div>
+      ) : (pkg.whatsapp && <Primary onClick={onWhatsApp}>{L.ui.book}</Primary>)}
+    </div>
+  );
+
+  return (
+    <div dir={rtl ? "rtl" : "ltr"} lang={lang} style={{ width: "100%", background: PAPER, color: INK, fontFamily: body, position: "relative" }}>
+      {Bar()}
+      {Hero()}
+      {Highlights()}
+      {Media()}
+      {Itinerary()}
+      {Hotel()}
+      {Inclusions()}
+      {Meals()}
+      {Visa()}
+      {Transfers()}
+      {Departures()}
+      {Pricing()}
+      {Extras()}
+      {Scarcity()}
+      {People()}
+      {Reviews()}
+      {About()}
+      {Notes()}
+      {Faq()}
+      {Custom()}
+      {Others()}
+      {Footer()}
+      {lightbox !== null && photos.length > 0 && <LightboxCarousel images={photos} startIndex={lightbox} onClose={() => setLightbox(null)} />}
+    </div>
+  );
+}
+
+// ─── Card (dashboard listing) ─────────────────────────────────────────────────
 export function TemplateSakinaCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, onDuplicate }: TCardProps) {
   return (
     <BaseCard

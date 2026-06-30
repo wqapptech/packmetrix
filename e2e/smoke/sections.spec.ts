@@ -1,13 +1,12 @@
 /**
  * Smoke test — ALL SECTION TYPES (EN + AR)
  *
- * Navigates to a pre-built Aurora package that contains all 19 active section
+ * Navigates to a pre-built Aurora package that contains all 18 active section
  * types, each populated with "SMOKE …" marker text. Asserts that the rendered
  * page shows content from every section the Aurora template actually renders.
  *
  * Sections skipped from visible-text assertions (aurora-specific):
  *   - media       — images only, no text content
- *   - trek_profile — foregrounded by Compass; aurora doesn't render it
  *   - scarcity     — foregrounded by Pulse; aurora doesn't render it
  */
 import { test, expect } from "@playwright/test";

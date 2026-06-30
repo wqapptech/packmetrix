@@ -16,6 +16,23 @@ import {
   Newsreader,
   Noto_Naskh_Arabic,
   Tajawal,
+  Mulish,
+  Amiri,
+  Noto_Sans_Arabic,
+  Manrope,
+  Cairo,
+  Playfair_Display,
+  Nunito_Sans,
+  Markazi_Text,
+  Space_Mono,
+  Jost,
+  Mukta,
+  Archivo,
+  Barlow,
+  Bricolage_Grotesque,
+  Hanken_Grotesk,
+  Quicksand,
+  Baloo_Bhaijaan_2,
 } from "next/font/google";
 import "./globals.css";
 
@@ -139,6 +156,135 @@ const newsreader = Newsreader({
   preload: false,
 });
 
+// ── V2 template families (Batch 1: Aurora) ──
+const mulish = Mulish({
+  variable: "--font-mulish",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  preload: false,
+});
+
+const amiri = Amiri({
+  variable: "--font-amiri",
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  preload: false,
+});
+
+const notoSansArabic = Noto_Sans_Arabic({
+  variable: "--font-noto-sans-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700", "800"],
+  preload: false,
+});
+
+// ── V2 template families (Batch 1: Voyage) ──
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  preload: false,
+});
+
+const cairo = Cairo({
+  variable: "--font-cairo",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  preload: false,
+});
+
+// ── V2 template families (Batch 1: Petal) ──
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  preload: false,
+});
+
+const nunitoSans = Nunito_Sans({
+  variable: "--font-nunito-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  preload: false,
+});
+
+const markaziText = Markazi_Text({
+  variable: "--font-markazi",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700"],
+  preload: false,
+});
+
+// ── V2 template families (Batch 2: Smart) ──
+const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  preload: false,
+});
+
+// ── V2 template families (Batch 3: Sakina, Compass) ──
+const jost = Jost({
+  variable: "--font-jost",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  preload: false,
+});
+
+const mukta = Mukta({
+  variable: "--font-mukta",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  preload: false,
+});
+
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800", "900"],
+  preload: false,
+});
+
+const barlow = Barlow({
+  variable: "--font-barlow",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  preload: false,
+});
+
+// ── V2 template families (Batch 4: Tribe, Family) ──
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
+  preload: false,
+});
+
+const hanken = Hanken_Grotesk({
+  variable: "--font-hanken",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  style: ["normal", "italic"],
+  preload: false,
+});
+
+const quicksand = Quicksand({
+  variable: "--font-quicksand",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  preload: false,
+});
+
+const balooBhaijaan = Baloo_Bhaijaan_2({
+  variable: "--font-baloo",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: "PackMetrix — Travel Package Intelligence",
   description:
@@ -151,7 +297,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${inter.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} ${ibmPlexSansArabic.variable} ${notoNaskhArabic.variable} ${tajawal.variable} ${newsreader.variable} h-full`}
+      className={`${dmSans.variable} ${dmSerif.variable} ${cormorant.variable} ${instrumentSerif.variable} ${archivoblack.variable} ${jetbrainsMono.variable} ${interTight.variable} ${spaceGrotesk.variable} ${inter.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable} ${sourceSerif.variable} ${ibmPlexSansArabic.variable} ${notoNaskhArabic.variable} ${tajawal.variable} ${newsreader.variable} ${mulish.variable} ${amiri.variable} ${notoSansArabic.variable} ${manrope.variable} ${cairo.variable} ${playfair.variable} ${nunitoSans.variable} ${markaziText.variable} ${spaceMono.variable} ${jost.variable} ${mukta.variable} ${archivo.variable} ${barlow.variable} ${bricolage.variable} ${hanken.variable} ${quicksand.variable} ${balooBhaijaan.variable} h-full`}
       style={{ fontFamily: "var(--font-inter-tight), 'Inter Tight', system-ui, sans-serif" }}
     >
       <body className="h-full" style={{ fontFamily: "inherit" }}>

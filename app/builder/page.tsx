@@ -96,163 +96,22 @@ function OnThisPageRail({
 // ─── API bridge ───────────────────────────────────────────────────────────────
 
 /**
- * Converts legacy section types to their v2 equivalents in the builder's
- * in-memory state. Called once when loading a package for editing so that
- * any subsequent save writes clean v2 data — no manual migration required
- * for packages touched via the builder.
+ * Flattens the legacy `hotels` rich-card section (written by old imports) into
+ * canonical `hotel` sections in the builder's in-memory state. Called once when
+ * loading a package for editing so subsequent saves write clean v2 data.
  *
- * Conversions:
- *   gallery + video + map     → media
- *   flights + departure_dates → departures
- *   payment_plan              → folded into pricing (or new pricing)
- *   booking_terms             → folded into pricing.termsContent
- *   guide                     → people
+ * (Other legacy section types — gallery/video/map/flights/departure_dates/
+ * payment_plan/booking_terms/guide — were retired and stripped from storage.)
  */
 function upgradeLegacySections(sections: AnySectionInstance[]): AnySectionInstance[] {
   type Raw = Record<string, unknown>;
 
-  const LEGACY = new Set(["gallery", "video", "map", "flights", "departure_dates", "payment_plan", "booking_terms", "guide", "hotels"]);
+  const hotelsSegs = sections.filter((s) => (s.type as string) === "hotels");
 
-  // Buckets for legacy types
-  const galleries    = sections.filter((s) => s.type === "gallery");
-  const videos       = sections.filter((s) => s.type === "video");
-  const maps         = sections.filter((s) => s.type === "map");
-  const flightSegs   = sections.filter((s) => s.type === "flights");
-  const ddSegs       = sections.filter((s) => s.type === "departure_dates");
-  const ppSegs       = sections.filter((s) => s.type === "payment_plan");
-  const btSegs       = sections.filter((s) => s.type === "booking_terms");
-  const guideSegs    = sections.filter((s) => s.type === "guide");
-  const hotelsSegs   = sections.filter((s) => (s.type as string) === "hotels");
+  // Pass through all non-`hotels` sections
+  const kept: AnySectionInstance[] = sections.filter((s) => (s.type as string) !== "hotels");
 
-  // Pass through all non-legacy sections
-  const kept: AnySectionInstance[] = sections.filter((s) => !LEGACY.has(s.type));
-
-  const safeMin = (...nums: number[]) => nums.length ? Math.min(...nums) : 0;
-
-  // 1. gallery + video + map → media (skip if media already exists)
-  const hasMedia = kept.some((s) => s.type === "media");
-  if (!hasMedia && (galleries.length || videos.length || maps.length)) {
-    const gallery = galleries[0]?.data as Raw | undefined;
-    const video   = videos[0]?.data   as Raw | undefined;
-    const map     = maps[0]?.data     as Raw | undefined;
-    kept.push({
-      id:    `media_upgraded_${Date.now()}`,
-      type:  "media",
-      order: safeMin(
-        ...galleries.map((s) => s.order),
-        ...videos.map((s) => s.order),
-        ...maps.map((s) => s.order),
-      ),
-      data: {
-        images:     (gallery?.images   as string[]) ?? [],
-        videoUrl:   (video?.videoUrl   as string)   ?? "",
-        mapImage:   (map?.image        as string)   ?? "",
-        mapCaption: (map?.caption      as string)   ?? "",
-      },
-    } as AnySectionInstance);
-  }
-
-  // 2. flights + departure_dates → departures (skip if departures already exists)
-  const hasDepartures = kept.some((s) => s.type === "departures");
-  if (!hasDepartures && (flightSegs.length || ddSegs.length)) {
-    const entries: Raw[] = [];
-    for (const s of flightSegs) {
-      for (const d of ((s.data as Raw).departures as Raw[] | undefined) ?? []) {
-        entries.push({
-          date:            d.date            ?? "",
-          returnDate:      "",
-          spots:           0,
-          price:           d.price           ?? "",
-          origin:          d.name            ?? "",
-          arrivingAirport: d.arrivingAirport ?? "",
-          flyingTime:      d.flyingTime      ?? "",
-          arrivingTime:    d.arrivingTime    ?? "",
-          deal:            false,
-        });
-      }
-    }
-    for (const s of ddSegs) {
-      for (const d of ((s.data as Raw).dates as Raw[] | undefined) ?? []) {
-        entries.push({
-          date:       d.date       ?? "",
-          returnDate: d.returnDate ?? "",
-          spots:      Number(d.spots) || 0,
-          price:      d.price     ?? "",
-          origin:     "",
-          deal:       false,
-        });
-      }
-    }
-    kept.push({
-      id:    `departures_upgraded_${Date.now()}`,
-      type:  "departures",
-      order: safeMin(...flightSegs.map((s) => s.order), ...ddSegs.map((s) => s.order)),
-      data:  { entries },
-    } as AnySectionInstance);
-  }
-
-  // 3. payment_plan → fold into existing pricing, or create pricing from it
-  if (ppSegs.length) {
-    const pp        = ppSegs[0].data as Raw;
-    const pricingIdx = kept.findIndex((s) => s.type === "pricing");
-    if (pricingIdx >= 0) {
-      kept[pricingIdx] = {
-        ...kept[pricingIdx],
-        data: { ...kept[pricingIdx].data, paymentContent: pp.content ?? "", paymentSteps: pp.steps ?? [] },
-      } as AnySectionInstance;
-    } else {
-      kept.push({
-        id:    `pricing_from_pp_${Date.now()}`,
-        type:  "pricing",
-        order: ppSegs[0].order,
-        data:  { tiers: [], cancellation: "", paymentContent: pp.content ?? "", paymentSteps: pp.steps ?? [], termsContent: "" },
-      } as AnySectionInstance);
-    }
-  }
-
-  // 4. booking_terms → fold into pricing.termsContent
-  if (btSegs.length) {
-    const bt        = btSegs[0].data as Raw;
-    const pricingIdx = kept.findIndex((s) => s.type === "pricing");
-    if (pricingIdx >= 0) {
-      kept[pricingIdx] = {
-        ...kept[pricingIdx],
-        data: { ...kept[pricingIdx].data, termsContent: bt.content ?? "" },
-      } as AnySectionInstance;
-    } else {
-      kept.push({
-        id:    `pricing_from_bt_${Date.now()}`,
-        type:  "pricing",
-        order: btSegs[0].order,
-        data:  { tiers: [], cancellation: "", paymentContent: "", paymentSteps: [], termsContent: bt.content ?? "" },
-      } as AnySectionInstance);
-    }
-  }
-
-  // 5. guide → people (skip if people already exists)
-  const hasPeople = kept.some((s) => s.type === "people");
-  if (!hasPeople && guideSegs.length) {
-    const g = guideSegs[0].data as Raw;
-    kept.push({
-      id:    `people_from_guide_${Date.now()}`,
-      type:  "people",
-      order: guideSegs[0].order,
-      data: {
-        people: [{
-          id:        "guide_upgraded",
-          role:      "guide",
-          name:      g.name      ?? "",
-          bio:       g.bio       ?? "",
-          photo:     g.photo     ?? "",
-          languages: g.languages ?? [],
-          years:     0,
-          repliesIn: "",
-        }],
-      },
-    } as AnySectionInstance);
-  }
-
-  // 6. hotels (rich card written by legacy imports) → hotel (canonical {description})
+  // hotels (rich card written by legacy imports) → hotel (canonical {description})
   //    The builder only has an editor for the singular `hotel` section, so a stray
   //    `hotels` section is invisible (SectionCard returns null for unknown types) and
   //    cannot be edited or removed. Flatten each hotel entry into a `hotel` description.
@@ -292,7 +151,7 @@ function upgradeLegacySections(sections: AnySectionInstance[]): AnySectionInstan
 }
 
 /**
- * Supplements a sections array with people / trek_profile / scarcity sections
+ * Supplements a sections array with people / scarcity sections
  * derived from legacy Firestore flat fields (agent, difficulty, priceWas…).
  * Only creates a section if the type is not already present.
  * Called after upgradeLegacySections() so section→section conversions happen first.
@@ -320,20 +179,6 @@ function supplementFromFlatFields(
           years:     typeof agent.years === "number" ? agent.years : 0,
           repliesIn: agent.repliesIn ?? "",
         }],
-      },
-    } as AnySectionInstance);
-  }
-
-  if ((d.difficulty || d.maxAltitude || d.distanceKm) && !result.some((s) => s.type === "trek_profile")) {
-    result.push({
-      id:    `trek_from_flat_${Date.now()}`,
-      type:  "trek_profile",
-      order: result.length,
-      data: {
-        difficulty:  d.difficulty  ?? "",
-        maxAltitude: typeof d.maxAltitude === "number" ? d.maxAltitude : 0,
-        distanceKm:  typeof d.distanceKm  === "number" ? d.distanceKm  : 0,
-        fitnessNote: typeof d.fitnessNote === "string"  ? d.fitnessNote : "",
       },
     } as AnySectionInstance);
   }
@@ -373,7 +218,6 @@ function buildApiPayload(
   const hotels      = sections.filter((s) => s.type === "hotel");
   const mediaSec    = get<{ images?: ArrStr; videoUrl?: string }>("media");
   const peopleSec   = get<{ people: Array<Record<string, unknown>> }>("people");
-  const trekSec     = get<{ difficulty: string; maxAltitude: number; distanceKm: number }>("trek_profile");
   const scarcitySec = get<{ wasPrice: string; spotsRemaining: number; totalSpots: number }>("scarcity");
   const depSec      = get<{ entries: Array<Record<string, unknown>> }>("departures");
 
@@ -442,9 +286,6 @@ function buildApiPayload(
     sections,
     // legacy flat fields for templates that read TPackage directly
     ...(agent       ? { agent }                                              : { agent: null }),
-    ...(trekSec     ? { difficulty:     trekSec.difficulty,
-                        maxAltitude:    trekSec.maxAltitude,
-                        distanceKm:     trekSec.distanceKm }                : {}),
     ...(scarcitySec ? { priceWas:       scarcitySec.wasPrice,
                         spotsRemaining: scarcitySec.spotsRemaining,
                         totalSpots:     scarcitySec.totalSpots }            : {}),
@@ -604,15 +445,23 @@ function BuilderPageInner() {
               rebuilt.push({ id: `${type}_legacy`, type, order: order++, data });
             };
 
-            if (Array.isArray(d.airports) && d.airports.length) push("flights", { departures: d.airports });
+            if (Array.isArray(d.airports) && d.airports.length) push("departures", {
+              entries: (d.airports as Record<string, unknown>[]).map((a) => ({
+                date: a.date ?? "", returnDate: "", spots: 0, price: a.price ?? "",
+                origin: a.name ?? "", arrivingAirport: a.arrivingAirport ?? "",
+                flyingTime: a.flyingTime ?? "", arrivingTime: a.arrivingTime ?? "", deal: false,
+              })),
+            });
             if (d.hotelDescription) push("hotel", { description: d.hotelDescription });
             if (Array.isArray(d.itinerary) && d.itinerary.length) push("itinerary", { days: d.itinerary });
             if (Array.isArray(d.includes) && d.includes.length) push("inclusions", { includes: d.includes, excludes: d.excludes ?? [] });
             if (Array.isArray(d.pricingTiers) && d.pricingTiers.length) push("pricing", { tiers: d.pricingTiers, cancellation: d.cancellation ?? "" });
-            if (Array.isArray(d.images) && d.images.length) push("gallery", { images: d.images });
-            if (d.videoUrl) push("video", { videoUrl: d.videoUrl });
+            if ((Array.isArray(d.images) && d.images.length) || d.videoUrl) push("media", {
+              images: Array.isArray(d.images) ? d.images : [],
+              videoUrl: d.videoUrl ?? "", mapImage: "", mapCaption: "",
+            });
 
-            // Upgrade legacy section types + supplement with flat-field people/trek/scarcity
+            // Upgrade legacy section types + supplement with flat-field people/scarcity
             setSections(supplementFromFlatFields(upgradeLegacySections(rebuilt), d));
           }
 

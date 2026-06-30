@@ -137,17 +137,6 @@ export function PresetPicker({
         if (section.type === "highlights" && extracted.highlights?.length) {
           section.data = { ...section.data, items: extracted.highlights };
         }
-        if (section.type === "flights" && extracted.airports?.length) {
-          const flightDeps = extracted.airports.map((a) => ({
-            name:            a.name            || "",
-            arrivingAirport: a.arrivingAirport || "",
-            price:           a.price           || "",
-            date:            a.date            || "",
-            flyingTime:      a.flyingTime      || "",
-            arrivingTime:    a.arrivingTime    || "",
-          }));
-          section.data = { ...section.data, departures: flightDeps };
-        }
         if (section.type === "departures" && extracted.departures?.length) {
           const entries = extracted.departures.map((d) => ({
             date:            d.date            || "",
@@ -161,15 +150,6 @@ export function PresetPicker({
             deal:            false,
           }));
           section.data = { ...section.data, entries };
-        }
-        if (section.type === "departure_dates" && extracted.departures?.length) {
-          const dates = extracted.departures.map((d) => ({
-            date:       d.date       || "",
-            returnDate: d.returnDate || "",
-            price:      d.price      || "",
-            spots:      d.spots != null ? String(d.spots) : "",
-          }));
-          section.data = { ...section.data, dates };
         }
         if (section.type === "itinerary" && extracted.itinerary?.length) {
           section.data = { ...section.data, days: extracted.itinerary };
@@ -267,8 +247,7 @@ export function PresetPicker({
 
       if (
         extracted.departures?.length &&
-        !hasSection("departures") &&
-        !hasSection("departure_dates")
+        !hasSection("departures")
       ) {
         const def = SECTION_REGISTRY["departures"];
         sections.push({

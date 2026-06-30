@@ -833,6 +833,7 @@ export default function BrandingPage() {
       </div>
       <div
         ref={previewFrameRef}
+        dir="ltr"
         style={{
           borderRadius: 12, border: `1px solid ${DA_RULE}`, overflow: "hidden",
           background: "#f4f0e8", height: previewH || 360,

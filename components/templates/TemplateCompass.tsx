@@ -1,1266 +1,1028 @@
 "use client";
 
-import React from "react";
-import { T, localizeTierLabel } from "@/lib/translations";
-import {
-  WAButton,
-  Eyebrow,
-  AgencyBar,
-  StickyCTA,
-  BaseCard,
-  useIsDesktop,
-  DesktopNav,
-  DContainer,
-  DesktopFooter,
-  getItineraryDays,
-  LightboxCarousel,
-  localizeRole,
-} from "./shared";
-import type { TPageProps, TCardProps } from "./types";
+// ═══════════════════════════════════════════════════════════════════════════
+// COMPASS V2 — Adventure · an expedition field guide.
+// Cool map paper, near-black ink, Archivo black uppercase display, Space Mono
+// data, slate panels, sharp corners, coordinate ticks, metric chips, an
+// elevation profile from itinerary altitudes, amber-flagged scarcity.
+// Dynamic brand themes panels/rules/stats/CTAs. One component, all 4 surfaces.
+// Wired to real pkg.sections data with graceful empty states.
+// ═══════════════════════════════════════════════════════════════════════════
 
-const ORANGE  = "#b85c1f";
-const SAND    = "#f2f0eb";
-const INK     = "#0d1b2e";
-const MUTED   = "rgba(13,27,46,0.55)";
-const SMUTED  = "rgba(13,27,46,0.35)";
-const BORDER  = "rgba(13,27,46,0.08)";
-const INTER   = "var(--font-inter-tight, sans-serif)";
-const MONO    = "var(--font-jetbrains-mono, ui-monospace, monospace)";
+import React, { useRef, useState } from "react";
+import { useIsDesktop, BaseCard, LightboxCarousel } from "./shared";
+import { localizeTierLabel } from "@/lib/translations";
+import type { TPageProps, TCardProps, TPackage } from "./types";
 
-// ─── Section data helpers ─────────────────────────────────────────────────────
+type SecData = Record<string, unknown>;
 
-type CmSecData = Record<string, unknown>;
-
-function cmFindSec(pkg: TPageProps["pkg"], type: string): CmSecData | undefined {
-  return pkg.sections?.find((s) => s.type === type)?.data as CmSecData | undefined;
+// ─── Brand colour math ────────────────────────────────────────────────────────
+function coHex(h: string): [number, number, number] {
+  h = h.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
-function cmSecArr(data: CmSecData | undefined, key: string): CmSecData[] {
-  if (!data) return [];
-  const v = data[key];
-  if (!Array.isArray(v)) return [];
-  return v.filter((x): x is CmSecData => x != null && typeof x === "object");
+function coRgba(hex: string, a: number): string { const [r, g, b] = coHex(hex); return `rgba(${r},${g},${b},${a})`; }
+function coMix(hex: string, target: string, t: number): string {
+  const a = coHex(hex), b = coHex(target);
+  const m = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${m[0]},${m[1]},${m[2]})`;
 }
-function cmSecStr(data: CmSecData | undefined, key: string): string {
-  if (!data) return "";
-  const v = data[key];
+function coLighten(hex: string, t: number) { return coMix(hex, "#ffffff", t); }
+function coLum(hex: string) { const [r, g, b] = coHex(hex); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+function coOn(hex: string) { return coLum(hex) > 0.62 ? "#161f18" : "#ffffff"; }
+
+const AMBER = "#c0612a";
+
+// ─── i18n ─────────────────────────────────────────────────────────────────────
+const L_EN = {
+  sections: {
+    highlights: "Why you'll love it", media: "See for yourself", itinerary: "Day by day",
+    hotel: "Where you'll stay", meals: "What you'll eat", inclusions: "What's included",
+    transfers: "Getting around", visa: "Visa & entry", departures: "Departures",
+    pricing: "Choose your room", extras: "Make it yours", scarcity: "Before it's gone",
+    people: "Your trip designer", reviews: "Travellers say", agency: "About the agency",
+    notes: "Good to know", faq: "Questions, answered", custom: "A note from us", others: "More journeys",
+  },
+  nav: { highlights: "Highlights", itinerary: "Itinerary", hotel: "Stay", inclusions: "Included", departures: "Dates", pricing: "Pricing", reviews: "Reviews", faq: "FAQ" },
+  ui: {
+    from: "From", perPerson: "per person", night: "night", nights: "nights", included: "Included",
+    notIncluded: "Not included", mostPopular: "Most popular", soldOut: "Sold out", left: "left",
+    seatsLeft: "spots left", book: "Book", reserve: "Reserve", enquire: "Enquire on WhatsApp",
+    bookWhatsapp: "Book on WhatsApp", messenger: "Messenger", message: "Message us", nextDeparture: "Next departure",
+    date: "Date", flight: "Flight", price: "Price", availability: "Avail", to: "To", dist: "Dist", gain: "Alt",
+    cancellation: "Cancellation policy", paymentSchedule: "Payment schedule", basedOn: "based on", review: "reviews",
+    route: "Route", elevation: "Elevation profile", stages: "stages", years: "years", replyTime: "Usually replies within an hour",
+    watch: "Watch the film", noVideo: "Video coming soon", play: "Play", pause: "Pause", mute: "Mute",
+    unmute: "Unmute", poweredBy: "Powered by PackMetrix", begin: "Begin the expedition.", day: "Day",
+    spotsLine: (n: number) => `${n} ${n === 1 ? "spot" : "spots"} left on this departure.`,
+    scarcityWindow: "Small group sizes mean places go quickly. Reach out and we'll hold one while you decide.",
+  },
+};
+const L_AR: typeof L_EN = {
+  sections: {
+    highlights: "لماذا ستحبّها", media: "شاهد بنفسك", itinerary: "يومًا بيوم",
+    hotel: "مكان إقامتك", meals: "ما ستتناوله", inclusions: "ما يشمله البرنامج",
+    transfers: "التنقّلات", visa: "التأشيرة والدخول", departures: "مواعيد المغادرة",
+    pricing: "اختر غرفتك", extras: "أضِف لمستك", scarcity: "قبل أن تنفد",
+    people: "مصمّم رحلتك", reviews: "آراء المسافرين", agency: "عن الوكالة",
+    notes: "معلومات تهمّك", faq: "إجابات على أسئلتك", custom: "كلمة منّا", others: "رحلات أخرى",
+  },
+  nav: { highlights: "المميزات", itinerary: "البرنامج", hotel: "الإقامة", inclusions: "المشمول", departures: "المواعيد", pricing: "الأسعار", reviews: "التقييمات", faq: "الأسئلة" },
+  ui: {
+    from: "من", perPerson: "للفرد", night: "ليلة", nights: "ليالٍ", included: "مشمول",
+    notIncluded: "غير مشمول", mostPopular: "الأكثر طلبًا", soldOut: "نفدت", left: "متبقّية",
+    seatsLeft: "مقاعد متبقّية", book: "احجز", reserve: "احجز", enquire: "استفسر عبر واتساب",
+    bookWhatsapp: "احجز عبر واتساب", messenger: "ماسنجر", message: "راسلنا", nextDeparture: "أقرب موعد",
+    date: "التاريخ", flight: "الرحلة", price: "السعر", availability: "التوفّر", to: "إلى", dist: "مسافة", gain: "ارتفاع",
+    cancellation: "سياسة الإلغاء", paymentSchedule: "جدول الدفع", basedOn: "من", review: "تقييم",
+    route: "المسار", elevation: "مخطّط الارتفاع", stages: "مراحل", years: "سنة", replyTime: "نردّ عادةً خلال ساعة",
+    watch: "شاهد الفيديو", noVideo: "الفيديو قريبًا", play: "تشغيل", pause: "إيقاف", mute: "كتم",
+    unmute: "تشغيل الصوت", poweredBy: "مُشغّل بواسطة باكمتريكس", begin: "ابدأ الرحلة.", day: "اليوم",
+    spotsLine: (n: number) => `بقي ${n} ${n === 1 ? "مكان" : "أماكن"} في هذا الموعد.`,
+    scarcityWindow: "المجموعات صغيرة، فالأماكن تنفد بسرعة. تواصل معنا ونحتفظ لك بمكان ريثما تقرّر.",
+  },
+};
+
+const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
+  none: { en: "No meals", ar: "بدون وجبات" }, breakfast: { en: "Breakfast", ar: "إفطار" },
+  half_board: { en: "Half board", ar: "نصف إقامة" }, full_board: { en: "Full board", ar: "إقامة كاملة" },
+  all_inclusive: { en: "All inclusive", ar: "شامل بالكامل" },
+};
+const VISA_HEAD: Record<string, { en: string; ar: string }> = {
+  included: { en: "Visa included", ar: "التأشيرة مشمولة" }, assistance: { en: "Visa assistance provided", ar: "نقدّم المساعدة في التأشيرة" },
+  not_included: { en: "Visa not included", ar: "التأشيرة غير مشمولة" }, not_required: { en: "No visa required", ar: "لا تحتاج تأشيرة" },
+};
+const ROLE_LABELS: Record<string, { en: string; ar: string }> = {
+  agent: { en: "Trip designer", ar: "مصمّم الرحلات" }, curator: { en: "Trip designer", ar: "مصمّم الرحلات" },
+  trip_lead: { en: "Expedition lead", ar: "قائد الرحلة" }, trip_designer: { en: "Trip designer", ar: "مصمّم الرحلات" },
+  guide: { en: "Guide", ar: "المرشد" }, mutawif: { en: "Mutawif", ar: "المطوّف" },
+};
+
+// ─── Section-data helpers ─────────────────────────────────────────────────────
+function findSec(pkg: TPackage, type: string): SecData | undefined {
+  return pkg.sections?.find((s) => s.type === type)?.data as SecData | undefined;
+}
+function secArr(data: SecData | undefined, key: string): SecData[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is SecData => i != null && typeof i === "object") : [];
+}
+function secStr(data: SecData | undefined, key: string): string {
+  const v = data?.[key];
   return typeof v === "string" ? v : "";
 }
-function cmSecNum(data: CmSecData | undefined, key: string): number | undefined {
-  if (!data) return undefined;
-  const v = data[key];
-  return typeof v === "number" ? v : undefined;
+function secNum(item: unknown, key: string): number | undefined {
+  if (!item || typeof item !== "object") return undefined;
+  const v = (item as SecData)[key];
+  return typeof v === "number" ? v : (typeof v === "string" && v.trim() !== "" && !isNaN(Number(v)) ? Number(v) : undefined);
 }
-function cmSecStrArr(data: CmSecData | undefined, key: string): string[] {
-  if (!data) return [];
-  const v = data[key];
-  return Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : [];
+function secStrArr(data: SecData | undefined, key: string): string[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is string => typeof i === "string") : [];
 }
-function cmItemStr(item: CmSecData | string, ...keys: string[]): string {
+function secItemStr(item: unknown, ...keys: string[]): string {
   if (typeof item === "string") return item;
-  for (const k of keys) {
-    const v = (item as CmSecData)[k];
-    if (typeof v === "string" && v) return v;
-  }
+  if (!item || typeof item !== "object") return "";
+  const obj = item as SecData;
+  for (const k of keys) { const v = secStr(obj, k); if (v) return v; }
   return "";
 }
+function secMixed(data: SecData | undefined, key: string): Array<SecData | string> {
+  const v = data?.[key];
+  return Array.isArray(v) ? (v.filter((i) => i != null) as Array<SecData | string>) : [];
+}
+function lines(s: string): string[] {
+  return s.split(/\r?\n/).map((l) => l.replace(/^[-•·]\s*/, "").trim()).filter(Boolean);
+}
 
-// ─── Compass section components ───────────────────────────────────────────────
+// ─── WhatsApp icon ────────────────────────────────────────────────────────────
+function WAIcon({ s = 16, fill = "currentColor" }: { s?: number; fill?: string }) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill={fill}><path d="M20.5 3.5C18.2 1.2 15.2 0 12 0 5.4 0 .1 5.3.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.4-1.7c1.7.9 3.7 1.4 5.6 1.4 6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.2-3.4-8.3zM12 21.8c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.7 1 1-3.6-.2-.4c-.9-1.5-1.4-3.3-1.4-5 0-5.5 4.5-9.9 9.9-9.9 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.4 2.9 7-.1 5.4-4.5 9.5-10.2 9.5z" /></svg>;
+}
 
-function CmHotelsSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
-  const data = cmFindSec(pkg, "hotels");
-  const hotels = cmSecArr(data, "hotels").length ? cmSecArr(data, "hotels") : cmSecArr(data, "items");
-  if (!hotels.length && !pkg.hotelDescription?.trim()) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  if (!hotels.length) {
+// ─── Star rating ──────────────────────────────────────────────────────────────
+function CoStars({ n = 5, of = 5, size = 14, color }: { n?: number; of?: number; size?: number; color: string }) {
+  const star = (fill: string) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} style={{ display: "block" }}><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 5.9 20.8l1.2-6.6L2.3 9.6l6.6-.9z" /></svg>
+  );
+  return <span style={{ display: "inline-flex", gap: 2 }}>{Array.from({ length: of }).map((_, i) => <span key={i}>{star(i < n ? color : coRgba(color, 0.25))}</span>)}</span>;
+}
+
+// ─── Abstract route map ───────────────────────────────────────────────────────
+function CoRouteMap({ stops, line, land, ink = "#161f18", height = 220, rtl = false }: { stops: { label: string }[]; line: string; land: string; ink?: string; height?: number; rtl?: boolean }) {
+  const W = 1000, H = 420;
+  const pts = stops.map((s, i) => {
+    const x = stops.length === 1 ? W / 2 : 120 + (i * (W - 240)) / (stops.length - 1);
+    const y = 150 + Math.sin(i * 1.3 + 0.6) * 70 + (i % 2 ? 20 : -10);
+    return { ...s, x: rtl ? W - x : x, y };
+  });
+  const path = pts.map((p, i) => { if (i === 0) return `M ${p.x} ${p.y}`; const prev = pts[i - 1]; const mx = (prev.x + p.x) / 2; return `Q ${mx} ${prev.y - 40} ${p.x} ${p.y}`; }).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height, display: "block", borderRadius: 2, background: "#dfe2d8" }} preserveAspectRatio="xMidYMid slice">
+      <g fill={land} opacity="0.85"><path d="M-40 300 Q 180 250 360 300 T 760 290 Q 920 270 1060 320 L1060 460 L-40 460 Z" /><ellipse cx="220" cy="120" rx="190" ry="90" opacity="0.5" /><ellipse cx="780" cy="100" rx="160" ry="80" opacity="0.5" /></g>
+      <g stroke={coRgba(ink, 0.06)} strokeWidth="1">{[80, 180, 280, 360].map((y) => <line key={y} x1="0" x2={W} y1={y} y2={y} />)}{[200, 400, 600, 800].map((x) => <line key={x} y1="0" y2={H} x1={x} x2={x} />)}</g>
+      <path d={path} fill="none" stroke={line} strokeWidth="3.5" strokeDasharray="2 12" strokeLinecap="round" opacity="0.9" />
+      {pts.map((p, i) => <g key={i}><circle cx={p.x} cy={p.y} r="10" fill="#f2f3ec" stroke={line} strokeWidth="3" /><circle cx={p.x} cy={p.y} r="3.5" fill={line} /><text x={p.x} y={p.y - 22} textAnchor="middle" fill={ink} fontSize="22" fontWeight="700" fontFamily="inherit">{p.label}</text></g>)}
+    </svg>
+  );
+}
+
+// ─── Video player ─────────────────────────────────────────────────────────────
+function CoVideo({ src, poster, accent, rtl = false, sans, height = 320, ui }: { src?: string; poster?: string; accent: string; rtl?: boolean; sans: string; height?: number; ui: typeof L_EN["ui"] }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const ctrl: React.CSSProperties = { width: 38, height: 38, borderRadius: 2, border: "none", cursor: "pointer", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 };
+  const onAccent = coOn(accent);
+  if (!src) {
     return (
-      <section id="hotel" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="hotel">
-        <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>Accommodation</div>
-          <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.65 }}>{pkg.hotelDescription}</div>
+      <div style={{ position: "relative", borderRadius: 2, overflow: "hidden", height, background: "#19231d" }}>
+        {poster && <img src={poster} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(0.3) brightness(0.55)" }} />}
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "#fff" }}>
+          <div style={{ width: 56, height: 56, borderRadius: 2, border: "1.5px solid rgba(255,255,255,0.5)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><path d="M8 5v14l11-7z" /></svg>
+            <div style={{ position: "absolute", width: 64, height: 1.5, background: "rgba(255,255,255,0.7)", transform: "rotate(-45deg)" }} />
+          </div>
+          <div style={{ fontFamily: sans, fontSize: 13, opacity: 0.85 }}>{ui.noVideo}</div>
         </div>
-      </section>
+      </div>
     );
   }
+  const toggle = () => { const v = ref.current; if (!v) return; if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); setPlaying(true); } else { v.pause(); setPlaying(false); } };
+  const toggleMute = () => { const v = ref.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); };
+  const IconPlay = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>;
+  const IconPause = <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>;
+  const IconMuted = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12.5 3l2.5 2.5-1 1L15.5 13 13 15.5l-1-1L14.5 12 12 9.5l1-1L15.5 11 18 8.5l1 1L16.5 12z" /></svg>;
+  const IconSound = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12 3a4 4 0 00-2-3.5v7A4 4 0 0016 12zm-2-7.7v2.1a6 6 0 010 11.2v2.1a8 8 0 000-15.4z" /></svg>;
   return (
-    <section id="hotel" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="hotel">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Where you stay</div>
-        <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 18px", color: INK }}>Teahouses &amp; lodges</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {hotels.map((h, i) => {
-            const nights = cmSecStr(h, "nights");
-            const facilities = cmSecStrArr(h, "facilities");
-            const stars = cmSecNum(h, "stars");
+    <div onClick={toggle} style={{ position: "relative", borderRadius: 2, overflow: "hidden", height, background: "#000", cursor: "pointer" }}>
+      <video ref={ref} src={src} poster={poster} muted loop playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      {!playing && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "linear-gradient(rgba(0,0,0,0.05),rgba(0,0,0,0.4))" }}>
+          <div style={{ width: 70, height: 70, borderRadius: 2, background: accent, color: onAccent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 32px rgba(0,0,0,0.45)" }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style={{ marginInlineStart: 3 }}><path d="M8 5v14l11-7z" /></svg>
+          </div>
+          <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: "#fff", letterSpacing: "0.4px", textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>{ui.watch}</div>
+        </div>
+      )}
+      <div dir={rtl ? "rtl" : "ltr"} style={{ position: "absolute", insetInline: 0, bottom: 0, padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "linear-gradient(transparent, rgba(0,0,0,0.5))" }}>
+        <button onClick={(e) => { e.stopPropagation(); toggle(); }} aria-label={playing ? ui.pause : ui.play} title={playing ? ui.pause : ui.play} style={ctrl}>{playing ? IconPause : IconPlay}</button>
+        <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} aria-label={muted ? ui.unmute : ui.mute} title={muted ? ui.unmute : ui.mute} style={ctrl}>{muted ? IconMuted : IconSound}</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang = "en" }: TPageProps) {
+  const D = useIsDesktop();
+  const rtl = lang === "ar";
+  const L = rtl ? L_AR : L_EN;
+  const brand = agency.brandColor || "#2f5d50";
+  const onBrand = coOn(brand);
+  const brLight = coLighten(brand, 0.4);
+
+  const PAPER = "#e8eae2", CARD = "#f2f3ec", INK = "#161f18", SLATE = "#19231d";
+  const MUT = "rgba(22,31,24,0.66)", FAINT = "rgba(22,31,24,0.45)", RULE = "rgba(22,31,24,0.16)";
+  const disp = rtl ? "var(--font-cairo), 'Cairo', sans-serif" : "var(--font-archivo), 'Archivo', sans-serif";
+  const mono = rtl ? "var(--font-tajawal), 'Tajawal', sans-serif" : "var(--font-space-mono), 'Space Mono', monospace";
+  const body = rtl ? "var(--font-tajawal), 'Tajawal', sans-serif" : "var(--font-barlow), 'Barlow', sans-serif";
+  const px = D ? 72 : 22;
+  const ar = (en: string, a: string) => (rtl ? a : en);
+  const dig = (s: string | number) => (rtl ? String(s).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]) : String(s));
+  const up: React.CSSProperties["textTransform"] = rtl ? "none" : "uppercase";
+  const GRID = `linear-gradient(${coRgba("#ffffff", 0.04)} 1px, transparent 1px), linear-gradient(90deg, ${coRgba("#ffffff", 0.04)} 1px, transparent 1px)`;
+
+  const title = pkg.title || pkg.destination || "";
+  const nightsN = pkg.nights ? Number(pkg.nights) : null;
+  const cover = pkg.coverImage || pkg.images?.[0] || secStrArr(findSec(pkg, "media"), "images")[0] || "";
+  const mediaImgs = secStrArr(findSec(pkg, "media"), "images");
+  const itinDays = secArr(findSec(pkg, "itinerary"), "days").filter((d) => secItemStr(d, "title"));
+  const depEntries = secArr(findSec(pkg, "departures"), "entries");
+  const person = pkg.people?.find((p) => p.role === "agent" || p.role === "curator" || p.role === "trip_lead")
+    ?? pkg.people?.[0] ?? (pkg.agent ? { name: pkg.agent.name, role: pkg.agent.role || "agent", photo: pkg.agent.avatar, years: pkg.agent.years } : undefined);
+  const hasDepart = depEntries.length > 0 || (pkg.departures?.length ?? 0) > 0;
+
+  // itinerary metrics (alt = altitude, km = distance) — real itinerary fields
+  const alts = itinDays.map((d) => secNum(d, "alt") ?? 0);
+  const hasElev = alts.filter((a) => a > 0).length >= 2;
+  const totalKm = itinDays.reduce((sum, d) => sum + (secNum(d, "km") ?? 0), 0);
+
+  // ---- clickable gallery → lightbox ----
+  const photos = Array.from(new Set([cover, ...mediaImgs].filter(Boolean)));
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const zoom = (url: string) => { const i = photos.indexOf(url); if (i >= 0) setLightbox(i); };
+
+  // ---- nav + section folios ----
+  const goTo = (type: string) => { if (typeof document === "undefined") return; document.querySelector(`[data-pmx-section="${type}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  const navItems = Object.entries(L.nav).filter(([key]) => {
+    if (key === "reviews") return (pkg.reviews?.length ?? 0) > 0 && agency.showReviews !== false;
+    if (key === "hotel") return !!(findSec(pkg, "hotel") || findSec(pkg, "hotels") || pkg.hotelDescription);
+    if (key === "itinerary") return secArr(findSec(pkg, "itinerary"), "days").length > 0;
+    if (key === "inclusions") return secStrArr(findSec(pkg, "inclusions"), "includes").length + secStrArr(findSec(pkg, "inclusions"), "excludes").length + (pkg.includes?.length ?? 0) + (pkg.excludes?.length ?? 0) > 0;
+    if (key === "departures") return secArr(findSec(pkg, "departures"), "entries").length > 0 || (pkg.departures?.length ?? 0) > 0;
+    if (key === "pricing") return (pkg.pricingTiers?.length ?? 0) > 0 || !!findSec(pkg, "pricing");
+    if (key === "faq") return secArr(findSec(pkg, "faq"), "items").length > 0;
+    return !!findSec(pkg, key);
+  });
+  const SEC_ORDER = ["highlights", "media", "itinerary", "hotel", "inclusions", "meals", "visa", "transfers", "departures", "pricing", "extras", "scarcity", "people", "reviews", "about_agency", "important_notes", "faq", "custom", "other_packages"];
+  const presentSec = (k: string): boolean => {
+    if (k === "reviews") return (pkg.reviews?.length ?? 0) > 0 && agency.showReviews !== false;
+    if (k === "people") return !!person?.name;
+    if (k === "scarcity") return pkg.scarcity?.spotsRemaining != null;
+    if (k === "hotel") return !!(findSec(pkg, "hotel") || findSec(pkg, "hotels") || pkg.hotelDescription);
+    if (k === "pricing") return (pkg.pricingTiers?.length ?? 0) > 0 || !!findSec(pkg, "pricing");
+    if (k === "departures") return hasDepart;
+    if (k === "inclusions") return (pkg.includes?.length ?? 0) > 0 || !!findSec(pkg, "inclusions");
+    return !!findSec(pkg, k);
+  };
+  const presentKeys = SEC_ORDER.filter(presentSec);
+  const EN_LET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const AR_LET = ["أ", "ب", "ج", "د", "ه", "و", "ز", "ح", "ط", "ي", "ك", "ل", "م", "ن", "س", "ع", "ف", "ص", "ق"];
+  const folio = (k: string) => { const i = presentKeys.indexOf(k); return i < 0 ? "" : (rtl ? AR_LET[i] || dig(i + 1) : EN_LET[i] || String(i + 1)); };
+
+  // hero stats from real facts
+  const heroStats: { k: string; v: string }[] = [
+    nightsN ? { k: ar("Duration", "المدة"), v: `${dig(nightsN)} ${L.ui.nights}` } : null,
+    totalKm > 0 ? { k: ar("Distance", "المسافة"), v: `${dig(Math.round(totalKm))} ${ar("km", "كم")}` } : null,
+    itinDays.length ? { k: ar("Stages", "المراحل"), v: dig(itinDays.length) } : null,
+    pkg.rating != null ? { k: ar("Rated", "التقييم"), v: dig(pkg.rating) } : null,
+  ].filter(Boolean).slice(0, 4) as { k: string; v: string }[];
+
+  // ---- atoms ----
+  const Tick = ({ color = brand }: { color?: string }) => (<span style={{ fontFamily: mono, fontSize: 10, color, letterSpacing: rtl ? 0 : "1px" }}>＋</span>);
+  const Mono = ({ children, color = FAINT, size }: { children: React.ReactNode; color?: string; size?: number }) => (
+    <span style={{ fontFamily: mono, fontSize: size || (D ? 11 : 10), fontWeight: 400, letterSpacing: rtl ? 0 : "1.5px", textTransform: up, color }}>{children}</span>
+  );
+  const Primary = ({ children, full, big, ghost, onClick }: { children: React.ReactNode; full?: boolean; big?: boolean; ghost?: boolean; onClick?: () => void }) => (
+    <button data-testid="wa-cta" onClick={onClick} style={{ fontFamily: disp, background: ghost ? "transparent" : brand, color: ghost ? brand : onBrand, border: ghost ? `1.5px solid ${brand}` : "none", borderRadius: 2, padding: big ? "16px 30px" : "12px 22px", fontSize: D ? 13 : 12, fontWeight: 700, letterSpacing: rtl ? 0 : "0.6px", textTransform: up, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, width: full ? "100%" : "auto" }}>
+      {!ghost && <WAIcon s={14} fill={onBrand} />} {children}
+    </button>
+  );
+  const H2 = ({ children, size, light }: { children: React.ReactNode; size?: number; light?: boolean }) => (
+    <h2 style={{ fontFamily: disp, fontSize: size || (D ? 46 : 30), fontWeight: 800, lineHeight: 1.0, letterSpacing: rtl ? 0 : "-1px", textTransform: up, color: light ? "#fff" : INK, margin: 0 }}>{children}</h2>
+  );
+  const Wrap = ({ children, pt, pb, style, id, section }: { children: React.ReactNode; pt?: number; pb?: number; style?: React.CSSProperties; id?: string; section?: string }) => (
+    <section id={id} data-pmx-section={section} style={{ scrollMarginTop: D ? 58 : 52, padding: `${pt != null ? pt : (D ? 82 : 46)}px ${px}px ${pb != null ? pb : (D ? 82 : 46)}px`, ...style }}>{children}</section>
+  );
+  const SecHead = ({ k, kicker, title: t, sub, light }: { k: string; kicker: string; title: string; sub?: string; light?: boolean }) => (
+    <div style={{ marginBottom: D ? 40 : 26 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <span style={{ width: 26, height: 26, border: `1.5px solid ${brand}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: mono, fontSize: 11, color: brand, borderRadius: 2 }}>{folio(k)}</span>
+        <Mono color={brand}>{kicker}</Mono>
+        <span style={{ flex: 1, height: 1, background: light ? "rgba(255,255,255,0.2)" : RULE }} />
+      </div>
+      <H2 light={light}>{t}</H2>
+      {sub && <p style={{ fontFamily: body, fontSize: D ? 17 : 15, color: light ? "rgba(255,255,255,0.75)" : MUT, lineHeight: 1.6, margin: `${D ? 14 : 10}px 0 0`, maxWidth: 640 }}>{sub}</p>}
+    </div>
+  );
+  const ElevProfile = ({ height, vals }: { height: number; vals: number[] }) => {
+    const max = Math.max(...vals, 1);
+    const W = 1000, H = 200, pad = 8, n = vals.length;
+    const pts = vals.map((v, i) => {
+      const x = pad + (i * (W - pad * 2)) / Math.max(n - 1, 1);
+      const y = H - pad - (v / max) * (H - pad * 2);
+      return [rtl ? W - x : x, y] as [number, number];
+    });
+    const line = pts.map((p, i) => `${i ? "L" : "M"} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+    const area = `${line} L ${pts[n - 1][0].toFixed(1)} ${H} L ${pts[0][0].toFixed(1)} ${H} Z`;
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height, display: "block" }}>
+        <path d={area} fill={coRgba(brand, 0.12)} />
+        <path d={line} fill="none" stroke={brand} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+        {pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="5" fill={CARD} stroke={brand} strokeWidth="3" />)}
+      </svg>
+    );
+  };
+
+  // ════════ HERO ════════
+  const Hero = () => (
+    <div data-pmx-section="hero" style={{ position: "relative", background: SLATE }}>
+      <div style={{ position: "relative", minHeight: D ? 620 : 540, overflow: "hidden" }}>
+        {cover && <img src={cover} alt="" onClick={() => zoom(cover)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.55, cursor: "zoom-in" }} />}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: GRID, backgroundSize: "44px 44px" }} />
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(to bottom, rgba(15,20,16,0.55), rgba(15,20,16,0.35) 45%, rgba(15,20,16,0.9))" }} />
+        <div style={{ position: "absolute", insetInline: px, top: D ? 26 : 18, display: "flex", justifyContent: "space-between", alignItems: "center", color: "#fff", pointerEvents: "none" }}>
+          <Mono color="rgba(255,255,255,0.85)"><span data-pmx-field="destination">{pkg.destination}</span></Mono>
+          {nightsN != null && <Mono color="rgba(255,255,255,0.85)">{dig(nightsN)} {L.ui.nights}</Mono>}
+        </div>
+        <div style={{ position: "absolute", insetInline: px, bottom: D ? 38 : 26, color: "#fff", pointerEvents: "none" }}>
+          <div style={{ marginBottom: 14 }}><Mono color={brLight} size={D ? 12 : 11}>● {pkg.destination}</Mono></div>
+          <h1 style={{ fontFamily: disp, fontSize: D ? 80 : 44, fontWeight: 800, lineHeight: rtl ? 1.12 : 0.94, letterSpacing: rtl ? 0 : "-2px", textTransform: up, margin: 0 }} data-pmx-field="title">{title}</h1>
+          {pkg.description && <p style={{ fontFamily: body, fontSize: D ? 18 : 15, color: "rgba(255,255,255,0.82)", lineHeight: 1.6, margin: "18px 0 0", maxWidth: 600 }}>{pkg.description}</p>}
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: D ? `repeat(${heroStats.length},1fr) auto` : (heroStats.length >= 4 ? "repeat(2,1fr)" : `repeat(${heroStats.length || 1},1fr)`), borderTop: `1px solid rgba(255,255,255,0.12)` }}>
+        {heroStats.map((s, i) => (
+          <div key={i} style={{ padding: D ? "22px 28px" : "16px 20px", borderInlineEnd: (i < heroStats.length - 1) ? `1px solid rgba(255,255,255,0.12)` : "none", borderBottom: (!D && heroStats.length >= 4 && i < 2) ? `1px solid rgba(255,255,255,0.12)` : "none" }}>
+            <Mono color="rgba(255,255,255,0.5)">{s.k}</Mono>
+            <div style={{ fontFamily: disp, fontSize: D ? 30 : 24, fontWeight: 800, color: "#fff", marginTop: 6, letterSpacing: rtl ? 0 : "-0.5px" }}>{s.v}</div>
+          </div>
+        ))}
+        <div style={{ padding: D ? "22px 28px" : "18px 20px", display: "flex", alignItems: "center", gridColumn: D ? "auto" : "1 / -1", borderTop: D ? "none" : `1px solid rgba(255,255,255,0.12)`, background: brand }}>
+          <div style={{ width: "100%" }}>
+            <Mono color={coRgba(onBrand, 0.7)}>{L.ui.from}</Mono>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 18, marginTop: 6 }}>
+              <span style={{ fontFamily: disp, fontSize: D ? 30 : 24, fontWeight: 800, color: onBrand }} data-pmx-field="price">{dig(pkg.price || "")}</span>
+              {pkg.whatsapp && <Primary onClick={onWhatsApp}>{L.ui.book}</Primary>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ════════ HIGHLIGHTS ════════
+  const Highlights = () => {
+    const items = secMixed(findSec(pkg, "highlights"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="highlights">
+        <SecHead k="highlights" kicker={L.nav.highlights} title={ar("Why this route", "لماذا هذا المسار")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(2,1fr)" : "1fr", gap: 0 }}>
+          {items.map((h, i) => {
+            const t = secItemStr(h, "title", "text", "label");
+            const d = typeof h === "object" ? secItemStr(h, "desc", "description") : "";
             return (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", display: isDesktop ? "flex" : "block" }}>
-                {cmSecStr(h, "photo") && (
-                  <div style={{ width: isDesktop ? 240 : undefined, height: isDesktop ? "auto" : 140, flexShrink: 0, position: "relative", overflow: "hidden" }}>
-                    <img src={cmSecStr(h, "photo")} alt={cmSecStr(h, "name")} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", minHeight: isDesktop ? 160 : undefined }} />
-                    {nights && (
-                      <div style={{ position: "absolute", bottom: 8, right: 8, background: ORANGE, color: "#fff", fontFamily: INTER, fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 4 }}>
-                        {nights}N
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div style={{ padding: "14px 16px", flex: 1 }}>
-                  {cmSecStr(h, "location") && (
-                    <div style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 4 }}>{cmSecStr(h, "location")}</div>
-                  )}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: facilities.length ? 8 : 0 }}>
-                    <div style={{ fontFamily: INTER, fontSize: 14, fontWeight: 800, color: INK, lineHeight: 1.2 }}>{cmSecStr(h, "name")}</div>
-                    {stars != null && (
-                      <div style={{ display: "flex", gap: 1, flexShrink: 0 }}>
-                        {"★★★★★".split("").map((s, j) => (
-                          <span key={j} style={{ fontSize: 10, color: j < Math.round(stars!) ? ORANGE : "rgba(13,27,46,0.2)" }}>{s}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {cmSecStr(h, "note") && <div style={{ fontSize: 12, color: MUTED, marginBottom: facilities.length ? 8 : 0 }}>{cmSecStr(h, "note")}</div>}
-                  {facilities.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4 }}>
-                      {facilities.slice(0, 5).map((f, j) => (
-                        <span key={j} style={{ background: `${ORANGE}10`, borderRadius: 4, fontSize: 10, color: MUTED, padding: "3px 7px" }}>{f}</span>
-                      ))}
-                    </div>
-                  )}
+              <div key={i} style={{ display: "flex", gap: 18, padding: D ? "26px 0" : "20px 0", borderTop: `1px solid ${RULE}`, borderInlineEnd: (D && i % 2 === 0) ? `1px solid ${RULE}` : "none", paddingInlineEnd: (D && i % 2 === 0) ? 40 : 0, paddingInlineStart: (D && i % 2 === 1) ? 40 : 0, alignItems: "flex-start" }}>
+                <span style={{ fontFamily: disp, fontSize: D ? 28 : 24, fontWeight: 800, color: brand, lineHeight: 1, minWidth: 42 }}>{dig(`0${i + 1}`.slice(-2))}</span>
+                <div>
+                  <div style={{ fontFamily: disp, fontSize: D ? 21 : 18, fontWeight: 700, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.3px", marginBottom: d ? 7 : 0 }}>{t}</div>
+                  {d && <div style={{ fontFamily: body, fontSize: 14.5, color: MUT, lineHeight: 1.65 }}>{d}</div>}
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
-    </section>
-  );
-}
+      </Wrap>
+    );
+  };
 
-function CmMediaSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const mediaSec = cmFindSec(pkg, "media");
-  const videoUrl = cmSecStr(mediaSec, "videoUrl") || pkg.videoUrl || "";
-  const mapSrc = cmSecStr(mediaSec, "mapImage") || cmSecStr(mediaSec, "mapSrc") || "";
-  const mapCaption = cmSecStr(mediaSec, "mapCaption") || "";
-  const images = cmSecStrArr(mediaSec, "images");
-  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
-  if (!videoUrl && !mapSrc && !images.length) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad }} data-pmx-section="media">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Route &amp; film</div>
-        <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? (mapSrc && videoUrl ? "1.2fr 1fr" : "1fr") : undefined, flexDirection: isDesktop ? undefined : "column" as const, gap: 12 }}>
-          {mapSrc && (
-            <figure style={{ margin: 0, position: "relative", borderRadius: 12, overflow: "hidden", order: isDesktop ? 1 : 0 }}>
-              <img src={mapSrc} alt="route map" style={{ width: "100%", height: isDesktop ? 340 : 220, objectFit: "cover", display: "block" }} />
-              <figcaption style={{
-                position: "absolute", bottom: 0, left: 0, right: 0,
-                background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
-                padding: "20px 14px 12px",
-                color: "#fff", fontSize: 11.5, fontFamily: MONO, letterSpacing: "0.5px",
-              }}>
-                {mapCaption || t.coRouteMap}
-              </figcaption>
-            </figure>
-          )}
-          {videoUrl && (() => {
-            const isEmbed = videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo");
-            const embed = (() => {
-              const yt = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
-              if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
-              const vi = videoUrl.match(/vimeo\.com\/(\d+)/);
-              if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
-              return videoUrl;
-            })();
+  // ════════ MEDIA ════════
+  const Media = () => {
+    const m = findSec(pkg, "media");
+    const imgs = mediaImgs;
+    const video = secStr(m, "videoUrl") || pkg.videoUrl || "";
+    const mapImage = secStr(m, "mapImage");
+    const mapCaption = secStr(m, "mapCaption");
+    if (!imgs.length && !video && !mapImage) return null;
+    const tiles = imgs.slice(0, D ? 3 : 2);
+    const stops = mapImage ? [] : itinDays.slice(0, 6).map((d) => ({ label: secItemStr(d, "title") })).filter((s) => s.label);
+    const showElev = hasElev;
+    return (
+      <Wrap style={{ background: CARD }} section="media">
+        <SecHead k="media" kicker={L.sections.media} title={ar("From the trail", "من المسار")} />
+        {video && <CoVideo src={video} poster={cover || imgs[0]} accent={brand} rtl={rtl} sans={body} height={D ? 440 : 250} ui={L.ui} />}
+        {tiles.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "repeat(2,1fr)", gap: D ? 12 : 8, marginTop: video ? (D ? 14 : 8) : 0 }}>
+            {tiles.map((u, k) => <img key={k} src={u} onClick={() => zoom(u)} style={{ width: "100%", height: D ? 180 : 130, objectFit: "cover", display: "block", borderRadius: 2, cursor: "zoom-in" }} />)}
+          </div>
+        )}
+        {(mapImage || stops.length > 0 || showElev) && (
+          <div style={{ display: "grid", gridTemplateColumns: D && showElev ? "1.3fr 1fr" : "1fr", gap: D ? 24 : 16, marginTop: D ? 28 : 18 }}>
+            {(mapImage || stops.length > 0) && (
+              <div style={{ border: `1px solid ${RULE}`, borderRadius: 2, background: PAPER, padding: D ? 18 : 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <Mono color={brand}>{L.ui.route}</Mono>
+                  {(totalKm > 0 || itinDays.length > 0) && <Mono>{totalKm > 0 ? `${dig(Math.round(totalKm))} ${ar("km", "كم")} · ` : ""}{dig(itinDays.length)} {L.ui.stages}</Mono>}
+                </div>
+                {mapImage
+                  ? <img src={mapImage} alt={mapCaption} style={{ width: "100%", height: D ? 200 : 150, objectFit: "cover", borderRadius: 2, display: "block" }} />
+                  : <CoRouteMap stops={stops} line={brand} land={coLighten(brand, 0.82)} ink={INK} height={D ? 200 : 150} rtl={rtl} />}
+              </div>
+            )}
+            {showElev && (
+              <div style={{ border: `1px solid ${RULE}`, borderRadius: 2, background: PAPER, padding: D ? 18 : 14, display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <Mono color={brand}>{L.ui.elevation}</Mono>
+                  <Mono>{ar("metres", "أمتار")}</Mono>
+                </div>
+                <div style={{ flex: 1, display: "flex", alignItems: "flex-end" }}><ElevProfile height={D ? 150 : 110} vals={alts} /></div>
+              </div>
+            )}
+          </div>
+        )}
+        {mapCaption && <div style={{ fontFamily: mono, fontSize: 11, color: FAINT, marginTop: 12, letterSpacing: rtl ? 0 : "0.5px" }}>{mapCaption}</div>}
+      </Wrap>
+    );
+  };
+
+  // ════════ ITINERARY ════════
+  const Itinerary = () => {
+    if (!itinDays.length) return null;
+    const Chip = ({ label, value }: { label: string; value: string }) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Mono size={9.5}>{label}</Mono>
+        <span style={{ fontFamily: mono, fontSize: D ? 14 : 12.5, fontWeight: 700, color: INK }}>{value}</span>
+      </div>
+    );
+    return (
+      <Wrap section="itinerary">
+        <SecHead k="itinerary" kicker={L.sections.itinerary} title={ar(`${itinDays.length} days, mapped`, `${dig(itinDays.length)} أيام، بخريطة`)} />
+        <div style={{ display: "flex", flexDirection: "column", gap: D ? 10 : 8 }}>
+          {itinDays.map((it, i) => {
+            const km = secNum(it, "km"); const alt = secNum(it, "alt");
+            const hasMetrics = km != null || alt != null;
             return (
-              <figure style={{ margin: 0, borderRadius: 12, overflow: "hidden", background: INK, position: "relative", height: isDesktop ? 240 : 200, order: isDesktop ? 2 : 1 }}>
-                {isEmbed
-                  ? <iframe src={embed} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
-                  : <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} controls playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                }
-              </figure>
+              <div key={i} style={{ border: `1px solid ${RULE}`, borderRadius: 2, background: CARD, padding: D ? "20px 24px" : "16px 18px", display: "grid", gridTemplateColumns: D && hasMetrics ? "auto 1fr auto" : "auto 1fr", gap: D ? 24 : 12, alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <span style={{ fontFamily: disp, fontSize: D ? 30 : 24, fontWeight: 800, color: brand, lineHeight: 1 }}>{rtl ? dig((it.day as number) ?? i + 1) : String((it.day as number) ?? i + 1).padStart(2, "0")}</span>
+                </div>
+                <div>
+                  <div style={{ fontFamily: disp, fontSize: D ? 19 : 17, fontWeight: 700, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.3px" }}>{secItemStr(it, "title")}</div>
+                  {secItemStr(it, "desc", "description") && <div style={{ fontFamily: body, fontSize: 13.5, color: MUT, lineHeight: 1.55, marginTop: 4 }}>{secItemStr(it, "desc", "description")}</div>}
+                </div>
+                {hasMetrics && (
+                  <div style={{ display: "flex", gap: D ? 24 : 18, paddingInlineStart: D ? 24 : 0, borderInlineStart: D ? `1px solid ${RULE}` : "none", paddingTop: D ? 0 : 10, borderTop: D ? "none" : `1px solid ${RULE}`, gridColumn: D ? "auto" : "1 / -1" }}>
+                    {km != null && <Chip label={L.ui.dist} value={`${dig(km)} ${ar("km", "كم")}`} />}
+                    {alt != null && <Chip label={L.ui.gain} value={`${dig(alt)} ${ar("m", "م")}`} />}
+                  </div>
+                )}
+              </div>
             );
-          })()}
+          })}
         </div>
-        {images.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(images.length, isDesktop ? 4 : 2)}, 1fr)`, gap: 8, marginTop: 10 }}>
-            {images.slice(0, isDesktop ? 4 : 4).map((src, i) => (
-              <div key={i} onClick={() => setLbIdx(i)} style={{ borderRadius: 10, overflow: "hidden", height: 100, cursor: "pointer" }}>
-                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
+      </Wrap>
+    );
+  };
+
+  // ════════ HOTEL ════════
+  const Hotel = () => {
+    const h = findSec(pkg, "hotel");
+    const rich = findSec(pkg, "hotels");
+    const richList = secArr(rich, "hotels").length ? secArr(rich, "hotels") : secArr(rich, "items");
+    const r0 = richList[0];
+    const name = r0 ? secItemStr(r0, "name") : "";
+    const stars = r0 && typeof r0.stars === "number" ? (r0.stars as number) : 0;
+    const blurb = (r0 ? secItemStr(r0, "note", "description", "blurb") : "") || secStr(h, "description") || pkg.hotelDescription || "";
+    const features = r0 ? secStrArr(r0, "facilities").concat(secStrArr(r0, "features")) : [];
+    const hutNames = richList.length > 1 ? richList.map((r) => secItemStr(r, "name")).filter(Boolean) : [];
+    if (!blurb && !name) return null;
+    const img = mediaImgs[4] || mediaImgs[1] || mediaImgs[0] || cover;
+    return (
+      <Wrap style={{ background: SLATE, color: "#fff" }} section="hotel">
+        <SecHead k="hotel" kicker={L.sections.hotel} title={name || ar("Where you'll stay", "مكان إقامتك")} light />
+        <div style={{ display: "grid", gridTemplateColumns: D && img ? "1.1fr 1fr" : "1fr", gap: D ? 40 : 22, alignItems: "center" }}>
+          <div>
+            {stars > 0 && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid rgba(255,255,255,0.2)`, borderRadius: 2, padding: "6px 12px", marginBottom: 18 }}>
+                <CoStars n={stars} size={12} color={brLight} /><Mono color="rgba(255,255,255,0.8)">{dig(stars)} {ar("star", "نجوم")}</Mono>
+              </div>
+            )}
+            {blurb && <p style={{ fontFamily: body, fontSize: D ? 16 : 14.5, color: "rgba(255,255,255,0.82)", lineHeight: 1.75, margin: 0, whiteSpace: "pre-line" }}>{blurb}</p>}
+            {hutNames.length > 0 && (
+              <div style={{ display: "flex", gap: 0, marginTop: 24, border: `1px solid rgba(255,255,255,0.15)`, borderRadius: 2, overflow: "hidden" }}>
+                {hutNames.map((hut, i) => (
+                  <div key={i} style={{ flex: 1, padding: D ? "14px 10px" : "12px 6px", textAlign: "center", borderInlineEnd: i < hutNames.length - 1 ? `1px solid rgba(255,255,255,0.15)` : "none" }}>
+                    <Mono color={brLight} size={9.5}>{dig(`0${i + 1}`.slice(-2))}</Mono>
+                    <div style={{ fontFamily: disp, fontSize: D ? 14 : 12, fontWeight: 700, color: "#fff", textTransform: up, marginTop: 4, letterSpacing: rtl ? 0 : "-0.2px" }}>{hut}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {features.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 18px", marginTop: 20 }}>
+                {features.map((f, i) => <div key={i} style={{ display: "flex", gap: 9, alignItems: "baseline", fontFamily: body, fontSize: 13.5, color: "rgba(255,255,255,0.85)" }}><Tick color={brLight} /> {f}</div>)}
+              </div>
+            )}
+          </div>
+          {img && <img src={img} alt="" onClick={() => zoom(img)} style={{ width: "100%", height: D ? 380 : 230, objectFit: "cover", display: "block", borderRadius: 2, cursor: "zoom-in" }} />}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ INCLUSIONS ════════
+  const Inclusions = () => {
+    const inc = findSec(pkg, "inclusions");
+    const includes = secStrArr(inc, "includes").length ? secStrArr(inc, "includes") : (pkg.includes ?? []);
+    const excludes = secStrArr(inc, "excludes").length ? secStrArr(inc, "excludes") : (pkg.excludes ?? []);
+    if (!includes.length && !excludes.length) return null;
+    return (
+      <Wrap section="inclusions">
+        <SecHead k="inclusions" kicker={L.sections.inclusions} title={ar("On the manifest", "المشمول")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 48 : 28 }}>
+          {includes.length > 0 && (
+            <div>
+              <div style={{ marginBottom: 14 }}><Mono color={brand}>✓ {L.ui.included}</Mono></div>
+              {includes.map((it, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, padding: "11px 0", borderTop: `1px solid ${RULE}`, alignItems: "flex-start" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={brand} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 2, flexShrink: 0 }}><path d="M20 6L9 17l-5-5" /></svg>
+                  <span style={{ fontFamily: body, fontSize: 14.5, color: INK, lineHeight: 1.5 }}>{it}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {excludes.length > 0 && (
+            <div>
+              <div style={{ marginBottom: 14 }}><Mono color={FAINT}>✕ {L.ui.notIncluded}</Mono></div>
+              {excludes.map((it, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, padding: "11px 0", borderTop: `1px solid ${RULE}`, alignItems: "flex-start" }}>
+                  <span style={{ color: FAINT, fontSize: 15, lineHeight: 1.3, flexShrink: 0, fontFamily: mono }}>×</span>
+                  <span style={{ fontFamily: body, fontSize: 14.5, color: MUT, lineHeight: 1.5 }}>{it}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ MEALS ════════
+  const Meals = () => {
+    const m = findSec(pkg, "meals");
+    const plan = secStr(m, "plan");
+    const notes = secStr(m, "notes");
+    if (!plan && !notes) return null;
+    const planLabel = MEAL_LABELS[plan]?.[lang] || plan || ar("Dining", "الطعام");
+    return (
+      <Wrap style={{ background: CARD }} section="meals">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1.1fr" : "1fr", gap: D ? 48 : 24 }}>
+          <SecHead k="meals" kicker={L.sections.meals} title={planLabel} />
+          {notes && <p style={{ fontFamily: body, fontSize: D ? 16 : 14.5, color: MUT, lineHeight: 1.75, margin: 0, alignSelf: "center", whiteSpace: "pre-line" }}>{notes}</p>}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ VISA ════════
+  const Visa = () => {
+    const v = findSec(pkg, "visa");
+    const included = secStr(v, "included");
+    const content = secStr(v, "content");
+    if (!included && !content) return null;
+    return (
+      <Wrap section="visa">
+        <SecHead k="visa" kicker={L.sections.visa} title={VISA_HEAD[included]?.[lang] || ar("Visa & entry", "التأشيرة والدخول")} />
+        {content && <p style={{ fontFamily: body, fontSize: 14.5, color: MUT, lineHeight: 1.75, margin: 0, maxWidth: 760, whiteSpace: "pre-line" }}>{content}</p>}
+      </Wrap>
+    );
+  };
+
+  // ════════ TRANSFERS ════════
+  const Transfers = () => {
+    const tx = findSec(pkg, "transfers");
+    const desc = secStr(tx, "description");
+    const items = secMixed(tx, "items");
+    if (!desc && !items.length) return null;
+    return (
+      <Wrap style={{ background: CARD }} section="transfers">
+        <SecHead k="transfers" kicker={L.sections.transfers} title={ar("Getting there & around", "الوصول والتنقّل")} sub={items.length ? undefined : desc} />
+        {items.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 12 : 10 }}>
+            {items.map((t, i) => (
+              <div key={i} style={{ border: `1px solid ${RULE}`, borderRadius: 2, background: PAPER, padding: D ? 24 : 20 }}>
+                <Mono color={brand}>{dig(`0${i + 1}`.slice(-2))}</Mono>
+                <div style={{ fontFamily: disp, fontSize: D ? 18 : 16, fontWeight: 700, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.3px", margin: "10px 0 6px" }}>{secItemStr(t, "leg", "title", "name", "text")}</div>
+                {typeof t === "object" && secItemStr(t, "desc", "description") && <div style={{ fontFamily: body, fontSize: 13.5, color: MUT, lineHeight: 1.6 }}>{secItemStr(t, "desc", "description")}</div>}
               </div>
             ))}
           </div>
         )}
-      </div>
-      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
-    </section>
-  );
-}
-
-function CmDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = cmFindSec(pkg, "departures");
-  const deps = cmSecArr(data, "departures").length ? cmSecArr(data, "departures") : (pkg.departures ?? []).map(d => d as unknown as CmSecData);
-  if (!deps.length) return null;
-  const getSeasonLabel = (dateStr: string) => {
-    const m = dateStr.toLowerCase();
-    if (m.includes("mar") || m.includes("apr") || m.includes("may")) return t.coSpring;
-    if (m.includes("sep") || m.includes("oct") || m.includes("nov")) return t.coAutumn;
-    return "";
+      </Wrap>
+    );
   };
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section id="departures" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="departures">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>{t.coDepartureWindows}</div>
-        <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 18px", color: INK }}>{t.coSeasonalOpenings}</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {deps.map((d, i) => {
-            const date = cmItemStr(d, "date");
-            const spots = cmSecNum(d, "spots") ?? cmSecNum(d, "spotsRemaining");
-            const price = cmItemStr(d, "price");
-            const season = getSeasonLabel(date);
-            const isLow = spots != null && spots <= 4;
-            return (
-              <div key={i} style={{
-                background: "#fff", border: `1px solid ${BORDER}`,
-                borderRadius: 12, padding: "14px 16px",
-                display: "flex", alignItems: "center", gap: 12,
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                    {season && (
-                      <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: ORANGE, background: `${ORANGE}12`, padding: "2px 7px", borderRadius: 4 }}>{season}</span>
-                    )}
-                    <span style={{ fontFamily: INTER, fontSize: 13.5, fontWeight: 700, color: INK }}>{date}</span>
-                  </div>
-                  {spots != null && (
-                    <div style={{ fontSize: 11.5, color: isLow ? ORANGE : MUTED, fontWeight: isLow ? 700 : 400 }}>
-                      {isLow ? `${t.coOnlySpotsLeft} ${spots} ${t.coSpotsLeft}` : `${spots} ${t.coSpotsAvailable}`}
-                    </div>
-                  )}
-                </div>
-                {price && <div style={{ fontFamily: INTER, fontSize: 15, fontWeight: 800, color: ORANGE }}>{price}</div>}
-                <button style={{
-                  background: ORANGE, color: "#fff",
-                  border: "none", borderRadius: 8, padding: "8px 16px",
-                  fontFamily: INTER, fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0,
-                }}>Reserve</button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
 
-function CmFaqSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
-  const data = cmFindSec(pkg, "faq");
-  const items = cmSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section id="faq" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="faq">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>Common questions</div>
-        <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? "1fr 1fr" : undefined, flexDirection: isDesktop ? undefined : "column" as const, gap: 0 }}>
-          {items.map((f, i) => {
-            const q = cmItemStr(f, "q", "question");
-            const a = cmItemStr(f, "a", "answer");
-            return (
-              <div key={i} style={{ borderBottom: `1px solid ${BORDER}`, padding: "14px 0", paddingRight: isDesktop && i % 2 === 0 ? 24 : 0, paddingLeft: isDesktop && i % 2 === 1 ? 24 : 0 }}>
-                <div style={{ fontFamily: INTER, fontSize: isDesktop ? 14 : 13.5, fontWeight: 800, color: INK, lineHeight: 1.3, marginBottom: 6 }}>{q}</div>
-                <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.65 }}>{a}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CmImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = cmFindSec(pkg, "important_notes");
-  const notes = cmSecArr(data, "notes");
-  const items = notes.length ? notes : cmSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad }} data-pmx-section="important_notes">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>{t.coBeforeYouGo}</div>
-        <h3 style={{ fontFamily: INTER, fontSize: isDesktop ? 28 : 22, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 16px", color: INK }}>{t.coImportantNotes}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr", gap: 10 }}>
-          {items.map((n, i) => {
-            const severity = cmItemStr(n, "severity");
-            const title = cmItemStr(n, "title", "text");
-            const body = cmItemStr(n, "body");
-            const isWarn = severity === "warn";
-            return (
-              <div key={i} style={{
-                background: "#fff",
-                borderLeft: `3px solid ${isWarn ? ORANGE : BORDER.replace("0.08", "0.3")}`,
-                borderRadius: "0 10px 10px 0",
-                border: `1px solid ${BORDER}`,
-                borderLeftColor: isWarn ? ORANGE : BORDER.replace("0.08", "0.3"),
-                borderLeftWidth: 3,
-                padding: "14px 16px",
-              }}>
-                {isWarn && (
-                  <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase" as const, color: ORANGE, marginBottom: 5, display: "flex", alignItems: "center", gap: 4 }}>
-                    <span>⚠</span> Important
-                  </div>
-                )}
-                <div style={{ fontFamily: INTER, fontSize: 13.5, fontWeight: 700, color: INK, lineHeight: 1.3, marginBottom: body ? 6 : 0 }}>{title}</div>
-                {body && <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.55 }}>{body}</div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CmAboutAgencySection({ pkg, agency, isDesktop }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean }) {
-  const data = cmFindSec(pkg, "about_agency");
-  if (!data && !agency.tagline) return null;
-  const story = cmItemStr(data || {}, "story", "content");
-  const foundedRaw = (data as CmSecData | undefined)?.founded;
-  const founded = typeof foundedRaw === "number" ? foundedRaw : undefined;
-  const teamSize = cmSecStr(data, "teamSize");
-  const teamPhoto = cmSecStr(data, "teamPhoto") || cmSecStr(data, "image");
-  const currentYear = new Date().getFullYear();
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad }} data-pmx-section="about_agency">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>About {agency.name}</div>
-        {isDesktop && teamPhoto ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "start" }}>
-            <div>
-              {story && <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.65, margin: "0 0 20px" }}>{story}</p>}
-              {(founded || teamSize) && (
-                <div style={{ display: "flex", gap: 24, paddingTop: 16, borderTop: `1px solid ${BORDER}` }}>
-                  {founded && (
-                    <div>
-                      <div style={{ fontFamily: INTER, fontSize: 28, fontWeight: 800, color: ORANGE, lineHeight: 1 }}>{currentYear - founded}+</div>
-                      <div style={{ fontSize: 10, color: MUTED, marginTop: 3, letterSpacing: "0.5px", textTransform: "uppercase" as const }}>Years</div>
-                    </div>
-                  )}
-                  {teamSize && (
-                    <div>
-                      <div style={{ fontFamily: INTER, fontSize: 28, fontWeight: 800, color: ORANGE, lineHeight: 1 }}>{teamSize}</div>
-                      <div style={{ fontSize: 10, color: MUTED, marginTop: 3, letterSpacing: "0.5px", textTransform: "uppercase" as const }}>Team</div>
-                    </div>
-                  )}
-                  <div>
-                    <div style={{ fontFamily: INTER, fontSize: 28, fontWeight: 800, color: ORANGE, lineHeight: 1 }}>97%</div>
-                    <div style={{ fontSize: 10, color: MUTED, marginTop: 3, letterSpacing: "0.5px", textTransform: "uppercase" as const }}>Summit rate</div>
-                  </div>
-                </div>
-              )}
+  // ════════ DEPARTURES ════════
+  const Departures = () => {
+    const rows = depEntries.length ? depEntries : (pkg.departures ?? []).map((d) => ({ date: d.date, price: d.price, spots: d.spots } as SecData));
+    if (!rows.length) return null;
+    const chip = (spots: number) => {
+      if (spots <= 0) return <span style={{ fontFamily: mono, fontSize: 11, fontWeight: 700, color: AMBER, letterSpacing: rtl ? 0 : "1px", textTransform: up }}>{L.ui.soldOut}</span>;
+      const col = spots <= 3 ? AMBER : brand;
+      return <span style={{ fontFamily: mono, fontSize: 11, fontWeight: 700, color: col, letterSpacing: rtl ? 0 : "0.5px" }}>{dig(spots)} {L.ui.seatsLeft}</span>;
+    };
+    return (
+      <Wrap id="co-departures" section="departures">
+        <SecHead k="departures" kicker={L.sections.departures} title={ar("Departure windows", "مواعيد المغادرة")} />
+        {D ? (
+          <div style={{ border: `1px solid ${RULE}`, borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1.2fr 1fr 0.9fr auto", padding: "14px 22px", background: SLATE }}>
+              {[L.ui.from, L.ui.date, L.ui.flight, L.ui.availability, L.ui.price, ""].map((h, i) => <Mono key={i} color="rgba(255,255,255,0.6)">{h}</Mono>)}
             </div>
-            <div style={{ height: 280, borderRadius: 14, overflow: "hidden" }}>
-              <img src={teamPhoto} alt={`${agency.name} team`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            </div>
+            {rows.map((r, i) => {
+              const spots = typeof r.spots === "number" ? r.spots : Number(r.spots) || 0; const sold = spots <= 0;
+              const from = secItemStr(r, "origin", "from"); const date = secItemStr(r, "date");
+              const dep = secItemStr(r, "flyingTime"); const arrt = secItemStr(r, "arrivingTime"); const price = secItemStr(r, "price");
+              return (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1.2fr 1fr 0.9fr auto", padding: "18px 22px", alignItems: "center", borderBottom: i < rows.length - 1 ? `1px solid ${RULE}` : "none", background: sold ? coRgba("#000000", 0.03) : CARD, opacity: sold ? 0.6 : 1 }}>
+                  <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.3px" }}>{from || dig(date)}</div>
+                  <Mono color={MUT}>{dig(date)}</Mono>
+                  <Mono color={MUT}>{dep ? `${dig(dep)}${arrt ? `–${dig(arrt)}` : ""}` : "—"}</Mono>
+                  <div>{chip(spots)}</div>
+                  <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 800, color: brand, textAlign: "end" }}>{dig(price)}</div>
+                  <div style={{ textAlign: "end", paddingInlineStart: 16 }}>{sold ? <Mono color={FAINT}>—</Mono> : (pkg.whatsapp ? <Primary onClick={onWhatsApp}>{L.ui.book}</Primary> : null)}</div>
+                </div>
+              );
+            })}
           </div>
         ) : (
-          <>
-            {teamPhoto && (
-              <div style={{ height: 200, borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
-                <img src={teamPhoto} alt={`${agency.name} team`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
-            )}
-            {story && <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, margin: "0 0 16px" }}>{story}</p>}
-            {(founded || teamSize) && (
-              <div style={{ display: "flex", gap: 0, borderTop: `1px solid ${BORDER}`, paddingTop: 14 }}>
-                {founded && (
-                  <div style={{ flex: 1, textAlign: "center" as const, borderRight: `1px solid ${BORDER}`, padding: "8px 0" }}>
-                    <div style={{ fontFamily: INTER, fontSize: 22, fontWeight: 800, color: ORANGE, lineHeight: 1 }}>{currentYear - founded}+</div>
-                    <div style={{ fontSize: 10, color: MUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>Years</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {rows.map((r, i) => {
+              const spots = typeof r.spots === "number" ? r.spots : Number(r.spots) || 0; const sold = spots <= 0;
+              const from = secItemStr(r, "origin", "from"); const date = secItemStr(r, "date"); const price = secItemStr(r, "price");
+              return (
+                <div key={i} style={{ border: `1px solid ${RULE}`, borderRadius: 2, padding: 16, background: CARD, opacity: sold ? 0.6 : 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, color: INK, textTransform: up }}>{from || dig(date)}</div>
+                    {price && <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: brand }}>{dig(price)}</div>}
                   </div>
-                )}
-                <div style={{ flex: 1, textAlign: "center" as const, padding: "8px 0" }}>
-                  <div style={{ fontFamily: INTER, fontSize: 22, fontWeight: 800, color: ORANGE, lineHeight: 1 }}>97%</div>
-                  <div style={{ fontSize: 10, color: MUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>Summit rate</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                    <Mono color={MUT}>{dig(date)}</Mono>{chip(spots)}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ PRICING ════════
+  const Pricing = () => {
+    const pr = findSec(pkg, "pricing");
+    const tiers = pkg.pricingTiers ?? [];
+    const cancellation = lines(secStr(pr, "cancellation") || pkg.cancellation || "");
+    const schedule = secArr(pr, "paymentSteps");
+    if (!tiers.length && !cancellation.length && !schedule.length) return null;
+    return (
+      <Wrap style={{ background: CARD }} id="co-pricing" section="pricing">
+        <SecHead k="pricing" kicker={L.sections.pricing} title={ar("Pick your tier", "اختر فئتك")} />
+        {tiers.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: D ? 12 : 10 }}>
+            {tiers.map((t, i) => {
+              const featured = tiers.length === 3 && i === 1;
+              return (
+                <div key={i} style={{ background: featured ? SLATE : PAPER, color: featured ? "#fff" : INK, border: `1px solid ${featured ? SLATE : RULE}`, borderRadius: 2, padding: D ? 28 : 22 }}>
+                  {featured && <div style={{ marginBottom: 10 }}><Mono color={brLight}>★ {L.ui.mostPopular}</Mono></div>}
+                  <div style={{ fontFamily: disp, fontSize: D ? 20 : 18, fontWeight: 700, textTransform: up, letterSpacing: rtl ? 0 : "-0.3px" }}>{localizeTierLabel(t.label, lang)}</div>
+                  <div style={{ fontFamily: disp, fontSize: D ? 42 : 34, fontWeight: 800, marginTop: 16, color: featured ? "#fff" : brand }}>{dig(t.price)}</div>
+                  <div style={{ marginTop: 8 }}><Mono color={featured ? "rgba(255,255,255,0.5)" : FAINT}>{L.ui.perPerson}</Mono></div>
+                  {pkg.whatsapp && <div style={{ marginTop: 20 }}><Primary full ghost={!featured} onClick={onWhatsApp}>{L.ui.book}</Primary></div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {(cancellation.length > 0 || schedule.length > 0) && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 40 : 22, marginTop: tiers.length ? 36 : 0 }}>
+            {cancellation.length > 0 && (
+              <div>
+                <div style={{ marginBottom: 10 }}><Mono color={brand}>{L.ui.cancellation}</Mono></div>
+                {cancellation.map((s, i) => <div key={i} style={{ fontFamily: body, fontSize: 13.5, color: MUT, padding: "8px 0", lineHeight: 1.5, borderTop: `1px solid ${RULE}`, display: "flex", gap: 10 }}><Tick /> {s}</div>)}
               </div>
             )}
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// ─── Difficulty bar ───────────────────────────────────────────────────────────
-
-function DifficultyBar({ difficulty, lang, expanded = false }: { difficulty: TPageProps["pkg"]["difficulty"]; lang: TPageProps["lang"]; expanded?: boolean }) {
-  const t = T[lang];
-  if (!difficulty) return null;
-  const levels = ["easy", "moderate", "strenuous", "extreme"] as const;
-  const levelIndex = levels.indexOf(difficulty);
-  const labels: Record<string, string> = {
-    easy:      t.difficultyEasy,
-    moderate:  t.difficultyModerate,
-    strenuous: t.difficultyStrenuous,
-    extreme:   t.difficultyExtreme,
-  };
-  const colors: Record<string, string> = { easy: "#2dd4a0", moderate: "#f59e0b", strenuous: ORANGE, extreme: "#ef4444" };
-  const color = colors[difficulty] || ORANGE;
-
-  return (
-    <div style={{ marginTop: expanded ? 0 : 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <div style={{ fontSize: expanded ? 12 : 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" as const, color: MUTED }}>{t.difficultyLabel}</div>
-        <div style={{ fontSize: expanded ? 18 : 11.5, fontWeight: 800, color, fontFamily: INTER }}>{labels[difficulty] || difficulty}</div>
-      </div>
-      <div style={{ height: expanded ? 10 : 5, background: "rgba(13,27,46,0.08)", borderRadius: 99, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${(levelIndex + 1) * 25}%`, background: color, borderRadius: 99, transition: "width 0.3s" }} />
-      </div>
-    </div>
-  );
-}
-
-// ─── Trek stats band ─────────────────────────────────────────────────────────
-
-function TrekStatsBand({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const nights = pkg.nights ? Number(pkg.nights) : null;
-  const diffLabels: Record<string, string> = {
-    easy:      t.difficultyEasy,
-    moderate:  t.difficultyModerate,
-    strenuous: t.difficultyStrenuous,
-    extreme:   t.difficultyExtreme,
-  };
-  const cells = [
-    ...(pkg.maxAltitude ? [{ v: pkg.maxAltitude.toLocaleString(), u: t.metersUnit, l: t.altitudeLabel }] : []),
-    ...(pkg.distanceKm ? [{ v: String(pkg.distanceKm), u: t.kmUnit, l: t.distanceLabel }] : []),
-    ...(nights ? [{ v: String(nights), u: ` ${t.nightsLabel}`, l: t.tripLengthLabel }] : []),
-    ...(pkg.difficulty ? [{ v: diffLabels[pkg.difficulty] || pkg.difficulty, u: "", l: t.difficultyLabel }] : []),
-  ];
-  if (!cells.length) return null;
-
-  return (
-    <div style={{
-      background: INK,
-      display: "grid",
-      gridTemplateColumns: `repeat(${cells.length}, 1fr)`,
-    }}>
-      {cells.map((s, i) => (
-        <div key={i} style={{
-          padding: "22px 20px",
-          borderRight: i < cells.length - 1 ? "1px solid rgba(255,255,255,0.08)" : undefined,
-        }}>
-          <div style={{ fontFamily: INTER, fontSize: 26, fontWeight: 800, color: ORANGE, lineHeight: 1, letterSpacing: "-0.5px" }}>
-            {s.v}<span style={{ fontSize: 13, fontWeight: 600, opacity: 0.7, marginLeft: 2 }}>{s.u}</span>
-          </div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginTop: 5 }}>{s.l}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Honest difficulty section ────────────────────────────────────────────────
-
-function HonestDifficultySection({ pkg, lang }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  if (!pkg.difficulty) return null;
-  const isRtl = lang === "ar";
-
-  return (
-    <DContainer id="difficulty" style={{ padding: "56px 80px", scrollMarginTop: 88 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56, direction: isRtl ? "rtl" : "ltr" }}>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 10 }}>
-            {t.beforeYouBookLabel}
-          </div>
-          <h2 style={{ fontFamily: INTER, fontSize: 36, fontWeight: 800, letterSpacing: "-1px", color: INK, margin: "0 0 16px", lineHeight: 1.1 }}>
-            {t.honestDifficultyLabel}
-          </h2>
-          {pkg.fitnessNote && (
-            <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.65, margin: 0 }}>{pkg.fitnessNote}</p>
-          )}
-        </div>
-        <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 16, padding: "28px 28px" }}>
-          <DifficultyBar difficulty={pkg.difficulty} lang={lang} expanded />
-          {pkg.fitnessNote && (
-            <div style={{ marginTop: 16, fontSize: 13, color: MUTED, lineHeight: 1.6 }}>
-              <b style={{ color: INK }}>{t.fitnessLabel}: </b>{pkg.fitnessNote}
-            </div>
-          )}
-        </div>
-      </div>
-    </DContainer>
-  );
-}
-
-// ─── Guide closing panel ──────────────────────────────────────────────────────
-
-function CompassGuidePanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
-  const t = T[lang];
-  const isRtl = lang === "ar";
-
-  const peopleArr     = cmSecArr(cmFindSec(pkg, "people"), "people");
-  const primary       = peopleArr[0];
-  const personName    = (primary ? cmItemStr(primary, "name") : "") || (pkg.agent?.name ?? "");
-  const personRole    = (primary ? cmItemStr(primary, "role") : "") || (pkg.agent?.role ?? "");
-  const personPhoto   = (primary ? cmItemStr(primary, "photo") : "") || (pkg.agent?.avatar ?? "");
-  const rawRepliesIn  = primary ? primary.repliesIn : pkg.agent?.repliesIn;
-  const repliesIn     = typeof rawRepliesIn === "string" ? rawRepliesIn : undefined;
-
-  if (!personName) return null;
-  const firstName   = personName.split(" ")[0];
-  const onlineLabel = repliesIn
-    ? `${lang === "ar" ? "متاح" : "Online"} · ${t.repliesInLabel.replace(/:$/, "")} ${repliesIn}`
-    : t.agentOnlineLabel;
-
-  return (
-    <section style={{ background: INK, padding: "40px 24px", direction: isRtl ? "rtl" : "ltr" }}>
-      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.45)", marginBottom: 20 }}>
-        {t.compassLeadGuide} · {agency.name}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-        {personPhoto
-          ? <img src={personPhoto} alt={personName} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover" }} />
-          : <div style={{ width: 60, height: 60, borderRadius: "50%", background: `${ORANGE}44`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, fontSize: 24, fontWeight: 800, color: "#fff" }}>{personName[0]?.toUpperCase() || "?"}</div>
-        }
-        <div>
-          <div style={{ fontFamily: INTER, fontSize: 20, fontWeight: 800, color: "#fff", lineHeight: 1.1, letterSpacing: "-0.5px" }}>{personName}</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>{localizeRole(personRole, t)}</div>
-        </div>
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8, marginBottom: 22 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "6px 12px" }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
-          <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.85)" }}>{onlineLabel}</span>
-        </div>
-        <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "6px 12px", fontSize: 11.5, color: "rgba(255,255,255,0.7)" }}>
-          ✓ {t.compassUiagmCertified}
-        </div>
-      </div>
-      {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} full onClick={onWhatsApp} />}
-      <button style={{
-        width: "100%", marginTop: 10, padding: "12px", borderRadius: 10,
-        border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
-        color: "rgba(255,255,255,0.75)", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
-      }}>
-        {t.compassFitnessAssessment}
-      </button>
-    </section>
-  );
-}
-
-function CompassGuidePanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
-  const t = T[lang];
-  const isRtl = lang === "ar";
-
-  const peopleArr     = cmSecArr(cmFindSec(pkg, "people"), "people");
-  const primary       = peopleArr[0];
-  const personName    = (primary ? cmItemStr(primary, "name") : "") || (pkg.agent?.name ?? "");
-  const personRole    = (primary ? cmItemStr(primary, "role") : "") || (pkg.agent?.role ?? "");
-  const personPhoto   = (primary ? cmItemStr(primary, "photo") : "") || (pkg.agent?.avatar ?? "");
-  const rawRepliesIn  = primary ? primary.repliesIn : pkg.agent?.repliesIn;
-  const repliesIn     = typeof rawRepliesIn === "string" ? rawRepliesIn : undefined;
-
-  if (!personName) return null;
-  const firstName   = personName.split(" ")[0];
-  const onlineLabel = repliesIn
-    ? `${lang === "ar" ? "متاح" : "Online"} · ${t.repliesInLabel.replace(/:$/, "")} ${repliesIn}`
-    : t.agentOnlineLabel;
-
-  return (
-    <section style={{ background: INK }}>
-      <DContainer style={{ padding: "72px 80px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 64, alignItems: "center" }}>
-          {/* Portrait */}
-          <div style={{
-            order: isRtl ? 2 : 1,
-            position: "relative", height: 420,
-            overflow: "hidden", background: `${ORANGE}22`,
-            borderRadius: 16,
-          }}>
-            {personPhoto
-              ? <img src={personPhoto} alt={personName} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-              : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(160deg, ${ORANGE}22, ${INK})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontFamily: INTER, fontSize: 140, fontWeight: 800, color: `${ORANGE}40`, lineHeight: 1, userSelect: "none" as const }}>{personName[0]?.toUpperCase() || "?"}</span>
-                </div>
-            }
-          </div>
-          {/* Content */}
-          <div style={{ order: isRtl ? 1 : 2 }}>
-            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.45)", marginBottom: 16 }}>
-              {t.compassLeadGuide} · {agency.name}
-            </div>
-            <div style={{ fontFamily: INTER, fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1.5px", lineHeight: 1.05, marginBottom: 6 }}>{personName}</div>
-            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", marginBottom: 24 }}>{localizeRole(personRole, t)}</div>
-            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10, marginBottom: 28 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "7px 14px" }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>{onlineLabel}</span>
+            {schedule.length > 0 && (
+              <div>
+                <div style={{ marginBottom: 10 }}><Mono color={brand}>{L.ui.paymentSchedule}</Mono></div>
+                {schedule.map((s, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: `1px solid ${RULE}` }}>
+                    <span style={{ fontFamily: body, fontSize: 13.5, color: INK }}>{secItemStr(s, "dueDate", "label")}</span><span style={{ fontFamily: disp, fontSize: 16, fontWeight: 800, color: brand }}>{dig(secItemStr(s, "amount"))}</span>
+                  </div>
+                ))}
               </div>
-              <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "7px 14px", fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
-                ✓ {t.compassUiagmCertified}
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} size="lg" onClick={onWhatsApp} />}
-              <button style={{
-                padding: "14px 22px", borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.25)", background: "transparent",
-                color: "rgba(255,255,255,0.75)", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
-              }}>
-                {t.compassFitnessAssessment}
-              </button>
-            </div>
-          </div>
-        </div>
-      </DContainer>
-    </section>
-  );
-}
-
-// ─── Other Packages ──────────────────────────────────────────────────────────
-
-function CmOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"]; agencySlug?: string }) {
-  const t = T[lang];
-  const data = cmFindSec(pkg, "other_packages");
-  const cards = cmSecArr(data, "packages");
-  if (!cards.length) return null;
-  const heading = cmSecStr(data, "heading") || t.otherPackagesHeading;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  const isRtl = lang === "ar";
-  return (
-    <section style={{ padding: pad }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{heading}</div>
-        <div style={{
-          display: "flex", gap: 14, overflowX: "auto",
-          paddingBottom: 8, scrollSnapType: "x mandatory",
-          WebkitOverflowScrolling: "touch",
-        }}>
-          {cards.map((card, i) => {
-            const img = cmSecStr(card, "image");
-            const title = cmItemStr(card, "title");
-            const dest = cmSecStr(card, "destination");
-            const price = cmSecStr(card, "price");
-            const nights = cmSecStr(card, "nights");
-            const link = cmSecStr(card, "link");
-            return (
-              <a
-                key={i}
-                href={link || undefined}
-                style={{
-                  flex: "0 0 200px", minWidth: 200, borderRadius: 12,
-                  overflow: "hidden", textDecoration: "none",
-                  border: `1px solid ${BORDER}`,
-                  background: "#fff",
-                  scrollSnapAlign: "start",
-                  display: "flex", flexDirection: "column",
-                }}
-              >
-                <div style={{ width: "100%", height: 120, background: BORDER, flexShrink: 0 }}>
-                  {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-                </div>
-                <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-                  {dest && <div style={{ fontFamily: INTER, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" as const, color: ORANGE }}>{dest}</div>}
-                  <div style={{ fontFamily: INTER, fontSize: 14, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{title}</div>
-                  {(nights || price) && (
-                    <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                      {nights && <span style={{ fontFamily: INTER, fontSize: 11, color: MUTED }}>{nights}</span>}
-                      {price && <span style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: ORANGE }}>{price}</span>}
-                    </div>
-                  )}
-                </div>
-              </a>
-            );
-          })}
-        </div>
-        {agencySlug && (
-          <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-            <a href={`/${agencySlug}/packages`} style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: ORANGE, textDecoration: "none" }}>
-              {t.navAllPackages} →
-            </a>
+            )}
           </div>
         )}
-      </div>
-    </section>
-  );
-}
+      </Wrap>
+    );
+  };
 
-// ─── Missing section components ─────────────────────────────────────────────
-
-function CmHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data  = cmFindSec(pkg, "highlights");
-  const items = cmSecArr(data, "items").map(i => cmItemStr(i, "text")).filter(Boolean);
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad }} data-pmx-section="highlights">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.coHighlights}</div>
-        <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
-          {items.map((item, i) => (
-            <div key={i} style={{ background: `${ORANGE}10`, border: `1px solid ${ORANGE}30`, borderRadius: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, color: ORANGE }}>{item}</div>
+  // ════════ EXTRAS ════════
+  const Extras = () => {
+    const items = secArr(findSec(pkg, "extras"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="extras">
+        <SecHead k="extras" kicker={L.sections.extras} title={ar("Add-ons & gear", "إضافات ومعدّات")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 12 : 10 }}>
+          {items.map((e, i) => (
+            <div key={i} style={{ border: `1px solid ${RULE}`, borderRadius: 2, background: CARD, padding: D ? 24 : 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                <div style={{ fontFamily: disp, fontSize: D ? 18 : 16, fontWeight: 700, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.3px" }}>{secItemStr(e, "name", "title")}</div>
+                {secItemStr(e, "price") && <span style={{ fontFamily: disp, fontSize: D ? 18 : 16, fontWeight: 800, color: brand, whiteSpace: "nowrap" }}>{dig(secItemStr(e, "price"))}</span>}
+              </div>
+              {secItemStr(e, "description", "desc") && <div style={{ fontFamily: body, fontSize: 13.5, color: MUT, lineHeight: 1.6 }}>{secItemStr(e, "description", "desc")}</div>}
+            </div>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-function CmInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data     = cmFindSec(pkg, "inclusions");
-  const includes = (data?.includes as string[] | undefined) ?? pkg.includes ?? [];
-  const excludes = (data?.excludes as string[] | undefined) ?? pkg.excludes ?? [];
-  if (!includes.length && !excludes.length) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section id="included" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="inclusions">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <Eyebrow text={t.coWhatsIncluded} brand={ORANGE} />
-        {includes.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1fr 1fr", gap: 8, marginBottom: excludes.length ? 16 : 0, marginTop: 16 }}>
-            {includes.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                <span style={{ color: ORANGE, fontSize: 11, fontWeight: 800, marginTop: 1, flexShrink: 0 }}>✓</span>
-                <span style={{ fontSize: 12, color: MUTED, lineHeight: 1.4 }}>{item}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {excludes.length > 0 && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 8 }}>{t.coNotIncluded}</div>
-            {excludes.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: MUTED, marginBottom: 6 }}>
-                <span style={{ color: "rgba(13,27,46,0.3)", fontWeight: 700 }}>—</span>
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function CmPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; onWhatsApp: () => void; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data  = cmFindSec(pkg, "pricing");
-  const tiers = cmSecArr(data, "tiers").length ? cmSecArr(data, "tiers") : (pkg.pricingTiers ?? []).map(t2 => ({ label: t2.label, price: t2.price, was: t2.was, perks: t2.perks, pop: t2.pop }));
-  if (!tiers.length) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section id="pricing" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="pricing">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <Eyebrow text={t.navPricing} brand={ORANGE} />
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 12, marginTop: 16 }}>
-          {tiers.map((tier, i) => {
-            const pop   = !!tier.pop;
-            const label = localizeTierLabel(cmItemStr(tier, "label"), lang);
-            const price = cmItemStr(tier, "price");
-            const was   = cmItemStr(tier, "was");
-            const perks = (tier.perks as string[] | undefined) ?? [];
-            return (
-              <div key={i} style={{ background: pop ? ORANGE : "#fff", border: `1px solid ${pop ? ORANGE : BORDER}`, borderRadius: 14, padding: isDesktop ? "24px 24px" : "18px 18px", display: "flex", flexDirection: "column" as const }}>
-                {pop && <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.75)", marginBottom: 8 }}>{t.coMostPopular}</div>}
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: pop ? "rgba(255,255,255,0.75)" : MUTED, marginBottom: 6 }}>{label}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-                  <div style={{ fontFamily: INTER, fontSize: isDesktop ? 34 : 28, fontWeight: 800, letterSpacing: "-0.5px", color: pop ? "#fff" : ORANGE, lineHeight: 1 }}>{price}</div>
-                  {was && <div style={{ fontSize: 13, textDecoration: "line-through", color: pop ? "rgba(255,255,255,0.5)" : MUTED }}>{was}</div>}
-                </div>
-                <div style={{ fontSize: 11, color: pop ? "rgba(255,255,255,0.65)" : MUTED, marginBottom: perks.length ? 14 : 0 }}>{t.perPerson}</div>
-                {perks.length > 0 && (
-                  <ul style={{ listStyle: "none", padding: 0, margin: "0 0 14px", display: "flex", flexDirection: "column" as const, gap: 8, borderTop: `1px solid ${pop ? "rgba(255,255,255,0.2)" : BORDER}`, paddingTop: 12 }}>
-                    {perks.map((p, j) => (
-                      <li key={j} style={{ display: "flex", gap: 8, fontSize: 12.5, color: pop ? "rgba(255,255,255,0.85)" : MUTED }}>
-                        <span style={{ color: pop ? "rgba(255,255,255,0.7)" : ORANGE, fontWeight: 700, flexShrink: 0 }}>✓</span>
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {pkg.whatsapp && <button onClick={onWhatsApp} style={{ marginTop: "auto", background: pop ? "rgba(255,255,255,0.2)" : `${ORANGE}12`, border: `1px solid ${pop ? "rgba(255,255,255,0.3)" : `${ORANGE}30`}`, borderRadius: 8, padding: "10px 0", fontSize: 13, fontWeight: 700, color: pop ? "#fff" : ORANGE, fontFamily: INTER, cursor: "pointer" }}>
-                  {t.bookWhatsApp}
-                </button>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CmTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data  = cmFindSec(pkg, "transfers");
-  const items = cmSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad }} data-pmx-section="transfers">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.coTransfers}</div>
-        <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
-          {items.map((item, i) => {
-            const from = cmItemStr(item, "from");
-            const to   = cmItemStr(item, "to");
-            const type = cmItemStr(item, "type", "transportType");
-            const note = cmItemStr(item, "note", "details");
-            return (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                <div style={{ minWidth: 0 }}>
-                  {(from || to) && <div style={{ fontFamily: INTER, fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 4, overflowWrap: "break-word" }}>{from}{from && to ? " → " : ""}{to}</div>}
-                  {type && <div style={{ fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", color: ORANGE, textTransform: "uppercase" as const }}>{type}</div>}
-                  {note && <div style={{ fontSize: 12, color: MUTED, marginTop: 4, overflowWrap: "break-word" }}>{note}</div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CmExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data  = cmFindSec(pkg, "extras");
-  const items = cmSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad }} data-pmx-section="extras">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.coExtras}</div>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 8 }}>
-          {items.map((item, i) => {
-            const name  = cmItemStr(item, "name", "title");
-            const price = cmItemStr(item, "price");
-            const desc  = cmItemStr(item, "description", "desc");
-            return (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: INTER, fontSize: 13, fontWeight: 700, color: INK }}>{name}</div>
-                  {desc && <div style={{ fontSize: 12, color: MUTED, marginTop: 4, lineHeight: 1.5 }}>{desc}</div>}
-                </div>
-                {price && <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: ORANGE, flexShrink: 0 }}>{price}</div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CmCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
-  const data    = cmFindSec(pkg, "custom");
-  const heading = cmSecStr(data, "heading");
-  const content = cmSecStr(data, "content");
-  const image   = cmSecStr(data, "image");
-  if (!heading && !content) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad }} data-pmx-section="custom">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        {heading && <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{heading}</div>}
-        {image && <img src={image} alt={heading} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 12, marginBottom: 16, display: "block" }} />}
-        {content && <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.7 }}>{content}</div>}
-      </div>
-    </section>
-  );
-}
-
-function CmPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data   = cmFindSec(pkg, "people");
-  const people = cmSecArr(data, "people");
-  if (!people.length) return null;
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad }} data-pmx-section="people">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>{t.coPeople}</div>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 12 }}>
-          {people.map((person, i) => {
-            const name  = cmItemStr(person, "name");
-            const role  = cmItemStr(person, "role");
-            const bio   = cmItemStr(person, "bio");
-            const photo = cmItemStr(person, "photo");
-            const years = person.years as number | undefined;
-            const langs = (person.languages as string[] | undefined) ?? [];
-            return (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "16px 18px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-                {photo
-                  ? <img src={photo} alt={name} style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-                  : <div style={{ width: 56, height: 56, borderRadius: 8, background: `${ORANGE}12`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, fontSize: 20, fontWeight: 800, color: ORANGE, flexShrink: 0 }}>{name?.[0]}</div>
-                }
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: INTER, fontSize: 14, fontWeight: 800, color: INK }}>{name}</div>
-                  {role && <div style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.8px", color: ORANGE, textTransform: "uppercase" as const, marginTop: 2 }}>{localizeRole(role, t)}{years ? ` · ${years}y exp` : ""}</div>}
-                  {bio && <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.55, marginTop: 8 }}>{bio}</div>}
-                  {langs.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4, marginTop: 10 }}>
-                      {langs.map((l, j) => <div key={j} style={{ background: `${ORANGE}0c`, border: `1px solid ${ORANGE}20`, borderRadius: 4, padding: "2px 7px", fontSize: 10.5, fontWeight: 600, color: ORANGE }}>{l}</div>)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CmReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const reviews   = pkg.reviews ?? [];
-  const canSubmit = agency.enableReviews !== false;
-  const showList  = agency.showReviews !== false && reviews.length > 0;
-  if (!showList && !canSubmit) return null;
-
-  const [name,   setName]   = React.useState("");
-  const [text,   setText]   = React.useState("");
-  const [rating, setRating] = React.useState(0);
-  const [hover,  setHover]  = React.useState(0);
-  const [status, setStatus] = React.useState<"idle"|"sending"|"ok"|"err">("idle");
-
-  const handleSubmit = async () => {
-    if (!name.trim() || !text.trim() || !rating || !pkg.id) return;
-    setStatus("sending");
-    try {
-      const res = await fetch("/api/submit-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ packageId: pkg.id, name: name.trim(), text: text.trim(), rating }) });
-      setStatus(res.ok ? "ok" : "err");
-    } catch { setStatus("err"); }
+      </Wrap>
+    );
   };
 
-  const pad = isDesktop ? "0 80px 48px" : "22px 18px 0";
-  return (
-    <section id="reviews" style={{ padding: pad, scrollMarginTop: 88 }} data-pmx-section="reviews">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 14 }}>
-          {showList ? `${reviews.length} ${t.coVerifiedReviews}` : t.writeReviewTitle}
-        </div>
-        {showList && (
-          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 10, marginBottom: canSubmit ? 24 : 0 }}>
-            {reviews.map((r, i) => (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "16px 18px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                  <div>
-                    <div style={{ fontFamily: INTER, fontSize: 13.5, fontWeight: 700, color: INK }}>{r.name}</div>
-                    {r.country && <div style={{ fontFamily: MONO, fontSize: 10, color: MUTED, marginTop: 2 }}>{r.country}</div>}
-                  </div>
-                  <div style={{ display: "flex", gap: 1 }}>{[1,2,3,4,5].map(n => <span key={n} style={{ color: n <= r.rating ? ORANGE : "rgba(13,27,46,0.15)", fontSize: 12 }}>★</span>)}</div>
-                </div>
-                <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6 }}>{r.text}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        {canSubmit && status !== "ok" && (
-          <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: isDesktop ? "24px 28px" : "18px 18px" }}>
-            <div style={{ fontFamily: INTER, fontSize: 15, fontWeight: 800, color: INK, marginBottom: 14 }}>{t.writeReviewTitle}</div>
-            <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-              {[1,2,3,4,5].map(n => (
-                <button key={n} onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => setRating(n)} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", fontSize: 22, color: n <= (hover || rating) ? ORANGE : "rgba(13,27,46,0.15)", lineHeight: 1 }}>★</button>
-              ))}
-            </div>
-            <input placeholder={t.reviewYourName} value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: INTER, background: "transparent", color: INK, marginBottom: 8, boxSizing: "border-box" as const }} />
-            <textarea placeholder={t.reviewPlaceholder} value={text} onChange={e => setText(e.target.value)} rows={3} style={{ width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontFamily: INTER, background: "transparent", color: INK, marginBottom: 14, resize: "none" as const, boxSizing: "border-box" as const }} />
-            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: ORANGE, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, fontFamily: INTER, cursor: "pointer" }}>{status === "sending" ? t.coSending : t.submitReviewBtn}</button>
-            {status === "err" && <div style={{ fontSize: 12, color: "#c0392b", marginTop: 8 }}>{t.coSomethingWrong}</div>}
-          </div>
-        )}
-        {status === "ok" && <div style={{ background: `${ORANGE}10`, border: `1px solid ${ORANGE}30`, borderRadius: 10, padding: "14px 18px", fontSize: 13, color: ORANGE, fontWeight: 600 }}>{t.reviewSubmitSuccess}</div>}
-      </div>
-    </section>
-  );
-}
-
-function CmCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; onWhatsApp: () => void; onMessenger: () => void; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const nights = pkg.nights ? Number(pkg.nights) : null;
-  const pad = isDesktop ? "48px 80px 64px" : "24px 18px";
-  return (
-    <section style={{ padding: pad, background: INK, color: "#fff" }}>
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined, display: "flex", flexDirection: isDesktop ? "row" as const : "column" as const, justifyContent: "space-between", alignItems: isDesktop ? "center" : "flex-start", gap: 24 }}>
-        <div>
-          <div style={{ fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: ORANGE, marginBottom: 8 }}>Ready to summit?</div>
-          <div style={{ fontFamily: INTER, fontSize: isDesktop ? 36 : 28, fontWeight: 800, letterSpacing: "-0.8px", color: "#fff", lineHeight: 1 }}>{pkg.price}</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}</div>
-        </div>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
-          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
-          {pkg.messenger && <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "#0084ff", color: "#fff", border: "none", borderRadius: 8, padding: "14px 22px", fontSize: 14, fontWeight: 700, fontFamily: INTER, cursor: "pointer" }}>{t.coMessenger}</button>}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CmMobileFooter({ agency }: { agency: TPageProps["agency"] }) {
-  return (
-    <div style={{ padding: "24px 18px", background: INK, borderTop: `1px solid rgba(255,255,255,0.08)`, textAlign: "center" as const }}>
-      {agency.logoUrl && <img src={agency.logoUrl} alt={agency.name} style={{ height: 28, objectFit: "contain", display: "block", margin: "0 auto 10px", filter: "brightness(0) invert(1)" }} />}
-      <div style={{ fontFamily: INTER, fontSize: 14, fontWeight: 700, color: "#fff" }}>{agency.name}</div>
-      {agency.tagline && <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>{agency.tagline}</div>}
-    </div>
-  );
-}
-
-// ─── TemplateCompassPage ──────────────────────────────────────────────────────
-
-export function TemplateCompassPage({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
-  const t = T[lang];
-  const nights     = pkg.nights ? Number(pkg.nights) : null;
-  const coverImage = pkg.coverImage || "";
-  const title      = pkg.title || pkg.destination;
-  const isRtl      = lang === "ar";
-  const itinerary  = getItineraryDays(pkg).filter(it => it.title?.trim());
-  const includes   = pkg.includes?.length ? pkg.includes : (pkg.advantages || []);
-  const isDesktop  = useIsDesktop();
-
-  const altitudeLabel = pkg.maxAltitude ? `${pkg.maxAltitude.toLocaleString()}${t.metersUnit}` : pkg.price;
-
-  const navLinks = [
-    ...(itinerary.length ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
-    ...(includes.length ? [{ label: t.navIncluded, href: "#included" }] : []),
-    ...((pkg.pricingTiers || []).some(t2 => t2.price) || pkg.sections?.some(s => s.type === "pricing") ? [{ label: t.navPricing, href: "#pricing" }] : []),
-    ...(pkg.sections?.some(s => s.type === "hotel") || pkg.sections?.some(s => s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#hotel" }] : []),
-    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#departures" }] : []),
-    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#reviews" }] : []),
-    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#faq" }] : []),
-  ];
-
-  if (isDesktop) {
+  // ════════ SCARCITY ════════
+  const Scarcity = () => {
+    const sc = pkg.scarcity;
+    if (!sc || sc.spotsRemaining == null) return null;
+    const total = sc.totalSpots && sc.totalSpots > 0 ? sc.totalSpots : Math.max(sc.spotsRemaining, 12);
+    const pct = Math.round(((total - sc.spotsRemaining) / total) * 100);
     return (
-      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: SAND, color: INK, fontFamily: INTER, direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={ORANGE} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-
-        {/* Hero: text LEFT, image RIGHT (50/50 split) */}
-        <DContainer style={{ padding: "80px 80px 64px" }} data-pmx-section="hero">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
-            {/* Text column */}
-            <div style={{ order: isRtl ? 2 : 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }} data-pmx-field="destination">
-                {pkg.destination}
-              </div>
-              <h1 style={{ fontFamily: INTER, fontSize: 58, fontWeight: 800, lineHeight: 0.97, letterSpacing: "-2px", margin: "0 0 20px", color: INK }} data-pmx-field="title">{title}</h1>
-              {pkg.description && (
-                <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.65, margin: "0 0 24px" }}>{pkg.description}</p>
-              )}
-              <div style={{ fontFamily: INTER, fontSize: 36, fontWeight: 800, color: ORANGE, letterSpacing: "-0.8px", lineHeight: 1 }} data-pmx-field="price">{pkg.price}</div>
-              <div style={{ fontSize: 11.5, color: SMUTED, marginTop: 4, marginBottom: 20, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.perPerson}</div>
-              {pkg.difficulty && (
-                <div style={{ maxWidth: 320, marginBottom: 20 }}>
-                  <DifficultyBar difficulty={pkg.difficulty} lang={lang} />
-                </div>
-              )}
-              {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
+      <Wrap style={{ background: SLATE, color: "#fff" }} section="scarcity">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 48 : 24, alignItems: "center" }}>
+          <div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${AMBER}`, borderRadius: 2, padding: "6px 12px", marginBottom: 18 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: AMBER }} /><Mono color={AMBER}>{L.sections.scarcity}</Mono>
             </div>
-            {/* Image column */}
-            <div style={{ order: isRtl ? 1 : 2, position: "relative", height: 520, borderRadius: 16, overflow: "hidden", background: INK }}>
-              {coverImage
-                ? <img src={coverImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${ORANGE}cc, ${ORANGE}55)` }} />
-              }
-            </div>
+            <h2 style={{ fontFamily: disp, fontSize: D ? 34 : 25, fontWeight: 800, lineHeight: 1.15, textTransform: up, letterSpacing: rtl ? 0 : "-0.8px", margin: 0 }}>{L.ui.spotsLine(sc.spotsRemaining)}</h2>
+            <p style={{ fontFamily: body, fontSize: D ? 16 : 14.5, color: "rgba(255,255,255,0.72)", lineHeight: 1.7, margin: "18px 0 0" }}>{L.ui.scarcityWindow}</p>
           </div>
-        </DContainer>
-
-        {/* 5-col stats band */}
-        <TrekStatsBand pkg={pkg} lang={lang} />
-
-        {/* Honest difficulty section */}
-        <HonestDifficultySection pkg={pkg} lang={lang} />
-
-        {/* Includes 3-col */}
-        {includes.length > 0 && (
-          <DContainer id="included" style={{ padding: "0 80px 56px" }}>
-            <Eyebrow text={t.includedLabel} brand={ORANGE} />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 16 }}>
-              {includes.slice(0, 9).map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "12px 14px" }}>
-                  <span style={{ color: ORANGE, fontSize: 11, fontWeight: 800, marginTop: 1, flexShrink: 0 }}>✓</span>
-                  <span style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.4 }}>{item}</span>
-                </div>
-              ))}
+          <div style={{ border: `1px solid rgba(255,255,255,0.15)`, borderRadius: 2, padding: D ? 30 : 22 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div><div style={{ fontFamily: disp, fontSize: D ? 56 : 42, fontWeight: 800, color: brLight, lineHeight: 1 }}>{dig(sc.spotsRemaining)}</div><Mono color="rgba(255,255,255,0.55)">{L.ui.seatsLeft} / {dig(total)}</Mono></div>
+              {sc.firstDepartureDate && <div style={{ textAlign: "end" }}><Mono color="rgba(255,255,255,0.55)">{L.ui.nextDeparture}</Mono><div style={{ fontFamily: disp, fontSize: D ? 22 : 18, fontWeight: 800, color: "#fff", marginTop: 4 }}>{dig(sc.firstDepartureDate)}</div></div>}
             </div>
-          </DContainer>
-        )}
-
-        {/* Day-by-day itinerary */}
-        {itinerary.length > 0 && (
-          <div data-pmx-section="itinerary">
-          <DContainer id="itinerary" style={{ padding: "0 80px 64px" }}>
-            <Eyebrow text={t.dayByDay} brand={ORANGE} />
-            <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: isRtl ? "0" : "-0.7px", margin: "10px 0 24px" }}>{t.compassDailyMetrics}</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-              {itinerary.map((it, i) => (
-                <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: 20 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: ORANGE, letterSpacing: "0.8px", textTransform: "uppercase" as const, marginBottom: 6 }}>
-                    {t.dayLabel} {it.day}
-                    {it.km ? ` · ${it.km}${t.kmUnit}` : ""}
-                    {it.alt ? ` · ${it.alt}${t.metersUnit}` : ""}
-                  </div>
-                  <div style={{ fontFamily: INTER, fontSize: 13.5, fontWeight: 700, color: INK, lineHeight: 1.3, marginBottom: it.desc ? 6 : 0 }}>{it.title}</div>
-                  {it.desc && <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5 }}>{it.desc}</div>}
-                </div>
-              ))}
-            </div>
-          </DContainer>
+            <div style={{ height: 8, borderRadius: 2, background: "rgba(255,255,255,0.12)", overflow: "hidden", marginTop: 18 }}><div style={{ width: `${pct}%`, height: "100%", background: AMBER }} /></div>
+            {pkg.whatsapp && <div style={{ marginTop: 18 }}><Primary full big onClick={onWhatsApp}>{ar("Hold a spot", "احجز مقعدًا")}</Primary></div>}
           </div>
-        )}
-
-        <CmHotelsSection pkg={pkg} isDesktop={true} />
-        <CmMediaSection pkg={pkg} isDesktop={true} lang={lang} />
-        <CmHighlightsSection pkg={pkg} isDesktop={true} lang={lang} />
-        <CmInclusionsSection pkg={pkg} isDesktop={true} lang={lang} />
-        <CmPricingSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
-        <CmTransfersSection pkg={pkg} isDesktop={true} lang={lang} />
-        <CmExtrasSection pkg={pkg} isDesktop={true} lang={lang} />
-        <CmCustomSection pkg={pkg} isDesktop={true} />
-        <CmPeopleSection pkg={pkg} isDesktop={true} lang={lang} />
-        <CmDeparturesSection pkg={pkg} isDesktop={true} lang={lang} />
-        <CmFaqSection pkg={pkg} isDesktop={true} />
-        <CmImportantNotesSection pkg={pkg} isDesktop={true} lang={lang} />
-        <CmReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
-        <CmAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} />
-        <CmOtherPackagesSection pkg={pkg} isDesktop={true} lang={lang} agencySlug={agency.agencySlug} />
-        <CompassGuidePanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-        <CmCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
-        <DesktopFooter agency={agency} brand={ORANGE} />
-      </div>
+        </div>
+      </Wrap>
     );
-  }
+  };
+
+  // ════════ PEOPLE ════════
+  const People = () => {
+    if (!person?.name) return null;
+    const role = person.role ? (ROLE_LABELS[person.role]?.[lang] || person.role.replace(/_/g, " ")) : "";
+    const bio = (person as { bio?: string }).bio || "";
+    const years = typeof person.years === "number" ? person.years : 0;
+    return (
+      <Wrap section="people">
+        <SecHead k="people" kicker={L.sections.people} title={ar("Your guide", "مرشدك")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "auto 1fr" : "1fr", gap: D ? 40 : 22, alignItems: "start" }}>
+          {person.photo
+            ? <img src={person.photo} alt="" style={{ width: D ? 220 : 160, height: D ? 270 : 200, objectFit: "cover", display: "block", borderRadius: 2 }} />
+            : <div style={{ width: D ? 220 : 160, height: D ? 270 : 200, background: CARD, border: `1px solid ${RULE}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: disp, fontSize: D ? 80 : 56, fontWeight: 800, color: brand }}>{person.name[0]}</div>}
+          <div>
+            <div style={{ fontFamily: disp, fontSize: D ? 34 : 26, fontWeight: 800, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.8px" }}>{person.name}</div>
+            {role && <div style={{ marginTop: 6 }}><Mono color={brand}>{role}</Mono></div>}
+            {bio && <p style={{ fontFamily: body, fontSize: 14.5, color: MUT, lineHeight: 1.75, marginTop: 16 }}>{bio}</p>}
+            {years > 0 && (
+              <div style={{ display: "flex", gap: 40, marginTop: 22, borderTop: `1px solid ${RULE}`, paddingTop: 18 }}>
+                <div><div style={{ fontFamily: disp, fontSize: 28, fontWeight: 800, color: brand }}>{dig(years)}</div><Mono>{L.ui.years}</Mono></div>
+              </div>
+            )}
+            {pkg.whatsapp && <div style={{ marginTop: 20 }}><Primary onClick={onWhatsApp}>{L.ui.message}</Primary></div>}
+          </div>
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ REVIEWS ════════
+  const Reviews = () => {
+    if (agency.showReviews === false) return null;
+    const items = pkg.reviews ?? [];
+    if (!items.length) return null;
+    const rating = pkg.rating ?? 5;
+    const count = pkg.reviewCount ?? items.length;
+    return (
+      <Wrap style={{ background: CARD }} id="co-reviews" section="reviews">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+          <SecHead k="reviews" kicker={L.sections.reviews} title={ar("Trail reports", "تقارير المسار")} />
+          <div style={{ textAlign: "end", marginBottom: D ? 40 : 26 }}>
+            <div style={{ fontFamily: disp, fontSize: D ? 50 : 40, fontWeight: 800, color: brand, lineHeight: 1 }}>{dig(rating)}</div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}><CoStars n={Math.round(rating)} size={14} color={brand} /></div>
+            <div style={{ marginTop: 6 }}><Mono>{L.ui.basedOn} {dig(count)} {L.ui.review}</Mono></div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 12 : 10 }}>
+          {items.slice(0, 6).map((r, i) => (
+            <div key={i} style={{ border: `1px solid ${RULE}`, borderRadius: 2, background: PAPER, padding: D ? 26 : 22 }}>
+              <CoStars n={Math.round(r.rating || 5)} size={13} color={brand} />
+              <p style={{ fontFamily: body, fontSize: D ? 16 : 15, color: INK, lineHeight: 1.6, margin: "12px 0 16px" }}>&ldquo;{r.text}&rdquo;</p>
+              <div style={{ fontFamily: disp, fontSize: 13, fontWeight: 700, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.2px" }}>{r.name}</div>
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ ABOUT ════════
+  const About = () => {
+    const a = findSec(pkg, "about_agency");
+    const story = secStr(a, "content");
+    const image = secStr(a, "image");
+    if (!a || (!story && !image)) return null;
+    return (
+      <Wrap section="about_agency">
+        <SecHead k="about_agency" kicker={L.sections.agency} title={agency.name} sub={agency.tagline} />
+        <div style={{ display: "grid", gridTemplateColumns: D && image ? "1.3fr 1fr" : "1fr", gap: D ? 48 : 24, alignItems: "start" }}>
+          {story && <p style={{ fontFamily: body, fontSize: D ? 16 : 14.5, color: MUT, lineHeight: 1.85, margin: 0, whiteSpace: "pre-line" }}>{story}</p>}
+          {image && <img src={image} alt="" style={{ width: "100%", height: D ? 300 : 220, objectFit: "cover", display: "block", borderRadius: 2 }} />}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ NOTES ════════
+  const Notes = () => {
+    const items = secMixed(findSec(pkg, "important_notes"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap style={{ background: CARD }} section="important_notes">
+        <SecHead k="important_notes" kicker={L.sections.notes} title={ar("Before you commit", "قبل أن تحجز")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 12 : 10 }}>
+          {items.map((n, i) => {
+            const t = secItemStr(n, "title");
+            const body2 = secItemStr(n, "text", "desc", "description") || (typeof n === "string" ? n : "");
+            return (
+              <div key={i} style={{ border: `1px solid ${RULE}`, borderTop: `3px solid ${brand}`, borderRadius: 2, background: PAPER, padding: D ? 24 : 20 }}>
+                {t && <div style={{ fontFamily: disp, fontSize: D ? 18 : 16, fontWeight: 700, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.3px", marginBottom: 6 }}>{t}</div>}
+                <div style={{ fontFamily: body, fontSize: 13.5, color: MUT, lineHeight: 1.6 }}>{body2}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ FAQ ════════
+  const Faq = () => {
+    const items = secArr(findSec(pkg, "faq"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="faq">
+        <SecHead k="faq" kicker={L.sections.faq} title={ar("Questions, answered", "إجابات على أسئلتك")} />
+        <div>
+          {items.map((f, i) => (
+            <div key={i} style={{ padding: D ? "22px 0" : "18px 0", borderTop: `1px solid ${RULE}`, borderBottom: i === items.length - 1 ? `1px solid ${RULE}` : "none" }}>
+              <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1.4fr" : "1fr", gap: D ? 40 : 8, alignItems: "baseline" }}>
+                <div style={{ fontFamily: disp, fontSize: D ? 20 : 17, fontWeight: 700, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.3px", lineHeight: 1.25 }}>{secItemStr(f, "question", "q")}</div>
+                {secItemStr(f, "answer", "a") && <p style={{ fontFamily: body, fontSize: 14.5, color: MUT, lineHeight: 1.7, margin: 0 }}>{secItemStr(f, "answer", "a")}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ CUSTOM ════════
+  const Custom = () => {
+    const cs = findSec(pkg, "custom");
+    const heading = secStr(cs, "heading");
+    const text = secStr(cs, "content");
+    const image = secStr(cs, "image") || cover;
+    if (!heading && !text) return null;
+    return (
+      <Wrap style={{ background: SLATE, color: "#fff" }} section="custom">
+        <div style={{ display: "grid", gridTemplateColumns: D && image ? "1.4fr 1fr" : "1fr", gap: D ? 48 : 22, alignItems: "center" }}>
+          <div>
+            <div style={{ marginBottom: 16 }}><Mono color={brLight}>{L.sections.custom}</Mono></div>
+            {heading && <H2 light size={D ? 44 : 28}>{heading}</H2>}
+            {text && <p style={{ fontFamily: body, fontSize: D ? 17 : 15, color: "rgba(255,255,255,0.82)", lineHeight: 1.75, margin: "18px 0 0", whiteSpace: "pre-line" }}>{text}</p>}
+          </div>
+          {image && <img src={image} alt="" style={{ width: "100%", height: D ? 320 : 200, objectFit: "cover", display: "block", borderRadius: 2 }} />}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ OTHERS ════════
+  const Others = () => {
+    const list = secArr(findSec(pkg, "other_packages"), "packages");
+    if (!list.length) return null;
+    return (
+      <Wrap section="other_packages">
+        <SecHead k="other_packages" kicker={L.sections.others} title={ar("More expeditions", "رحلات أخرى")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 16 : 14 }}>
+          {list.map((o, i) => {
+            const oTitle = secItemStr(o, "title"); const place = secItemStr(o, "destination", "place");
+            const price = secItemStr(o, "price"); const oNights = secItemStr(o, "nights");
+            const img = secItemStr(o, "image"); const link = secItemStr(o, "link");
+            const Inner = (
+              <div style={{ border: `1px solid ${RULE}`, borderRadius: 2, overflow: "hidden", background: CARD, height: "100%" }}>
+                <div style={{ position: "relative", height: D ? 180 : 160, background: PAPER }}>
+                  {img && <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                  {place && <div style={{ position: "absolute", insetInlineStart: 12, top: 12, background: SLATE, padding: "5px 10px" }}><Mono color="rgba(255,255,255,0.85)">{place}</Mono></div>}
+                </div>
+                <div style={{ padding: D ? 20 : 18 }}>
+                  <div style={{ fontFamily: disp, fontSize: D ? 20 : 18, fontWeight: 700, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.4px", lineHeight: 1.1 }}>{oTitle}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderTop: `1px solid ${RULE}`, paddingTop: 12, marginTop: 12 }}>
+                    {price && <span style={{ fontFamily: disp, fontSize: 20, fontWeight: 800, color: brand }}>{dig(price)}</span>}
+                    {oNights && <Mono>{dig(oNights)} {L.ui.nights}</Mono>}
+                  </div>
+                </div>
+              </div>
+            );
+            return link ? <a key={i} href={link} style={{ textDecoration: "none" }}>{Inner}</a> : <div key={i}>{Inner}</div>;
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ FOOTER ════════
+  const Footer = () => (
+    <div>
+      <Wrap pt={D ? 76 : 46} pb={D ? 76 : 46} style={{ background: brand, color: onBrand, textAlign: "center" }}>
+        {pkg.destination && <Mono color={coRgba(onBrand, 0.7)}>{pkg.destination}</Mono>}
+        <div style={{ fontFamily: disp, fontSize: D ? 56 : 34, fontWeight: 800, lineHeight: 1.0, textTransform: up, letterSpacing: rtl ? 0 : "-1.5px", maxWidth: 760, margin: "14px auto 0" }}>{L.ui.begin}</div>
+        <div style={{ fontFamily: body, fontSize: 14, opacity: 0.85, margin: "16px 0 26px" }}>{L.ui.replyTime}{pkg.whatsapp ? ` · ${dig(pkg.whatsapp)}` : ""}</div>
+        <div style={{ display: "inline-flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          {pkg.whatsapp && <button onClick={onWhatsApp} data-testid="wa-cta" style={{ fontFamily: disp, background: onBrand, color: brand, border: "none", borderRadius: 2, padding: "16px 30px", fontSize: D ? 13 : 12, fontWeight: 700, letterSpacing: rtl ? 0 : "0.6px", textTransform: up, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 9 }}><WAIcon s={14} fill={brand} /> {L.ui.bookWhatsapp}</button>}
+          {pkg.messenger && onMessenger && <Primary big ghost onClick={onMessenger}>{L.ui.messenger}</Primary>}
+        </div>
+      </Wrap>
+      <div style={{ padding: `22px ${px}px`, display: "flex", justifyContent: "space-between", alignItems: "center", background: SLATE }}>
+        <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 800, color: "#fff", textTransform: up, letterSpacing: rtl ? 0 : "-0.4px" }}>{agency.name}</div>
+        <Mono color="rgba(255,255,255,0.5)">{L.ui.poweredBy}</Mono>
+      </div>
+    </div>
+  );
+
+  // ════════ BAR ════════
+  const Bar = () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${px}px`, height: D ? 58 : 52, borderBottom: `1px solid ${RULE}`, background: coRgba(PAPER, 0.92), backdropFilter: "blur(10px)", position: "sticky", top: 0, zIndex: 30 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 9, height: 9, background: brand }} />
+        <span style={{ fontFamily: disp, fontSize: D ? 18 : 16, fontWeight: 800, color: INK, textTransform: up, letterSpacing: rtl ? 0 : "-0.4px" }}>{agency.name}</span>
+      </div>
+      {D ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          {navItems.map(([key, lbl]) => <button key={key} onClick={() => goTo(key)} style={{ fontFamily: mono, fontSize: 10.5, letterSpacing: rtl ? 0 : "1px", textTransform: up, color: MUT, background: "none", border: "none", cursor: "pointer", padding: 0 }}>{lbl}</button>)}
+          {pkg.whatsapp && <Primary onClick={onWhatsApp}>{L.ui.book}</Primary>}
+        </div>
+      ) : (pkg.whatsapp && <Primary onClick={onWhatsApp}>{L.ui.book}</Primary>)}
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: "100vh", background: SAND, color: INK, fontFamily: INTER, direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={ORANGE} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
-
-      {/* Hero: full-bleed with strong bottom gradient on mobile */}
-      <div style={{ position: "relative", height: 460, overflow: "hidden" }} data-pmx-section="hero">
-        {coverImage
-          ? <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-          : <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${ORANGE}cc, ${ORANGE}55)` }} />
-        }
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.08) 20%, rgba(0,0,0,0.75) 100%)" }} />
-        <div style={{ position: "absolute", bottom: 20, left: 18, right: 18 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.7)", letterSpacing: "2px", textTransform: "uppercase" as const, marginBottom: 6 }} data-pmx-field="destination">
-            {pkg.destination}
-          </div>
-          <h1 style={{ fontFamily: INTER, fontSize: 34, fontWeight: 800, color: "#fff", lineHeight: 1.05, letterSpacing: "-1px", margin: 0 }} data-pmx-field="title">{title}</h1>
-        </div>
-      </div>
-
-      {/* Stats band */}
-      <TrekStatsBand pkg={pkg} lang={lang} />
-
-      {/* Difficulty + fitness */}
-      {pkg.difficulty && (
-        <div style={{ padding: "16px 18px 0" }}>
-          <DifficultyBar difficulty={pkg.difficulty} lang={lang} />
-          {pkg.fitnessNote && (
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 6 }}>{pkg.fitnessNote}</div>
-          )}
-        </div>
-      )}
-
-      {/* Price + CTA */}
-      <div style={{ padding: "20px 18px 0" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div>
-            <div style={{ fontFamily: INTER, fontSize: 32, fontWeight: 800, color: ORANGE, letterSpacing: "-0.8px", lineHeight: 1 }} data-pmx-field="price">{pkg.price}</div>
-            <div style={{ fontSize: 11, color: SMUTED, marginTop: 3, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{t.perPerson}</div>
-          </div>
-          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
-        </div>
-        {pkg.description && (
-          <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, marginTop: 14, marginBottom: 0 }}>{pkg.description}</p>
-        )}
-      </div>
-
-      {/* Includes */}
-      {includes.length > 0 && (
-        <div id="included" style={{ padding: "22px 18px 0", scrollMarginTop: 88 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.includedLabel}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {includes.slice(0, 6).map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                <span style={{ color: ORANGE, fontSize: 11, fontWeight: 800, marginTop: 1, flexShrink: 0 }}>✓</span>
-                <span style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.4 }}>{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Day-by-day itinerary */}
-      {itinerary.length > 0 && (
-        <section id="itinerary" style={{ padding: "22px 18px 0", scrollMarginTop: 88 }} data-pmx-section="itinerary">
-          <Eyebrow text={t.dayByDay} brand={ORANGE} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
-            {itinerary.map((it, i) => (
-              <div key={i} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 38, height: 38, borderRadius: 9, background: `${ORANGE}12`, border: `1px solid ${ORANGE}30`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, fontSize: 13, fontWeight: 800, color: ORANGE }}>
-                  {it.day}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: INTER, fontSize: 13.5, fontWeight: 700, color: INK, lineHeight: 1.3, marginBottom: (it.desc || it.km || it.alt) ? 4 : 0 }}>
-                    {it.title}
-                  </div>
-                  {(it.km || it.alt) && (
-                    <div style={{ fontSize: 11, color: ORANGE, fontWeight: 700, marginBottom: it.desc ? 4 : 0 }}>
-                      {it.km ? `${it.km}${t.kmUnit}` : ""}
-                      {it.km && it.alt ? " · " : ""}
-                      {it.alt ? `${it.alt}${t.metersUnit}` : ""}
-                    </div>
-                  )}
-                  {it.desc && <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.55 }}>{it.desc}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <CmHotelsSection pkg={pkg} isDesktop={false} />
-      <CmMediaSection pkg={pkg} isDesktop={false} lang={lang} />
-      <CmHighlightsSection pkg={pkg} isDesktop={false} lang={lang} />
-      <CmInclusionsSection pkg={pkg} isDesktop={false} lang={lang} />
-      <CmPricingSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
-      <CmTransfersSection pkg={pkg} isDesktop={false} lang={lang} />
-      <CmExtrasSection pkg={pkg} isDesktop={false} lang={lang} />
-      <CmCustomSection pkg={pkg} isDesktop={false} />
-      <CmPeopleSection pkg={pkg} isDesktop={false} lang={lang} />
-      <CmDeparturesSection pkg={pkg} isDesktop={false} lang={lang} />
-      <CmFaqSection pkg={pkg} isDesktop={false} />
-      <CmImportantNotesSection pkg={pkg} isDesktop={false} lang={lang} />
-      <CmReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
-      <CmAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} />
-      <CmOtherPackagesSection pkg={pkg} isDesktop={false} lang={lang} agencySlug={agency.agencySlug} />
-      <CompassGuidePanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-      <CmCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
-      <CmMobileFooter agency={agency} />
-      <StickyCTA price={altitudeLabel} nights={nights} label={t.bookWhatsApp} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
+    <div dir={rtl ? "rtl" : "ltr"} lang={lang} style={{ width: "100%", background: PAPER, color: INK, fontFamily: body, position: "relative" }}>
+      {Bar()}
+      {Hero()}
+      {Highlights()}
+      {Media()}
+      {Itinerary()}
+      {Hotel()}
+      {Inclusions()}
+      {Meals()}
+      {Visa()}
+      {Transfers()}
+      {Departures()}
+      {Pricing()}
+      {Extras()}
+      {Scarcity()}
+      {People()}
+      {Reviews()}
+      {About()}
+      {Notes()}
+      {Faq()}
+      {Custom()}
+      {Others()}
+      {Footer()}
+      {lightbox !== null && photos.length > 0 && <LightboxCarousel images={photos} startIndex={lightbox} onClose={() => setLightbox(null)} />}
     </div>
   );
 }
 
-// ─── TemplateCompassCard ──────────────────────────────────────────────────────
-
+// ─── Card (dashboard listing) ─────────────────────────────────────────────────
 export function TemplateCompassCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, onDuplicate }: TCardProps) {
   return (
     <BaseCard

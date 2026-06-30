@@ -11,7 +11,6 @@ export const PRESETS: PresetDef[] = [
     descriptionAr: "باقة دينية مع رحلات جوية وفندق في مكة والمدينة وتأشيرة وبرنامج يومي ووجبات وخطة دفع",
     icon: "star",
     sections: [
-      { type: "flights" },
       { type: "hotel" },
       {
         type: "itinerary",
@@ -72,18 +71,6 @@ export const PRESETS: PresetDef[] = [
           cancellation: "Free cancellation up to 45 days before departure. 50% refund up to 30 days before.",
         },
       },
-      {
-        type: "payment_plan",
-        data: {
-          content: "Secure your seat with a deposit. Remainder due 30 days before departure.",
-          steps: [
-            { label: "Deposit",           amount: "30%",  dueDate: "At booking" },
-            { label: "Second instalment", amount: "40%",  dueDate: "60 days before" },
-            { label: "Final payment",     amount: "30%",  dueDate: "30 days before" },
-          ],
-        },
-      },
-      { type: "booking_terms" },
     ],
   },
 
@@ -105,15 +92,6 @@ export const PRESETS: PresetDef[] = [
             "Guided city tour",
             "Airport transfers included",
             "Breakfast daily",
-          ],
-        },
-      },
-      {
-        type: "departure_dates",
-        data: {
-          dates: [
-            { date: "", returnDate: "", price: "", spots: "" },
-            { date: "", returnDate: "", price: "", spots: "" },
           ],
         },
       },
@@ -142,7 +120,6 @@ export const PRESETS: PresetDef[] = [
           excludes: ["Flights", "Lunch & dinner", "Personal expenses"],
         },
       },
-      { type: "gallery" },
       { type: "pricing" },
     ],
   },
@@ -169,16 +146,6 @@ export const PRESETS: PresetDef[] = [
         },
       },
       {
-        type: "departure_dates",
-        data: {
-          dates: [
-            { date: "", returnDate: "", price: "", spots: "" },
-            { date: "", returnDate: "", price: "", spots: "" },
-            { date: "", returnDate: "", price: "", spots: "" },
-          ],
-        },
-      },
-      {
         type: "itinerary",
         data: {
           days: [
@@ -201,18 +168,7 @@ export const PRESETS: PresetDef[] = [
           excludes: ["Shore excursions", "Drinks packages", "Gratuities", "Travel insurance"],
         },
       },
-      {
-        type: "payment_plan",
-        data: {
-          content: "Early booking discount available. Full payment required 60 days before sailing.",
-          steps: [
-            { label: "Deposit",       amount: "25%",  dueDate: "At booking" },
-            { label: "Final payment", amount: "75%",  dueDate: "60 days before" },
-          ],
-        },
-      },
       { type: "pricing" },
-      { type: "gallery" },
       { type: "faq" },
     ],
   },
@@ -243,14 +199,6 @@ export const PRESETS: PresetDef[] = [
       {
         type: "meals",
         data: { plan: "all_inclusive", notes: "" },
-      },
-      {
-        type: "flights",
-        data: {
-          departures: [
-            { name: "", arrivingAirport: "", price: "", date: "", flyingTime: "", arrivingTime: "" },
-          ],
-        },
       },
       {
         type: "transfers",
@@ -300,8 +248,6 @@ export const PRESETS: PresetDef[] = [
           cancellation: "Free cancellation up to 30 days before departure",
         },
       },
-      { type: "gallery" },
-      { type: "booking_terms" },
     ],
   },
 
@@ -331,24 +277,6 @@ export const PRESETS: PresetDef[] = [
       {
         type: "visa",
         data: { included: "assistance", content: "" },
-      },
-      {
-        type: "departure_dates",
-        data: {
-          dates: [
-            { date: "", returnDate: "", price: "", spots: "" },
-            { date: "", returnDate: "", price: "", spots: "" },
-            { date: "", returnDate: "", price: "", spots: "" },
-          ],
-        },
-      },
-      {
-        type: "flights",
-        data: {
-          departures: [
-            { name: "", arrivingAirport: "", price: "", date: "", flyingTime: "", arrivingTime: "" },
-          ],
-        },
       },
       {
         type: "itinerary",
@@ -411,17 +339,6 @@ export const PRESETS: PresetDef[] = [
         },
       },
       {
-        type: "payment_plan",
-        data: {
-          content: "Reserve your place with a deposit. Full balance due 45 days before departure.",
-          steps: [
-            { label: "Deposit",           amount: "25%",  dueDate: "At booking" },
-            { label: "Second instalment", amount: "50%",  dueDate: "90 days before" },
-            { label: "Final payment",     amount: "25%",  dueDate: "45 days before" },
-          ],
-        },
-      },
-      {
         type: "pricing",
         data: {
           tiers: [
@@ -433,8 +350,6 @@ export const PRESETS: PresetDef[] = [
           cancellation: "Free cancellation up to 60 days before departure. 50% refund up to 30 days before.",
         },
       },
-      { type: "gallery" },
-      { type: "booking_terms" },
     ],
   },
 
@@ -456,18 +371,6 @@ export const PRESETS: PresetDef[] = [
             "Entrance fees included",
             "Transport provided",
             "Lunch included",
-          ],
-        },
-      },
-      {
-        type: "schedule",
-        data: {
-          items: [
-            { time: "08:00", activity: "Hotel pickup", location: "" },
-            { time: "09:30", activity: "Main attraction visit", location: "" },
-            { time: "13:00", activity: "Lunch break", location: "" },
-            { time: "15:00", activity: "Second site visit", location: "" },
-            { time: "18:00", activity: "Return to hotel", location: "" },
           ],
         },
       },
@@ -570,16 +473,6 @@ export const PRESETS: PresetDef[] = [
             "All airport & inter-city transfers",
             "Breakfast daily",
             "Small group — personalised experience",
-          ],
-        },
-      },
-      {
-        type: "departure_dates",
-        data: {
-          dates: [
-            { date: "", returnDate: "", price: "", spots: "" },
-            { date: "", returnDate: "", price: "", spots: "" },
-            { date: "", returnDate: "", price: "", spots: "" },
           ],
         },
       },
@@ -694,7 +587,6 @@ export const PRESETS: PresetDef[] = [
           excludes: ["International flights", "Travel insurance", "Gratuities"],
         },
       },
-      { type: "gallery" },
       { type: "pricing" },
     ],
   },

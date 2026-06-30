@@ -150,8 +150,8 @@ export function AddSectionMenu({
     "media", "pricing", "departures", "reviews", "people",
   ]);
 
-  // Visible (non-legacy) section types
-  const allVisible = SECTION_REGISTRY_LIST.filter((d) => !d.legacy);
+  // All section types are user-addable (no legacy types remain)
+  const allVisible = SECTION_REGISTRY_LIST;
 
   // Filter by search query
   const q = query.trim().toLowerCase();

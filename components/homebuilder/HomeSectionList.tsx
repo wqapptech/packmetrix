@@ -8,7 +8,7 @@
 
 import { useRef, useState } from "react";
 import Icon from "@/components/Icon";
-import { pick, type HomeSection, type Loc } from "@/lib/homepage";
+import { pick, resolveVariant, SECTION_VARIANTS, type HomeSection, type Loc } from "@/lib/homepage";
 import { HOME_FIELD_REGISTRY } from "@/lib/homepage-fields";
 import { HomeSectionEditor } from "./HomeSectionEditor";
 import {
@@ -80,6 +80,8 @@ export function HomeSectionList({
   };
   const setContent = (type: string, content: Record<string, unknown>) =>
     onChange(sections.map((s) => (s.type === type ? { ...s, content: content as HomeSection["content"] } : s)));
+  const setVariant = (type: string, variant: string) =>
+    onChange(sections.map((s) => (s.type === type ? { ...s, variant } : s)));
 
   const move = (i: number, dir: -1 | 1) => {
     const to = i + dir;
@@ -216,6 +218,7 @@ export function HomeSectionList({
             {/* Editor body */}
             {isOpen && (
               <div style={{ padding: "16px 16px 18px", borderTop: `1px solid ${DA_RULE}` }}>
+                <VariantStrip section={s} onPick={(v) => setVariant(s.type, v)} lang={lang} />
                 <HomeSectionEditor
                   def={def}
                   content={(s.content || {}) as Record<string, unknown>}
@@ -228,6 +231,41 @@ export function HomeSectionList({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Layout picker — a row of chips offered only when a section type has more than
+// one implemented variant. Switching is content-safe (variant is layout-only),
+// so it just re-flows the same authored data and the preview rebuilds instantly.
+function VariantStrip({ section, onPick, lang }: { section: HomeSection; onPick: (v: string) => void; lang: "en" | "ar" }) {
+  const variants = SECTION_VARIANTS[section.type] || [];
+  if (variants.length < 2) return null;
+  const active = resolveVariant(section);
+  const l = lang === "ar";
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: DA_INK3, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 8 }}>
+        {l ? "التصميم" : "Layout"}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+        {variants.map((v) => {
+          const on = v.id === active;
+          return (
+            <button
+              key={v.id}
+              onClick={() => onPick(v.id)}
+              style={{
+                padding: "7px 13px", borderRadius: 8, cursor: "pointer", fontFamily: SANS, fontSize: 12.5, fontWeight: 600,
+                background: on ? DA_GOLD_SOFT : DA_SURFACE, color: on ? DA_GOLD_DEEP : DA_INK1,
+                border: `1px solid ${on ? "rgba(176,138,62,.45)" : DA_RULE2}`, transition: "all .15s",
+              }}
+            >
+              {pick(v.label, lang)}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

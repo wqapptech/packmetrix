@@ -1,4 +1,4 @@
-import type { TPackage, TReview, TAirport, TItineraryDay, TPricingTier, TAgent, TDeparture, TTrekProfile, TScarcity, TPerson, LocalizedString } from "@/components/templates/types";
+import type { TPackage, TReview, TAirport, TItineraryDay, TPricingTier, TAgent, TDeparture, TScarcity, TPerson, LocalizedString } from "@/components/templates/types";
 
 type SectionData = Record<string, unknown>;
 type RawSection = { id: string; type: string; order: number; data: SectionData };
@@ -85,38 +85,7 @@ function extractAgent(sections: RawSection[], raw: TPackage): TAgent | undefined
       };
     }
   }
-  const guideSec = getSection(sections, "guide");
-  if (guideSec) {
-    return {
-      name:   str(guideSec.name),
-      role:   "guide",
-      avatar: str(guideSec.photo) || undefined,
-    };
-  }
   return raw.agent ?? undefined;
-}
-
-// ─── Trek profile extraction ──────────────────────────────────────────────────
-
-function extractTrekProfile(sections: RawSection[], raw: TPackage): TTrekProfile | undefined {
-  const sec = getSection(sections, "trek_profile");
-  if (sec) {
-    return {
-      difficulty:  (sec.difficulty as TTrekProfile["difficulty"]) || undefined,
-      maxAltitude: typeof sec.maxAltitude === "number" ? sec.maxAltitude : undefined,
-      distanceKm:  typeof sec.distanceKm  === "number" ? sec.distanceKm  : undefined,
-      fitnessNote: str(sec.fitnessNote) || undefined,
-    };
-  }
-  if (raw.difficulty || raw.maxAltitude || raw.distanceKm) {
-    return {
-      difficulty:  raw.difficulty,
-      maxAltitude: raw.maxAltitude,
-      distanceKm:  raw.distanceKm,
-      fitnessNote: raw.fitnessNote,
-    };
-  }
-  return undefined;
 }
 
 // ─── Scarcity extraction ──────────────────────────────────────────────────────
@@ -157,17 +126,6 @@ function extractPeople(sections: RawSection[], raw: TPackage): TPerson[] | undef
       repliesIn: str(p.repliesIn) || undefined,
     }));
   }
-  const guideSec = getSection(sections, "guide");
-  if (guideSec) {
-    return [{
-      id: "guide_legacy",
-      role: "guide",
-      name: str(guideSec.name),
-      bio:  str(guideSec.bio)   || undefined,
-      photo: str(guideSec.photo) || undefined,
-      languages: strArr(guideSec.languages),
-    }];
-  }
   if (raw.agent?.name) {
     return [{
       id: "agent_legacy",
@@ -195,15 +153,6 @@ function extractDepartures(sections: RawSection[], raw: TPackage): TDeparture[] 
       deal:  e.deal === true || e.deal === "true" || undefined,
     })).filter((e) => e.date);
   }
-  // legacy departure_dates section
-  const ddSec = getSection(sections, "departure_dates");
-  if (ddSec && Array.isArray(ddSec.dates)) {
-    return (ddSec.dates as SectionData[]).map((d) => ({
-      date:  str(d.date),
-      spots: typeof d.spots === "number" ? d.spots : Number(d.spots) || 0,
-      price: str(d.price) || undefined,
-    })).filter((d) => d.date);
-  }
   return raw.departures?.length ? raw.departures : undefined;
 }
 
@@ -224,18 +173,6 @@ function extractAirports(sections: RawSection[], raw: TPackage): TAirport[] | un
         arrivingTime:    str(e.arrivingTime) || undefined,
       }));
     }
-  }
-  // legacy flights section
-  const flightsSec = getSection(sections, "flights");
-  if (flightsSec && Array.isArray(flightsSec.departures)) {
-    return (flightsSec.departures as SectionData[]).map((d) => ({
-      name:            str(d.name),
-      price:           str(d.price),
-      date:            str(d.date) || undefined,
-      arrivingAirport: str(d.arrivingAirport) || undefined,
-      flyingTime:      str(d.flyingTime) || undefined,
-      arrivingTime:    str(d.arrivingTime) || undefined,
-    }));
   }
   return raw.airports?.length ? raw.airports : undefined;
 }
@@ -266,7 +203,6 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
 
   if (!Array.isArray(pkg.sections) || pkg.sections.length === 0) {
     // Old flat-field packages — just resolve localized strings and return
-    normalized.trekProfile = extractTrekProfile([], pkg);
     normalized.scarcity    = extractScarcity([], pkg);
     normalized.people      = extractPeople([], pkg);
     return normalized;
@@ -316,12 +252,6 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
     if (pricingSec.cancellation !== undefined) {
       normalized.cancellation = str(pricingSec.cancellation);
     }
-  } else {
-    // legacy payment_plan → fold into pricing compat
-    const ppSec = getSection(sections, "payment_plan");
-    if (ppSec && !normalized.cancellation) {
-      normalized.cancellation = str(ppSec.content) || undefined;
-    }
   }
 
   // hotel (v2: multiple instances possible)
@@ -335,14 +265,6 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
   if (mediaSec) {
     if (Array.isArray(mediaSec.images)) normalized.images = strArr(mediaSec.images);
     if (mediaSec.videoUrl) normalized.videoUrl = str(mediaSec.videoUrl);
-  } else {
-    // legacy gallery / video
-    const gallerySec = getSection(sections, "gallery");
-    if (gallerySec && Array.isArray(gallerySec.images)) {
-      normalized.images = strArr(gallerySec.images);
-    }
-    const videoSec = getSection(sections, "video");
-    if (videoSec) normalized.videoUrl = str(videoSec.videoUrl);
   }
 
   // reviews — merge agency-authored section reviews with customer-submitted flat reviews.
@@ -377,17 +299,8 @@ export function normalizePkg(pkg: TPackage, lang?: "en" | "ar"): TPackage {
 
   // Attributes
   normalized.agent      = extractAgent(sections, pkg) ?? pkg.agent;
-  normalized.trekProfile = extractTrekProfile(sections, pkg);
   normalized.scarcity   = extractScarcity(sections, pkg);
   normalized.people     = extractPeople(sections, pkg);
-
-  // Hydrate legacy flat trek fields for templates that read them directly
-  if (normalized.trekProfile) {
-    normalized.difficulty  = normalized.trekProfile.difficulty;
-    normalized.maxAltitude = normalized.trekProfile.maxAltitude;
-    normalized.distanceKm  = normalized.trekProfile.distanceKm;
-    normalized.fitnessNote = normalized.trekProfile.fitnessNote;
-  }
 
   // Hydrate legacy flat scarcity fields for templates that read them directly
   if (normalized.scarcity) {

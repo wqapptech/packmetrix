@@ -45,7 +45,6 @@ function toPreviewPayload(
   const mediaSec   = get<{ images?: ArrStr; videoUrl?: string }>("media");
   const peopleSec  = get<{ people: Array<Record<string, unknown>> }>("people");
   const depSec     = get<{ entries: Array<Record<string, unknown>> }>("departures");
-  const trekSec    = get<{ difficulty: string; maxAltitude: number; distanceKm: number }>("trek_profile");
   const scarcitySec = get<{ wasPrice: string; spotsRemaining: number; totalSpots: number }>("scarcity");
 
   const firstPerson = peopleSec?.people?.[0];
@@ -114,11 +113,6 @@ function toPreviewPayload(
     airports,
     sections: previewSections,
     ...(agent              ? { agent }                                     : { agent: null }),
-    ...(trekSec            ? {
-                               difficulty:     trekSec.difficulty,
-                               maxAltitude:    trekSec.maxAltitude,
-                               distanceKm:     trekSec.distanceKm,
-                             }                                             : {}),
     ...(scarcitySec        ? {
                                priceWas:       scarcitySec.wasPrice,
                                spotsRemaining: scarcitySec.spotsRemaining,

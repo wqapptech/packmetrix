@@ -9,7 +9,7 @@
 import type { AgencyBrand } from "@/lib/brand";
 import { waHref, emailHref } from "@/lib/brand";
 import {
-  pick, reviewKind, type HomeSection, type Testimonial,
+  pick, reviewKind, resolveVariant, type HomeSection, type Testimonial,
   type HeroContent, type AboutContent, type WhyUsContent, type ServicesContent,
   type FeaturedPackagesContent, type DestinationsContent, type TestimonialsContent,
   type ContactContent, type StatsContent, type SeasonalOffersContent, type AccreditationContent,
@@ -137,7 +137,51 @@ function SectionHead({ eyebrow, heading, ctx, onDark }: { eyebrow?: string; head
 
 // ── Sections ────────────────────────────────────────────────────────────────
 
-function Hero(c: HeroContent, ctx: Ctx) {
+function Hero(c: HeroContent, ctx: Ctx, variant: string) {
+  if (variant === "split") return HeroSplit(c, ctx);
+  return HeroCinematic(c, ctx);
+}
+
+// Split hero: copy on the agency's paper beside a tall image — a calmer,
+// editorial open versus the full-bleed cinematic. Same content fields.
+function HeroSplit(c: HeroContent, ctx: Ctx) {
+  const { lang, m, brand } = ctx;
+  const eyebrow = pick(c.eyebrow, lang) || brand.name;
+  const headline = pick(c.headline, lang) || brand.name;
+  const sub = pick(c.sub, lang) || brand.tagline || "";
+  const U = UI[lang];
+  return (
+    <section style={{ background: "var(--paper2)", borderBottom: "1px solid var(--rule)" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", display: "grid", gridTemplateColumns: m ? "1fr" : "1fr 1fr", alignItems: "stretch", minHeight: m ? "auto" : 600 }}>
+        <div style={{ padding: m ? "52px 22px 40px" : "0 56px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <span className="hp-eyebrow">{eyebrow}</span>
+          <h1 className="hp-serif" style={{ fontSize: m ? 40 : 72, fontWeight: 600, lineHeight: 1.05, letterSpacing: "-0.02em", color: "var(--ink)", margin: "18px 0 0", maxWidth: "13ch" }}>
+            {headline}
+          </h1>
+          {sub ? <p style={{ fontSize: m ? 16 : 19, lineHeight: 1.6, color: "var(--ink2)", margin: "20px 0 0", maxWidth: "46ch" }}>{sub}</p> : null}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 13, marginTop: 30 }}>
+            {ctx.waLink ? (
+              <a href={ctx.waLink} target="_blank" rel="noopener noreferrer" className="hp-wabtn" style={{ fontSize: 15.5, padding: "15px 24px" }}>
+                <WaIcon size={18} /> {U.heroCta1}
+              </a>
+            ) : null}
+            <a href={ctx.packagesHref} style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "transparent", color: "var(--ink)", fontSize: 15.5, fontWeight: 600, padding: "15px 22px", borderRadius: 12, border: "1px solid var(--rule)", textDecoration: "none" }}>
+              {U.heroCta2}
+            </a>
+          </div>
+        </div>
+        <div style={{ position: "relative", minHeight: m ? 300 : "auto", background: PLACEHOLDER_GRAD }}>
+          {c.image ? (
+            <img src={c.image} alt="" onError={(e) => ((e.currentTarget as HTMLImageElement).style.opacity = "0")}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeroCinematic(c: HeroContent, ctx: Ctx) {
   const { lang, m, brand } = ctx;
   const eyebrow = pick(c.eyebrow, lang) || brand.name;
   const headline = pick(c.headline, lang) || brand.name;
@@ -173,7 +217,7 @@ function Hero(c: HeroContent, ctx: Ctx) {
   );
 }
 
-function About(c: AboutContent, ctx: Ctx) {
+function About(c: AboutContent, ctx: Ctx, variant: string) {
   const { lang, m, brand, agency } = ctx;
   const derivedBody = lang === "ar"
     ? String(agency.about_ar || agency.about_en || "")
@@ -184,6 +228,25 @@ function About(c: AboutContent, ctx: Ctx) {
   if (!body) {
     if (ctx.editor) return <EditorEmpty label={pick(c.eyebrow, lang) || (lang === "ar" ? "من نحن" : "About")} ctx={ctx} />;
     return null; // honest-empty: nothing to say yet
+  }
+  // Stacked: a centered intro with the image full-width below — a story-led open
+  // versus the image-beside default. Same content fields.
+  if (variant === "stacked") {
+    return (
+      <section style={{ padding: `${vpad(m)}px 0` }}>
+        <div className="hp-wrap">
+          <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            {pick(c.eyebrow, lang) ? <span className="hp-eyebrow is-center">{pick(c.eyebrow, lang)}</span> : null}
+            <h2 className="hp-serif hp-h2" style={{ fontSize: h2size(ctx.m), maxWidth: "20ch", textAlign: "center" }}>{heading}</h2>
+            <p style={{ fontSize: m ? 16 : 18, lineHeight: 1.7, color: "var(--ink2)", margin: "22px 0 0", maxWidth: "60ch" }}>{body}</p>
+            {link ? <a href={ctx.aboutHref} className="hp-link" style={{ marginTop: 26 }}>{link}<span className="hp-arrow">{UI[lang].arrow}</span></a> : null}
+          </div>
+          <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", height: m ? 260 : 460, background: PLACEHOLDER_GRAD, marginTop: m ? 32 : 48 }}>
+            {c.image ? <img src={c.image} alt="" onError={(e) => ((e.currentTarget as HTMLImageElement).style.opacity = "0")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} /> : null}
+          </div>
+        </div>
+      </section>
+    );
   }
   return (
     <section style={{ padding: `${vpad(m)}px 0` }}>
@@ -202,12 +265,58 @@ function About(c: AboutContent, ctx: Ctx) {
   );
 }
 
-function CardsSection(c: WhyUsContent | ServicesContent, ctx: Ctx, opts: { alt?: boolean; small?: boolean }) {
-  const { lang, m } = ctx;
+function CardsSection(c: WhyUsContent | ServicesContent, ctx: Ctx, opts: { alt?: boolean; small?: boolean }, variant: string) {
+  const { lang, m, ar } = ctx;
   const items = c.items || [];
   if (!items.length) {
     if (ctx.editor) return <EditorEmpty label={pick(c.heading, lang) || pick(c.eyebrow, lang) || (lang === "ar" ? "قسم" : "Section")} ctx={ctx} />;
     return null; // honest-empty until authored
+  }
+  // why_us "rows": numbered horizontal rows on the alt surface — editorial,
+  // sequential, versus the equal-weight card grid. Same items.
+  if (variant === "rows") {
+    return (
+      <section style={{ padding: `${vpad(m)}px 0`, background: "var(--alt)", borderTop: "1px solid var(--rule)", borderBottom: "1px solid var(--rule)" }}>
+        <div className="hp-wrap">
+          <SectionHead eyebrow={pick(c.eyebrow, lang)} heading={pick(c.heading, lang)} ctx={ctx} />
+          <div style={{ marginTop: 36 }}>
+            {items.map((it, i) => (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: m ? 16 : 30, alignItems: "start", padding: m ? "22px 0" : "26px 0", borderTop: i ? "1px solid var(--rule)" : "none" }}>
+                <div className="hp-serif" style={{ fontSize: m ? 32 : 46, fontWeight: 600, color: "var(--brand-text)", lineHeight: 1, minWidth: m ? 40 : 60 }}>
+                  {ar ? arNum(i + 1, true) : String(i + 1).padStart(2, "0")}
+                </div>
+                <div>
+                  <h3 className="hp-serif" style={{ fontSize: m ? 21 : 26, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>{pick(it.title, lang)}</h3>
+                  <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "var(--ink2)", margin: "8px 0 0", maxWidth: "62ch" }}>{pick(it.desc, lang)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+  // services "list": two-column icon+text rows in cards — denser, scannable,
+  // versus the icon grid. Same items.
+  if (variant === "list") {
+    return (
+      <section style={{ padding: `${vpad(m)}px 0` }}>
+        <div className="hp-wrap">
+          <SectionHead eyebrow={pick(c.eyebrow, lang)} heading={pick(c.heading, lang)} ctx={ctx} />
+          <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(2,1fr)", gap: m ? 14 : 18, marginTop: 42 }}>
+            {items.map((it, i) => (
+              <div key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", background: "var(--paper2)", border: "1px solid var(--rule)", borderRadius: 14, padding: "20px 22px" }}>
+                <div className="hp-iconbox" style={{ flex: "0 0 auto" }}><FeatureIcon name={it.icon} /></div>
+                <div>
+                  <h3 className="hp-serif" style={{ fontSize: 20, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>{pick(it.title, lang)}</h3>
+                  <p style={{ fontSize: 14, lineHeight: 1.55, color: "var(--ink2)", margin: "6px 0 0" }}>{pick(it.desc, lang)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
   }
   const cardBg = opts.alt ? "var(--card)" : "var(--paper2)";
   return (
@@ -232,23 +341,38 @@ function CardsSection(c: WhyUsContent | ServicesContent, ctx: Ctx, opts: { alt?:
   );
 }
 
-function FeaturedPackages(c: FeaturedPackagesContent, ctx: Ctx) {
+function FeaturedPackages(c: FeaturedPackagesContent, ctx: Ctx, variant: string) {
   const { lang, m, packages } = ctx;
   if (!packages.length) return null;
-  const list = packages.slice(0, c.limit || 4);
   const link = pick(c.link, lang);
+  const carousel = variant === "carousel";
+  // Carousel shows more than the grid's tidy row, scrolling horizontally.
+  const list = packages.slice(0, carousel ? Math.max(c.limit || 4, 6) : (c.limit || 4));
+  const header = (
+    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+      <div><SectionHead eyebrow={pick(c.eyebrow, lang)} heading={pick(c.heading, lang)} ctx={ctx} /></div>
+      {link ? <a href={ctx.packagesHref} className="hp-link" style={{ paddingBottom: 6 }}>{link}<span className="hp-arrow">{UI[lang].arrow}</span></a> : null}
+    </div>
+  );
   return (
     <section style={{ padding: `${vpad(m)}px 0`, background: "var(--alt)", borderTop: "1px solid var(--rule)", borderBottom: "1px solid var(--rule)" }}>
       <div className="hp-wrap">
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-          <div><SectionHead eyebrow={pick(c.eyebrow, lang)} heading={pick(c.heading, lang)} ctx={ctx} /></div>
-          {link ? <a href={ctx.packagesHref} className="hp-link" style={{ paddingBottom: 6 }}>{link}<span className="hp-arrow">{UI[lang].arrow}</span></a> : null}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(4,1fr)", gap: 20, marginTop: 42 }}>
-          {list.map((p) => (
-            <PackageCard key={p.id} pkg={p} lang={lang} onOpen={() => ctx.openPkg(p.id)} />
-          ))}
-        </div>
+        {header}
+        {carousel ? (
+          <div style={{ display: "flex", gap: 20, marginTop: 42, overflowX: "auto", paddingBottom: 10, scrollSnapType: "x mandatory", scrollbarWidth: "thin" }}>
+            {list.map((p) => (
+              <div key={p.id} style={{ flex: m ? "0 0 78%" : "0 0 300px", scrollSnapAlign: "start" }}>
+                <PackageCard pkg={p} lang={lang} onOpen={() => ctx.openPkg(p.id)} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(4,1fr)", gap: 20, marginTop: 42 }}>
+            {list.map((p) => (
+              <PackageCard key={p.id} pkg={p} lang={lang} onOpen={() => ctx.openPkg(p.id)} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -374,7 +498,7 @@ export function ReviewTile({ it, ctx }: { it: Testimonial; ctx: Ctx }) {
   );
 }
 
-function Testimonials(c: TestimonialsContent, ctx: Ctx) {
+function Testimonials(c: TestimonialsContent, ctx: Ctx, variant: string) {
   const { lang, m } = ctx;
   const U = UI[lang];
   const items = c.items || [];
@@ -385,6 +509,41 @@ function Testimonials(c: TestimonialsContent, ctx: Ctx) {
   const list = items.slice(0, limit);
   const hasMore = items.length > list.length;
   const viewAll = pick(c.link, lang) || U.tstViewAll;
+  // Spotlight: one large centered quote (or the first media review) instead of
+  // the two-column wall. Only when there's a real review — the illustrative
+  // editor-empty state keeps the default two-column placeholder.
+  if (variant === "spotlight" && items.length) {
+    const it = items[0];
+    const kind = reviewKind(it.media);
+    const trip = pick(it.trip, lang);
+    return (
+      <section style={{ padding: `${vpad(m)}px 0`, background: "var(--alt)", borderTop: "1px solid var(--rule)", borderBottom: "1px solid var(--rule)" }}>
+        <div className="hp-wrap" style={{ maxWidth: 880, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            {pick(c.eyebrow, lang) ? <span className="hp-eyebrow is-center">{pick(c.eyebrow, lang)}</span> : null}
+            {pick(c.heading, lang) ? <h2 className="hp-serif hp-h2" style={{ fontSize: h2size(m), textAlign: "center", maxWidth: "20ch" }}>{pick(c.heading, lang)}</h2> : null}
+          </div>
+          <div style={{ marginTop: 36 }}>
+            {kind !== "text" ? (
+              <div style={{ maxWidth: 460, margin: "0 auto" }}><ReviewTile it={it} ctx={ctx} /></div>
+            ) : (
+              <>
+                <div className="hp-serif" style={{ fontSize: 64, lineHeight: 0.5, color: "var(--brand-text)", height: 34 }}>&ldquo;</div>
+                <p className="hp-serif" style={{ fontSize: m ? 24 : 38, lineHeight: 1.34, letterSpacing: "-0.01em", color: "#2a2620", margin: "18px auto 0", maxWidth: "26ch" }}>{pick(it.quote, lang)}</p>
+                {(it.name || trip) ? (
+                  <div style={{ marginTop: 22 }}>
+                    {it.name ? <div style={{ fontSize: 15, fontWeight: 600, color: "#2a2620" }}>{it.name}</div> : null}
+                    {trip ? <div style={{ fontSize: 13.5, color: "var(--ink3)", marginTop: 2 }}>{trip}</div> : null}
+                  </div>
+                ) : null}
+              </>
+            )}
+            {items.length > 1 ? <div style={{ marginTop: 30 }}><a href={ctx.reviewsHref} className="hp-link">{viewAll}<span className="hp-arrow">{U.arrow}</span></a></div> : null}
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section style={{ padding: `${vpad(m)}px 0`, background: "var(--alt)", borderTop: "1px solid var(--rule)", borderBottom: "1px solid var(--rule)" }}>
       <div className="hp-wrap">
@@ -541,12 +700,38 @@ function Accreditation(c: AccreditationContent, ctx: Ctx) {
   );
 }
 
-function Contact(c: ContactContent, ctx: Ctx) {
-  const { lang, m, brand } = ctx;
+function Contact(c: ContactContent, ctx: Ctx, variant: string) {
+  const { lang, ar, m, brand } = ctx;
   const U = UI[lang];
   const heading = pick(c.heading, lang);
   const body = pick(c.body, lang);
   const note = pick(c.note, lang);
+  const waBtn = ctx.waLink ? (
+    <a href={ctx.waLink} target="_blank" rel="noopener noreferrer" className="hp-wabtn" style={{ fontSize: 16, padding: "16px 26px" }}><WaIcon size={19} /> {U.waCta}</a>
+  ) : null;
+  const emailBtn = brand.email ? (
+    <a href={emailHref(brand.email, m)} {...(m ? {} : { target: "_blank", rel: "noopener noreferrer" })} className="hp-ghostbtn" style={{ fontSize: 16, padding: "16px 24px", color: "#fff", border: "1px solid rgba(255,255,255,0.4)" }}>{U.emailCta}</a>
+  ) : null;
+  // Split: heading/body on one side, the actions stacked on the other — a
+  // directory feel versus the centered call-to-action band. Same content.
+  if (variant === "split") {
+    return (
+      <section id="hp-contact" style={{ background: "var(--brand-deep)", color: "var(--brand-on)" }}>
+        <div className="hp-wrap" style={{ padding: `${vpad(m)}px ${m ? 22 : 56}px`, display: "grid", gridTemplateColumns: m ? "1fr" : "1.15fr 0.85fr", gap: m ? 30 : 56, alignItems: "center", textAlign: ar ? "right" : "left" }}>
+          <div>
+            <span className="hp-eyebrow on-dark">{pick(c.eyebrow, lang)}</span>
+            {heading ? <h2 className="hp-serif" style={{ fontSize: m ? 32 : 48, fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.02em", color: "#fff", margin: "16px 0 0", maxWidth: "18ch" }}>{heading}</h2> : null}
+            {body ? <p style={{ fontSize: m ? 16 : 18, lineHeight: 1.6, color: "color-mix(in srgb, var(--brand-on) 85%, transparent)", margin: "16px 0 0", maxWidth: "48ch" }}>{body}</p> : null}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "stretch" }}>
+            {waBtn}
+            {emailBtn}
+            {note ? <div style={{ fontSize: 13, color: "color-mix(in srgb, var(--brand-on) 60%, transparent)", marginTop: 6 }}>{note}</div> : null}
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section id="hp-contact" style={{ background: "var(--brand-deep)", color: "var(--brand-on)" }}>
       <div className="hp-wrap" style={{ padding: `${vpad(m)}px ${m ? 22 : 56}px`, textAlign: "center" }}>
@@ -612,19 +797,20 @@ function Team(c: TeamContent, ctx: Ctx) {
 // ── Dispatcher ──────────────────────────────────────────────────────────────
 
 export function renderSection(section: HomeSection, ctx: Ctx): React.ReactNode {
+  const v = resolveVariant(section);
   switch (section.type) {
-    case "hero": return Hero(section.content as HeroContent, ctx);
-    case "about": return About(section.content as AboutContent, ctx);
-    case "why_us": return CardsSection(section.content as WhyUsContent, ctx, { alt: true });
-    case "services": return CardsSection(section.content as ServicesContent, ctx, { small: true });
-    case "featured_packages": return FeaturedPackages(section.content as FeaturedPackagesContent, ctx);
+    case "hero": return Hero(section.content as HeroContent, ctx, v);
+    case "about": return About(section.content as AboutContent, ctx, v);
+    case "why_us": return CardsSection(section.content as WhyUsContent, ctx, { alt: true }, v);
+    case "services": return CardsSection(section.content as ServicesContent, ctx, { small: true }, v);
+    case "featured_packages": return FeaturedPackages(section.content as FeaturedPackagesContent, ctx, v);
     case "destinations": return Destinations(section.content as DestinationsContent, ctx);
-    case "testimonials": return Testimonials(section.content as TestimonialsContent, ctx);
+    case "testimonials": return Testimonials(section.content as TestimonialsContent, ctx, v);
     case "stats": return Stats(section.content as StatsContent, ctx);
     case "seasonal_offers": return SeasonalOffers(section.content as SeasonalOffersContent, ctx);
     case "accreditation": return Accreditation(section.content as AccreditationContent, ctx);
     case "team": return Team(section.content as TeamContent, ctx);
-    case "contact": return Contact(section.content as ContactContent, ctx);
+    case "contact": return Contact(section.content as ContactContent, ctx, v);
     // blog / gallery / faq / how_it_works / map: modeled, renderer deferred.
     default: return null;
   }
