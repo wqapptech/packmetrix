@@ -117,19 +117,6 @@ export type TContact = {
 
 // ─── v2 Tier-3 Attributes ─────────────────────────────────────────────────────
 
-export type TrekDifficulty = "easy" | "moderate" | "strenuous" | "extreme";
-
-/**
- * Trek / adventure profile — stored as a `trek_profile` section.
- * Foregrounded by the Compass template.
- */
-export type TTrekProfile = {
-  difficulty?: TrekDifficulty;
-  maxAltitude?: number;
-  distanceKm?: number;
-  fitnessNote?: string;
-};
-
 /**
  * Scarcity signals — stored as a `scarcity` section.
  * Foregrounded by the Pulse template.
@@ -221,9 +208,6 @@ export type TPackage = {
 
   // ── Tier 3: Attributes (stored as typed section entries) ──────────────────
 
-  /** Trek / adventure profile. Foregrounded by Compass. */
-  trekProfile?: TTrekProfile;
-
   /** Scarcity signals. Foregrounded by Pulse. saving/viewersNow NEVER stored. */
   scarcity?: TScarcity;
 
@@ -286,16 +270,6 @@ export type TPackage = {
    * @deprecated Migrate to the `people` section. Kept for template backward compat.
    */
   agent?: TAgent;
-
-  // ── Legacy Compass flat fields (replaced by trek_profile section) ─────────
-  /** @deprecated Use trekProfile.maxAltitude */
-  maxAltitude?: number;
-  /** @deprecated Use trekProfile.distanceKm */
-  distanceKm?: number;
-  /** @deprecated Use trekProfile.difficulty */
-  difficulty?: "easy" | "moderate" | "strenuous" | "extreme";
-  /** @deprecated Use trekProfile.fitnessNote */
-  fitnessNote?: string;
 
   // ── Legacy Sakina field ────────────────────────────────────────────────────
   prayerTimes?: { fajr?: string; dhuhr?: string; asr?: string; maghrib?: string; isha?: string };

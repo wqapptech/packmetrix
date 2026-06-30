@@ -692,15 +692,21 @@ export function VisualTemplatePicker({
           })),
         });
 
-      if (Array.isArray(data.airports) && data.airports.length)
-        push("flights", {
-          departures: data.airports.map((a: Record<string, unknown>) => ({
-            name:            a.name            || "",
-            arrivingAirport: a.arrivingAirport || "",
-            price:           a.price           || "",
+      if (
+        Array.isArray(data.airports) && data.airports.length &&
+        !(Array.isArray(data.departures) && data.departures.length)
+      )
+        push("departures", {
+          entries: data.airports.map((a: Record<string, unknown>) => ({
             date:            a.date            || "",
+            returnDate:      "",
+            spots:           0,
+            price:           a.price           || "",
+            origin:          a.name            || "",
+            arrivingAirport: a.arrivingAirport || "",
             flyingTime:      a.flyingTime       || "",
             arrivingTime:    a.arrivingTime     || "",
+            deal:            false,
           })),
         });
 

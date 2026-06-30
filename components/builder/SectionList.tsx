@@ -138,8 +138,8 @@ export function SectionList({
     .map((t) => SECTION_REGISTRY[t])
     .filter(Boolean);
 
-  // Count non-legacy section types available to add
-  const totalSectionTypes = SECTION_REGISTRY_LIST.filter((d) => !d.legacy).length;
+  // Count section types available to add
+  const totalSectionTypes = SECTION_REGISTRY_LIST.length;
 
   return (
     <div>

@@ -61,7 +61,6 @@ export const TEMPLATE_SECTION_PRIORITY: Record<string, SectionPriority[]> = {
     { type: "other_packages", label: "Related packages",    labelAr: "باقات أخرى" },
   ],
   compass: [
-    { type: "trek_profile",    label: "Trek profile",       labelAr: "ملف الرحلة الجبلية" },
     { type: "itinerary",       label: "Daily stages",       labelAr: "المراحل اليومية" },
     { type: "important_notes", label: "Important notes",    labelAr: "ملاحظات مهمة" },
     { type: "departures",      label: "Departure dates",    labelAr: "مواعيد المغادرة" },

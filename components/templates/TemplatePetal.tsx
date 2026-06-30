@@ -1,1315 +1,906 @@
 "use client";
 
-import React from "react";
-import { T, localizeTierLabel } from "@/lib/translations";
-import {
-  WAButton,
-  AgencyBar,
-  StickyCTA,
-  BaseCard,
-  useIsDesktop,
-  DesktopNav,
-  DContainer,
-  DesktopFooter,
-  getItineraryDays,
-  LightboxCarousel,
-  localizeRole,
-  normalizeSarStr,
-} from "./shared";
-import type { TPageProps, TCardProps } from "./types";
+// ═══════════════════════════════════════════════════════════════════════════
+// PETAL V2 — Honeymoons / couples · romantic, soft, intimate.
+// Blush paper, a dynamic dusty brand accent + sage, high-contrast Playfair /
+// Markazi serif with italics, arched imagery, rounded cards, hairline rules.
+// One component renders all 4 surfaces. Faithful port of the V2 design, wired
+// to real pkg.sections data with graceful empty states. Brand colour themes
+// the whole template.
+// ═══════════════════════════════════════════════════════════════════════════
 
-// --pe-accent: dusty mauve — primary accent token (was candy coral #c8576f)
-const ROSE      = "#9e6b7a";
-const PEACH     = "#faf3ef";
-const CLAY      = "#d4896a";
-const INK       = "#1a0d0d";
-const MUTED     = "rgba(26,13,13,0.52)";
-const SMUTED    = "rgba(26,13,13,0.32)";
-const BORDER    = "rgba(26,13,13,0.07)";
-// --pe-serif: Cormorant Garamond is the romantic serif voice (italic where applied)
-const SERIF     = "var(--font-cormorant, 'Cormorant Garamond', 'Cormorant', Georgia, serif)";
-const MONO      = "var(--font-jetbrains-mono, ui-monospace, monospace)";
-const GOLD      = "#b09142";
-const ROSE_SOFT = "#e2ccd3"; // soft dusty mauve tint (was candy pink #f3d3d8)
+import React, { useRef, useState } from "react";
+import { useIsDesktop, BaseCard, LightboxCarousel } from "./shared";
+import { localizeTierLabel } from "@/lib/translations";
+import type { TPageProps, TCardProps, TPackage } from "./types";
 
-// ─── Trust items ──────────────────────────────────────────────────────────────
+type SecData = Record<string, unknown>;
 
-function buildPetalTrustItems(t: typeof T["en"], pkg: TPageProps["pkg"]): { icon: React.ReactNode; title: string; sub?: string }[] {
-  return [
-    { icon: "✓", title: t.freeCancellation, sub: t.trustFreeCancellationSub },
-    { icon: "✉", title: t.bookWhatsApp, sub: t.trustWhatsAppDesignerSub },
-    { icon: "♡", title: t.trustHoneymoonSpec, sub: pkg.agent?.years ? `${pkg.agent.years}+ ${t.petalCouplesDesigned}` : undefined },
-    { icon: "✦", title: t.trustOfficialPartner, sub: t.trustOfficialPartnerSub },
-  ];
+// ─── Brand colour math ────────────────────────────────────────────────────────
+function ptHex(h: string): [number, number, number] {
+  h = h.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
+function ptRgba(hex: string, a: number): string { const [r, g, b] = ptHex(hex); return `rgba(${r},${g},${b},${a})`; }
+function ptLum(hex: string) { const [r, g, b] = ptHex(hex); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+function ptOn(hex: string) { return ptLum(hex) > 0.62 ? "#2e2422" : "#ffffff"; }
 
-// ─── Mobile trust strip ───────────────────────────────────────────────────────
+const SAGE = "#7d8c6f";
 
-function MobileTrustStrip({ t }: { t: typeof T["en"] }) {
-  const items = [t.freeCancellation, t.bookWhatsApp, t.trustHoneymoonSpec, t.trustOfficialPartner];
-  return (
-    <div style={{
-      display: "flex", gap: 0,
-      borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`,
-      overflowX: "auto", scrollbarWidth: "none",
-    }}>
-      {items.map((label, i) => (
-        <div key={i} style={{
-          flexShrink: 0, padding: "10px 14px", fontSize: 12, color: INK,
-          fontWeight: 500, whiteSpace: "nowrap" as const,
-          borderRight: i < items.length - 1 ? `1px solid ${BORDER}` : undefined,
-        }}>
-          {label}
-        </div>
-      ))}
-    </div>
-  );
+// ─── i18n ─────────────────────────────────────────────────────────────────────
+const L_EN = {
+  sections: {
+    highlights: "Why you'll love it", media: "See for yourself", itinerary: "Day by day",
+    hotel: "Where you'll stay", meals: "What you'll eat", inclusions: "What's included",
+    transfers: "Getting around", visa: "Visa & entry", departures: "Departures",
+    pricing: "Choose your room", extras: "Make it yours", scarcity: "Before it's gone",
+    people: "Your trip designer", reviews: "Travellers say", agency: "About the agency",
+    notes: "Good to know", faq: "Questions, answered", custom: "A note from us", others: "More journeys",
+  },
+  nav: { highlights: "Highlights", itinerary: "Itinerary", hotel: "Stay", inclusions: "Included", departures: "Dates", pricing: "Pricing", reviews: "Reviews", faq: "FAQ" },
+  ui: {
+    from: "From", forTwo: "For two", perPerson: "per person", night: "night", nights: "nights",
+    included: "Included", notIncluded: "Not included", mostPopular: "Most popular", soldOut: "Sold out",
+    left: "left", book: "Book", enquire: "Enquire on WhatsApp", bookWhatsapp: "Book on WhatsApp",
+    messenger: "Messenger", seeMore: "See more", nextDeparture: "Next departure", date: "Date", price: "Price",
+    to: "To", cancellation: "Cancellation policy", paymentSchedule: "Payment schedule", basedOn: "based on",
+    review: "reviews", stars: "stars", route: "Your route", replyTime: "Usually replies within an hour",
+    day: "Day", watch: "Watch the film", noVideo: "Video coming soon", play: "Play", pause: "Pause",
+    mute: "Mute", unmute: "Unmute", years: "years", poweredBy: "Powered by PackMetrix",
+    shallWeBegin: "Shall we begin?", spotsLeftLine: (n: number) => `Only ${n} ${n === 1 ? "suite" : "suites"} remain this season.`,
+  },
+};
+const L_AR: typeof L_EN = {
+  sections: {
+    highlights: "لماذا ستحبّانها", media: "شاهدا بنفسكما", itinerary: "يومًا بيوم",
+    hotel: "مكان إقامتكما", meals: "ما ستتناولانه", inclusions: "ما يشمله البرنامج",
+    transfers: "التنقّلات", visa: "التأشيرة والدخول", departures: "مواعيد المغادرة",
+    pricing: "اختارا غرفتكما", extras: "أضيفا لمستكما", scarcity: "قبل أن تنفد",
+    people: "مصمّم رحلتكما", reviews: "آراء المسافرين", agency: "عن الوكالة",
+    notes: "معلومات تهمّكما", faq: "إجابات على أسئلتكما", custom: "كلمة منّا", others: "رحلات أخرى",
+  },
+  nav: { highlights: "المميزات", itinerary: "البرنامج", hotel: "الإقامة", inclusions: "المشمول", departures: "المواعيد", pricing: "الأسعار", reviews: "التقييمات", faq: "الأسئلة" },
+  ui: {
+    from: "من", forTwo: "لاثنين", perPerson: "للفرد", night: "ليلة", nights: "ليالٍ",
+    included: "مشمول", notIncluded: "غير مشمول", mostPopular: "الأكثر طلبًا", soldOut: "نفدت",
+    left: "متبقّية", book: "احجزا", enquire: "استفسرا عبر واتساب", bookWhatsapp: "احجزا عبر واتساب",
+    messenger: "ماسنجر", seeMore: "شاهدا المزيد", nextDeparture: "أقرب موعد", date: "التاريخ", price: "السعر",
+    to: "إلى", cancellation: "سياسة الإلغاء", paymentSchedule: "جدول الدفع", basedOn: "من",
+    review: "تقييم", stars: "نجوم", route: "مسار رحلتكما", replyTime: "نردّ عادةً خلال ساعة",
+    day: "اليوم", watch: "شاهدا الفيديو", noVideo: "الفيديو قريبًا", play: "تشغيل", pause: "إيقاف",
+    mute: "كتم", unmute: "تشغيل الصوت", years: "سنة", poweredBy: "مُشغّل بواسطة باكمتريكس",
+    shallWeBegin: "هلّا بدأنا؟", spotsLeftLine: (n: number) => `بقي ${n} ${n === 1 ? "جناح" : "أجنحة"} فقط هذا الموسم.`,
+  },
+};
+
+const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
+  none: { en: "No meals", ar: "بدون وجبات" }, breakfast: { en: "Breakfast included", ar: "إفطار مشمول" },
+  half_board: { en: "Half board", ar: "نصف إقامة" }, full_board: { en: "Full board", ar: "إقامة كاملة" },
+  all_inclusive: { en: "All inclusive", ar: "شامل بالكامل" },
+};
+const VISA_LABELS: Record<string, { en: string; ar: string }> = {
+  included: { en: "Visa included", ar: "التأشيرة مشمولة" }, assistance: { en: "Visa assistance provided", ar: "نقدّم المساعدة في التأشيرة" },
+  not_included: { en: "Visa not included", ar: "التأشيرة غير مشمولة" }, not_required: { en: "No visa required", ar: "لا تحتاجان تأشيرة" },
+};
+const ROLE_LABELS: Record<string, { en: string; ar: string }> = {
+  agent: { en: "Travel designer", ar: "مصمّم الرحلات" }, curator: { en: "Travel designer", ar: "مصمّم الرحلات" },
+  trip_lead: { en: "Trip lead", ar: "قائد الرحلة" }, trip_designer: { en: "Travel designer", ar: "مصمّم الرحلات" },
+  guide: { en: "Guide", ar: "المرشد" }, mutawif: { en: "Mutawif", ar: "المطوّف" },
+};
+
+// ─── Section-data helpers ─────────────────────────────────────────────────────
+function findSec(pkg: TPackage, type: string): SecData | undefined {
+  return pkg.sections?.find((s) => s.type === type)?.data as SecData | undefined;
 }
-
-// ─── Room treatments ─────────────────────────────────────────────────────────
-
-function RoomTreatments({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
-  const t = T[lang];
-  const tiers = (pkg.pricingTiers || []).filter(tier => tier.price);
-  if (!tiers.length) return null;
-  const isRtl = lang === "ar";
-  const galleryLen = Math.max(pkg.gallery?.length ?? 0, 1);
-
-  return (
-    <section id="pricing" style={{ padding: "28px 18px", scrollMarginTop: 88, direction: isRtl ? "rtl" : "ltr" }}>
-      <div style={{ fontFamily: SERIF, fontSize: 11, fontStyle: "italic", color: ROSE, letterSpacing: "0.3px", marginBottom: 6 }}>
-        {t.roomTreatmentsSub}
-      </div>
-      <h2 style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 400, color: INK, letterSpacing: "-0.4px", lineHeight: 1.1, margin: "0 0 20px", fontStyle: "italic" }}>
-        {t.roomTreatmentsTitle}
-      </h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {tiers.map((tier, i) => {
-          const imgSrc = pkg.gallery?.[i % galleryLen]?.src;
-          const isFeature = i === 0;
-          return (
-            <div key={i} style={{
-              background: isFeature ? `linear-gradient(135deg, ${ROSE}, ${CLAY})` : "#fff",
-              border: `1px solid ${isFeature ? "transparent" : BORDER}`,
-              borderRadius: 18, overflow: "hidden",
-              boxShadow: isFeature ? `0 12px 32px ${ROSE}28` : "none",
-            }}>
-              {imgSrc && (
-                <div style={{ height: 160, overflow: "hidden" }}>
-                  <img src={imgSrc} alt={tier.label} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                </div>
-              )}
-              <div style={{ padding: "18px 20px" }}>
-                {isFeature && (
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.8)", marginBottom: 8 }}>
-                    {t.popularChoice}
-                  </div>
-                )}
-                <div style={{ fontSize: 12.5, color: isFeature ? "rgba(255,255,255,0.75)" : MUTED, marginBottom: 8 }}>{localizeTierLabel(tier.label, lang)}</div>
-                <div style={{ fontFamily: SERIF, fontSize: 38, fontWeight: 400, letterSpacing: "-0.8px", lineHeight: 1, color: isFeature ? "#fff" : ROSE, marginBottom: 4 }}>{tier.price}</div>
-                <div style={{ fontSize: 11, color: isFeature ? "rgba(255,255,255,0.55)" : SMUTED, marginBottom: 16 }}>
-                  {t.couplesTreatmentLabel}
-                </div>
-                {onWhatsApp && <button onClick={onWhatsApp} style={{
-                  width: "100%", padding: "11px", borderRadius: 10, border: "none", cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 13.5, fontWeight: 700,
-                  background: isFeature ? "rgba(255,255,255,0.22)" : ROSE,
-                  color: "#fff",
-                }}>
-                  {t.bookWhatsApp}
-                </button>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
+function secArr(data: SecData | undefined, key: string): SecData[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is SecData => i != null && typeof i === "object") : [];
 }
-
-function RoomTreatmentsDesktop({ pkg, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
-  const t = T[lang];
-  const tiers = (pkg.pricingTiers || []).filter(tier => tier.price);
-  if (!tiers.length) return null;
-  const galleryLen = Math.max(pkg.gallery?.length ?? 0, 1);
-
-  return (
-    <DContainer id="pricing" style={{ padding: "64px 80px" }}>
-      <div style={{ fontFamily: SERIF, fontSize: 13, fontStyle: "italic", color: ROSE, marginBottom: 8 }}>{t.roomTreatmentsSub}</div>
-      <h2 style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 400, letterSpacing: "-0.8px", lineHeight: 1.05, margin: "0 0 36px", fontStyle: "italic" }}>
-        {t.roomTreatmentsTitle}
-      </h2>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(tiers.length, 3)}, 1fr)`, gap: 20 }}>
-        {tiers.map((tier, i) => {
-          const imgSrc = pkg.gallery?.[i % galleryLen]?.src;
-          const isFeature = i === 0;
-          return (
-            <div key={i} style={{
-              background: isFeature ? `linear-gradient(145deg, ${ROSE}, ${CLAY})` : "#fff",
-              border: `1px solid ${isFeature ? "transparent" : BORDER}`,
-              borderRadius: 20, overflow: "hidden",
-              boxShadow: isFeature ? `0 16px 40px ${ROSE}30` : "none",
-            }}>
-              {imgSrc && (
-                <div style={{ aspectRatio: "4/3", overflow: "hidden" }}>
-                  <img src={imgSrc} alt={tier.label} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                </div>
-              )}
-              <div style={{ padding: "24px 26px" }}>
-                {isFeature && (
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.4px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.8)", marginBottom: 10 }}>
-                    {t.popularChoice}
-                  </div>
-                )}
-                <div style={{ fontSize: 13, color: isFeature ? "rgba(255,255,255,0.7)" : MUTED, marginBottom: 10 }}>{localizeTierLabel(tier.label, lang)}</div>
-                <div style={{ fontFamily: SERIF, fontSize: 44, fontWeight: 400, letterSpacing: "-1px", lineHeight: 1, color: isFeature ? "#fff" : ROSE, marginBottom: 4 }}>{tier.price}</div>
-                <div style={{ fontSize: 11.5, color: isFeature ? "rgba(255,255,255,0.55)" : SMUTED, marginBottom: 22 }}>{t.couplesTreatmentLabel}</div>
-                {onWhatsApp && <button onClick={onWhatsApp} style={{
-                  width: "100%", padding: "13px", borderRadius: 12, border: "none", cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 14, fontWeight: 700,
-                  background: isFeature ? "rgba(255,255,255,0.2)" : ROSE, color: "#fff",
-                }}>
-                  {t.bookWhatsApp}
-                </button>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </DContainer>
-  );
-}
-
-// ─── Designer closing panel ───────────────────────────────────────────────────
-
-function PetalDesignerPanel({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
-  const t = T[lang];
-  const agent = pkg.agent;
-  const firstName = agent?.name?.split(" ")[0] || agency.name;
-  const isRtl = lang === "ar";
-
-  return (
-    <section style={{
-      background: `linear-gradient(135deg, ${INK} 60%, #3a1020)`,
-      padding: "40px 24px",
-      direction: isRtl ? "rtl" : "ltr",
-    }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.45)", marginBottom: 20 }}>
-        {t.petalDesignerLabel} · {agency.name}
-      </div>
-      {agent && (
-        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-          {agent.avatar
-            ? <img src={agent.avatar} alt={agent.name} style={{ width: 60, height: 60, borderRadius: "50%", objectFit: "cover" }} />
-            : <div style={{ width: 60, height: 60, borderRadius: "50%", background: `${ROSE}44`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 26, fontStyle: "italic", color: "#fff" }}>{agent.name?.[0]?.toUpperCase() || "?"}</div>
-          }
-          <div>
-            <div style={{ fontFamily: SERIF, fontSize: 22, color: "#fff", lineHeight: 1.1 }}>{agent.name}</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 3 }}>{localizeRole(agent.role, t)}</div>
-          </div>
-        </div>
-      )}
-      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8, marginBottom: 22 }}>
-        {agent?.repliesIn && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "6px 12px" }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
-            <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.85)" }}>{t.agentOnlineLabel}</span>
-          </div>
-        )}
-        {!!pkg.reviewCount && (
-          <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "6px 12px", fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
-            ♡ {pkg.reviewCount}+ {t.petalCouplesDesigned}
-          </div>
-        )}
-      </div>
-      {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} full onClick={onWhatsApp} />}
-    </section>
-  );
-}
-
-function PetalDesignerPanelDesktop({ pkg, agency, lang, onWhatsApp }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; lang: TPageProps["lang"]; onWhatsApp?: () => void }) {
-  const t = T[lang];
-  const agent = pkg.agent;
-  const firstName = agent?.name?.split(" ")[0] || agency.name;
-  const isRtl = lang === "ar";
-
-  return (
-    <section style={{ background: `linear-gradient(135deg, ${INK} 60%, #3a1020)` }}>
-      <DContainer style={{ padding: "72px 80px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 64, alignItems: "center" }}>
-          {/* Portrait */}
-          <div style={{
-            order: isRtl ? 2 : 1,
-            position: "relative", height: 420,
-            borderRadius: "200px 200px 12px 12px", overflow: "hidden",
-            background: `${ROSE}22`,
-          }}>
-            {agent?.avatar
-              ? <img src={agent.avatar} alt={agent.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-              : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(160deg, ${ROSE}18, ${CLAY}10)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontFamily: SERIF, fontSize: 140, fontStyle: "italic", color: `${ROSE}50`, lineHeight: 1, userSelect: "none" as const }}>
-                    {agent?.name?.[0]?.toUpperCase() || "?"}
-                  </span>
-                </div>
-            }
-          </div>
-          {/* Content */}
-          <div style={{ order: isRtl ? 1 : 2 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.45)", marginBottom: 16 }}>
-              {t.petalDesignerLabel} · {agency.name}
-            </div>
-            {agent && (
-              <>
-                <div style={{ fontFamily: SERIF, fontSize: 40, color: "#fff", lineHeight: 1.05, marginBottom: 6 }}>{agent.name}</div>
-                <div style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 24 }}>{localizeRole(agent.role, t)}</div>
-              </>
-            )}
-            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10, marginBottom: 28 }}>
-              {agent?.repliesIn && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "7px 14px" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>{t.agentOnlineLabel}</span>
-                </div>
-              )}
-              {!!pkg.reviewCount && (
-                <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, padding: "7px 14px", fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
-                  ♡ {pkg.reviewCount}+ {t.petalCouplesDesigned}
-                </div>
-              )}
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              {onWhatsApp && <WAButton label={`${t.messageUs.replace(" ▷", "")} ${firstName}`} size="lg" onClick={onWhatsApp} />}
-            </div>
-          </div>
-        </div>
-      </DContainer>
-    </section>
-  );
-}
-
-// ─── Section data helpers ─────────────────────────────────────────────────────
-
-type PtSecData = Record<string, unknown>;
-
-function ptFindSec(pkg: TPageProps["pkg"], type: string): PtSecData | undefined {
-  return pkg.sections?.find((s) => s.type === type)?.data as PtSecData | undefined;
-}
-function ptSecArr(data: PtSecData | undefined, key: string): PtSecData[] {
-  if (!data) return [];
-  const v = data[key];
-  if (!Array.isArray(v)) return [];
-  return v.filter((x): x is PtSecData => x != null && typeof x === "object");
-}
-function ptSecStr(data: PtSecData | undefined, key: string): string {
-  if (!data) return "";
-  const v = data[key];
+function secStr(data: SecData | undefined, key: string): string {
+  const v = data?.[key];
   return typeof v === "string" ? v : "";
 }
-function ptSecNum(data: PtSecData | undefined, key: string): number | undefined {
-  if (!data) return undefined;
-  const v = data[key];
-  return typeof v === "number" ? v : undefined;
+function secStrArr(data: SecData | undefined, key: string): string[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is string => typeof i === "string") : [];
 }
-function ptSecStrArr(data: PtSecData | undefined, key: string): string[] {
-  if (!data) return [];
-  const v = data[key];
-  return Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : [];
-}
-function ptItemStr(item: PtSecData | string, ...keys: string[]): string {
+function secItemStr(item: unknown, ...keys: string[]): string {
   if (typeof item === "string") return item;
-  for (const k of keys) {
-    const v = (item as PtSecData)[k];
-    if (typeof v === "string" && v) return v;
-  }
+  if (!item || typeof item !== "object") return "";
+  const obj = item as SecData;
+  for (const k of keys) { const v = secStr(obj, k); if (v) return v; }
   return "";
 }
+function secMixed(data: SecData | undefined, key: string): Array<SecData | string> {
+  const v = data?.[key];
+  return Array.isArray(v) ? (v.filter((i) => i != null) as Array<SecData | string>) : [];
+}
+function lines(s: string): string[] {
+  return s.split(/\r?\n/).map((l) => l.replace(/^[-•·]\s*/, "").trim()).filter(Boolean);
+}
 
-// ─── Petal section components ─────────────────────────────────────────────────
+// ─── WhatsApp icon ────────────────────────────────────────────────────────────
+function WAIcon({ s = 16, fill = "#fff" }: { s?: number; fill?: string }) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill={fill}><path d="M20.5 3.5C18.2 1.2 15.2 0 12 0 5.4 0 .1 5.3.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.4-1.7c1.7.9 3.7 1.4 5.6 1.4 6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.2-3.4-8.3zM12 21.8c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.7 1 1-3.6-.2-.4c-.9-1.5-1.4-3.3-1.4-5 0-5.5 4.5-9.9 9.9-9.9 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.4 2.9 7-.1 5.4-4.5 9.5-10.2 9.5z" /></svg>;
+}
 
-function PtHighlightsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = ptFindSec(pkg, "highlights");
-  const items = ptSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
+// ─── Star rating ──────────────────────────────────────────────────────────────
+function PtStars({ n = 5, of = 5, size = 14, color }: { n?: number; of?: number; size?: number; color: string }) {
+  const star = (fill: string) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} style={{ display: "block" }}><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 5.9 20.8l1.2-6.6L2.3 9.6l6.6-.9z" /></svg>
+  );
+  return <span style={{ display: "inline-flex", gap: 2 }}>{Array.from({ length: of }).map((_, i) => <span key={i}>{star(i < n ? color : ptRgba(color, 0.22))}</span>)}</span>;
+}
+
+// ─── Abstract route map ───────────────────────────────────────────────────────
+function PtRouteMap({ stops, line, land = "#ead9d0", ink = "#2e2422", height = 220, rounded = 20, rtl = false }: { stops: { label: string }[]; line: string; land?: string; ink?: string; height?: number; rounded?: number; rtl?: boolean }) {
+  const W = 1000, H = 420;
+  const pts = stops.map((s, i) => {
+    const x = stops.length === 1 ? W / 2 : 120 + (i * (W - 240)) / (stops.length - 1);
+    const y = 150 + Math.sin(i * 1.3 + 0.6) * 70 + (i % 2 ? 20 : -10);
+    return { ...s, x: rtl ? W - x : x, y };
+  });
+  const path = pts.map((p, i) => { if (i === 0) return `M ${p.x} ${p.y}`; const prev = pts[i - 1]; const mx = (prev.x + p.x) / 2; return `Q ${mx} ${prev.y - 40} ${p.x} ${p.y}`; }).join(" ");
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="highlights">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          {t.ptHighlightsEyebrow}
-        </div>
-        <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
-          {t.ptHighlightsHeading}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr 1fr" : "1fr", gap: isDesktop ? 32 : 28 }}>
-          {items.map((it, i) => {
-            const title = ptItemStr(it, "title", "t", "heading");
-            const body = ptItemStr(it, "body", "b", "description", "text");
-            return (
-              <article key={i} style={{ borderTop: `1px solid ${ROSE}`, paddingTop: 22 }}>
-                <h3 style={{ fontFamily: SERIF, fontSize: isDesktop ? 26 : 20, fontWeight: 500, letterSpacing: "-0.4px", margin: "0 0 14px", lineHeight: 1.15, fontStyle: "italic", color: INK }}>{title}</h3>
-                {body && <p style={{ fontSize: 14.5, lineHeight: 1.65, color: MUTED, margin: 0 }}>{body}</p>}
-              </article>
-            );
-          })}
-        </div>
-      </div>
-    </section>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height, display: "block", borderRadius: rounded, background: "#fdf3ee" }} preserveAspectRatio="xMidYMid slice">
+      <g fill={land} opacity="0.85"><path d="M-40 300 Q 180 250 360 300 T 760 290 Q 920 270 1060 320 L1060 460 L-40 460 Z" /><ellipse cx="220" cy="120" rx="190" ry="90" opacity="0.5" /><ellipse cx="780" cy="100" rx="160" ry="80" opacity="0.5" /></g>
+      <g stroke={ptRgba(ink, 0.05)} strokeWidth="1">{[80, 180, 280, 360].map((y) => <line key={y} x1="0" x2={W} y1={y} y2={y} />)}{[200, 400, 600, 800].map((x) => <line key={x} y1="0" y2={H} x1={x} x2={x} />)}</g>
+      <path d={path} fill="none" stroke={line} strokeWidth="3.5" strokeDasharray="2 12" strokeLinecap="round" opacity="0.9" />
+      {pts.map((p, i) => <g key={i}><circle cx={p.x} cy={p.y} r="11" fill="#fff" stroke={line} strokeWidth="3.5" /><circle cx={p.x} cy={p.y} r="4" fill={line} /><text x={p.x} y={p.y - 22} textAnchor="middle" fill={ink} fontSize="22" fontWeight="600" fontFamily="inherit">{p.label}</text></g>)}
+    </svg>
   );
 }
 
-function PtHotelsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = ptFindSec(pkg, "hotels");
-  const hotelsSec = ptSecArr(data, "hotels").length ? ptSecArr(data, "hotels") : ptSecArr(data, "items");
-  if (!hotelsSec.length && !pkg.hotelDescription?.trim()) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  if (!hotelsSec.length) {
+// ─── Video player (radius accepts string for arched corners) ──────────────────
+function PtVideo({ src, poster, accent, radius = 16, rtl = false, sans, height = 320, ui }: { src?: string; poster?: string; accent: string; radius?: number | string; rtl?: boolean; sans: string; height?: number; ui: typeof L_EN["ui"] }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const ctrl: React.CSSProperties = { width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 };
+  const onAccent = ptOn(accent);
+  if (!src) {
     return (
-      <section id="hotel" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="hotel">
-        <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-          <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptWhereYouStay}</div>
-          <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 20 : 16, lineHeight: 1.55, color: MUTED, margin: 0 }}>{pkg.hotelDescription}</p>
+      <div style={{ position: "relative", borderRadius: radius, overflow: "hidden", height, background: "#2e2422" }}>
+        {poster && <img src={poster} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(0.3) brightness(0.55)" }} />}
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "#fff" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.55)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><path d="M8 5v14l11-7z" /></svg>
+            <div style={{ position: "absolute", width: 64, height: 1.5, background: "rgba(255,255,255,0.7)", transform: "rotate(-45deg)" }} />
+          </div>
+          <div style={{ fontFamily: sans, fontSize: 13, opacity: 0.85 }}>{ui.noVideo}</div>
         </div>
-      </section>
+      </div>
     );
   }
-  const featured = hotelsSec[0];
-  const colTemplate = isDesktop
-    ? (hotelsSec.length === 1 ? "1.1fr 1fr" : hotelsSec.length === 2 ? "1.4fr 1fr" : "1fr 1fr 1fr")
-    : "1fr";
+  const toggle = () => { const v = ref.current; if (!v) return; if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); setPlaying(true); } else { v.pause(); setPlaying(false); } };
+  const toggleMute = () => { const v = ref.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); };
+  const IconPlay = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>;
+  const IconPause = <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>;
+  const IconMuted = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12.5 3l2.5 2.5-1 1L15.5 13 13 15.5l-1-1L14.5 12 12 9.5l1-1L15.5 11 18 8.5l1 1L16.5 12z" /></svg>;
+  const IconSound = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12 3a4 4 0 00-2-3.5v7A4 4 0 0016 12zm-2-7.7v2.1a6 6 0 010 11.2v2.1a8 8 0 000-15.4z" /></svg>;
   return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="hotel">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          {hotelsSec.length === 1 ? t.ptWhereYouStay : t.ptYourTwoProperties}
-        </div>
-        <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 30, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
-          {ptItemStr(featured, "name")}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: colTemplate, gap: isDesktop ? 32 : 20 }}>
-          {hotelsSec.map((h, i) => {
-            const name = ptItemStr(h, "name");
-            const location = ptItemStr(h, "location");
-            const nightsStr = ptSecStr(h, "nights");
-            const note = ptItemStr(h, "note");
-            const facilities = ptSecStrArr(h, "facilities");
-            const stars = ptSecNum(h, "stars");
-            const photo = ptItemStr(h, "photo");
-            const isFeaturedLayout = i === 0 && isDesktop;
-            return (
-              <article key={i} style={{
-                background: "#fff",
-                boxShadow: "0 20px 40px -24px rgba(45,26,31,0.18)",
-                display: isFeaturedLayout ? "grid" : "block",
-                gridTemplateColumns: isFeaturedLayout ? "1.2fr 1fr" : undefined,
-                alignItems: isFeaturedLayout ? "stretch" : undefined,
-              }}>
-                {photo && (
-                  <div style={{ overflow: "hidden", height: isFeaturedLayout ? "100%" : undefined, aspectRatio: isFeaturedLayout ? undefined : "4/3" }}>
-                    <img src={photo} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                  </div>
-                )}
-                <div style={{ padding: isDesktop ? "32px 36px" : "20px 22px" }}>
-                  {location && (
-                    <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 6 }}>
-                      {location}{nightsStr ? ` · ${nightsStr} ${t.ptNightsLabel}` : ""}
-                    </div>
-                  )}
-                  <h3 style={{ fontFamily: SERIF, fontSize: isDesktop ? 30 : 22, fontStyle: "italic", fontWeight: 500, letterSpacing: "-0.5px", margin: 0, lineHeight: 1.1, color: INK }}>{name}</h3>
-                  {stars != null && (
-                    <div style={{ color: GOLD, fontSize: 13, letterSpacing: "2px", marginTop: 8 }}>{"★".repeat(Math.min(5, Math.round(stars)))}</div>
-                  )}
-                  {note && (
-                    <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 18 : 14, lineHeight: 1.55, color: MUTED, margin: "16px 0 18px" }}>{note}</p>
-                  )}
-                  {facilities.length > 0 && (
-                    <div style={{ paddingTop: 14, borderTop: `1px solid ${BORDER}`, display: "flex", flexWrap: "wrap" as const, gap: "4px 16px" }}>
-                      {facilities.slice(0, 5).map((f, j) => (
-                        <span key={j} style={{ fontSize: 13, color: MUTED }}>{f}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PtDeparturesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = ptFindSec(pkg, "departures");
-  const deps = ptSecArr(data, "departures").length
-    ? ptSecArr(data, "departures")
-    : (pkg.departures ?? []).map(d => d as unknown as PtSecData);
-  if (!deps.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section id="departures" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="departures">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          {t.ptUpcomingWindows}
-        </div>
-        <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
-          {t.ptDeparturesHeading}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column" as const }}>
-          {deps.map((d, i) => {
-            const date = ptItemStr(d, "date");
-            const spots = ptSecNum(d, "spots") ?? ptSecNum(d, "spotsRemaining");
-            const price = ptItemStr(d, "price");
-            const isLow = spots != null && spots <= 2;
-            return (
-              <div key={i} style={{
-                display: "grid",
-                gridTemplateColumns: isDesktop ? "1.3fr 1fr 0.6fr" : "1fr",
-                gap: isDesktop ? 24 : 4,
-                alignItems: isDesktop ? "center" : undefined,
-                padding: "22px 0",
-                borderTop: `1px solid ${BORDER}`,
-                borderBottom: i === deps.length - 1 ? `1px solid ${BORDER}` : undefined,
-              }}>
-                <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 26 : 22, fontWeight: 500, letterSpacing: "-0.4px", color: INK }}>{date}</div>
-                {spots != null && (
-                  <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.6px", textTransform: "uppercase" as const, color: isLow ? GOLD : MUTED, fontWeight: isLow ? 600 : 400 }}>
-                    {isLow ? `${t.ptOnlyVillaLeft} ${spots} ${t.ptVillaLeft}` : `${spots} ${t.ptCouplesLabel}`}
-                  </div>
-                )}
-                {price && <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 22 : 18, color: INK }}>{price}</div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PtFaqSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = ptFindSec(pkg, "faq");
-  const items = ptSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section id="faq" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="faq">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          {t.ptFaqEyebrow}
-        </div>
-        <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
-          {t.ptFaqHeading}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: isDesktop ? "28px 56px" : 18 }}>
-          {items.map((f, i) => {
-            const q = ptItemStr(f, "q", "question");
-            const a = ptItemStr(f, "a", "answer");
-            const showBorder = isDesktop ? i >= 2 : i > 0;
-            return (
-              <div key={i}>
-                <div style={{
-                  fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 22 : 18,
-                  fontWeight: 500, letterSpacing: "-0.4px", lineHeight: 1.25,
-                  paddingTop: showBorder ? (isDesktop ? 18 : 16) : 0,
-                  marginBottom: 8,
-                  borderTop: showBorder ? `1px solid ${BORDER}` : "none",
-                  color: INK,
-                }}>{q}</div>
-                <div style={{ fontSize: 14.5, lineHeight: 1.65, color: MUTED }}>{a}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PtImportantNotesSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = ptFindSec(pkg, "important_notes");
-  const notes = ptSecArr(data, "notes");
-  const items = notes.length ? notes : ptSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="important_notes">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          {t.ptNotesEyebrow}
-        </div>
-        <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
-          {t.ptNotesHeading}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr", gap: 20 }}>
-          {items.map((n, i) => {
-            const severity = ptItemStr(n, "severity");
-            const title = ptItemStr(n, "title", "text");
-            const body = ptItemStr(n, "body");
-            const isWarn = severity === "warn";
-            return (
-              <article key={i} style={{
-                background: isWarn ? "rgba(158,107,122,0.05)" : "#fff",
-                border: `1px solid ${isWarn ? ROSE_SOFT : BORDER}`,
-                padding: isDesktop ? "26px 28px" : "18px 20px",
-              }}>
-                <h3 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isDesktop ? 22 : 18, fontWeight: 500, letterSpacing: "-0.3px", margin: "0 0 10px", lineHeight: 1.15, color: INK }}>{title}</h3>
-                {body && <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.6, margin: 0 }}>{body}</p>}
-              </article>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PtOtherPackagesSection({ pkg, isDesktop, lang, agencySlug }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"]; agencySlug?: string }) {
-  const t = T[lang];
-  const data = ptFindSec(pkg, "other_packages");
-  const cards = ptSecArr(data, "packages");
-  if (!cards.length) return null;
-  const heading = ptSecStr(data, "heading") || t.otherPackagesHeading;
-  const pad = isDesktop ? "0 80px 64px" : "32px 20px 0";
-  const isRtl = lang === "ar";
-  return (
-    <section style={{ padding: pad }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
-      <div style={{ maxWidth: isDesktop ? 1100 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: SERIF, fontSize: 11, fontStyle: "italic", color: ROSE, letterSpacing: "0.3px", marginBottom: 12 }}>{heading}</div>
-        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
-          {cards.map((card, i) => {
-            const img = ptSecStr(card, "image");
-            const title = ptItemStr(card, "title");
-            const dest = ptSecStr(card, "destination");
-            const price = ptSecStr(card, "price");
-            const nights = ptSecStr(card, "nights");
-            const link = ptSecStr(card, "link");
-            return (
-              <a key={i} href={link || undefined} style={{
-                flex: "0 0 190px", minWidth: 190, borderRadius: 16, overflow: "hidden",
-                textDecoration: "none", border: `1px solid ${BORDER}`,
-                background: "#fff", scrollSnapAlign: "start",
-                display: "flex", flexDirection: "column",
-              }}>
-                <div style={{ width: "100%", height: 120, background: BORDER, flexShrink: 0 }}>
-                  {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-                </div>
-                <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-                  {dest && <div style={{ fontFamily: SERIF, fontSize: 10, fontStyle: "italic", color: ROSE }}>{dest}</div>}
-                  <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 400, color: INK, lineHeight: 1.3 }}>{title}</div>
-                  {(nights || price) && (
-                    <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                      {nights && <span style={{ fontSize: 11, color: MUTED }}>{nights}</span>}
-                      {price && <span style={{ fontFamily: SERIF, fontSize: 12, fontWeight: 700, color: ROSE }}>{price}</span>}
-                    </div>
-                  )}
-                </div>
-              </a>
-            );
-          })}
-        </div>
-        {agencySlug && (
-          <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-            <a href={`/${agencySlug}/packages`} style={{ fontFamily: SERIF, fontSize: 12, fontStyle: "italic", color: ROSE, textDecoration: "none" }}>
-              {t.navAllPackages} →
-            </a>
+    <div onClick={toggle} style={{ position: "relative", borderRadius: radius, overflow: "hidden", height, background: "#000", cursor: "pointer" }}>
+      <video ref={ref} src={src} poster={poster} muted loop playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      {!playing && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "linear-gradient(rgba(0,0,0,0.05),rgba(0,0,0,0.35))" }}>
+          <div style={{ width: 72, height: 72, borderRadius: "50%", background: accent, color: onAccent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 32px rgba(0,0,0,0.35)" }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style={{ marginInlineStart: 3 }}><path d="M8 5v14l11-7z" /></svg>
           </div>
-        )}
+          <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 600, color: "#fff", letterSpacing: "0.4px", textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>{ui.watch}</div>
+        </div>
+      )}
+      <div dir={rtl ? "rtl" : "ltr"} style={{ position: "absolute", insetInline: 0, bottom: 0, padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "linear-gradient(transparent, rgba(0,0,0,0.4))" }}>
+        <button onClick={(e) => { e.stopPropagation(); toggle(); }} aria-label={playing ? ui.pause : ui.play} title={playing ? ui.pause : ui.play} style={ctrl}>{playing ? IconPause : IconPlay}</button>
+        <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} aria-label={muted ? ui.unmute : ui.mute} title={muted ? ui.unmute : ui.mute} style={ctrl}>{muted ? IconMuted : IconSound}</button>
       </div>
-    </section>
+    </div>
   );
 }
 
-function PtAboutAgencySection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = ptFindSec(pkg, "about_agency");
-  if (!data && !agency.tagline) return null;
-  const story = ptItemStr(data || {}, "story", "content");
-  const teamPhoto = ptSecStr(data, "teamPhoto") || ptSecStr(data, "image");
-  const foundedRaw = (data as PtSecData | undefined)?.founded;
-  const founded = typeof foundedRaw === "number" ? foundedRaw : undefined;
-  const lastTrip = ptSecStr(data, "lastTrip");
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="about_agency">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        {isDesktop ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 56, alignItems: "center" }}>
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang = "en" }: TPageProps) {
+  const D = useIsDesktop();
+  const rtl = lang === "ar";
+  const L = rtl ? L_AR : L_EN;
+  const brand = agency.brandColor || "#9e6b7a";
+  const onBrand = ptOn(brand);
+
+  const BG = "#f8efe9", PAPER = "#fdf9f5", INK = "#2e2422";
+  const MUT = "rgba(46,36,34,0.6)", FAINT = "rgba(46,36,34,0.42)", RULE = "rgba(46,36,34,0.12)";
+  const serif = rtl ? "var(--font-markazi), var(--font-playfair), 'Markazi Text', serif" : "var(--font-playfair), 'Playfair Display', serif";
+  const sans = rtl ? "var(--font-tajawal), var(--font-nunito-sans), sans-serif" : "var(--font-nunito-sans), 'Nunito Sans', sans-serif";
+  const px = D ? 76 : 22;
+  const ar = (en: string, a: string) => (rtl ? a : en);
+  const dig = (s: string | number) => (rtl ? String(s).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]) : String(s));
+  const uc: React.CSSProperties["textTransform"] = rtl ? "none" : "uppercase";
+  const arch = (r: number): React.CSSProperties => ({ borderRadius: `${r}px ${r}px 24px 24px`, overflow: "hidden" });
+
+  const title = pkg.title || pkg.destination || "";
+  const nightsN = pkg.nights ? Number(pkg.nights) : null;
+  const cover = pkg.coverImage || pkg.images?.[0] || secStrArr(findSec(pkg, "media"), "images")[0] || "";
+  const itinDays = secArr(findSec(pkg, "itinerary"), "days").filter((d) => secItemStr(d, "title"));
+  const mediaImgs = secStrArr(findSec(pkg, "media"), "images");
+  // ---- clickable gallery (cover + media images) → lightbox carousel ----
+  const photos = Array.from(new Set([cover, ...mediaImgs].filter(Boolean)));
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const zoom = (url: string) => { const i = photos.indexOf(url); if (i >= 0) setLightbox(i); };
+  const person = pkg.people?.find((p) => p.role === "agent" || p.role === "curator" || p.role === "trip_lead")
+    ?? pkg.people?.[0] ?? (pkg.agent ? { name: pkg.agent.name, role: pkg.agent.role || "agent", photo: pkg.agent.avatar, years: pkg.agent.years } : undefined);
+
+  // smooth-scroll the top-bar tabs to their section (only tabs whose section exists)
+  const goTo = (type: string) => {
+    if (typeof document === "undefined") return;
+    document.querySelector(`[data-pmx-section="${type}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const navItems = Object.entries(L.nav).filter(([key]) => {
+    if (key === "reviews") return (pkg.reviews?.length ?? 0) > 0 && agency.showReviews !== false;
+    if (key === "hotel") return !!(findSec(pkg, "hotel") || findSec(pkg, "hotels") || pkg.hotelDescription);
+    if (key === "itinerary") return secArr(findSec(pkg, "itinerary"), "days").length > 0;
+    if (key === "inclusions") return secStrArr(findSec(pkg, "inclusions"), "includes").length + secStrArr(findSec(pkg, "inclusions"), "excludes").length + (pkg.includes?.length ?? 0) + (pkg.excludes?.length ?? 0) > 0;
+    if (key === "departures") return secArr(findSec(pkg, "departures"), "entries").length > 0 || (pkg.departures?.length ?? 0) > 0;
+    if (key === "pricing") return (pkg.pricingTiers?.length ?? 0) > 0 || !!findSec(pkg, "pricing");
+    if (key === "faq") return secArr(findSec(pkg, "faq"), "items").length > 0;
+    return !!findSec(pkg, key);
+  });
+
+  // ---- atoms ----
+  const Script = ({ children, color = brand, size, mb = 0 }: { children: React.ReactNode; color?: string; size?: number; mb?: number }) => (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: mb }}>
+      <span style={{ width: 22, height: 1, background: color }} />
+      <span style={{ fontFamily: serif, fontStyle: "italic", fontSize: size || (D ? 17 : 14), color }}>{children}</span>
+    </div>
+  );
+  const H2 = ({ children, size }: { children: React.ReactNode; size?: number }) => (
+    <h2 style={{ fontFamily: serif, fontSize: size || (D ? 46 : 30), fontWeight: 500, lineHeight: 1.08, letterSpacing: rtl ? 0 : "-0.4px", color: INK, margin: 0 }}>{children}</h2>
+  );
+  const Wrap = ({ children, pt, pb, style, id, section }: { children: React.ReactNode; pt?: number; pb?: number; style?: React.CSSProperties; id?: string; section?: string }) => (
+    <section id={id} data-pmx-section={section} style={{ scrollMarginTop: D ? 70 : 58, padding: `${pt != null ? pt : (D ? 76 : 40)}px ${px}px ${pb != null ? pb : (D ? 76 : 40)}px`, ...style }}>{children}</section>
+  );
+  const CTA = ({ children, full, big, bg = brand, col, onClick }: { children: React.ReactNode; full?: boolean; big?: boolean; bg?: string; col?: string; onClick?: () => void }) => (
+    <button data-testid="wa-cta" onClick={onClick} style={{ fontFamily: sans, background: bg, color: col || ptOn(bg), border: "none", borderRadius: 999, padding: big ? "15px 28px" : "12px 22px", fontSize: D ? 14.5 : 13.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, width: full ? "100%" : "auto", boxShadow: `0 10px 26px ${ptRgba(bg, 0.28)}` }}>
+      <WAIcon s={15} fill={col || ptOn(bg)} /> {children}
+    </button>
+  );
+  const Ghost = ({ children }: { children: React.ReactNode }) => (
+    <button style={{ fontFamily: sans, background: "transparent", color: INK, border: `1.5px solid ${RULE}`, borderRadius: 999, padding: "13px 22px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>{children}</button>
+  );
+  const SecHead = ({ kicker, title: t, sub, center }: { kicker: string; title: string; sub?: string; center?: boolean }) => (
+    <div style={{ marginBottom: D ? 34 : 24, display: "flex", flexDirection: "column", alignItems: center ? "center" : "flex-start", textAlign: center ? "center" : "start" }}>
+      <Script mb={10}>{kicker}</Script>
+      <H2>{t}</H2>
+      {sub && <p style={{ fontFamily: sans, fontSize: D ? 16 : 14.5, color: MUT, lineHeight: 1.7, margin: "12px 0 0", maxWidth: 620 }}>{sub}</p>}
+    </div>
+  );
+  const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <div style={{ background: PAPER, border: `1px solid ${RULE}`, borderRadius: 22, padding: D ? 24 : 18, ...style }}>{children}</div>
+  );
+  const num = (i: number) => dig(`0${i + 1}`.slice(-2));
+
+  // ════════ HERO ════════
+  const Hero = () => {
+    const priceCard = (
+      <>
+        <div style={{ fontFamily: sans, fontSize: 10.5, color: FAINT, letterSpacing: rtl ? 0 : "0.8px", textTransform: uc }}>{L.ui.forTwo}</div>
+        <div style={{ fontFamily: serif, fontSize: D ? 50 : 44, fontWeight: 500, color: brand, lineHeight: 1, margin: "6px 0 4px" }} data-pmx-field="price">{dig(pkg.price || "")}</div>
+        {nightsN != null && <div style={{ fontFamily: sans, fontSize: 11.5, color: FAINT }}>{dig(nightsN)} {L.ui.nights} · {L.ui.perPerson}</div>}
+      </>
+    );
+    if (D) {
+      return (
+        <Wrap pt={70} pb={48} section="hero">
+          <div style={{ display: "grid", gridTemplateColumns: "1.05fr 1fr", gap: 64, alignItems: "center" }}>
+            <div style={{ position: "relative", height: 580, ...arch(260), background: PAPER }}>
+              {cover && <img src={cover} onClick={() => zoom(cover)} style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in" }} />}
+            </div>
             <div>
-              <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-                {agency.name}{founded ? ` · ${t.ptSinceLabel} ${founded}` : ""}
+              <Script mb={16}><span data-pmx-field="destination">{pkg.destination}</span></Script>
+              <h1 style={{ fontFamily: serif, fontSize: 60, fontWeight: 500, fontStyle: "italic", lineHeight: 1.04, letterSpacing: rtl ? 0 : "-1px", color: INK, margin: "8px 0 0" }} data-pmx-field="title">{title}</h1>
+              {pkg.description && <p style={{ fontFamily: sans, fontSize: 17, color: MUT, lineHeight: 1.8, margin: "24px 0 0", maxWidth: 440 }}>{pkg.description}</p>}
+              <div style={{ marginTop: 34 }}>{priceCard}</div>
+              <div style={{ display: "flex", gap: 12, marginTop: 30 }}>
+                {pkg.whatsapp && <CTA big onClick={onWhatsApp}>{L.ui.enquire}</CTA>}
+                <Ghost>{L.ui.seeMore}</Ghost>
               </div>
-              <div style={{ fontFamily: SERIF, fontSize: 40, lineHeight: 1.1, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 4px", color: INK }}>
-                {t.ptStudioHeading} <em style={{ fontStyle: "normal", color: ROSE }}>{t.ptHoneymoonOnly}</em>
-              </div>
-              {(story || agency.tagline) && (
-                <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 20, lineHeight: 1.55, letterSpacing: "-0.2px", color: MUTED, margin: "22px 0 18px" }}>
-                  {story || agency.tagline}
-                </p>
-              )}
-              {lastTrip && (
-                <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 15, color: ROSE }}>{lastTrip}</div>
-              )}
             </div>
-            {teamPhoto ? (
-              <div style={{ width: "100%", aspectRatio: "4/3", overflow: "hidden" }}>
-                <img src={teamPhoto} alt={`${agency.name} team`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
-            ) : (
-              <div style={{ width: "100%", aspectRatio: "4/3", background: `linear-gradient(135deg, ${ROSE}22, ${CLAY}11)` }} />
-            )}
           </div>
-        ) : (
-          <>
-            <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-              {agency.name}{founded ? ` · ${t.ptSinceLabel} ${founded}` : ""}
-            </div>
-            <div style={{ fontFamily: SERIF, fontSize: 30, lineHeight: 1.1, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.5px", margin: "0 0 4px", color: INK }}>
-              {t.ptStudioHeading} <em style={{ fontStyle: "normal", color: ROSE }}>{t.ptHoneymoonOnly}</em>
-            </div>
-            {teamPhoto && (
-              <div style={{ width: "100%", aspectRatio: "4/3", overflow: "hidden", margin: "18px 0" }}>
-                <img src={teamPhoto} alt={`${agency.name} team`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
-            )}
-            {(story || agency.tagline) && (
-              <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 17, lineHeight: 1.55, color: MUTED, margin: "14px 0 0" }}>
-                {story || agency.tagline}
-              </p>
-            )}
-            {lastTrip && (
-              <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14, color: ROSE, marginTop: 12 }}>{lastTrip}</div>
-            )}
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// ─── Itinerary ────────────────────────────────────────────────────────────────
-
-function PtItinerarySection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data = ptFindSec(pkg, "itinerary");
-  const days = ptSecArr(data, "days").length ? ptSecArr(data, "days") : (pkg.itinerary ?? []).map(d => ({ day: d.day, title: d.title, desc: d.desc, chapter: d.chapter, img: d.img }));
-  if (!days.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section id="itinerary" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="itinerary">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptDayByDay}</div>
-        <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
-          {days.length} {t.ptDaysAsWeSeeIt}
+        </Wrap>
+      );
+    }
+    return (
+      <Wrap pt={26} pb={20} section="hero">
+        <Script mb={14}><span data-pmx-field="destination">{pkg.destination}</span></Script>
+        <h1 style={{ fontFamily: serif, fontSize: 36, fontWeight: 500, fontStyle: "italic", lineHeight: 1.08, letterSpacing: rtl ? 0 : "-0.5px", color: INK, margin: "6px 0 20px" }} data-pmx-field="title">{title}</h1>
+        <div style={{ position: "relative", height: 380, ...arch(200), background: PAPER }}>
+          {cover && <img src={cover} onClick={() => zoom(cover)} style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in" }} />}
         </div>
-        <div style={{ display: "flex", flexDirection: "column" as const }}>
-          {days.map((d, i) => {
-            const day   = typeof d.day === "number" ? d.day : Number(d.day) || (i + 1);
-            const title = ptItemStr(d, "title");
-            const desc  = ptItemStr(d, "desc", "description");
-            const chap  = ptItemStr(d, "chapter");
-            const img   = ptItemStr(d, "img", "image");
-            return (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: isDesktop ? (img ? "220px 1fr" : "80px 1fr") : "48px 1fr", gap: isDesktop ? 36 : 20, padding: "24px 0", borderTop: `1px solid ${BORDER}`, alignItems: "start" }}>
-                <div>
-                  {img ? (
-                    <div style={{ aspectRatio: "3/4", overflow: "hidden" }}>
-                      <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                    </div>
-                  ) : (
-                    <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 56 : 32, fontWeight: 400, fontStyle: "italic", color: ROSE_SOFT, lineHeight: 1 }}>{String(day).padStart(2, "0")}</div>
-                  )}
-                </div>
-                <div style={{ paddingTop: img ? 0 : 4 }}>
-                  {chap && <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 6 }}>{chap}</div>}
-                  <h3 style={{ fontFamily: SERIF, fontSize: isDesktop ? 26 : 20, fontStyle: "italic", fontWeight: 500, letterSpacing: "-0.4px", margin: "0 0 14px", lineHeight: 1.2, color: INK }}>{title}</h3>
-                  {desc && <p style={{ fontSize: isDesktop ? 14.5 : 13.5, lineHeight: 1.65, color: MUTED, margin: 0 }}>{desc}</p>}
-                </div>
-              </div>
-            );
-          })}
+        {pkg.description && <p style={{ fontFamily: sans, fontSize: 15, color: MUT, lineHeight: 1.75, margin: "20px 0 0" }}>{pkg.description}</p>}
+        <div style={{ background: PAPER, border: `1px solid ${RULE}`, borderRadius: 22, padding: 20, marginTop: 20, textAlign: "center" }}>
+          {priceCard}
+          {pkg.whatsapp && <div style={{ marginTop: 14 }}><CTA full onClick={onWhatsApp}>{L.ui.enquire}</CTA></div>}
         </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Inclusions (section-based) ───────────────────────────────────────────────
-
-function PtInclusionsSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data     = ptFindSec(pkg, "inclusions");
-  const includes = (data?.includes as string[] | undefined) ?? [];
-  const excludes = (data?.excludes as string[] | undefined) ?? [];
-  if (!includes.length && !excludes.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section id="included" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="inclusions">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptIncludedInFull}</div>
-        {includes.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: isDesktop ? "0 48px" : "0" }}>
-            {includes.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, padding: "14px 0", borderBottom: `1px solid ${BORDER}`, alignItems: "flex-start" }}>
-                <span style={{ color: ROSE, fontSize: 14, flexShrink: 0, marginTop: 1 }}>♡</span>
-                <span style={{ fontSize: isDesktop ? 14.5 : 13.5, color: INK, lineHeight: 1.45 }}>{item}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {excludes.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: MUTED, marginBottom: 12 }}>{t.ptNotIncluded}</div>
-            {excludes.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, color: MUTED, marginBottom: 8 }}>
-                <span style={{ color: ROSE_SOFT, fontWeight: 700 }}>—</span>
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// ─── Pricing ──────────────────────────────────────────────────────────────────
-
-function PtPricingSection({ pkg, isDesktop, onWhatsApp, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; onWhatsApp: () => void; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data  = ptFindSec(pkg, "pricing");
-  const tiers = ptSecArr(data, "tiers").length ? ptSecArr(data, "tiers") : (pkg.pricingTiers ?? []).map(t2 => ({ label: t2.label, price: t2.price, was: t2.was, perks: t2.perks, pop: t2.pop }));
-  if (!tiers.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section id="pricing" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="pricing">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptInvestment}</div>
-        <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 52 : 34, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 44px", color: INK }}>
-          {t.ptWhatYouGet} <em style={{ fontStyle: "normal", color: ROSE }}>{t.ptAsACouple}</em>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: isDesktop ? 32 : 20 }}>
-          {tiers.map((tier, i) => {
-            const pop   = !!tier.pop;
-            const label = ptItemStr(tier, "label");
-            const price = ptItemStr(tier, "price");
-            const was   = ptItemStr(tier, "was");
-            const perks = (tier.perks as string[] | undefined) ?? [];
-            return (
-              <article key={i} style={{ background: pop ? "#fff" : PEACH, border: `1px solid ${pop ? ROSE : BORDER}`, padding: isDesktop ? "32px 36px" : "22px 22px" }}>
-                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 8 }}>{label}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
-                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 40 : 34, fontStyle: "italic", fontWeight: 400, color: INK, lineHeight: 1 }}>{price}</div>
-                  {was && <div style={{ fontSize: 14, textDecoration: "line-through", color: MUTED }}>{was}</div>}
-                </div>
-                <div style={{ fontSize: 12, color: MUTED, marginBottom: perks.length ? 20 : 0 }}>{t.petalForTwoAllIn}</div>
-                {perks.length > 0 && (
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0, borderTop: `1px solid ${BORDER}`, paddingTop: 18 }}>
-                    {perks.map((p, j) => (
-                      <li key={j} style={{ display: "flex", gap: 10, fontSize: 13.5, color: MUTED, marginBottom: 10 }}>
-                        <span style={{ color: ROSE }}>♡</span>
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {pkg.whatsapp && <button onClick={onWhatsApp} style={{ marginTop: 20, width: "100%", background: pop ? ROSE : "transparent", color: pop ? "#fff" : ROSE, border: `1px solid ${ROSE}`, padding: "12px 0", fontSize: 13.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
-                  {t.bookWhatsApp}
-                </button>}
-              </article>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Transfers ────────────────────────────────────────────────────────────────
-
-function PtTransfersSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data  = ptFindSec(pkg, "transfers");
-  const items = ptSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="transfers">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptGettingThere}</div>
-        <div style={{ display: "flex", flexDirection: "column" as const }}>
-          {items.map((item, i) => {
-            const from = ptItemStr(item, "from");
-            const to   = ptItemStr(item, "to");
-            const type = ptItemStr(item, "type", "transportType");
-            const note = ptItemStr(item, "note", "details");
-            return (
-              <div key={i} style={{ padding: "18px 0", borderTop: `1px solid ${BORDER}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ minWidth: 0 }}>
-                  {(from || to) && <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 20 : 16, fontStyle: "italic", color: INK, overflowWrap: "break-word" }}>{from}{from && to ? " → " : ""}{to}</div>}
-                  {type && <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: ROSE, marginTop: 4 }}>{type}</div>}
-                  {note && <div style={{ fontSize: 13, color: MUTED, marginTop: 6, lineHeight: 1.5, overflowWrap: "break-word" }}>{note}</div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Extras ───────────────────────────────────────────────────────────────────
-
-function PtExtrasSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data  = ptFindSec(pkg, "extras");
-  const items = ptSecArr(data, "items");
-  if (!items.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="extras">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptAddOns}</div>
-        <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 30, lineHeight: 1.05, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.6px", margin: "0 0 36px", color: INK }}>
-          {t.ptLittleExtras} <em style={{ fontStyle: "normal", color: ROSE }}>{t.ptExtrasHeading}</em>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", columnGap: isDesktop ? 48 : 0, rowGap: 0 }}>
-          {items.map((item, i) => {
-            const name  = ptItemStr(item, "name", "title");
-            const price = ptItemStr(item, "price");
-            const desc  = ptItemStr(item, "description", "desc");
-            return (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, padding: "18px 0", borderTop: `1px solid ${BORDER}`, alignItems: "center" }}>
-                <div>
-                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 18 : 15, fontStyle: "italic", color: INK, marginBottom: desc ? 4 : 0 }}>{name}</div>
-                  {desc && <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.55 }}>{desc}</div>}
-                </div>
-                {price && <div style={{ fontFamily: SERIF, fontSize: 16, fontStyle: "italic", color: ROSE }}>{price}</div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Media ────────────────────────────────────────────────────────────────────
-
-function PtMediaSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
-  const data       = ptFindSec(pkg, "media");
-  const images     = (data?.images as string[] | undefined) ?? pkg.images ?? [];
-  const videoUrl   = ((data?.videoUrl as string | undefined) ?? pkg.videoUrl ?? "").trim();
-  const mapImage   = (data?.mapImage as string | undefined) ?? "";
-  const mapCaption = (data?.mapCaption as string | undefined) ?? "";
-  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
-  if (!images.length && !videoUrl && !mapImage) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  const isEmbed = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo"));
-  const embedUrl = (() => {
-    const yt = videoUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
-    if (yt) return `https://www.youtube.com/embed/${yt[1]}?rel=0`;
-    const vi = videoUrl.match(/vimeo\.com\/(\d+)/);
-    if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
-    return videoUrl;
-  })();
-  return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="media">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        {images.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: isDesktop ? undefined : "130px 130px", gap: 6, marginBottom: (videoUrl || mapImage) ? 32 : 0 }}>
-            {(isDesktop ? images : images.slice(0, 3)).map((src, i) => (
-              <div key={i} onClick={() => setLbIdx(i)} style={{ overflow: "hidden", gridRow: !isDesktop && i === 0 ? "span 2" : undefined, aspectRatio: isDesktop ? "4/3" : undefined, cursor: "pointer" }}>
-                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
-              </div>
-            ))}
-          </div>
-        )}
-        {videoUrl && (
-          <div style={{ aspectRatio: "16/9", overflow: "hidden", marginBottom: mapImage ? 20 : 0 }}>
-            {isEmbed ? (
-              <iframe src={embedUrl} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
-            ) : (
-              <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} controls playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
-            )}
-          </div>
-        )}
-        {mapImage && (
-          <div>
-            <img src={mapImage} alt={mapCaption} style={{ width: "100%", maxHeight: isDesktop ? 380 : 220, objectFit: "cover", display: "block" }} />
-            {mapCaption && <div style={{ padding: "10px 0", fontSize: 12.5, fontFamily: MONO, letterSpacing: "1px", textTransform: "uppercase" as const, color: MUTED }}>{mapCaption}</div>}
-          </div>
-        )}
-      </div>
-      {lbIdx !== null && <LightboxCarousel images={images} startIndex={lbIdx} onClose={() => setLbIdx(null)} />}
-    </section>
-  );
-}
-
-// ─── People ───────────────────────────────────────────────────────────────────
-
-function PtPeopleSection({ pkg, isDesktop, lang }: { pkg: TPageProps["pkg"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const data   = ptFindSec(pkg, "people");
-  const people = ptSecArr(data, "people");
-  if (!people.length) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="people">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{t.ptYourDesigners}</div>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: isDesktop ? 48 : 28 }}>
-          {people.map((person, i) => {
-            const name   = ptItemStr(person, "name");
-            const role   = ptItemStr(person, "role");
-            const bio    = ptItemStr(person, "bio");
-            const photo  = ptItemStr(person, "photo");
-            const years  = person.years as number | undefined;
-            return (
-              <div key={i} style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-                {photo
-                  ? <img src={photo} alt={name} style={{ width: 80, height: 80, objectFit: "cover", flexShrink: 0, borderRadius: "50%" }} />
-                  : <div style={{ width: 80, height: 80, background: ROSE_SOFT, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, borderRadius: "50%", fontFamily: SERIF, fontSize: 32, color: ROSE }}>{name?.[0]}</div>
-                }
-                <div>
-                  <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 22 : 18, fontStyle: "italic", color: INK, marginBottom: 4 }}>{name}</div>
-                  {role && <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1.2px", textTransform: "uppercase" as const, color: ROSE, marginBottom: bio ? 10 : 0 }}>{localizeRole(role, t)}{years ? ` · ${years}y` : ""}</div>}
-                  {bio && <p style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.65, margin: 0 }}>{bio}</p>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Custom ───────────────────────────────────────────────────────────────────
-
-function PtCustomSection({ pkg, isDesktop }: { pkg: TPageProps["pkg"]; isDesktop: boolean }) {
-  const data    = ptFindSec(pkg, "custom");
-  const heading = ptSecStr(data, "heading");
-  const content = ptSecStr(data, "content");
-  const image   = ptSecStr(data, "image");
-  if (!heading && !content) return null;
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH }} data-pmx-section="custom">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        {heading && <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>{heading}</div>}
-        {image && <img src={image} alt={heading} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", marginBottom: 22 }} />}
-        {content && <p style={{ fontFamily: SERIF, fontSize: isDesktop ? 20 : 16, fontStyle: "italic", lineHeight: 1.7, color: MUTED, margin: 0 }}>{content}</p>}
-      </div>
-    </section>
-  );
-}
-
-// ─── Reviews ──────────────────────────────────────────────────────────────────
-
-function PtReviewsSection({ pkg, agency, isDesktop, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const reviews   = pkg.reviews ?? [];
-  const canSubmit = agency.enableReviews !== false;
-  const showList  = agency.showReviews !== false && reviews.length > 0;
-  if (!showList && !canSubmit) return null;
-
-  const [name,   setName]   = React.useState("");
-  const [text,   setText]   = React.useState("");
-  const [rating, setRating] = React.useState(0);
-  const [hover,  setHover]  = React.useState(0);
-  const [status, setStatus] = React.useState<"idle"|"sending"|"ok"|"err">("idle");
-
-  const handleSubmit = async () => {
-    if (!name.trim() || !text.trim() || !rating || !pkg.id) return;
-    setStatus("sending");
-    try {
-      const res = await fetch("/api/submit-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ packageId: pkg.id, name: name.trim(), text: text.trim(), rating }) });
-      setStatus(res.ok ? "ok" : "err");
-    } catch { setStatus("err"); }
+      </Wrap>
+    );
   };
 
-  const pad = isDesktop ? "0 80px 64px" : "22px 18px 0";
-  return (
-    <section id="reviews" style={{ padding: pad, borderTop: `1px solid ${BORDER}`, background: PEACH, scrollMarginTop: 88 }} data-pmx-section="reviews">
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-        <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: ROSE, marginBottom: 14 }}>
-          {showList ? `${reviews.length} ${t.ptExperiences}` : t.writeReviewTitle}
-        </div>
-        {showList && (
-          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: isDesktop ? "0 48px" : 0, marginBottom: canSubmit ? 40 : 0 }}>
-            {reviews.map((r, i) => (
-              <div key={i} style={{ padding: "24px 0", borderTop: `1px solid ${BORDER}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                  <div>
-                    <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 18 : 16, fontStyle: "italic", color: INK }}>{r.name}</div>
-                    {r.country && <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1px", textTransform: "uppercase" as const, color: MUTED, marginTop: 4 }}>{r.country}</div>}
-                  </div>
-                  <div style={{ display: "flex", gap: 2 }}>{[1,2,3,4,5].map(n => <span key={n} style={{ color: n <= r.rating ? GOLD : "rgba(26,13,13,0.15)", fontSize: 14 }}>★</span>)}</div>
-                </div>
-                <p style={{ fontFamily: SERIF, fontSize: isDesktop ? 17 : 15, fontStyle: "italic", color: MUTED, lineHeight: 1.7, margin: 0 }}>{r.text}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        {canSubmit && status !== "ok" && (
-          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 32 }}>
-            <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 28 : 20, fontStyle: "italic", color: INK, marginBottom: 20 }}>{t.writeReviewTitle}</div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-              {[1,2,3,4,5].map(n => (
-                <button key={n} onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => setRating(n)} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", fontSize: 24, color: n <= (hover || rating) ? GOLD : "rgba(26,13,13,0.18)", lineHeight: 1 }}>★</button>
-              ))}
-            </div>
-            <input placeholder={t.reviewYourName} value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", border: "none", borderBottom: `1px solid ${BORDER}`, background: "transparent", padding: "10px 0", fontSize: 14, fontFamily: "inherit", color: INK, marginBottom: 14, boxSizing: "border-box" as const }} />
-            <textarea placeholder={t.reviewPlaceholder} value={text} onChange={e => setText(e.target.value)} rows={3} style={{ width: "100%", border: "none", borderBottom: `1px solid ${BORDER}`, background: "transparent", padding: "10px 0", fontSize: 14, fontFamily: "inherit", color: INK, marginBottom: 18, resize: "none" as const, boxSizing: "border-box" as const }} />
-            <button onClick={handleSubmit} disabled={status === "sending"} style={{ background: ROSE, color: "#fff", border: "none", padding: "12px 28px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>{status === "sending" ? t.ptSending : t.submitReviewBtn}</button>
-            {status === "err" && <div style={{ fontSize: 13, color: "#c0392b", marginTop: 10 }}>{t.reviewSubmitError}</div>}
-          </div>
-        )}
-        {status === "ok" && <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 24, fontFamily: SERIF, fontSize: 16, fontStyle: "italic", color: ROSE }}>{t.reviewSubmitSuccess}</div>}
-      </div>
-    </section>
-  );
-}
-
-// ─── Desktop trust strip ──────────────────────────────────────────────────────
-
-function PtTrustStrip({ items }: { items: { icon: React.ReactNode; title: string; sub?: string }[] }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length}, 1fr)`, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, padding: "20px 80px" }}>
-      {items.map((item, i) => (
-        <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", borderRight: i < items.length - 1 ? `1px solid ${BORDER}` : "none", paddingRight: 20, paddingLeft: i ? 20 : 0 }}>
-          <span style={{ color: ROSE, display: "flex", marginTop: 2 }}>{item.icon}</span>
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: INK }}>{item.title}</div>
-            {item.sub && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{item.sub}</div>}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── CTA banner ───────────────────────────────────────────────────────────────
-
-function PtCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: { pkg: TPageProps["pkg"]; agency: TPageProps["agency"]; isDesktop: boolean; onWhatsApp: () => void; onMessenger: () => void; lang: TPageProps["lang"] }) {
-  const t = T[lang];
-  const nights = pkg.nights ? Number(pkg.nights) : null;
-  const pad = isDesktop ? "48px 80px 64px" : "28px 18px";
-  return (
-    <section style={{ padding: pad, background: ROSE, color: "#fff" }}>
-      <div style={{ maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined, display: "flex", flexDirection: isDesktop ? "row" as const : "column" as const, justifyContent: "space-between", alignItems: isDesktop ? "center" : "flex-start", gap: 24 }}>
-        <div>
-          <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "1.8px", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.65)", marginBottom: 10 }}>{t.ptReserveDates}</div>
-          <div style={{ fontFamily: SERIF, fontSize: isDesktop ? 48 : 34, fontStyle: "italic", lineHeight: 1.05, letterSpacing: "-0.6px", color: "#fff" }}>{normalizeSarStr(pkg.price)}</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
-        </div>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
-          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
-          {pkg.messenger && <button data-testid="messenger-cta" onClick={onMessenger} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", padding: "14px 22px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>{t.vyMessenger}</button>}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Mobile footer ────────────────────────────────────────────────────────────
-
-function PtMobileFooter({ agency }: { agency: TPageProps["agency"] }) {
-  return (
-    <div style={{ padding: "28px 18px", background: PEACH, borderTop: `1px solid ${BORDER}`, textAlign: "center" as const }}>
-      {agency.logoUrl && <img src={agency.logoUrl} alt={agency.name} style={{ height: 28, objectFit: "contain", display: "block", margin: "0 auto 10px" }} />}
-      <div style={{ fontFamily: SERIF, fontSize: 16, fontStyle: "italic", color: INK }}>{agency.name}</div>
-      {agency.tagline && <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase" as const, color: MUTED, marginTop: 4 }}>{agency.tagline}</div>}
-    </div>
-  );
-}
-
-// ─── TemplatePetalPage ────────────────────────────────────────────────────────
-
-export function TemplatePetalPage({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
-  const t = T[lang];
-  const nights     = pkg.nights ? Number(pkg.nights) : null;
-  const coverImage = pkg.coverImage || "";
-  const title      = pkg.title || pkg.destination;
-  const isRtl      = lang === "ar";
-  const itinerary  = getItineraryDays(pkg).filter(it => it.title?.trim());
-  const includes   = (pkg.includes?.length ? pkg.includes : (pkg.advantages || [])).slice(0, 8);
-  const isDesktop  = useIsDesktop();
-  const trustItems = buildPetalTrustItems(t, pkg);
-
-  const navLinks = [
-    ...(itinerary.length || pkg.sections?.some(s => s.type === "itinerary") ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
-    ...(includes.length || pkg.sections?.some(s => s.type === "inclusions") ? [{ label: t.navIncluded, href: "#included" }] : []),
-    ...((pkg.pricingTiers || []).some(t2 => t2.price) || pkg.sections?.some(s => s.type === "pricing") ? [{ label: t.navPricing, href: "#pricing" }] : []),
-    ...(pkg.sections?.some(s => s.type === "hotel" || s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#hotel" }] : []),
-    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#departures" }] : []),
-    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#reviews" }] : []),
-    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#faq" }] : []),
-  ];
-
-  if (isDesktop) {
+  // ════════ SCARCITY ════════
+  const Scarcity = () => {
+    const sc = pkg.scarcity;
+    if (!sc || sc.spotsRemaining == null) return null;
+    const total = sc.totalSpots && sc.totalSpots > 0 ? sc.totalSpots : Math.max(sc.spotsRemaining, 6);
     return (
-      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: PEACH, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={ROSE} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-
-        {/* Hero: text LEFT, arched image RIGHT (RTL-aware via order) */}
-        <DContainer data-pmx-section="hero" style={{ padding: "80px 80px 64px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 72, alignItems: "center" }}>
-            <div style={{ order: isRtl ? 2 : 1 }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: ROSE, fontStyle: "italic", fontFamily: SERIF }}>
-                <span style={{ width: 32, height: 1, background: ROSE }} />
-                <span data-pmx-field="destination">{t.petalJourneyTagline} · {pkg.destination}</span>
-              </div>
-              <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 64, lineHeight: 1.02, fontWeight: 400, fontStyle: "italic", letterSpacing: "-1px", marginTop: 20, marginBottom: 22, color: INK }}>
-                {title}
-              </h1>
-              <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.72, margin: "0 0 28px" }}>{pkg.description}</p>
-              <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 400, color: ROSE, letterSpacing: "-0.8px", marginBottom: 5, lineHeight: 1 }}>{normalizeSarStr(pkg.price)}</div>
-              <div style={{ fontSize: 12, color: SMUTED, marginBottom: 24 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
-              {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
-            </div>
-            <div style={{ order: isRtl ? 1 : 2, position: "relative", height: 560, borderRadius: "260px 260px 14px 14px", overflow: "hidden", background: INK }}>
-              {coverImage
-                ? <img src={coverImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${ROSE}cc, ${CLAY}88)` }} />
-              }
+      <Wrap pt={0} pb={D ? 40 : 24} section="scarcity">
+        <div style={{ background: ptRgba(brand, 0.07), border: `1px solid ${ptRgba(brand, 0.2)}`, borderRadius: 24, padding: D ? "24px 32px" : "20px", display: "flex", flexDirection: D ? "row" : "column", gap: D ? 0 : 14, alignItems: "center", justifyContent: "space-between", textAlign: D ? "start" : "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexDirection: D ? "row" : "column" }}>
+            <span style={{ fontFamily: serif, fontStyle: "italic", fontSize: D ? 40 : 32, color: brand, lineHeight: 1 }}>{dig(sc.spotsRemaining)}</span>
+            <div>
+              <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 13, color: brand, marginBottom: 4 }}>{L.sections.scarcity}</div>
+              <div style={{ fontFamily: serif, fontSize: D ? 22 : 18, color: INK, lineHeight: 1.4, maxWidth: 480 }}>{L.ui.spotsLeftLine(sc.spotsRemaining)}</div>
             </div>
           </div>
-        </DContainer>
-
-        {/* Trust strip */}
-        <PtTrustStrip items={trustItems} />
-
-        {/* Inclusions — 2-col */}
-        {includes.length > 0 && (
-          <DContainer id="included" style={{ padding: "48px 80px" }}>
-            <div style={{ fontFamily: SERIF, fontSize: 11, fontStyle: "italic", color: ROSE, marginBottom: 8 }}>{t.petalWhatsPlanned}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {includes.map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: 12, padding: "14px 16px", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, alignItems: "flex-start" }}>
-                  <span style={{ color: ROSE, fontSize: 14, flexShrink: 0, marginTop: 1 }}>♡</span>
-                  <span style={{ fontSize: 13.5, color: INK, lineHeight: 1.4 }}>{item}</span>
-                </div>
-              ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: D ? (rtl ? "flex-start" : "flex-end") : "center" }}>
+            {sc.firstDepartureDate && <div style={{ fontFamily: sans, fontSize: 11.5, color: MUT }}>{L.ui.nextDeparture} · <strong style={{ color: brand }}>{dig(sc.firstDepartureDate)}</strong></div>}
+            <div style={{ display: "flex", gap: 6 }}>
+              {Array.from({ length: Math.min(total, 12) }).map((_, i) => <span key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: i < sc.spotsRemaining! ? brand : ptRgba(brand, 0.2) }} />)}
             </div>
-          </DContainer>
-        )}
-
-        <PtHighlightsSection pkg={pkg} isDesktop={true} lang={lang} />
-        <PtHotelsSection pkg={pkg} isDesktop={true} lang={lang} />
-        <PtItinerarySection pkg={pkg} isDesktop={true} lang={lang} />
-        <RoomTreatmentsDesktop pkg={pkg} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-        <PtInclusionsSection pkg={pkg} isDesktop={true} lang={lang} />
-        <PtMediaSection pkg={pkg} isDesktop={true} />
-        <PtTransfersSection pkg={pkg} isDesktop={true} lang={lang} />
-        <PtPricingSection pkg={pkg} isDesktop={true} onWhatsApp={onWhatsApp} lang={lang} />
-        <PtDeparturesSection pkg={pkg} isDesktop={true} lang={lang} />
-        <PtExtrasSection pkg={pkg} isDesktop={true} lang={lang} />
-        <PtCustomSection pkg={pkg} isDesktop={true} />
-        <PtPeopleSection pkg={pkg} isDesktop={true} lang={lang} />
-        <PtFaqSection pkg={pkg} isDesktop={true} lang={lang} />
-        <PtImportantNotesSection pkg={pkg} isDesktop={true} lang={lang} />
-        <PtReviewsSection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
-        <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={true} lang={lang} />
-        <PtOtherPackagesSection pkg={pkg} isDesktop={true} lang={lang} agencySlug={agency.agencySlug} />
-        <PetalDesignerPanelDesktop pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-        <PtCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
-        <DesktopFooter agency={agency} brand={ROSE} />
-      </div>
+          </div>
+        </div>
+      </Wrap>
     );
-  }
+  };
 
-  return (
-    <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: PEACH, color: INK, fontFamily: "var(--font-dm-sans, sans-serif)", direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={ROSE} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
+  // ════════ HIGHLIGHTS ════════
+  const Highlights = () => {
+    const items = secMixed(findSec(pkg, "highlights"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap pt={D ? 24 : 8} section="highlights">
+        <SecHead kicker={L.nav.highlights} title={ar("Three quiet luxuries", "ثلاث لحظات هانئة")} sub={ar("Designed for two, and only two.", "صُمّمت لاثنين، ولاثنين فقط.")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 22 : 16 }}>
+          {items.map((h, i) => {
+            const t = secItemStr(h, "title", "text", "label");
+            const d = typeof h === "object" ? secItemStr(h, "desc", "description") : "";
+            return (
+              <Card key={i} style={{ padding: D ? 28 : 20 }}>
+                <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 22, color: i % 3 === 1 ? SAGE : brand }}>{num(i)}</div>
+                <div style={{ fontFamily: serif, fontSize: D ? 24 : 20, fontWeight: 500, color: INK, margin: "10px 0 8px", lineHeight: 1.2 }}>{t}</div>
+                {d && <div style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.7 }}>{d}</div>}
+              </Card>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
 
-      {/* Arched hero */}
-      <div data-pmx-section="hero" style={{ padding: "0 18px" }}>
-        <div style={{ position: "relative", height: 440, borderRadius: "200px 200px 16px 16px", overflow: "hidden", background: INK }}>
-          {coverImage
-            ? <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            : <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${ROSE}cc, ${CLAY}88)` }} />
-          }
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.05) 60%, rgba(0,0,0,0.48))" }} />
-          <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, textAlign: "center" as const }}>
-            <div style={{ fontFamily: SERIF, fontSize: 12, fontStyle: "italic", color: "rgba(255,255,255,0.85)" }}>
-              {t.petalJourneyTagline}
+  // ════════ MEDIA ════════
+  const Media = () => {
+    const m = findSec(pkg, "media");
+    const imgs = mediaImgs;
+    const video = secStr(m, "videoUrl") || pkg.videoUrl || "";
+    const mapImage = secStr(m, "mapImage");
+    const mapCaption = secStr(m, "mapCaption");
+    if (!imgs.length && !video && !mapImage) return null;
+    const tiles = imgs.slice(0, D ? 3 : 2);
+    const stops = mapImage ? [] : itinDays.slice(0, 5).map((d) => ({ label: secItemStr(d, "title") })).filter((s) => s.label);
+    return (
+      <Wrap pt={0} section="media">
+        <SecHead kicker={L.sections.media} title={ar("A look at your days", "لمحة من أيامكما")} center />
+        <PtVideo src={video} poster={cover || imgs[0]} accent={brand} radius={D ? "240px 240px 24px 24px" : "150px 150px 20px 20px"} rtl={rtl} sans={sans} height={D ? 440 : 300} ui={L.ui} />
+        {tiles.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr 1fr" : "1fr 1fr", gap: D ? 16 : 10, marginTop: D ? 20 : 12 }}>
+            {tiles.map((u, i) => <div key={i} style={{ position: "relative", height: D ? 240 : 170, ...arch(D ? 120 : 90) }}><img src={u} onClick={() => zoom(u)} style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in" }} /></div>)}
+          </div>
+        )}
+        {(mapImage || stops.length > 0) && (
+          <div style={{ marginTop: 22 }}>
+            <div style={{ display: "flex", justifyContent: "center" }}><Script mb={10}>{L.ui.route}</Script></div>
+            {mapImage
+              ? <img src={mapImage} alt={mapCaption} style={{ width: "100%", height: D ? 220 : 170, objectFit: "cover", borderRadius: 20, display: "block" }} />
+              : <PtRouteMap stops={stops} line={brand} ink={INK} height={D ? 220 : 170} rounded={20} rtl={rtl} />}
+            {mapCaption && <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 13.5, color: FAINT, marginTop: 10, textAlign: "center" }}>{mapCaption}</div>}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ ITINERARY ════════
+  const Itinerary = () => {
+    if (!itinDays.length) return null;
+    return (
+      <Wrap style={{ background: PAPER }} section="itinerary">
+        <SecHead kicker={L.sections.itinerary} title={ar(`${itinDays.length} unhurried days`, `${dig(itinDays.length)} أيام على مهل`)} center />
+        <div style={{ position: "relative", maxWidth: 720, margin: "0 auto" }}>
+          <div style={{ position: "absolute", insetInlineStart: D ? 70 : 46, top: 8, bottom: 8, width: 1, background: RULE }} />
+          {itinDays.map((it, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: D ? "92px 1fr" : "62px 1fr", gap: D ? 24 : 14, padding: "14px 0", alignItems: "start" }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontFamily: sans, fontSize: 9.5, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc }}>{L.ui.day}</div>
+                <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: D ? 34 : 26, color: brand, lineHeight: 1 }}>{dig((it.day as number) ?? i + 1)}</div>
+              </div>
+              <div style={{ paddingTop: 4 }}>
+                <div style={{ fontFamily: serif, fontSize: D ? 22 : 18, fontWeight: 500, color: INK }}>{secItemStr(it, "title")}</div>
+                {secItemStr(it, "desc", "description") && <div style={{ fontFamily: sans, fontSize: 13.5, color: MUT, lineHeight: 1.65, marginTop: 4 }}>{secItemStr(it, "desc", "description")}</div>}
+              </div>
             </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ HOTEL ════════
+  const Hotel = () => {
+    const h = findSec(pkg, "hotel");
+    const rich = findSec(pkg, "hotels");
+    const r0 = (secArr(rich, "hotels").length ? secArr(rich, "hotels") : secArr(rich, "items"))[0];
+    const name = r0 ? secItemStr(r0, "name") : "";
+    const stars = r0 && typeof r0.stars === "number" ? (r0.stars as number) : 0;
+    const blurb = (r0 ? secItemStr(r0, "note", "description", "blurb") : "") || secStr(h, "description") || pkg.hotelDescription || "";
+    const features = r0 ? secStrArr(r0, "facilities").concat(secStrArr(r0, "features")) : [];
+    if (!blurb && !name) return null;
+    const img = mediaImgs[1] || mediaImgs[0] || cover;
+    return (
+      <Wrap section="hotel">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1.1fr" : "1fr", gap: D ? 56 : 20, alignItems: "center" }}>
+          {img && <div style={{ height: D ? 420 : 240, ...arch(220) }}><img src={img} onClick={() => zoom(img)} style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in" }} /></div>}
+          <div>
+            <Script mb={10}>{L.sections.hotel}</Script>
+            <H2 size={D ? 38 : 26}>{name || ar("Your stay", "إقامتكما")}</H2>
+            {stars > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0 16px" }}>
+                <PtStars n={stars} size={D ? 17 : 15} color={brand} />
+                <span style={{ fontFamily: sans, fontSize: 12, color: FAINT }}>{dig(stars)} {L.ui.stars}</span>
+              </div>
+            )}
+            {blurb && <p style={{ fontFamily: sans, fontSize: D ? 15.5 : 14, color: MUT, lineHeight: 1.8, margin: stars > 0 ? 0 : "14px 0 0", whiteSpace: "pre-line" }}>{blurb}</p>}
+            {features.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18 }}>{features.map((f, i) => <span key={i} style={{ fontFamily: sans, fontSize: 12.5, color: INK, background: ptRgba(SAGE, 0.16), borderRadius: 999, padding: "7px 14px" }}>{f}</span>)}</div>}
           </div>
         </div>
-      </div>
+      </Wrap>
+    );
+  };
 
-      {/* Price + title card — brand-filled, centered (matches desktop) */}
-      <div style={{ padding: "0 18px" }}>
-        <div style={{ background: ROSE, color: "#fff", borderRadius: 18, boxShadow: "0 10px 32px rgba(26,13,13,0.18)", padding: "28px 22px 24px", marginTop: -28, position: "relative", zIndex: 2, textAlign: "center" as const }}>
-          <h1 data-pmx-field="title" style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: "#fff", lineHeight: 1.12, letterSpacing: "-0.4px", margin: "0 0 16px" }}>
-            {title}
-          </h1>
-          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14, color: "rgba(255,255,255,0.78)", marginBottom: 4 }}>{nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.petalForTwoAllIn}</div>
-          <div data-pmx-field="price" style={{ fontFamily: SERIF, fontSize: 52, fontWeight: 400, fontStyle: "italic", color: "#fff", lineHeight: 1, letterSpacing: "-0.8px", marginBottom: 20 }}>{normalizeSarStr(pkg.price)}</div>
-          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} full onClick={onWhatsApp} />}
+  // ════════ MEALS ════════
+  const Meals = () => {
+    const m = findSec(pkg, "meals");
+    const plan = secStr(m, "plan");
+    const notes = secStr(m, "notes");
+    if (!plan && !notes) return null;
+    const planLabel = MEAL_LABELS[plan]?.[lang] || plan || ar("Dining", "الطعام");
+    return (
+      <Wrap style={{ background: PAPER }} section="meals">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1.2fr" : "1fr", gap: D ? 56 : 22 }}>
+          <div>
+            <Script mb={10}>{L.sections.meals}</Script>
+            <H2 size={D ? 40 : 27}>{planLabel}</H2>
+          </div>
+          {notes && <p style={{ fontFamily: sans, fontSize: 14.5, color: MUT, lineHeight: 1.75, margin: 0, whiteSpace: "pre-line" }}>{notes}</p>}
         </div>
-      </div>
+      </Wrap>
+    );
+  };
 
-      {/* Mobile trust strip */}
-      <MobileTrustStrip t={t} />
+  // ════════ INCLUSIONS ════════
+  const Mark = ({ on }: { on?: boolean }) => (
+    <span style={{ width: 18, height: 18, borderRadius: "50%", background: on ? ptRgba(brand, 0.12) : "transparent", border: on ? "none" : `1px solid ${RULE}`, color: on ? brand : FAINT, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, flexShrink: 0, marginTop: 2 }}>{on ? "♥" : "·"}</span>
+  );
+  const Inclusions = () => {
+    const inc = findSec(pkg, "inclusions");
+    const includes = secStrArr(inc, "includes").length ? secStrArr(inc, "includes") : (pkg.includes ?? []);
+    const excludes = secStrArr(inc, "excludes").length ? secStrArr(inc, "excludes") : (pkg.excludes ?? []);
+    if (!includes.length && !excludes.length) return null;
+    return (
+      <Wrap section="inclusions">
+        <SecHead kicker={L.sections.inclusions} title={ar("What's tended to", "ما رتّبناه لكما")} center />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 56 : 24, maxWidth: 900, margin: "0 auto" }}>
+          {includes.length > 0 && (
+            <div>
+              <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 16, color: brand, marginBottom: 12 }}>{L.ui.included}</div>
+              {includes.map((it, i) => <div key={i} style={{ display: "flex", gap: 12, padding: "9px 0", alignItems: "flex-start" }}><Mark on /><span style={{ fontFamily: sans, fontSize: 14, color: INK, lineHeight: 1.5 }}>{it}</span></div>)}
+            </div>
+          )}
+          {excludes.length > 0 && (
+            <div>
+              <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 16, color: FAINT, marginBottom: 12 }}>{L.ui.notIncluded}</div>
+              {excludes.map((it, i) => <div key={i} style={{ display: "flex", gap: 12, padding: "9px 0", alignItems: "flex-start" }}><Mark /><span style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.5 }}>{it}</span></div>)}
+            </div>
+          )}
+        </div>
+      </Wrap>
+    );
+  };
 
-      {/* Editorial intro — "The chapter" */}
-      {pkg.description && (
-        <section style={{ padding: "28px 18px 0" }}>
-          <div style={{ fontFamily: SERIF, fontSize: 11, fontStyle: "italic", color: ROSE, marginBottom: 8 }}>{t.petalEditorialLabel}</div>
-          <p style={{ fontFamily: SERIF, fontSize: 18, color: INK, lineHeight: 1.7, margin: 0, fontStyle: "italic" }}>{pkg.description}</p>
-        </section>
-      )}
-
-      {/* Inclusions — heart-marked */}
-      {includes.length > 0 && (
-        <div id="included" style={{ padding: "22px 18px 0", scrollMarginTop: 88 }}>
-          <div style={{ fontFamily: SERIF, fontSize: 11, fontStyle: "italic", color: ROSE, marginBottom: 10 }}>{t.petalWhatsPlanned}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {includes.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span style={{ color: ROSE, fontSize: 14, flexShrink: 0, marginTop: 1 }}>♡</span>
-                <span style={{ fontSize: 13.5, color: INK, lineHeight: 1.5 }}>{item}</span>
-              </div>
+  // ════════ TRANSFERS ════════
+  const Transfers = () => {
+    const tx = findSec(pkg, "transfers");
+    const desc = secStr(tx, "description");
+    const items = secMixed(tx, "items");
+    if (!desc && !items.length) return null;
+    return (
+      <Wrap style={{ background: PAPER }} section="transfers">
+        <SecHead kicker={L.sections.transfers} title={ar("Carried, gently", "تنقّل برفق")} sub={desc || undefined} center />
+        {items.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: D ? 20 : 14 }}>
+            {items.map((t, i) => (
+              <Card key={i} style={{ textAlign: "center", padding: D ? 28 : 20, background: BG }}>
+                <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 20, color: i % 3 === 1 ? SAGE : brand }}>{num(i)}</div>
+                <div style={{ fontFamily: serif, fontSize: D ? 21 : 18, color: INK, margin: "8px 0 6px" }}>{secItemStr(t, "leg", "title", "name", "text")}</div>
+                {typeof t === "object" && secItemStr(t, "desc", "description") && <div style={{ fontFamily: sans, fontSize: 13.5, color: MUT, lineHeight: 1.65 }}>{secItemStr(t, "desc", "description")}</div>}
+              </Card>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </Wrap>
+    );
+  };
 
-      <PtHighlightsSection pkg={pkg} isDesktop={false} lang={lang} />
-      <PtHotelsSection pkg={pkg} isDesktop={false} lang={lang} />
-      <PtItinerarySection pkg={pkg} isDesktop={false} lang={lang} />
-      <RoomTreatments pkg={pkg} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-      <PtInclusionsSection pkg={pkg} isDesktop={false} lang={lang} />
-      <PtMediaSection pkg={pkg} isDesktop={false} />
-      <PtTransfersSection pkg={pkg} isDesktop={false} lang={lang} />
-      <PtPricingSection pkg={pkg} isDesktop={false} onWhatsApp={onWhatsApp} lang={lang} />
-      <PtDeparturesSection pkg={pkg} isDesktop={false} lang={lang} />
-      <PtExtrasSection pkg={pkg} isDesktop={false} lang={lang} />
-      <PtCustomSection pkg={pkg} isDesktop={false} />
-      <PtPeopleSection pkg={pkg} isDesktop={false} lang={lang} />
-      <PtFaqSection pkg={pkg} isDesktop={false} lang={lang} />
-      <PtImportantNotesSection pkg={pkg} isDesktop={false} lang={lang} />
-      <PtReviewsSection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
-      <PtAboutAgencySection pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
-      <PtOtherPackagesSection pkg={pkg} isDesktop={false} lang={lang} agencySlug={agency.agencySlug} />
-      <PetalDesignerPanel pkg={pkg} agency={agency} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-      <PtCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
-      <PtMobileFooter agency={agency} />
-      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
+  // ════════ VISA ════════
+  const Visa = () => {
+    const v = findSec(pkg, "visa");
+    const included = secStr(v, "included");
+    const content = secStr(v, "content");
+    if (!included && !content) return null;
+    return (
+      <Wrap section="visa">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 56 : 24 }}>
+          <div>
+            <Script mb={10}>{L.sections.visa}</Script>
+            <H2 size={D ? 36 : 25}>{VISA_LABELS[included]?.[lang] || ar("Visa & entry", "التأشيرة والدخول")}</H2>
+          </div>
+          {content && <p style={{ fontFamily: sans, fontSize: 14.5, color: MUT, lineHeight: 1.75, margin: 0, whiteSpace: "pre-line" }}>{content}</p>}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ DEPARTURES ════════
+  const Departures = () => {
+    const entries = secArr(findSec(pkg, "departures"), "entries");
+    const rows = entries.length ? entries : (pkg.departures ?? []).map((d) => ({ date: d.date, price: d.price, spots: d.spots } as SecData));
+    if (!rows.length) return null;
+    return (
+      <Wrap style={{ background: PAPER }} id="pt-departures" section="departures">
+        <SecHead kicker={L.sections.departures} title={ar("Where you'll fly from", "من أين ستنطلقان")} center />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 14, maxWidth: D ? "none" : 520, margin: "0 auto" }}>
+          {rows.map((r, i) => {
+            const spots = typeof r.spots === "number" ? r.spots : Number(r.spots) || 0;
+            const sold = spots <= 0;
+            const from = secItemStr(r, "origin", "from");
+            const to = secItemStr(r, "arrivingAirport", "to");
+            const date = secItemStr(r, "date");
+            const price = secItemStr(r, "price");
+            return (
+              <div key={i} style={{ background: BG, border: `1px solid ${RULE}`, borderRadius: 22, padding: D ? 24 : 18, opacity: sold ? 0.55 : 1, textAlign: "center" }}>
+                <div style={{ fontFamily: serif, fontSize: D ? 24 : 21, color: INK }}>{from || dig(date)}</div>
+                {(to || date) && <div style={{ fontFamily: sans, fontSize: 12, color: MUT, marginTop: 4 }}>{to ? `→ ${to}` : ""}{to && date ? " · " : ""}{from || to ? dig(date) : ""}</div>}
+                {price && <div style={{ fontFamily: serif, fontSize: D ? 30 : 26, color: brand, margin: "12px 0 6px" }}>{dig(price)}</div>}
+                <div style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, color: sold ? FAINT : SAGE }}>{sold ? L.ui.soldOut : `${dig(spots)} ${L.ui.left}`}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ PRICING ════════
+  const Pricing = () => {
+    const pr = findSec(pkg, "pricing");
+    const tiers = pkg.pricingTiers ?? [];
+    const cancellation = lines(secStr(pr, "cancellation") || pkg.cancellation || "");
+    const schedule = secArr(pr, "paymentSteps");
+    if (!tiers.length && !cancellation.length && !schedule.length) return null;
+    return (
+      <Wrap id="pt-pricing" section="pricing">
+        <SecHead kicker={L.sections.pricing} title={ar("Choose your room", "اختارا غرفتكما")} center />
+        {tiers.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 16, maxWidth: D ? "none" : 520, margin: "0 auto" }}>
+            {tiers.map((t, i) => {
+              const featured = tiers.length === 3 && i === 1;
+              return (
+                <div key={i} style={{ borderRadius: 24, padding: D ? 30 : 22, position: "relative", textAlign: "center", background: featured ? brand : PAPER, color: featured ? onBrand : INK, border: featured ? "none" : `1px solid ${RULE}`, boxShadow: featured ? `0 18px 40px ${ptRgba(brand, 0.3)}` : "none" }}>
+                  {featured && <div style={{ position: "absolute", top: 16, insetInline: 0, display: "flex", justifyContent: "center" }}><span style={{ fontFamily: serif, fontStyle: "italic", fontSize: 13, color: "#fff", background: "rgba(255,255,255,0.2)", borderRadius: 999, padding: "3px 14px" }}>{L.ui.mostPopular}</span></div>}
+                  <div style={{ fontFamily: sans, fontSize: 13, opacity: 0.8, marginTop: featured ? 28 : 0 }}>{localizeTierLabel(t.label, lang)}</div>
+                  <div style={{ fontFamily: serif, fontSize: D ? 46 : 38, fontWeight: 500, lineHeight: 1, margin: "10px 0 8px" }}>{dig(t.price)}</div>
+                  {pkg.whatsapp && <div style={{ marginTop: 18 }}><CTA full bg={featured ? "#fff" : brand} col={featured ? brand : undefined} onClick={onWhatsApp}>{L.ui.book}</CTA></div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {(cancellation.length > 0 || schedule.length > 0) && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 40 : 24, maxWidth: 900, margin: tiers.length ? "36px auto 0" : "0 auto" }}>
+            {cancellation.length > 0 && (
+              <div>
+                <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 16, color: brand, marginBottom: 12 }}>{L.ui.cancellation}</div>
+                {cancellation.map((s, i) => <div key={i} style={{ fontFamily: sans, fontSize: 13.5, color: MUT, padding: "6px 0", lineHeight: 1.5 }}>· {s}</div>)}
+              </div>
+            )}
+            {schedule.length > 0 && (
+              <div>
+                <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 16, color: brand, marginBottom: 12 }}>{L.ui.paymentSchedule}</div>
+                {schedule.map((s, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderTop: i ? `1px solid ${RULE}` : "none" }}>
+                    <span style={{ fontFamily: sans, fontSize: 13.5, color: INK }}>{secItemStr(s, "dueDate", "label")}</span>
+                    <span style={{ fontFamily: serif, fontSize: 17, color: brand }}>{dig(secItemStr(s, "amount"))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ EXTRAS ════════
+  const Extras = () => {
+    const items = secArr(findSec(pkg, "extras"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap style={{ background: PAPER }} section="extras">
+        <SecHead kicker={L.sections.extras} title={ar("A few tender touches", "لمسات حانية")} center />
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          {items.map((e, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: D ? "20px 0" : "16px 0", borderTop: `1px solid ${RULE}` }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: serif, fontSize: D ? 22 : 18, color: INK }}>{secItemStr(e, "name", "title")}</div>
+                {secItemStr(e, "description", "desc") && <div style={{ fontFamily: sans, fontSize: 13, color: MUT, marginTop: 4, lineHeight: 1.5 }}>{secItemStr(e, "description", "desc")}</div>}
+              </div>
+              {secItemStr(e, "price") && <div style={{ fontFamily: serif, fontSize: D ? 22 : 18, color: brand, whiteSpace: "nowrap" }}>{dig(secItemStr(e, "price"))}</div>}
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ PEOPLE ════════
+  const People = () => {
+    if (!person?.name) return null;
+    const role = person.role ? (ROLE_LABELS[person.role]?.[lang] || person.role.replace(/_/g, " ")) : "";
+    const bio = (person as { bio?: string }).bio || "";
+    return (
+      <Wrap section="people">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "auto 1fr" : "1fr", gap: D ? 48 : 20, alignItems: "center", maxWidth: 900, margin: "0 auto" }}>
+          <div style={{ width: D ? 200 : 130, height: D ? 250 : 170, margin: D ? 0 : "0 auto", ...arch(120) }}>
+            {person.photo
+              ? <img src={person.photo} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : <div style={{ width: "100%", height: "100%", background: ptRgba(brand, 0.12), color: brand, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: 64 }}>{person.name[0]}</div>}
+          </div>
+          <div style={{ textAlign: D ? "start" : "center" }}>
+            <Script mb={8}>{L.sections.people}</Script>
+            <div style={{ fontFamily: serif, fontSize: D ? 34 : 26, color: INK }}>{person.name}</div>
+            {role && <div style={{ fontFamily: sans, fontSize: 12.5, color: brand, fontWeight: 700, marginTop: 4 }}>{role}</div>}
+            {bio && <p style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.75, marginTop: 14 }}>{bio}</p>}
+            {pkg.whatsapp && <div style={{ marginTop: 18 }}><CTA onClick={onWhatsApp}>{L.ui.enquire}</CTA></div>}
+          </div>
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ REVIEWS ════════
+  const Reviews = () => {
+    if (agency.showReviews === false) return null;
+    const items = pkg.reviews ?? [];
+    if (!items.length) return null;
+    const rating = pkg.rating ?? 5;
+    const count = pkg.reviewCount ?? items.length;
+    return (
+      <Wrap style={{ background: PAPER }} id="pt-reviews" section="reviews">
+        <SecHead kicker={L.sections.reviews} title={ar("Loved, in their words", "بكلماتهم هم")} center />
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <span style={{ fontFamily: serif, fontSize: D ? 44 : 34, color: brand }}>{dig(rating)}</span>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}><PtStars n={Math.round(rating)} size={15} color={brand} /></div>
+          <div style={{ fontFamily: sans, fontSize: 11.5, color: FAINT, marginTop: 6 }}>{L.ui.basedOn} {dig(count)} {L.ui.review}</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 16 }}>
+          {items.slice(0, 3).map((r, i) => (
+            <Card key={i} style={{ background: BG, padding: D ? 26 : 20 }}>
+              <PtStars n={Math.round(r.rating || 5)} size={13} color={brand} />
+              <p style={{ fontFamily: serif, fontStyle: "italic", fontSize: D ? 19 : 17, color: INK, lineHeight: 1.55, margin: "12px 0 16px" }}>&ldquo;{r.text}&rdquo;</p>
+              <div style={{ fontFamily: serif, fontSize: 15, color: brand }}>{r.name}</div>
+            </Card>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ ABOUT ════════
+  const About = () => {
+    const a = findSec(pkg, "about_agency");
+    const story = secStr(a, "content");
+    const image = secStr(a, "image");
+    if (!a || (!story && !image)) return null;
+    return (
+      <Wrap section="about_agency">
+        <div style={{ display: "grid", gridTemplateColumns: D && image ? "1fr 1fr" : "1fr", gap: D ? 56 : 24, alignItems: "center" }}>
+          <div>
+            <Script mb={10}>{L.sections.agency}</Script>
+            <H2 size={D ? 42 : 28}>{agency.name}</H2>
+            {agency.tagline && <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 17, color: SAGE, marginTop: 8 }}>{agency.tagline}</div>}
+            {story && <p style={{ fontFamily: sans, fontSize: 14.5, color: MUT, lineHeight: 1.8, marginTop: 16, whiteSpace: "pre-line" }}>{story}</p>}
+          </div>
+          {image && <div style={{ height: D ? 360 : 220, ...arch(200) }}><img src={image} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ NOTES ════════
+  const Notes = () => {
+    const items = secMixed(findSec(pkg, "important_notes"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap style={{ background: PAPER }} section="important_notes">
+        <SecHead kicker={L.sections.notes} title={ar("Good to know", "معلومات تهمّكما")} center />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 16 }}>
+          {items.map((n, i) => {
+            const t = secItemStr(n, "title");
+            const body = secItemStr(n, "text", "desc", "description") || (typeof n === "string" ? n : "");
+            return (
+              <Card key={i} style={{ background: BG }}>
+                {t && <div style={{ fontFamily: serif, fontSize: D ? 20 : 17, color: INK, marginBottom: 6 }}>{t}</div>}
+                <div style={{ fontFamily: sans, fontSize: 13.5, color: MUT, lineHeight: 1.65 }}>{body}</div>
+              </Card>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ FAQ ════════
+  const Faq = () => {
+    const items = secArr(findSec(pkg, "faq"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="faq">
+        <SecHead kicker={L.sections.faq} title={ar("Questions, answered", "إجابات على أسئلتكما")} center />
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          {items.map((f, i) => (
+            <div key={i} style={{ padding: D ? "22px 0" : "18px 0", borderTop: `1px solid ${RULE}`, borderBottom: i === items.length - 1 ? `1px solid ${RULE}` : "none" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "baseline" }}>
+                <div style={{ fontFamily: serif, fontSize: D ? 23 : 19, color: INK }}>{secItemStr(f, "question", "q")}</div>
+                <span style={{ fontFamily: serif, fontSize: 22, color: brand }}>♥</span>
+              </div>
+              {secItemStr(f, "answer", "a") && <p style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.7, margin: "10px 0 0" }}>{secItemStr(f, "answer", "a")}</p>}
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ CUSTOM ════════
+  const Custom = () => {
+    const cs = findSec(pkg, "custom");
+    const heading = secStr(cs, "heading");
+    const body = secStr(cs, "content");
+    const image = secStr(cs, "image") || cover;
+    if (!heading && !body) return null;
+    return (
+      <Wrap section="custom">
+        <div style={{ background: ptRgba(brand, 0.06), borderRadius: 28, overflow: "hidden", display: "grid", gridTemplateColumns: D && image ? "1.2fr 1fr" : "1fr" }}>
+          <div style={{ padding: D ? "56px 56px" : "30px 24px" }}>
+            <Script mb={14}>{L.sections.custom}</Script>
+            {heading && <div style={{ fontFamily: serif, fontSize: D ? 40 : 27, fontWeight: 500, fontStyle: "italic", lineHeight: 1.12, color: INK, marginBottom: 16 }}>{heading}</div>}
+            {body && <p style={{ fontFamily: sans, fontSize: D ? 15.5 : 14, color: MUT, lineHeight: 1.8, margin: 0, whiteSpace: "pre-line" }}>{body}</p>}
+          </div>
+          {image && <div style={{ position: "relative", minHeight: D ? 360 : 220 }}><img src={image} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} /></div>}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ OTHERS ════════
+  const Others = () => {
+    const list = secArr(findSec(pkg, "other_packages"), "packages");
+    if (!list.length) return null;
+    return (
+      <Wrap style={{ background: PAPER }} section="other_packages">
+        <SecHead kicker={L.sections.others} title={ar("More journeys for two", "رحلات أخرى لاثنين")} center />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 18 }}>
+          {list.map((o, i) => {
+            const oTitle = secItemStr(o, "title");
+            const place = secItemStr(o, "destination", "place");
+            const price = secItemStr(o, "price");
+            const oNights = secItemStr(o, "nights");
+            const img = secItemStr(o, "image");
+            const link = secItemStr(o, "link");
+            const Inner = (
+              <div style={{ background: BG, border: `1px solid ${RULE}`, borderRadius: 22, overflow: "hidden", height: "100%" }}>
+                <div style={{ height: 170, position: "relative", background: PAPER }}>{img && <img src={img} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</div>
+                <div style={{ padding: 18, textAlign: "center" }}>
+                  {place && <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 12.5, color: SAGE }}>{place}</div>}
+                  <div style={{ fontFamily: serif, fontSize: 21, color: INK, margin: "6px 0 12px", lineHeight: 1.2 }}>{oTitle}</div>
+                  <div style={{ display: "flex", justifyContent: "center", alignItems: "baseline", gap: 8 }}>
+                    {price && <span style={{ fontFamily: serif, fontSize: 20, color: brand }}>{dig(price)}</span>}
+                    {oNights && <span style={{ fontFamily: sans, fontSize: 12, color: FAINT }}>· {dig(oNights)} {L.ui.nights}</span>}
+                  </div>
+                </div>
+              </div>
+            );
+            return link ? <a key={i} href={link} style={{ textDecoration: "none" }}>{Inner}</a> : <div key={i}>{Inner}</div>;
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ FOOTER ════════
+  const Footer = () => (
+    <div>
+      <section style={{ padding: `${D ? 72 : 44}px ${px}px`, background: brand, color: onBrand, textAlign: "center" }}>
+        <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: D ? 52 : 32, fontWeight: 500, lineHeight: 1.1 }}>{L.ui.shallWeBegin}</div>
+        <div style={{ fontFamily: sans, fontSize: 14, opacity: 0.85, margin: "12px 0 24px" }}>{L.ui.replyTime}{pkg.whatsapp ? ` · ${dig(pkg.whatsapp)}` : ""}</div>
+        <div style={{ display: "inline-flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          {pkg.whatsapp && <CTA big bg="#fff" col={brand} onClick={onWhatsApp}>{L.ui.bookWhatsapp}</CTA>}
+          {pkg.messenger && onMessenger && <button onClick={onMessenger} style={{ fontFamily: sans, background: "rgba(255,255,255,0.18)", color: onBrand, border: "1px solid rgba(255,255,255,0.3)", borderRadius: 999, padding: "15px 26px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{L.ui.messenger}</button>}
+        </div>
+      </section>
+      <div style={{ padding: `22px ${px}px`, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${RULE}` }}>
+        <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 18, color: INK }}>{agency.name}</div>
+        <div style={{ fontFamily: sans, fontSize: 10, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc }}>{L.ui.poweredBy}</div>
+      </div>
+    </div>
+  );
+
+  // ════════ BAR ════════
+  const initials = (agency.name || "P").split(" ").map((w) => w[0]).slice(0, 2).join("");
+  const Bar = () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${px}px`, height: D ? 60 : 52, borderBottom: `1px solid ${RULE}`, background: "rgba(253,249,245,0.9)", backdropFilter: "blur(10px)", position: "sticky", top: 0, zIndex: 30 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: D ? 30 : 26, height: D ? 30 : 26, borderRadius: "50%", background: brand, color: onBrand, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: 13, fontWeight: 600 }}>{initials}</div>
+        <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: D ? 19 : 16, color: INK }}>{agency.name}</div>
+      </div>
+      {D ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 26 }}>
+          {navItems.map(([key, label]) => (
+            <button key={key} onClick={() => goTo(key)} style={{ fontFamily: sans, fontSize: 13, color: MUT, background: "none", border: "none", cursor: "pointer", padding: 0 }}>{label}</button>
+          ))}
+          {pkg.whatsapp && <CTA onClick={onWhatsApp}>{dig(pkg.price || "")}</CTA>}
+        </div>
+      ) : (pkg.whatsapp && <CTA onClick={onWhatsApp}>{dig(pkg.price || "")}</CTA>)}
+    </div>
+  );
+
+  return (
+    <div dir={rtl ? "rtl" : "ltr"} lang={lang} style={{ width: "100%", background: BG, color: INK, fontFamily: sans, position: "relative" }}>
+      {Bar()}
+      {Hero()}
+      {Scarcity()}
+      {Highlights()}
+      {Media()}
+      {Itinerary()}
+      {Hotel()}
+      {Meals()}
+      {Inclusions()}
+      {Transfers()}
+      {Visa()}
+      {Departures()}
+      {Pricing()}
+      {Extras()}
+      {People()}
+      {Reviews()}
+      {About()}
+      {Notes()}
+      {Faq()}
+      {Custom()}
+      {Others()}
+      {Footer()}
+      {lightbox !== null && photos.length > 0 && <LightboxCarousel images={photos} startIndex={lightbox} onClose={() => setLightbox(null)} />}
     </div>
   );
 }
 
-// ─── TemplatePetalCard ────────────────────────────────────────────────────────
-
+// ─── Card (dashboard listing) ─────────────────────────────────────────────────
 export function TemplatePetalCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, onDuplicate }: TCardProps) {
   return (
     <BaseCard

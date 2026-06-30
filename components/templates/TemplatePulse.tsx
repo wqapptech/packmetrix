@@ -1,2405 +1,1027 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { T, localizeTierLabel } from "@/lib/translations";
-import { BaseCard, useIsDesktop, localizeRole } from "./shared";
-import type { TPageProps, TCardProps, TGalleryItem, TPackage, TAirport, TReview } from "./types";
-import { useActiveViewers } from "@/hooks/useActiveViewers";
+// ═══════════════════════════════════════════════════════════════════════════
+// PULSE V2 — Last-minute deals · electric, urgent, flash-sale.
+// Near-black UI, neon dynamic brand glow, bold grotesk + tabular numerals,
+// live ticker, live countdown to the first departure, pulsing dots.
+// One component renders all 4 surfaces. Wired to real pkg.sections data with
+// graceful empty states. Brand colour drives every glow/price/CTA.
+// ═══════════════════════════════════════════════════════════════════════════
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   PULSE — Last-minute deals · Conversion machine
-   Palette from pulse.css: cream + ink + deal-red + trust-green
-   ═══════════════════════════════════════════════════════════════════════════ */
+import React, { useRef, useState, useEffect } from "react";
+import { useIsDesktop, BaseCard, LightboxCarousel } from "./shared";
+import { localizeTierLabel } from "@/lib/translations";
+import type { TPageProps, TCardProps, TPackage } from "./types";
 
-const PL = {
-  bg:     "#faf8f3",
-  paper:  "#ffffff",
-  ink:    "#0c1118",
-  mut:    "rgba(12,17,24,0.6)",
-  line:   "rgba(12,17,24,0.1)",
-  deal:   "#e2492a",
-  dealBg: "#fff1ec",
-  trust:  "#16654a",
-  warn:   "#b8860b",
-  wa:     "#25d366",
-} as const;
+type SecData = Record<string, unknown>;
 
-const MONO = "var(--font-jetbrains-mono, 'JetBrains Mono', monospace)";
-const SANS = "var(--font-inter-tight, 'Inter Tight', sans-serif)";
+// ─── Brand colour math ────────────────────────────────────────────────────────
+function puHex(h: string): [number, number, number] {
+  h = h.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+function puRgba(hex: string, a: number): string { const [r, g, b] = puHex(hex); return `rgba(${r},${g},${b},${a})`; }
+function puMix(hex: string, target: string, t: number): string {
+  const a = puHex(hex), b = puHex(target);
+  const m = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${m[0]},${m[1]},${m[2]})`;
+}
+function puDarken(hex: string, t: number) { return puMix(hex, "#000000", t); }
+function puLum(hex: string) { const [r, g, b] = puHex(hex); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+function puOn(hex: string) { return puLum(hex) > 0.62 ? "#0c0c0f" : "#ffffff"; }
 
-/* ─── CSS animation keyframes (injected via <style> tag) ─────────────────── */
-
-const KF = `
-@keyframes pl-blink{0%,100%{opacity:1}50%{opacity:.3}}
-@keyframes pl-pulse-green{0%{box-shadow:0 0 0 0 rgba(45,212,160,.6)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
-@keyframes pl-pulse-deal{0%{box-shadow:0 0 0 0 rgba(226,73,42,.4)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
-`;
-
-/* ─── SVG icons (inline — no external dependency) ────────────────────────── */
-
-const Ico = {
-  shield: (s = 13) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </svg>
-  ),
-  wa: (s = 14) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-    </svg>
-  ),
-  messenger: (s = 14) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-      <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.683V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.975 12-11.111S18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26 6.559-6.963 3.13 3.26 5.889-3.26-6.56 6.963z"/>
-    </svg>
-  ),
-  check: (s = 12) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-  ),
-  spark: (s = 13) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/>
-    </svg>
-  ),
-  star: (s = 11) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill={PL.warn} stroke={PL.warn} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-  ),
-  eye: (s = 11) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-    </svg>
-  ),
-  clock: (s = 11) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-    </svg>
-  ),
+// ─── i18n ─────────────────────────────────────────────────────────────────────
+const L_EN = {
+  sections: {
+    highlights: "Why you'll love it", media: "See for yourself", itinerary: "Day by day",
+    hotel: "Where you'll stay", meals: "What you'll eat", inclusions: "What's included",
+    transfers: "Getting around", visa: "Visa & entry", departures: "Departures",
+    pricing: "Choose your room", extras: "Make it yours", scarcity: "Before it's gone",
+    people: "Your trip designer", reviews: "Travellers say", agency: "About the agency",
+    notes: "Good to know", faq: "Questions, answered", custom: "A note from us", others: "More journeys",
+  },
+  nav: { highlights: "Highlights", itinerary: "Itinerary", hotel: "Stay", inclusions: "Included", departures: "Dates", pricing: "Pricing", reviews: "Reviews", faq: "FAQ" },
+  ui: {
+    from: "From", perPerson: "per person", night: "night", nights: "nights", included: "Included",
+    notIncluded: "Not included", mostPopular: "Most popular", soldOut: "Sold out", left: "left",
+    seatsLeft: "spots left", book: "Book now", grab: "Grab this deal", enquire: "Enquire on WhatsApp",
+    bookWhatsapp: "Book on WhatsApp", messenger: "Messenger", message: "Message us", save: "Save",
+    nextDeparture: "Next departure", date: "Date", depart: "Times", price: "Price", availability: "Spots",
+    cancellation: "Cancellation policy", paymentSchedule: "Payment schedule", basedOn: "based on",
+    review: "reviews", route: "Your route", replyTime: "Usually replies within an hour", add: "Add",
+    watch: "Watch the film", noVideo: "Video coming soon", play: "Play", pause: "Pause", mute: "Mute",
+    unmute: "Unmute", was: "was", poweredBy: "Powered by PackMetrix", dealLive: "Deal still live",
+    sellingFast: "Selling fast", endsIn: "Deal ends in", dontSleep: "Don't sleep on this one.",
+    spotsLine: (n: number) => `${n} ${n === 1 ? "spot" : "spots"} left at this price — moving fast.`,
+  },
+};
+const L_AR: typeof L_EN = {
+  sections: {
+    highlights: "لماذا ستحبّها", media: "شاهد بنفسك", itinerary: "يومًا بيوم",
+    hotel: "مكان إقامتك", meals: "ما ستتناوله", inclusions: "ما يشمله البرنامج",
+    transfers: "التنقّلات", visa: "التأشيرة والدخول", departures: "مواعيد المغادرة",
+    pricing: "اختر غرفتك", extras: "أضِف لمستك", scarcity: "قبل أن تنفد",
+    people: "مصمّم رحلتك", reviews: "آراء المسافرين", agency: "عن الوكالة",
+    notes: "معلومات تهمّك", faq: "إجابات على أسئلتك", custom: "كلمة منّا", others: "رحلات أخرى",
+  },
+  nav: { highlights: "المميزات", itinerary: "البرنامج", hotel: "الإقامة", inclusions: "المشمول", departures: "المواعيد", pricing: "الأسعار", reviews: "التقييمات", faq: "الأسئلة" },
+  ui: {
+    from: "من", perPerson: "للفرد", night: "ليلة", nights: "ليالٍ", included: "مشمول",
+    notIncluded: "غير مشمول", mostPopular: "الأكثر طلبًا", soldOut: "نفدت", left: "متبقّية",
+    seatsLeft: "مقاعد متبقّية", book: "احجز الآن", grab: "اغتنم العرض", enquire: "استفسر عبر واتساب",
+    bookWhatsapp: "احجز عبر واتساب", messenger: "ماسنجر", message: "راسلنا", save: "وفّر",
+    nextDeparture: "أقرب موعد", date: "التاريخ", depart: "الأوقات", price: "السعر", availability: "المقاعد",
+    cancellation: "سياسة الإلغاء", paymentSchedule: "جدول الدفع", basedOn: "من",
+    review: "تقييم", route: "مسار رحلتك", replyTime: "نردّ عادةً خلال ساعة", add: "أضِف",
+    watch: "شاهد الفيديو", noVideo: "الفيديو قريبًا", play: "تشغيل", pause: "إيقاف", mute: "كتم",
+    unmute: "تشغيل الصوت", was: "كان", poweredBy: "مُشغّل بواسطة باكمتريكس", dealLive: "العرض ما زال نشطًا",
+    sellingFast: "تنفد بسرعة", endsIn: "ينتهي العرض خلال", dontSleep: "لا تفوّت هذا العرض.",
+    spotsLine: (n: number) => `بقي ${n} ${n === 1 ? "مكان" : "أماكن"} بهذا السعر — تنفد بسرعة.`,
+  },
 };
 
-/* ─── Lightbox ───────────────────────────────────────────────────────────── */
+const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
+  none: { en: "No meals", ar: "بدون وجبات" }, breakfast: { en: "Breakfast included", ar: "إفطار مشمول" },
+  half_board: { en: "Half board", ar: "نصف إقامة" }, full_board: { en: "Full board", ar: "إقامة كاملة" },
+  all_inclusive: { en: "All inclusive", ar: "شامل بالكامل" },
+};
+const VISA_LABELS: Record<string, { en: string; ar: string }> = {
+  included: { en: "Visa included", ar: "التأشيرة مشمولة" }, assistance: { en: "Visa assistance provided", ar: "نقدّم المساعدة في التأشيرة" },
+  not_included: { en: "Visa not included", ar: "التأشيرة غير مشمولة" }, not_required: { en: "No visa required", ar: "لا تحتاج تأشيرة" },
+};
+const ROLE_LABELS: Record<string, { en: string; ar: string }> = {
+  agent: { en: "Trip designer", ar: "مصمّم الرحلات" }, curator: { en: "Trip designer", ar: "مصمّم الرحلات" },
+  trip_lead: { en: "Trip lead", ar: "قائد الرحلة" }, trip_designer: { en: "Trip designer", ar: "مصمّم الرحلات" },
+  guide: { en: "Guide", ar: "المرشد" }, mutawif: { en: "Mutawif", ar: "المطوّف" },
+};
 
-type LBImage = { src: string; caption?: string };
+// ─── Section-data helpers ─────────────────────────────────────────────────────
+function findSec(pkg: TPackage, type: string): SecData | undefined {
+  return pkg.sections?.find((s) => s.type === type)?.data as SecData | undefined;
+}
+function secArr(data: SecData | undefined, key: string): SecData[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is SecData => i != null && typeof i === "object") : [];
+}
+function secStr(data: SecData | undefined, key: string): string {
+  const v = data?.[key];
+  return typeof v === "string" ? v : "";
+}
+function secStrArr(data: SecData | undefined, key: string): string[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is string => typeof i === "string") : [];
+}
+function secItemStr(item: unknown, ...keys: string[]): string {
+  if (typeof item === "string") return item;
+  if (!item || typeof item !== "object") return "";
+  const obj = item as SecData;
+  for (const k of keys) { const v = secStr(obj, k); if (v) return v; }
+  return "";
+}
+function secMixed(data: SecData | undefined, key: string): Array<SecData | string> {
+  const v = data?.[key];
+  return Array.isArray(v) ? (v.filter((i) => i != null) as Array<SecData | string>) : [];
+}
+function lines(s: string): string[] {
+  return s.split(/\r?\n/).map((l) => l.replace(/^[-•·]\s*/, "").trim()).filter(Boolean);
+}
 
-function PulseLightbox({
-  images, startIdx, onClose,
-}: {
-  images: LBImage[];
-  startIdx: number;
-  onClose: () => void;
-}) {
-  const [idx, setIdx] = useState(startIdx);
-  const total = images.length;
-  const cur = images[idx];
+// ─── Icons ────────────────────────────────────────────────────────────────────
+function WAIcon({ s = 16, fill = "currentColor" }: { s?: number; fill?: string }) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill={fill}><path d="M20.5 3.5C18.2 1.2 15.2 0 12 0 5.4 0 .1 5.3.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.4-1.7c1.7.9 3.7 1.4 5.6 1.4 6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.2-3.4-8.3zM12 21.8c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.7 1 1-3.6-.2-.4c-.9-1.5-1.4-3.3-1.4-5 0-5.5 4.5-9.9 9.9-9.9 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.4 2.9 7-.1 5.4-4.5 9.5-10.2 9.5z" /></svg>;
+}
+const Bolt = ({ s = 22 }: { s?: number }) => <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>;
+const ClockIcon = ({ s = 22 }: { s?: number }) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>;
+const Shield = ({ s = 22 }: { s?: number }) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" strokeLinejoin="round" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+const HL_ICONS = [Bolt, ClockIcon, Shield];
 
-  const prev = () => setIdx(i => (i - 1 + total) % total);
-  const next = () => setIdx(i => (i + 1) % total);
+// ─── Star rating ──────────────────────────────────────────────────────────────
+function PuStars({ n = 5, of = 5, size = 14, color }: { n?: number; of?: number; size?: number; color: string }) {
+  const star = (fill: string) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} style={{ display: "block" }}><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 5.9 20.8l1.2-6.6L2.3 9.6l6.6-.9z" /></svg>
+  );
+  return <span style={{ display: "inline-flex", gap: 2 }}>{Array.from({ length: of }).map((_, i) => <span key={i}>{star(i < n ? color : puRgba(color, 0.25))}</span>)}</span>;
+}
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft")  prev();
-      if (e.key === "ArrowRight") next();
-      if (e.key === "Escape")     onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [total]);
-
+// ─── Abstract route map ───────────────────────────────────────────────────────
+function PuRouteMap({ stops, line, land = "#23232c", ink = "#f5f5f7", height = 220, rounded = 12, rtl = false }: { stops: { label: string }[]; line: string; land?: string; ink?: string; height?: number; rounded?: number; rtl?: boolean }) {
+  const W = 1000, H = 420;
+  const pts = stops.map((s, i) => {
+    const x = stops.length === 1 ? W / 2 : 120 + (i * (W - 240)) / (stops.length - 1);
+    const y = 150 + Math.sin(i * 1.3 + 0.6) * 70 + (i % 2 ? 20 : -10);
+    return { ...s, x: rtl ? W - x : x, y };
+  });
+  const path = pts.map((p, i) => { if (i === 0) return `M ${p.x} ${p.y}`; const prev = pts[i - 1]; const mx = (prev.x + p.x) / 2; return `Q ${mx} ${prev.y - 40} ${p.x} ${p.y}`; }).join(" ");
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        background: "rgba(0,0,0,0.92)",
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-      }}
-    >
-      {/* close */}
-      <button
-        onClick={onClose}
-        style={{
-          position: "absolute", top: 16, right: 16,
-          background: "rgba(255,255,255,0.12)", border: "none",
-          color: "#fff", width: 38, height: 38, borderRadius: "50%",
-          fontSize: 20, cursor: "pointer", display: "grid", placeItems: "center",
-          lineHeight: 1,
-        }}
-      >×</button>
-
-      {/* image */}
-      <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: "92vw", maxHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <img
-          src={cur.src}
-          alt={cur.caption ?? ""}
-          style={{ maxWidth: "92vw", maxHeight: "80vh", objectFit: "contain", borderRadius: 8, display: "block" }}
-        />
-
-        {/* prev */}
-        {total > 1 && (
-          <button
-            onClick={e => { e.stopPropagation(); prev(); }}
-            style={{
-              position: "absolute", left: -52, top: "50%", transform: "translateY(-50%)",
-              background: "rgba(255,255,255,0.15)", border: "none",
-              color: "#fff", width: 40, height: 40, borderRadius: "50%",
-              fontSize: 20, cursor: "pointer", display: "grid", placeItems: "center",
-            }}
-          >‹</button>
-        )}
-
-        {/* next */}
-        {total > 1 && (
-          <button
-            onClick={e => { e.stopPropagation(); next(); }}
-            style={{
-              position: "absolute", right: -52, top: "50%", transform: "translateY(-50%)",
-              background: "rgba(255,255,255,0.15)", border: "none",
-              color: "#fff", width: 40, height: 40, borderRadius: "50%",
-              fontSize: 20, cursor: "pointer", display: "grid", placeItems: "center",
-            }}
-          >›</button>
-        )}
-      </div>
-
-      {/* caption + counter */}
-      <div onClick={e => e.stopPropagation()} style={{ marginTop: 14, textAlign: "center" as const }}>
-        {cur.caption && (
-          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, marginBottom: 6 }}>{cur.caption}</div>
-        )}
-        {total > 1 && (
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontFamily: MONO }}>
-            {idx + 1} / {total}
-          </div>
-        )}
-      </div>
-
-      {/* dot strip */}
-      {total > 1 && total <= 12 && (
-        <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 6, marginTop: 12 }}>
-          {images.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setIdx(i)}
-              style={{
-                width: i === idx ? 18 : 7, height: 7, borderRadius: 4,
-                background: i === idx ? "#fff" : "rgba(255,255,255,0.3)",
-                border: "none", cursor: "pointer", padding: 0,
-                transition: "width 0.15s, background 0.15s",
-              }}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height, display: "block", borderRadius: rounded, background: puMix(land, "#000000", 0.3) }} preserveAspectRatio="xMidYMid slice">
+      <g fill={land} opacity="0.9"><path d="M-40 300 Q 180 250 360 300 T 760 290 Q 920 270 1060 320 L1060 460 L-40 460 Z" /><ellipse cx="220" cy="120" rx="190" ry="90" opacity="0.5" /><ellipse cx="780" cy="100" rx="160" ry="80" opacity="0.5" /></g>
+      <g stroke={puRgba(ink, 0.06)} strokeWidth="1">{[80, 180, 280, 360].map((y) => <line key={y} x1="0" x2={W} y1={y} y2={y} />)}{[200, 400, 600, 800].map((x) => <line key={x} y1="0" y2={H} x1={x} x2={x} />)}</g>
+      <path d={path} fill="none" stroke={line} strokeWidth="4" strokeDasharray="2 12" strokeLinecap="round" opacity="0.95" />
+      {pts.map((p, i) => <g key={i}><circle cx={p.x} cy={p.y} r="11" fill={land} stroke={line} strokeWidth="3.5" /><circle cx={p.x} cy={p.y} r="4" fill={line} /><text x={p.x} y={p.y - 22} textAnchor="middle" fill={ink} fontSize="22" fontWeight="700" fontFamily="inherit">{p.label}</text></g>)}
+    </svg>
   );
 }
 
-/* ─── Hooks ──────────────────────────────────────────────────────────────── */
-
-function useCountdown(target: number) {
-  const [rem, setRem] = useState(0);
-  useEffect(() => {
-    const tick = () => setRem(Math.max(0, target - Date.now()));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [target]);
-  return {
-    d: Math.floor(rem / 86400000),
-    h: Math.floor(rem / 3600000) % 24,
-    m: Math.floor(rem / 60000) % 60,
-    s: Math.floor(rem / 1000) % 60,
-  };
-}
-
-function useTicker(msgs: string[] | undefined, delay = 2600): string {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (!msgs?.length) return;
-    const id = setInterval(() => setI(p => (p + 1) % msgs.length), delay);
-    return () => clearInterval(id);
-  }, [msgs, delay]);
-  return msgs?.[i] ?? "";
-}
-
-/* ─── Stars ──────────────────────────────────────────────────────────────── */
-
-function Stars({ value, size = 11 }: { value: number; size?: number }) {
-  const full = Math.round(value);
-  return (
-    <span style={{ display: "inline-flex", gap: 1 }}>
-      {[1, 2, 3, 4, 5].map(n => (
-        <svg key={n} width={size} height={size} viewBox="0 0 24 24"
-          fill={n <= full ? PL.warn : "none"} stroke={PL.warn} strokeWidth={1.5}
-          strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-        </svg>
-      ))}
-    </span>
-  );
-}
-
-/* ─── Helpers ────────────────────────────────────────────────────────────── */
-
-function p2(n: number) { return String(n).padStart(2, "0"); }
-
-function dayLabel(day: number, isRtl: boolean): string {
-  if (!isRtl) return `D${String(day).padStart(2, "0")}`;
-  const ar = String(day).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[+d]);
-  return `اليوم ${ar}`;
-}
-
-function departureTarget(dateStr?: string): number {
-  if (!dateStr) return Date.now() + 9 * 86400000;
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? Date.now() + 9 * 86400000 : d.getTime();
-}
-
-function agencyInitials(name: string): string {
-  return name.split(" ").map(w => w[0] ?? "").slice(0, 2).join("").toUpperCase() || "MT";
-}
-
-function toEmbedUrl(url: string): string {
-  try {
-    if (url.includes("youtu.be/")) {
-      const id = url.split("youtu.be/")[1]?.split(/[?&#]/)[0];
-      if (id) return `https://www.youtube.com/embed/${id}`;
-    }
-    if (url.includes("youtube.com/watch")) {
-      const id = new URL(url).searchParams.get("v");
-      if (id) return `https://www.youtube.com/embed/${id}`;
-    }
-    if (url.includes("youtube.com/embed")) return url;
-  } catch {}
-  return url;
-}
-
-function parsePriceNum(s: string): number | null {
-  if (!s) return null;
-  const cleaned = s.replace(/[^0-9.]/g, "");
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? null : n;
-}
-
-function computeSavingLabel(priceWas: string | undefined, price: string): string | null {
-  if (!priceWas) return null;
-  const was = parsePriceNum(priceWas);
-  const cur = parsePriceNum(price);
-  if (!was || !cur || was <= cur) return null;
-  const diff = Math.round(was - cur);
-  const sym = price.match(/^[^0-9]+/)?.[0] ?? "";
-  return `${sym}${diff.toLocaleString()}`;
-}
-
-/* ─── Blinking dot ───────────────────────────────────────────────────────── */
-
-function BlinkDot({ color = PL.deal, size = 7 }: { color?: string; size?: number }) {
-  return (
-    <span style={{
-      width: size, height: size, borderRadius: "50%", background: color,
-      flexShrink: 0, display: "inline-block",
-      animation: "pl-blink 1.2s infinite",
-    }} />
-  );
-}
-
-/* ─── Section eyebrow + title (mobile) ───────────────────────────────────── */
-
-function SecHead({ eb, title }: { eb: string; title: string }) {
-  return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        fontSize: 10.5, fontWeight: 700, color: PL.deal,
-        letterSpacing: 1, textTransform: "uppercase", marginBottom: 8,
-      }}>
-        <span style={{ width: 14, height: 2, background: PL.deal, display: "inline-block", flexShrink: 0 }} />
-        {eb}
-      </div>
-      <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: -0.7, lineHeight: 1.1, margin: 0 }}>
-        {title}
-      </h2>
-    </div>
-  );
-}
-
-/* ─── Tier card (shared mobile + desktop) ────────────────────────────────── */
-
-type TierT = (typeof T)["en"];
-
-function TierCard({
-  tier, isRtl, t, lang,
-}: {
-  tier: { label: string; price: string; was?: string; perks?: string[]; pop?: boolean; save?: string };
-  isRtl: boolean;
-  t: TierT;
-  lang: "en" | "ar";
-}) {
-  return (
-    <div style={{
-      background: PL.paper, borderRadius: 12, padding: 16, position: "relative",
-      border: tier.pop ? `1.5px solid ${PL.deal}` : `1.5px solid ${PL.line}`,
-      boxShadow: tier.pop ? "0 12px 28px -16px rgba(226,73,42,0.3)" : "none",
-    }}>
-      {tier.pop && (
-        <div style={{
-          position: "absolute", top: -10,
-          ...(isRtl ? { left: 12 } : { right: 12 }),
-          background: PL.deal, color: "#fff",
-          fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase",
-          padding: "4px 8px", borderRadius: 4,
-        }}>
-          {t.mostBooked}
-        </div>
-      )}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>{localizeTierLabel(tier.label, lang)}</div>
-        {tier.save && (
-          <div style={{ background: PL.dealBg, color: PL.deal, fontSize: 11, fontWeight: 800, padding: "3px 7px", borderRadius: 4, whiteSpace: "nowrap" }}>
-            {tier.save}
-          </div>
-        )}
-      </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
-        {tier.was && <span style={{ fontSize: 13, color: PL.mut, textDecoration: "line-through" }}>{tier.was}</span>}
-        <span style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.8, lineHeight: 1 }}>{tier.price}</span>
-      </div>
-      <div style={{ fontSize: 11, color: PL.mut, marginTop: 4 }}>{t.perPerson}</div>
-      {!!tier.perks?.length && (
-        <ul style={{
-          listStyle: "none", padding: 0, margin: 0,
-          borderTop: `1px solid ${PL.line}`, paddingTop: 12, marginTop: 12,
-          display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5,
-        }}>
-          {tier.perks.map((p, j) => (
-            <li key={j} style={{ display: "flex", gap: 8, alignItems: "flex-start", lineHeight: 1.4 }}>
-              <span style={{ color: PL.trust, marginTop: 1 }}>{Ico.check(12)}</span>
-              <span>{p}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SECTIONS RENDERER
-   Renders all pkg.sections[] in user-defined order with Pulse styling.
-   Skips "reviews" (rendered from pkg.reviews separately).
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-type SectionT = { id: string; type: string; order: number; data: Record<string, unknown> };
-type TranslationT = (typeof T)["en"];
-
-function PulseSection({
-  s, t, isRtl, onWhatsApp, desktop, onImageClick, agencySlug,
-}: { s: SectionT; t: TranslationT; isRtl: boolean; onWhatsApp: () => void; desktop: boolean; onImageClick?: (images: LBImage[], idx: number) => void; agencySlug?: string }) {
-  const lang = isRtl ? "ar" as const : "en" as const;
-  const d = s.data;
-
-  function SH({ label, title }: { label: string; title?: string }) {
-    if (desktop) {
-      return (
-        <div style={{ marginBottom: 18, paddingBottom: 12, borderBottom: `2px solid ${PL.ink}` }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.8, margin: 0, lineHeight: 1.1 }}>{title || label}</h2>
-        </div>
-      );
-    }
-    return <SecHead eb={label} title={title || label} />;
-  }
-
-  function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+// ─── Video player ─────────────────────────────────────────────────────────────
+function PuVideo({ src, poster, accent, radius = 14, rtl = false, sans, height = 320, ui }: { src?: string; poster?: string; accent: string; radius?: number; rtl?: boolean; sans: string; height?: number; ui: typeof L_EN["ui"] }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const ctrl: React.CSSProperties = { width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 };
+  const onAccent = puOn(accent);
+  if (!src) {
     return (
-      <div style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 12, overflow: "hidden", ...style }}>
-        {children}
+      <div style={{ position: "relative", borderRadius: radius, overflow: "hidden", height, background: "#000" }}>
+        {poster && <img src={poster} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(0.3) brightness(0.5)" }} />}
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "#fff" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.5)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><path d="M8 5v14l11-7z" /></svg>
+            <div style={{ position: "absolute", width: 64, height: 1.5, background: "rgba(255,255,255,0.7)", transform: "rotate(-45deg)" }} />
+          </div>
+          <div style={{ fontFamily: sans, fontSize: 13, opacity: 0.85 }}>{ui.noVideo}</div>
+        </div>
       </div>
     );
   }
+  const toggle = () => { const v = ref.current; if (!v) return; if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); setPlaying(true); } else { v.pause(); setPlaying(false); } };
+  const toggleMute = () => { const v = ref.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); };
+  const IconPlay = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>;
+  const IconPause = <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>;
+  const IconMuted = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12.5 3l2.5 2.5-1 1L15.5 13 13 15.5l-1-1L14.5 12 12 9.5l1-1L15.5 11 18 8.5l1 1L16.5 12z" /></svg>;
+  const IconSound = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12 3a4 4 0 00-2-3.5v7A4 4 0 0016 12zm-2-7.7v2.1a6 6 0 010 11.2v2.1a8 8 0 000-15.4z" /></svg>;
+  return (
+    <div onClick={toggle} style={{ position: "relative", borderRadius: radius, overflow: "hidden", height, background: "#000", cursor: "pointer" }}>
+      <video ref={ref} src={src} poster={poster} muted loop playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      {!playing && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "linear-gradient(rgba(0,0,0,0.05),rgba(0,0,0,0.4))" }}>
+          <div style={{ width: 70, height: 70, borderRadius: "50%", background: accent, color: onAccent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 32px rgba(0,0,0,0.45)" }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style={{ marginInlineStart: 3 }}><path d="M8 5v14l11-7z" /></svg>
+          </div>
+          <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: "#fff", letterSpacing: "0.4px", textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>{ui.watch}</div>
+        </div>
+      )}
+      <div dir={rtl ? "rtl" : "ltr"} style={{ position: "absolute", insetInline: 0, bottom: 0, padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "linear-gradient(transparent, rgba(0,0,0,0.5))" }}>
+        <button onClick={(e) => { e.stopPropagation(); toggle(); }} aria-label={playing ? ui.pause : ui.play} title={playing ? ui.pause : ui.play} style={ctrl}>{playing ? IconPause : IconPlay}</button>
+        <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} aria-label={muted ? ui.unmute : ui.mute} title={muted ? ui.unmute : ui.mute} style={ctrl}>{muted ? IconMuted : IconSound}</button>
+      </div>
+    </div>
+  );
+}
 
-  const wrap = desktop ? {} : { padding: "32px 14px 28px" };
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+export function TemplatePulsePage({ pkg, agency, onWhatsApp, onMessenger, lang = "en" }: TPageProps) {
+  const D = useIsDesktop();
+  const rtl = lang === "ar";
+  const L = rtl ? L_AR : L_EN;
+  const brand = agency.brandColor || "#d63a3a";
+  const onBrand = puOn(brand);
+  const glow = puRgba(brand, 0.45);
 
-  switch (s.type) {
+  const BG = "#0c0c0f", SURF = "#16161c", SURF2 = "#1f1f27", INK = "#f5f5f7";
+  const MUT = "rgba(245,245,247,0.64)", FAINT = "rgba(245,245,247,0.40)", LINE = "rgba(245,245,247,0.10)";
+  const disp = rtl ? "var(--font-cairo), 'Cairo', sans-serif" : "var(--font-space-grotesk), 'Space Grotesk', sans-serif";
+  const sans = rtl ? "var(--font-tajawal), 'Tajawal', sans-serif" : "var(--font-manrope), 'Manrope', sans-serif";
+  const px = D ? 72 : 20;
+  const ar = (en: string, a: string) => (rtl ? a : en);
+  const dig = (s: string | number) => (rtl ? String(s).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]) : String(s));
+  const uc: React.CSSProperties["textTransform"] = rtl ? "none" : "uppercase";
 
-    /* ── inclusions ─────────────────────────────────────────────────────── */
-    case "inclusions": {
-      const includes = (d.includes as string[] | undefined) ?? [];
-      const excludes = (d.excludes as string[] | undefined) ?? [];
-      if (!includes.length && !excludes.length) return null;
-      const inclCols = desktop ? "repeat(3,1fr)" : "1fr 1fr";
-      return (
-        <div id="pl-inclusions" style={wrap} data-pmx-section="inclusions">
-          <SH label={t.includedLabel} title={t.everythingIncluded} />
-          {includes.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: inclCols, gap: 10, marginBottom: excludes.length ? 20 : 0 }}>
-              {includes.map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 10, padding: "12px 14px" }}>
-                  <span style={{ color: PL.trust, flexShrink: 0, marginTop: 1 }}>{Ico.check(12)}</span>
-                  <span style={{ fontSize: 13, lineHeight: 1.45 }}>{item}</span>
+  // keyframes (client-only, injected once)
+  useEffect(() => {
+    if (typeof document === "undefined" || document.getElementById("pu-kf")) return;
+    const s = document.createElement("style");
+    s.id = "pu-kf";
+    s.textContent =
+      "@keyframes puDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}" +
+      "@keyframes puGlow{0%,100%{box-shadow:0 0 0 0 var(--pg,rgba(214,58,58,.5))}50%{box-shadow:0 0 0 7px rgba(0,0,0,0)}}" +
+      "@keyframes puTick{from{transform:translateX(0)}to{transform:translateX(-50%)}}";
+    document.head.appendChild(s);
+  }, []);
+
+  const title = pkg.title || pkg.destination || "";
+  const nightsN = pkg.nights ? Number(pkg.nights) : null;
+  const cover = pkg.coverImage || pkg.images?.[0] || secStrArr(findSec(pkg, "media"), "images")[0] || "";
+  const mediaImgs = secStrArr(findSec(pkg, "media"), "images");
+  const itinDays = secArr(findSec(pkg, "itinerary"), "days").filter((d) => secItemStr(d, "title"));
+  const depEntries = secArr(findSec(pkg, "departures"), "entries");
+  const person = pkg.people?.find((p) => p.role === "agent" || p.role === "curator" || p.role === "trip_lead")
+    ?? pkg.people?.[0] ?? (pkg.agent ? { name: pkg.agent.name, role: pkg.agent.role || "agent", photo: pkg.agent.avatar, years: pkg.agent.years } : undefined);
+
+  // ---- clickable gallery → lightbox ----
+  const photos = Array.from(new Set([cover, ...mediaImgs].filter(Boolean)));
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const zoom = (url: string) => { const i = photos.indexOf(url); if (i >= 0) setLightbox(i); };
+
+  // ---- nav (only sections present) ----
+  const goTo = (type: string) => { if (typeof document === "undefined") return; document.querySelector(`[data-pmx-section="${type}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  const navItems = Object.entries(L.nav).filter(([key]) => {
+    if (key === "reviews") return (pkg.reviews?.length ?? 0) > 0 && agency.showReviews !== false;
+    if (key === "hotel") return !!(findSec(pkg, "hotel") || findSec(pkg, "hotels") || pkg.hotelDescription);
+    if (key === "itinerary") return secArr(findSec(pkg, "itinerary"), "days").length > 0;
+    if (key === "inclusions") return secStrArr(findSec(pkg, "inclusions"), "includes").length + secStrArr(findSec(pkg, "inclusions"), "excludes").length + (pkg.includes?.length ?? 0) + (pkg.excludes?.length ?? 0) > 0;
+    if (key === "departures") return secArr(findSec(pkg, "departures"), "entries").length > 0 || (pkg.departures?.length ?? 0) > 0;
+    if (key === "pricing") return (pkg.pricingTiers?.length ?? 0) > 0 || !!findSec(pkg, "pricing");
+    if (key === "faq") return secArr(findSec(pkg, "faq"), "items").length > 0;
+    return !!findSec(pkg, key);
+  });
+
+  // ---- live countdown to the first departure (safe parse, client-only) ----
+  const depDateStr = pkg.scarcity?.firstDepartureDate || secItemStr(depEntries[0], "date") || pkg.departures?.[0]?.date || "";
+  const [rem, setRem] = useState<number | null>(null);
+  useEffect(() => {
+    const d = new Date(depDateStr);
+    const target = depDateStr && !Number.isNaN(d.getTime()) && d.getTime() > Date.now() ? d.getTime() : null;
+    if (target == null) return;
+    const id = setInterval(() => setRem(Math.max(0, target - Date.now())), 1000);
+    return () => clearInterval(id);
+  }, [depDateStr]);
+  const cd = rem == null ? null : ((): string[] => {
+    const t = Math.floor(rem / 1000); const days = Math.floor(t / 86400);
+    const h = Math.floor((t % 86400) / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+    const pad = (n: number) => dig(String(n).padStart(2, "0"));
+    return days > 0 ? [pad(days), pad(h), pad(m)] : [pad(h), pad(m), pad(s)];
+  })();
+
+  // ---- ticker items composed from real data ----
+  const tickerItems = [
+    pkg.destination, nightsN ? `${dig(nightsN)} ${L.ui.nights}` : "",
+    pkg.scarcity?.spotsRemaining != null ? `${dig(pkg.scarcity.spotsRemaining)} ${L.ui.seatsLeft}` : "",
+    pkg.saving ? `${L.ui.save} ${dig(pkg.saving)}` : "",
+    pkg.scarcity?.firstDepartureDate ? `${L.ui.nextDeparture} ${dig(pkg.scarcity.firstDepartureDate)}` : "",
+  ].filter(Boolean) as string[];
+
+  // ---- atoms ----
+  const Live = ({ label }: { label: string }) => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: sans, fontSize: 11, fontWeight: 700, color: brand, letterSpacing: rtl ? 0 : "0.6px", textTransform: uc }}>
+      <span style={{ width: 8, height: 8, borderRadius: "50%", background: brand, animation: "puDot 1.3s ease-in-out infinite" }} />{label}
+    </span>
+  );
+  const CTA = ({ children, full, big, ghost, onClick }: { children: React.ReactNode; full?: boolean; big?: boolean; ghost?: boolean; onClick?: () => void }) => (
+    <button data-testid="wa-cta" onClick={onClick} style={{ fontFamily: disp, background: ghost ? "transparent" : brand, color: ghost ? INK : onBrand, border: ghost ? `1.5px solid ${LINE}` : "none", borderRadius: 999, padding: big ? "16px 30px" : "12px 22px", fontSize: D ? (big ? 16 : 14) : 14, fontWeight: 700, letterSpacing: rtl ? 0 : "0.3px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, width: full ? "100%" : "auto", ...(ghost ? {} : { ["--pg" as string]: glow, animation: "puGlow 2.4s ease-out infinite" }) }}>
+      {!ghost && <WAIcon s={16} fill={onBrand} />} {children}
+    </button>
+  );
+  const Eyebrow = ({ children }: { children: React.ReactNode }) => (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
+      <span style={{ width: 22, height: 3, borderRadius: 2, background: brand }} />
+      <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 800, letterSpacing: rtl ? 0 : "1.8px", textTransform: uc, color: brand }}>{children}</span>
+    </div>
+  );
+  const H2 = ({ children, size }: { children: React.ReactNode; size?: number }) => (
+    <h2 style={{ fontFamily: disp, fontSize: size || (D ? 40 : 27), fontWeight: 700, lineHeight: 1.04, letterSpacing: rtl ? 0 : "-0.8px", color: INK, margin: 0 }}>{children}</h2>
+  );
+  const Wrap = ({ children, pt, pb, style, id, section }: { children: React.ReactNode; pt?: number; pb?: number; style?: React.CSSProperties; id?: string; section?: string }) => (
+    <section id={id} data-pmx-section={section} style={{ scrollMarginTop: D ? 60 : 54, padding: `${pt != null ? pt : (D ? 70 : 40)}px ${px}px ${pb != null ? pb : (D ? 70 : 40)}px`, ...style }}>{children}</section>
+  );
+  const SecHead = ({ eyebrow, title: t, sub }: { eyebrow: string; title: string; sub?: string }) => (
+    <div style={{ marginBottom: D ? 34 : 24 }}>
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <H2>{t}</H2>
+      {sub && <p style={{ fontFamily: sans, fontSize: D ? 16 : 14, color: MUT, lineHeight: 1.6, margin: "12px 0 0", maxWidth: 560 }}>{sub}</p>}
+    </div>
+  );
+  const Countdown = ({ big }: { big?: boolean }) => {
+    if (!cd) return null;
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: big ? 8 : 6 }}>
+        {cd.map((v, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <span style={{ fontFamily: disp, fontSize: big ? 26 : 18, color: brand, fontWeight: 700 }}>:</span>}
+            <span style={{ fontFamily: disp, fontSize: big ? 26 : 18, fontWeight: 700, color: INK, background: SURF2, border: `1px solid ${LINE}`, borderRadius: 8, padding: big ? "8px 11px" : "5px 8px", minWidth: big ? 44 : 32, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{v}</span>
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
+
+  // ════════ TICKER ════════
+  const Ticker = () => {
+    if (!tickerItems.length) return null;
+    return (
+      <div style={{ background: brand, color: onBrand, overflow: "hidden", whiteSpace: "nowrap", borderBlock: `1px solid ${puRgba("#000000", 0.15)}` }}>
+        <div style={{ display: "inline-flex", animation: "puTick 22s linear infinite" }}>
+          {[0, 1].map((dup) => (
+            <span key={dup} style={{ display: "inline-flex" }}>
+              {tickerItems.map((t, i) => <span key={i} style={{ fontFamily: disp, fontSize: 12.5, fontWeight: 700, padding: "9px 22px", letterSpacing: rtl ? 0 : "0.4px", display: "inline-flex", alignItems: "center", gap: 22 }}>{t}<span style={{ opacity: 0.5 }}>◆</span></span>)}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ════════ HERO ════════
+  const Hero = () => {
+    const sc = pkg.scarcity;
+    return (
+      <div data-pmx-section="hero" style={{ position: "relative" }}>
+        <div style={{ position: "relative", height: D ? 560 : 440, overflow: "hidden" }}>
+          {cover && <img src={cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+          <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `linear-gradient(${rtl ? "270deg" : "90deg"}, ${puRgba("#0c0c0f", D ? 0.92 : 0.4)} 0%, ${puRgba("#0c0c0f", D ? 0.5 : 0.55)} 45%, ${puRgba("#0c0c0f", 0.85)} 100%)` }} />
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: D ? "center" : "flex-end", padding: D ? `0 ${px}px` : `0 ${px}px 28px` }}>
+            <div style={{ maxWidth: D ? 560 : "100%" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: brand, color: onBrand, padding: "6px 14px", borderRadius: 999, fontFamily: disp, fontSize: 12, fontWeight: 700, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 16 }}>
+                <Bolt s={14} /> {ar("Flash deal", "عرض خاطف")}
+              </div>
+              <h1 style={{ fontFamily: disp, fontSize: D ? 60 : 38, fontWeight: 700, lineHeight: 0.98, letterSpacing: rtl ? 0 : "-1.6px", color: "#fff", margin: 0 }} data-pmx-field="title">{title}</h1>
+              {pkg.description && <p style={{ fontFamily: sans, fontSize: D ? 16 : 14, color: "rgba(255,255,255,0.82)", lineHeight: 1.6, margin: "18px 0 0", maxWidth: 440 }}>{pkg.description}</p>}
+              <div style={{ display: "flex", alignItems: "flex-end", gap: D ? 28 : 18, marginTop: 26, flexWrap: "wrap" }}>
+                <div>
+                  {sc?.wasPrice && <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.6)", textDecoration: "line-through", marginBottom: 2 }}>{dig(sc.wasPrice)}</div>}
+                  <div style={{ fontFamily: disp, fontSize: D ? 56 : 42, fontWeight: 700, color: "#fff", lineHeight: 0.9 }} data-pmx-field="price">{dig(pkg.price || "")}</div>
+                  {nightsN != null && <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 6 }}>{dig(nightsN)} {L.ui.nights} · {L.ui.perPerson}</div>}
                 </div>
-              ))}
+                {pkg.saving && (
+                  <div style={{ background: puRgba(brand, 0.18), border: `1px solid ${puRgba(brand, 0.5)}`, borderRadius: 10, padding: "8px 14px" }}>
+                    <div style={{ fontFamily: sans, fontSize: 10.5, color: "rgba(255,255,255,0.7)", marginBottom: 2 }}>{L.ui.save}</div>
+                    <div style={{ fontFamily: disp, fontSize: D ? 24 : 20, fontWeight: 700, color: brand }}>{dig(pkg.saving)}</div>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
+                {pkg.whatsapp && <CTA big onClick={onWhatsApp}>{L.ui.grab}</CTA>}
+                {cd && <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ fontFamily: sans, fontSize: 10.5, color: "rgba(255,255,255,0.6)", letterSpacing: rtl ? 0 : "0.5px" }}>{L.ui.endsIn}</span>
+                  <Countdown />
+                </div>}
+              </div>
+            </div>
+          </div>
+        </div>
+        <Ticker />
+      </div>
+    );
+  };
+
+  // ════════ SCARCITY ════════
+  const Scarcity = () => {
+    const sc = pkg.scarcity;
+    if (!sc || sc.spotsRemaining == null) return null;
+    const total = sc.totalSpots && sc.totalSpots > 0 ? sc.totalSpots : Math.max(sc.spotsRemaining, 20);
+    const filled = Math.round((sc.spotsRemaining / total) * 20);
+    return (
+      <Wrap pt={D ? 56 : 32} pb={D ? 30 : 20} section="scarcity">
+        <div style={{ background: SURF, border: `1px solid ${puRgba(brand, 0.35)}`, borderRadius: 16, padding: D ? 28 : 20, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", insetInlineEnd: -40, top: -40, width: 180, height: 180, borderRadius: "50%", background: puRgba(brand, 0.12), filter: "blur(20px)" }} />
+          <div style={{ display: "flex", flexDirection: D ? "row" : "column", gap: D ? 0 : 18, justifyContent: "space-between", alignItems: D ? "center" : "stretch", position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontFamily: disp, fontSize: D ? 56 : 46, fontWeight: 700, color: brand, lineHeight: 0.9 }}>{dig(sc.spotsRemaining)}</div>
+                <div style={{ fontFamily: sans, fontSize: 10.5, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginTop: 4 }}>{L.ui.seatsLeft}</div>
+              </div>
+              <div style={{ maxWidth: 360 }}>
+                <Live label={L.ui.sellingFast} />
+                <div style={{ fontFamily: disp, fontSize: D ? 20 : 16, fontWeight: 700, color: INK, lineHeight: 1.3, marginTop: 8 }}>{L.ui.spotsLine(sc.spotsRemaining)}</div>
+                <div style={{ display: "flex", gap: 4, marginTop: 12 }}>
+                  {Array.from({ length: 20 }).map((_, i) => <span key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i < filled ? brand : SURF2 }} />)}
+                </div>
+              </div>
+            </div>
+            {(pkg.recentBookings?.count || sc.firstDepartureDate) && (
+              <div style={{ display: "flex", gap: 22, alignItems: "center" }}>
+                {pkg.recentBookings?.count ? (
+                  <div style={{ textAlign: rtl ? "right" : "left" }}>
+                    <div style={{ fontFamily: sans, fontSize: 10.5, color: FAINT, marginBottom: 4 }}>{ar("Booked recently", "حُجز مؤخرًا")}</div>
+                    <div style={{ fontFamily: disp, fontSize: 22, fontWeight: 700, color: INK }}>{dig(pkg.recentBookings.count)}×</div>
+                  </div>
+                ) : null}
+                {sc.firstDepartureDate && (
+                  <div style={{ textAlign: rtl ? "right" : "left" }}>
+                    <div style={{ fontFamily: sans, fontSize: 10.5, color: FAINT, marginBottom: 4 }}>{L.ui.nextDeparture}</div>
+                    <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 700, color: brand }}>{dig(sc.firstDepartureDate)}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ HIGHLIGHTS ════════
+  const Highlights = () => {
+    const items = secMixed(findSec(pkg, "highlights"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap pt={D ? 40 : 24} section="highlights">
+        <SecHead eyebrow={L.nav.highlights} title={ar("Why this one's a steal", "لماذا هذا العرض فرصة لا تُفوَّت")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 14 }}>
+          {items.map((h, i) => {
+            const Ic = HL_ICONS[i % HL_ICONS.length];
+            const t = secItemStr(h, "title", "text", "label");
+            const d = typeof h === "object" ? secItemStr(h, "desc", "description") : "";
+            return (
+              <div key={i} style={{ background: SURF, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 26 : 20 }}>
+                <div style={{ width: 46, height: 46, borderRadius: 12, background: puRgba(brand, 0.14), color: brand, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Ic s={22} /></div>
+                <div style={{ fontFamily: disp, fontSize: D ? 20 : 17, fontWeight: 700, color: INK, marginBottom: d ? 8 : 0, lineHeight: 1.25 }}>{t}</div>
+                {d && <div style={{ fontFamily: sans, fontSize: 13.5, color: MUT, lineHeight: 1.6 }}>{d}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ MEDIA ════════
+  const Media = () => {
+    const m = findSec(pkg, "media");
+    const imgs = mediaImgs;
+    const video = secStr(m, "videoUrl") || pkg.videoUrl || "";
+    const mapImage = secStr(m, "mapImage");
+    const mapCaption = secStr(m, "mapCaption");
+    if (!imgs.length && !video && !mapImage) return null;
+    const tiles = imgs.slice(1, 4);
+    const stops = mapImage ? [] : itinDays.slice(0, 5).map((d) => ({ label: secItemStr(d, "title") })).filter((s) => s.label);
+    return (
+      <Wrap pt={0} section="media">
+        <SecHead eyebrow={L.sections.media} title={ar("See it before you book", "شاهده قبل أن تحجز")} />
+        <PuVideo src={video} poster={cover || imgs[0]} accent={brand} radius={14} rtl={rtl} sans={sans} height={D ? 440 : 230} ui={L.ui} />
+        {tiles.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: D ? 12 : 7, marginTop: D ? 12 : 7 }}>
+            {tiles.map((u, i) => <img key={i} src={u} onClick={() => zoom(u)} style={{ width: "100%", height: D ? 180 : 78, objectFit: "cover", borderRadius: 12, display: "block", cursor: "zoom-in" }} />)}
+          </div>
+        )}
+        {(mapImage || stops.length > 0) && (
+          <div style={{ marginTop: D ? 22 : 16 }}>
+            <div style={{ fontFamily: sans, fontSize: 10.5, color: brand, fontWeight: 800, letterSpacing: rtl ? 0 : "1.4px", textTransform: uc, marginBottom: 10 }}>{L.ui.route}</div>
+            {mapImage
+              ? <img src={mapImage} alt={mapCaption} style={{ width: "100%", height: D ? 220 : 160, objectFit: "cover", borderRadius: 12, display: "block" }} />
+              : <PuRouteMap stops={stops} line={brand} height={D ? 220 : 160} rounded={12} rtl={rtl} />}
+            {mapCaption && <div style={{ fontFamily: sans, fontSize: 12.5, color: FAINT, marginTop: 10 }}>{mapCaption}</div>}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ ITINERARY ════════
+  const Itinerary = () => {
+    if (!itinDays.length) return null;
+    return (
+      <Wrap style={{ background: SURF }} section="itinerary">
+        <SecHead eyebrow={L.sections.itinerary} title={ar("Day by day", "يومًا بيوم")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? `repeat(${Math.min(itinDays.length, 4)},1fr)` : "1fr", gap: D ? 14 : 10 }}>
+          {itinDays.map((it, i) => {
+            const day = dig((it.day as number) ?? i + 1);
+            return (
+              <div key={i} style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 20 : 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <span style={{ fontFamily: disp, fontSize: 13, fontWeight: 700, color: onBrand, background: brand, borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center" }}>{day}</span>
+                </div>
+                <div style={{ fontFamily: disp, fontSize: D ? 17 : 16, fontWeight: 700, color: INK, lineHeight: 1.2, marginBottom: 8 }}>{secItemStr(it, "title")}</div>
+                {secItemStr(it, "desc", "description") && <div style={{ fontFamily: sans, fontSize: 13, color: MUT, lineHeight: 1.55 }}>{secItemStr(it, "desc", "description")}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ HOTEL ════════
+  const Hotel = () => {
+    const h = findSec(pkg, "hotel");
+    const rich = findSec(pkg, "hotels");
+    const r0 = (secArr(rich, "hotels").length ? secArr(rich, "hotels") : secArr(rich, "items"))[0];
+    const name = r0 ? secItemStr(r0, "name") : "";
+    const stars = r0 && typeof r0.stars === "number" ? (r0.stars as number) : 0;
+    const blurb = (r0 ? secItemStr(r0, "note", "description", "blurb") : "") || secStr(h, "description") || pkg.hotelDescription || "";
+    const features = r0 ? secStrArr(r0, "facilities").concat(secStrArr(r0, "features")) : [];
+    if (!blurb && !name) return null;
+    const img = mediaImgs[1] || mediaImgs[0] || cover;
+    return (
+      <Wrap section="hotel">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 40 : 18, alignItems: "center" }}>
+          {img && (
+            <div style={{ position: "relative", borderRadius: 16, overflow: "hidden" }}>
+              <img src={img} onClick={() => zoom(img)} style={{ width: "100%", height: D ? 360 : 220, objectFit: "cover", display: "block", cursor: "zoom-in" }} />
+              {stars > 0 && (
+                <div style={{ position: "absolute", top: 14, insetInlineStart: 14, background: puRgba("#0c0c0f", 0.8), backdropFilter: "blur(6px)", borderRadius: 999, padding: "6px 13px", display: "flex", alignItems: "center", gap: 7 }}>
+                  <PuStars n={stars} size={13} color={brand} /><span style={{ fontFamily: disp, fontSize: 12, fontWeight: 700, color: "#fff" }}>{dig(stars)}.0</span>
+                </div>
+              )}
+            </div>
+          )}
+          <div>
+            <Eyebrow>{L.sections.hotel}</Eyebrow>
+            <H2 size={D ? 32 : 24}>{name || ar("Your stay", "إقامتك")}</H2>
+            {blurb && <p style={{ fontFamily: sans, fontSize: D ? 15 : 14, color: MUT, lineHeight: 1.7, marginTop: 14, whiteSpace: "pre-line" }}>{blurb}</p>}
+            {features.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18 }}>{features.map((f, i) => <span key={i} style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 600, color: INK, background: SURF2, borderRadius: 999, padding: "7px 14px" }}>{f}</span>)}</div>}
+          </div>
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ MEALS ════════
+  const Meals = () => {
+    const m = findSec(pkg, "meals");
+    const plan = secStr(m, "plan");
+    const notes = secStr(m, "notes");
+    if (!plan && !notes) return null;
+    const planLabel = MEAL_LABELS[plan]?.[lang] || plan || ar("Dining", "الطعام");
+    return (
+      <Wrap style={{ background: SURF }} section="meals">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1.1fr" : "1fr", gap: D ? 48 : 22 }}>
+          <div>
+            <Eyebrow>{L.sections.meals}</Eyebrow>
+            <H2 size={D ? 32 : 24}>{planLabel}</H2>
+          </div>
+          {notes && <p style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.7, margin: 0, whiteSpace: "pre-line" }}>{notes}</p>}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ INCLUSIONS ════════
+  const Inclusions = () => {
+    const inc = findSec(pkg, "inclusions");
+    const includes = secStrArr(inc, "includes").length ? secStrArr(inc, "includes") : (pkg.includes ?? []);
+    const excludes = secStrArr(inc, "excludes").length ? secStrArr(inc, "excludes") : (pkg.excludes ?? []);
+    if (!includes.length && !excludes.length) return null;
+    return (
+      <Wrap section="inclusions">
+        <SecHead eyebrow={L.sections.inclusions} title={ar("What's in the price", "ما يشمله السعر")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 16 : 14 }}>
+          {includes.length > 0 && (
+            <div style={{ background: SURF, border: `1px solid ${puRgba(brand, 0.3)}`, borderRadius: 14, padding: D ? 24 : 18 }}>
+              <div style={{ fontFamily: disp, fontSize: 12, fontWeight: 700, color: brand, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 14 }}>✓ {L.ui.included}</div>
+              {includes.map((it, i) => <div key={i} style={{ display: "flex", gap: 11, padding: "8px 0", alignItems: "flex-start" }}><span style={{ color: brand, flexShrink: 0, marginTop: 1, fontWeight: 700 }}>✓</span><span style={{ fontFamily: sans, fontSize: 13.5, color: INK, lineHeight: 1.5 }}>{it}</span></div>)}
             </div>
           )}
           {excludes.length > 0 && (
-            <div style={{ borderTop: includes.length ? `1px solid ${PL.line}` : "none", paddingTop: includes.length ? 16 : 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: PL.mut, letterSpacing: 0.4, textTransform: "uppercase" as const, marginBottom: 10 }}>{t.notIncluded}</div>
-              <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
-                {excludes.map((item, i) => (
-                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, color: PL.mut }}>
-                    <span style={{ color: PL.deal, fontWeight: 800, flexShrink: 0 }}>×</span>
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
+            <div style={{ background: SURF, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 24 : 18 }}>
+              <div style={{ fontFamily: disp, fontSize: 12, fontWeight: 700, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 14 }}>{L.ui.notIncluded}</div>
+              {excludes.map((it, i) => <div key={i} style={{ display: "flex", gap: 11, padding: "8px 0", alignItems: "flex-start" }}><span style={{ color: FAINT, flexShrink: 0, marginTop: 1 }}>—</span><span style={{ fontFamily: sans, fontSize: 13.5, color: MUT, lineHeight: 1.5 }}>{it}</span></div>)}
             </div>
           )}
         </div>
-      );
-    }
+      </Wrap>
+    );
+  };
 
-    /* ── highlights ─────────────────────────────────────────────────────── */
-    case "highlights": {
-      const items = (d.items as string[] | undefined) ?? [];
-      if (!items.length) return null;
-      return (
-        <div id="pl-highlights" style={wrap} data-pmx-section="highlights">
-          <SH label={t.sectionHighlightsTitle} title={t.sectionHighlightsTitle} />
-          <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
-            {items.map((item, i) => (
-              <div key={i} style={{ background: PL.dealBg, color: PL.deal, borderRadius: 20, padding: "7px 14px", fontSize: 13, fontWeight: 600, letterSpacing: -0.1 }}>
-                {item}
+  // ════════ TRANSFERS ════════
+  const Transfers = () => {
+    const tx = findSec(pkg, "transfers");
+    const desc = secStr(tx, "description");
+    const items = secMixed(tx, "items");
+    if (!desc && !items.length) return null;
+    return (
+      <Wrap style={{ background: SURF }} section="transfers">
+        <SecHead eyebrow={L.sections.transfers} title={ar("Picked up, dropped off", "نقل من الباب للباب")} sub={items.length ? undefined : desc} />
+        {items.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 12 }}>
+            {items.map((t, i) => (
+              <div key={i} style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 22 : 18 }}>
+                <div style={{ fontFamily: disp, fontSize: 13, fontWeight: 700, color: brand, marginBottom: 10 }}>{dig(`0${i + 1}`.slice(-2))}</div>
+                <div style={{ fontFamily: disp, fontSize: D ? 17 : 16, fontWeight: 700, color: INK, marginBottom: 6 }}>{secItemStr(t, "leg", "title", "name", "text")}</div>
+                {typeof t === "object" && secItemStr(t, "desc", "description") && <div style={{ fontFamily: sans, fontSize: 13, color: MUT, lineHeight: 1.55 }}>{secItemStr(t, "desc", "description")}</div>}
               </div>
             ))}
           </div>
-        </div>
-      );
-    }
+        )}
+      </Wrap>
+    );
+  };
 
-    /* ── hotel ──────────────────────────────────────────────────────────── */
-    case "hotel": {
-      const desc = d.description as string | undefined;
-      if (!desc) return null;
-      return (
-        <div id="pl-hotel" style={wrap} data-pmx-section="hotel">
-          <SH label={t.hotelLabel} title={t.hotelLabel} />
-          <Card style={{ padding: 18 }}>
-            <p style={{ fontSize: desktop ? 15 : 13.5, color: PL.mut, lineHeight: 1.7, margin: 0 }}>{desc}</p>
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── faq ────────────────────────────────────────────────────────────── */
-    case "faq": {
-      const items = (d.items as { question: string; answer: string }[] | undefined) ?? [];
-      if (!items.length) return null;
-      return (
-        <div id="pl-faq" style={wrap} data-pmx-section="faq">
-          <SH label={t.frequentlyAsked} title={t.frequentlyAsked} />
-          <Card>
-            {items.map((item, i) => (
-              <div key={i} style={{ padding: "16px 18px", borderBottom: i < items.length - 1 ? `1px solid ${PL.line}` : "none" }}>
-                <div style={{ fontSize: desktop ? 15 : 14, fontWeight: 700, letterSpacing: -0.2, marginBottom: 8 }}>{item.question}</div>
-                <div style={{ fontSize: desktop ? 14 : 13, color: PL.mut, lineHeight: 1.6 }}>{item.answer}</div>
-              </div>
-            ))}
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── flights ────────────────────────────────────────────────────────── */
-    case "flights": {
-      const deps = (d.departures as TAirport[] | undefined) ?? [];
-      if (!deps.length) return null;
-      return (
-        <div style={wrap} data-pmx-section="flights">
-          <SH label={t.flightsLabel} title={t.flightsLabel} />
-          <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
-            {deps.map((dep, i) => (
-              <div key={i} onClick={onWhatsApp} style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 12, padding: 16, cursor: "pointer" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>{dep.name}</div>
-                    {dep.arrivingAirport?.trim() && <div style={{ fontSize: 11.5, color: PL.mut, marginTop: 4 }}>→ {dep.arrivingAirport}</div>}
-                    {dep.flyingTime?.trim() && <div style={{ fontSize: 11.5, color: PL.mut, marginTop: 2 }}>{dep.flyingTime}</div>}
-                    {dep.arrivingTime?.trim() && <div style={{ fontSize: 11.5, color: PL.mut, marginTop: 2 }}>{dep.arrivingTime}</div>}
-                    {dep.date?.trim() && <div style={{ fontSize: 11.5, color: PL.mut, marginTop: 2 }}>{dep.date}</div>}
-                  </div>
-                  <div style={{ textAlign: isRtl ? "left" : "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: PL.deal, letterSpacing: -0.5 }}>{dep.price}</div>
-                    <div style={{ fontSize: 11, color: PL.wa, fontWeight: 600, marginTop: 4 }}>{t.bookWhatsApp}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
+  // ════════ VISA ════════
+  const Visa = () => {
+    const v = findSec(pkg, "visa");
+    const included = secStr(v, "included");
+    const content = secStr(v, "content");
+    if (!included && !content) return null;
+    return (
+      <Wrap section="visa">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 48 : 22 }}>
+          <div>
+            <Eyebrow>{L.sections.visa}</Eyebrow>
+            <H2 size={D ? 32 : 24}>{VISA_LABELS[included]?.[lang] || ar("Visa & entry", "التأشيرة والدخول")}</H2>
           </div>
+          {content && <p style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.7, margin: 0, whiteSpace: "pre-line" }}>{content}</p>}
         </div>
-      );
-    }
+      </Wrap>
+    );
+  };
 
-    /* ── departure_dates ────────────────────────────────────────────────── */
-    case "departures":
-    case "departure_dates": {
-      const dates = (d.entries as { date: string; returnDate?: string; price?: string; spots?: string | number }[] | undefined)
-        ?? (d.dates as { date: string; returnDate: string; price: string; spots: string }[] | undefined)
-        ?? [];
-      if (!dates.length) return null;
-      return (
-        <div id="pl-departures" style={wrap} data-pmx-section="departures">
-          <SH label={t.sectionDepartureDatesTitle} title={t.sectionDepartureDatesTitle} />
-          <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
-            {dates.map((dep, i) => (
-              <button key={i} onClick={onWhatsApp} style={{ background: PL.paper, border: `1.5px solid ${PL.line}`, borderRadius: 10, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", textAlign: isRtl ? "right" : "left", fontFamily: SANS, width: "100%" }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>{dep.date}</div>
-                  {dep.returnDate && <div style={{ fontSize: 11.5, color: PL.mut, marginTop: 3 }}>{dep.returnDate}</div>}
-                  {dep.spots && <div style={{ fontSize: 11.5, color: PL.mut, marginTop: 2 }}>{dep.spots} {t.spotsAvailable}</div>}
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>{dep.price}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    /* ── itinerary ──────────────────────────────────────────────────────── */
-    case "itinerary": {
-      const days = (d.days as { day: number; title: string; desc: string; chapter?: string }[] | undefined) ?? [];
-      if (!days.length) return null;
-      return (
-        <div id="pl-itinerary" style={wrap} data-pmx-section="itinerary">
-          <SH label={`${t.dayByDay} · ${days.length} ${t.daysLabel.toLowerCase()}`} title={`${t.dayByDay} · ${days.length} ${t.daysLabel.toLowerCase()}`} />
-          <div style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 12, overflow: "hidden" }}>
-            {days.map((d, i) => (
-              <div key={i} style={{ padding: desktop ? "16px 20px" : "14px 16px", borderBottom: i < days.length - 1 ? `1px solid ${PL.line}` : "none", display: "grid", gridTemplateColumns: desktop ? "80px 1fr" : "auto 1fr", gap: desktop ? 22 : 14, alignItems: "start" }}>
-                <div style={{ background: PL.dealBg, color: PL.deal, borderRadius: 8, padding: desktop ? 10 : "8px 10px", textAlign: "center", minWidth: 52 }}>
-                  <div style={{ fontSize: desktop ? 22 : 16, fontWeight: 800, letterSpacing: -0.6, lineHeight: 1 }}>{dayLabel(d.day, isRtl)}</div>
-                  {d.chapter && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase" as const, marginTop: 3 }}>{d.chapter}</div>}
-                </div>
-                <div style={{ paddingTop: 2 }}>
-                  <div style={{ fontSize: 11, color: PL.mut, fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase" as const }}>{t.dayLabel} {d.day}</div>
-                  <div style={{ fontSize: desktop ? 15 : 14, fontWeight: 700, letterSpacing: -0.2 }}>{d.title}</div>
-                  <div style={{ fontSize: desktop ? 13 : 12.5, color: PL.mut, lineHeight: 1.55, marginTop: 6 }}>{d.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    /* ── gallery ────────────────────────────────────────────────────────── */
-    case "gallery": {
-      const rawImages = (d.images as string[] | undefined) ?? [];
-      if (!rawImages.length) return null;
-      const lbImages: LBImage[] = rawImages.map(src => ({ src }));
-      const clickable = (i: number): React.CSSProperties => onImageClick
-        ? { cursor: "pointer" }
-        : {};
-      if (desktop) {
-        return (
-          <div id="pl-gallery" style={wrap} data-pmx-section="media">
-            <SH label={t.gallery} title={t.gallery} />
-            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gridTemplateRows: "180px 180px", gap: 6 }}>
-              {lbImages.slice(0, 5).map((img, i) => (
-                <div key={i} onClick={() => onImageClick?.(lbImages, i)} style={{ overflow: "hidden", borderRadius: 8, gridRow: i === 0 ? "span 2" : undefined, ...clickable(i) }}>
-                  <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
-                </div>
-              ))}
+  // ════════ DEPARTURES ════════
+  const Departures = () => {
+    const rows = depEntries.length ? depEntries : (pkg.departures ?? []).map((d) => ({ date: d.date, price: d.price, spots: d.spots } as SecData));
+    if (!rows.length) return null;
+    const status = (spots: number) => spots <= 0 ? { t: L.ui.soldOut, col: FAINT } : spots <= 3 ? { t: `${dig(spots)} ${L.ui.left}`, col: brand } : { t: `${dig(spots)} ${L.ui.left}`, col: "#3ec96a" };
+    return (
+      <Wrap style={{ background: SURF }} id="pu-departures" section="departures">
+        <SecHead eyebrow={L.sections.departures} title={ar("Pick your airport", "اختر مطارك")} />
+        {D ? (
+          <div style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr 1fr auto", padding: "13px 22px", fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: rtl ? 0 : "0.8px", textTransform: uc, color: FAINT, borderBottom: `1px solid ${LINE}` }}>
+              <div>{L.ui.from}</div><div>{L.ui.date}</div><div>{L.ui.depart}</div><div>{L.ui.availability}</div><div style={{ textAlign: "end" }}>{L.ui.price}</div><div />
             </div>
-          </div>
-        );
-      }
-      return (
-        <div id="pl-gallery" style={wrap}>
-          <SH label={t.gallery} title={t.gallery} />
-          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gridTemplateRows: "130px 130px", gap: 4 }}>
-            {lbImages.slice(0, 3).map((img, i) => (
-              <div key={i} onClick={() => onImageClick?.(lbImages, i)} style={{ overflow: "hidden", borderRadius: 8, gridRow: i === 0 ? "span 2" : undefined, ...clickable(i) }}>
-                <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    /* ── pricing ────────────────────────────────────────────────────────── */
-    case "pricing": {
-      const tiers = (d.tiers as { label: string; price: string; was?: string; perks?: string[]; pop?: boolean; save?: string }[] | undefined) ?? [];
-      if (!tiers.length) return null;
-      return (
-        <div id="pl-pricing" style={wrap} data-pmx-section="pricing">
-          <SH label={t.navPricing} title={t.navPricing} />
-          <div style={{ display: desktop ? "grid" : "flex", gridTemplateColumns: desktop ? "repeat(3,1fr)" : undefined, flexDirection: desktop ? undefined : "column" as const, gap: 10 }}>
-            {tiers.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} lang={lang} />)}
-          </div>
-        </div>
-      );
-    }
-
-    /* ── booking_terms ──────────────────────────────────────────────────── */
-    case "booking_terms": {
-      const content = d.content as string | undefined;
-      if (!content) return null;
-      return (
-        <div style={wrap} data-pmx-section="booking_terms">
-          <SH label={t.sectionBookingTermsTitle} title={t.sectionBookingTermsTitle} />
-          <Card style={{ padding: 18 }}>
-            <p style={{ fontSize: 13, color: PL.mut, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>{content}</p>
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── payment_plan ───────────────────────────────────────────────────── */
-    case "payment_plan": {
-      const content = d.content as string | undefined;
-      const steps = (d.steps as { label: string; amount: string; dueDate: string }[] | undefined) ?? [];
-      if (!content && !steps.length) return null;
-      return (
-        <div style={wrap} data-pmx-section="payment_plan">
-          <SH label={t.sectionPaymentPlanTitle} title={t.sectionPaymentPlanTitle} />
-          <Card>
-            {content && (
-              <div style={{ padding: "16px 18px", borderBottom: steps.length ? `1px solid ${PL.line}` : "none" }}>
-                <p style={{ fontSize: 13.5, color: PL.ink, lineHeight: 1.6, margin: 0 }}>{content}</p>
-              </div>
-            )}
-            {steps.map((step, i) => (
-              <div key={i} style={{ padding: "14px 18px", borderBottom: i < steps.length - 1 ? `1px solid ${PL.line}` : "none", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{step.label}</div>
-                  {step.dueDate && <div style={{ fontSize: 11.5, color: PL.mut, marginTop: 3 }}>{step.dueDate}</div>}
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: PL.deal, flexShrink: 0 }}>{step.amount}</div>
-              </div>
-            ))}
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── important_notes ────────────────────────────────────────────────── */
-    case "important_notes": {
-      const items = (d.items as { text: string }[] | undefined) ?? [];
-      if (!items.length) return null;
-      return (
-        <div style={wrap} data-pmx-section="important_notes">
-          <SH label={t.sectionImportantNotesTitle} title={t.sectionImportantNotesTitle} />
-          <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
-            {items.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#fffbeb", border: "1px solid #f5e090", borderRadius: 10, padding: "12px 14px" }}>
-                <span style={{ color: PL.warn, flexShrink: 0, marginTop: 1, fontWeight: 800, fontSize: 14, lineHeight: 1 }}>!</span>
-                <span style={{ fontSize: 13, color: PL.ink, lineHeight: 1.55 }}>{item.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    /* ── meals ──────────────────────────────────────────────────────────── */
-    case "meals": {
-      const plan = d.plan as string | undefined;
-      const notes = d.notes as string | undefined;
-      if (!plan && !notes) return null;
-      return (
-        <div style={wrap} data-pmx-section="meals">
-          <SH label={t.sectionMealsTitle} title={t.sectionMealsTitle} />
-          <Card style={{ padding: 16 }}>
-            {plan && (
-              <div style={{ display: "inline-flex", alignItems: "center", background: PL.dealBg, color: PL.deal, borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 700, marginBottom: notes ? 12 : 0 }}>
-                {plan}
-              </div>
-            )}
-            {notes && <p style={{ fontSize: 13, color: PL.mut, lineHeight: 1.65, margin: 0 }}>{notes}</p>}
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── transfers ──────────────────────────────────────────────────────── */
-    case "transfers": {
-      const description = d.description as string | undefined;
-      const items = (d.items as string[] | undefined) ?? [];
-      if (!description && !items.length) return null;
-      return (
-        <div style={wrap} data-pmx-section="transfers">
-          <SH label={t.sectionTransfersTitle} title={t.sectionTransfersTitle} />
-          <Card style={{ padding: 16 }}>
-            {description && <p style={{ fontSize: desktop ? 14 : 13.5, color: PL.ink, lineHeight: 1.65, margin: items.length ? "0 0 14px" : 0 }}>{description}</p>}
-            {items.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
-                {items.map((item, i) => (
-                  <div key={i} style={{ background: PL.bg, border: `1px solid ${PL.line}`, borderRadius: 8, padding: "5px 10px", fontSize: 12.5, fontWeight: 500 }}>{item}</div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── visa ───────────────────────────────────────────────────────────── */
-    case "visa": {
-      const included = d.included as string | undefined;
-      const content = d.content as string | undefined;
-      if (!included && !content) return null;
-      const isIncl = !!(included?.toLowerCase().includes("yes") || included?.toLowerCase().includes("included") || included?.toLowerCase().includes("مشمول"));
-      return (
-        <div style={wrap} data-pmx-section="visa">
-          <SH label={t.sectionVisaTitle} title={t.sectionVisaTitle} />
-          <Card style={{ padding: 16 }}>
-            {included && (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: isIncl ? "rgba(22,101,74,0.08)" : PL.dealBg, color: isIncl ? PL.trust : PL.deal, borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 700, marginBottom: content ? 12 : 0 }}>
-                {included}
-              </div>
-            )}
-            {content && <p style={{ fontSize: 13, color: PL.mut, lineHeight: 1.65, margin: 0 }}>{content}</p>}
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── extras ─────────────────────────────────────────────────────────── */
-    case "extras": {
-      const items = (d.items as { name: string; description: string; price: string }[] | undefined) ?? [];
-      if (!items.length) return null;
-      return (
-        <div style={wrap} data-pmx-section="extras">
-          <SH label={t.sectionExtrasTitle} title={t.sectionExtrasTitle} />
-          <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
-            {items.map((item, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 10, padding: "14px 16px" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{item.name}</div>
-                  {item.description && <div style={{ fontSize: 12.5, color: PL.mut, marginTop: 5, lineHeight: 1.45 }}>{item.description}</div>}
-                </div>
-                {item.price && <div style={{ fontSize: 20, fontWeight: 800, color: PL.deal, flexShrink: 0 }}>{item.price}</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    /* ── guide ──────────────────────────────────────────────────────────── */
-    case "guide": {
-      const name = d.name as string | undefined;
-      const bio = d.bio as string | undefined;
-      const photo = d.photo as string | undefined;
-      const languages = (d.languages as string[] | undefined) ?? [];
-      if (!name) return null;
-      return (
-        <div style={wrap} data-pmx-section="people">
-          <SH label={t.sectionGuideTitle} title={name} />
-          <Card style={{ padding: 18 }}>
-            <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-              {photo ? (
-                <img src={photo} alt={name} style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-              ) : (
-                <div style={{ width: 72, height: 72, borderRadius: "50%", background: PL.dealBg, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 26, fontWeight: 700, color: PL.deal }}>
-                  {name.charAt(0)}
-                </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{name}</div>
-                {bio && <p style={{ fontSize: 13, color: PL.mut, lineHeight: 1.55, margin: "8px 0 0" }}>{bio}</p>}
-                {languages.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginTop: 12 }}>
-                    {languages.map((lang, i) => (
-                      <div key={i} style={{ background: PL.bg, border: `1px solid ${PL.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11.5, fontWeight: 500 }}>{lang}</div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── about_agency ───────────────────────────────────────────────────── */
-    case "about_agency": {
-      const content = d.content as string | undefined;
-      const image = d.image as string | undefined;
-      if (!content) return null;
-      return (
-        <div style={wrap} data-pmx-section="about_agency">
-          <SH label={t.sectionAboutAgencyTitle} title={t.sectionAboutAgencyTitle} />
-          <Card>
-            {image && <img src={image} alt="" style={{ width: "100%", height: desktop ? 240 : 160, objectFit: "cover", display: "block" }} />}
-            <div style={{ padding: 18 }}>
-              <p style={{ fontSize: desktop ? 15 : 13.5, color: PL.mut, lineHeight: 1.7, margin: 0 }}>{content}</p>
-            </div>
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── schedule ───────────────────────────────────────────────────────── */
-    case "schedule": {
-      const items = (d.items as { time: string; activity: string; location: string }[] | undefined) ?? [];
-      if (!items.length) return null;
-      return (
-        <div style={wrap} data-pmx-section="schedule">
-          <SH label={t.sectionScheduleTitle} title={t.sectionScheduleTitle} />
-          <Card>
-            {items.map((item, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: desktop ? "100px 1fr" : "72px 1fr", borderBottom: i < items.length - 1 ? `1px solid ${PL.line}` : "none" }}>
-                <div style={{ background: PL.bg, padding: "14px 10px", fontFamily: MONO, fontSize: 13, fontWeight: 700, color: PL.deal, borderRight: `1px solid ${PL.line}`, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center" as const }}>
-                  {item.time}
-                </div>
-                <div style={{ padding: "14px 16px" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{item.activity}</div>
-                  {item.location && <div style={{ fontSize: 11.5, color: PL.mut, marginTop: 4 }}>{item.location}</div>}
-                </div>
-              </div>
-            ))}
-          </Card>
-        </div>
-      );
-    }
-
-    /* ── custom ─────────────────────────────────────────────────────────── */
-    case "custom": {
-      const heading = d.heading as string | undefined;
-      const content = d.content as string | undefined;
-      const image = d.image as string | undefined;
-      if (!heading && !content) return null;
-      return (
-        <div style={wrap} data-pmx-section="custom">
-          {heading && <SH label="" title={heading} />}
-          {image && <img src={image} alt={heading ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 12, marginBottom: 16, display: "block" }} />}
-          {content && (
-            <Card style={{ padding: 18 }}>
-              <p style={{ fontSize: desktop ? 15 : 13.5, color: PL.mut, lineHeight: 1.7, margin: 0 }}>{content}</p>
-            </Card>
-          )}
-        </div>
-      );
-    }
-
-    /* ── map ────────────────────────────────────────────────────────────── */
-    case "map": {
-      const image = d.image as string | undefined;
-      const caption = d.caption as string | undefined;
-      if (!image) return null;
-      return (
-        <div style={wrap} data-pmx-section="map">
-          <SH label={t.sectionMapTitle} title={caption || t.sectionMapTitle} />
-          <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${PL.line}` }}>
-            <img src={image} alt={caption ?? ""} style={{ width: "100%", display: "block", maxHeight: desktop ? 400 : 240, objectFit: "cover" }} />
-            {caption && (
-              <div style={{ padding: "10px 14px", background: PL.paper, fontSize: 12.5, color: PL.mut }}>{caption}</div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    /* ── video ──────────────────────────────────────────────────────────── */
-    case "video": {
-      const videoUrl = (d.videoUrl as string | undefined)?.trim();
-      if (!videoUrl) return null;
-      const isYT = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
-      const isVimeo = videoUrl.includes("vimeo.com");
-      return (
-        <div style={wrap} data-pmx-section="video">
-          <SH label={t.sectionVideoTitle} title={t.sectionVideoTitle} />
-          <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "16/9", border: `1px solid ${PL.line}`, background: "#000" }}>
-            {(isYT || isVimeo) ? (
-              <iframe
-                src={toEmbedUrl(videoUrl)}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-              />
-            ) : (
-              <video
-                src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"}
-                controls
-                playsInline
-                preload="metadata"
-                style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-              />
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    /* ── people ─────────────────────────────────────────────────────────── */
-    case "people": {
-      const people = (d.people as Array<{ id?: string; name: string; role?: string; bio?: string; photo?: string; languages?: string[]; years?: number; repliesIn?: string }> | undefined) ?? [];
-      if (!people.length) return null;
-      return (
-        <div id="pl-people" style={wrap} data-pmx-section="people">
-          <SH label={t.sectionGuideTitle} title={t.sectionGuideTitle} />
-          <div style={{ display: "flex", flexDirection: "column" as const, gap: 12 }}>
-            {people.map((person, i) => (
-              <Card key={person.id ?? i} style={{ padding: 18 }}>
-                <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-                  {person.photo ? (
-                    <img src={person.photo} alt={person.name} style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: 64, height: 64, borderRadius: "50%", background: PL.dealBg, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 22, fontWeight: 700, color: PL.deal }}>
-                      {person.name.charAt(0)}
-                    </div>
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>{person.name}</div>
-                    {person.role && <div style={{ fontSize: 11, fontWeight: 600, color: PL.mut, textTransform: "uppercase" as const, letterSpacing: 0.4, marginTop: 2 }}>{localizeRole(person.role, t)}</div>}
-                    {person.bio && <p style={{ fontSize: 13, color: PL.mut, lineHeight: 1.55, margin: "8px 0 0" }}>{person.bio}</p>}
-                    {!!person.languages?.length && (
-                      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginTop: 10 }}>
-                        {person.languages.map((lang, j) => (
-                          <div key={j} style={{ background: PL.bg, border: `1px solid ${PL.line}`, borderRadius: 6, padding: "3px 8px", fontSize: 11.5, fontWeight: 500 }}>{lang}</div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    /* ── media ──────────────────────────────────────────────────────────── */
-    case "media": {
-      const images  = (d.images as string[] | undefined) ?? [];
-      const videoUrl = (d.videoUrl as string | undefined)?.trim();
-      const mapImage = d.mapImage as string | undefined;
-      const mapCaption = d.mapCaption as string | undefined;
-      if (!images.length && !videoUrl && !mapImage) return null;
-      const isYT    = videoUrl ? (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) : false;
-      const isVimeo = videoUrl ? videoUrl.includes("vimeo.com") : false;
-      return (
-        <div id="pl-media" style={wrap} data-pmx-section="media">
-          {images.length > 0 && (
-            <>
-              <SH label={t.gallery} title={t.gallery} />
-              <div style={{ display: "grid", gridTemplateColumns: desktop ? "repeat(3,1fr)" : "1.5fr 1fr", gridTemplateRows: desktop ? undefined : "130px 130px", gap: 4, marginBottom: (videoUrl || mapImage) ? 24 : 0 }}>
-                {(desktop ? images : images.slice(0, 3)).map((src, i) => (
-                  <div key={i} onClick={() => onImageClick?.(images.map(s => ({ src: s })), i)} style={{ overflow: "hidden", borderRadius: 8, gridRow: !desktop && i === 0 ? "span 2" : undefined, cursor: onImageClick ? "pointer" : "default", aspectRatio: desktop ? "4/3" : undefined }}>
-                    <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }} />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-          {videoUrl && (
-            <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "16/9", border: `1px solid ${PL.line}`, background: "#000", marginBottom: mapImage ? 24 : 0 }}>
-              {(isYT || isVimeo) ? (
-                <iframe src={toEmbedUrl(videoUrl)} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
-              ) : (
-                <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} controls playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
-              )}
-            </div>
-          )}
-          {mapImage && (
-            <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${PL.line}` }}>
-              <img src={mapImage} alt={mapCaption ?? ""} style={{ width: "100%", display: "block", maxHeight: desktop ? 400 : 240, objectFit: "cover" }} />
-              {mapCaption && <div style={{ padding: "10px 14px", background: PL.paper, fontSize: 12.5, color: PL.mut }}>{mapCaption}</div>}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    /* ── other_packages ─────────────────────────────────────────────────── */
-    case "other_packages": {
-      const packages = (d.packages as Record<string, unknown>[] | undefined) ?? [];
-      if (!packages.length) return null;
-      const heading = (d.heading as string | undefined) || t.otherPackagesHeading;
-      return (
-        <div style={wrap} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
-          <SH label={heading} />
-          <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
-            {packages.map((card, i) => {
-              const img = typeof card.image === "string" ? card.image : "";
-              const title = typeof card.title === "string" ? card.title : "";
-              const dest = typeof card.destination === "string" ? card.destination : "";
-              const price = typeof card.price === "string" ? card.price : "";
-              const nights = typeof card.nights === "string" ? card.nights : "";
-              const link = typeof card.link === "string" ? card.link : "";
+            {rows.map((r, i) => {
+              const spots = typeof r.spots === "number" ? r.spots : Number(r.spots) || 0;
+              const st = status(spots); const sold = spots <= 0;
+              const from = secItemStr(r, "origin", "from"); const date = secItemStr(r, "date");
+              const dep = secItemStr(r, "flyingTime"); const arr = secItemStr(r, "arrivingTime"); const price = secItemStr(r, "price");
               return (
-                <a key={i} href={link || undefined} style={{
-                  flex: "0 0 195px", minWidth: 195, borderRadius: 12, overflow: "hidden",
-                  textDecoration: "none", border: `1px solid ${PL.line}`,
-                  background: PL.paper, scrollSnapAlign: "start",
-                  display: "flex", flexDirection: "column",
-                }}>
-                  <div style={{ width: "100%", height: 120, background: PL.line, flexShrink: 0 }}>
-                    {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-                  </div>
-                  <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-                    {dest && <div style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" as const, color: PL.mut }}>{dest}</div>}
-                    <div style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: PL.ink, lineHeight: 1.3 }}>{title}</div>
-                    {(nights || price) && (
-                      <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                        {nights && <span style={{ fontFamily: SANS, fontSize: 11, color: PL.mut }}>{nights}</span>}
-                        {price && <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: PL.deal }}>{price}</span>}
-                      </div>
-                    )}
-                  </div>
-                </a>
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr 1fr auto", padding: "15px 22px", alignItems: "center", borderTop: i ? `1px solid ${LINE}` : "none", opacity: sold ? 0.45 : 1 }}>
+                  <div style={{ fontFamily: disp, fontSize: 16, fontWeight: 700, color: INK }}>{from || dig(date)}</div>
+                  <div style={{ fontFamily: sans, fontSize: 13, color: MUT }}>{dig(date)}</div>
+                  <div style={{ fontFamily: sans, fontSize: 13, color: MUT, fontVariantNumeric: "tabular-nums" }}>{dep ? `${dig(dep)}${arr ? ` → ${dig(arr)}` : ""}` : "—"}</div>
+                  <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: st.col }}>{st.t}</div>
+                  <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 700, color: INK, textAlign: "end" }}>{dig(price)}</div>
+                  <div style={{ textAlign: "end", paddingInlineStart: 16 }}>{sold ? <span style={{ fontFamily: sans, fontSize: 12, color: FAINT }}>—</span> : (pkg.whatsapp ? <CTA onClick={onWhatsApp}>{L.ui.book}</CTA> : null)}</div>
+                </div>
               );
             })}
           </div>
-          {agencySlug && (
-            <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-              <a href={`/${agencySlug}/packages`} style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: PL.mut, textDecoration: "none" }}>
-                {t.navAllPackages} →
-              </a>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    default:
-      return null;
-  }
-}
-
-function PulseSections({ pkg, t, isRtl, onWhatsApp, desktop = false, onImageClick, agencySlug }: {
-  pkg: TPackage; t: TranslationT; isRtl: boolean; onWhatsApp: () => void; desktop?: boolean;
-  onImageClick?: (images: LBImage[], idx: number) => void; agencySlug?: string;
-}) {
-  if (!pkg.sections?.length) return null;
-  const sorted = [...pkg.sections].sort((a, b) => a.order - b.order);
-  return (
-    <>
-      {sorted.map(s => (
-        <PulseSection key={s.id} s={s as SectionT} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={desktop} onImageClick={onImageClick} agencySlug={agencySlug} />
-      ))}
-    </>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   REVIEWS SECTION — shows existing reviews + a submission form
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function PulseReviews({
-  pkg, agency, t, isRtl, desktop = false,
-}: {
-  pkg: TPackage;
-  agency: { name: string; enableReviews?: boolean; showReviews?: boolean; agencySlug?: string };
-  t: TranslationT;
-  isRtl: boolean;
-  desktop?: boolean;
-}) {
-  const canSubmit  = agency.enableReviews !== false;
-  const canShow    = agency.showReviews !== false;
-  if (!canShow && !canSubmit) return null;
-
-  const [name,    setName]    = useState("");
-  const [text,    setText]    = useState("");
-  const [rating,  setRating]  = useState(0);
-  const [hover,   setHover]   = useState(0);
-  const [status,  setStatus]  = useState<"idle" | "sending" | "ok" | "err">("idle");
-  const [newReviews, setNewReviews] = useState<TReview[]>([]);
-
-  const handleSubmit = async () => {
-    if (!name.trim() || !text.trim() || !rating || !pkg.id) return;
-    setStatus("sending");
-    try {
-      const res = await fetch("/api/submit-review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageId: pkg.id, name: name.trim(), text: text.trim(), rating }),
-      });
-      if (res.ok) {
-        setNewReviews(prev => [...prev, { id: crypto.randomUUID(), name: name.trim(), text: text.trim(), rating, createdAt: Date.now() }]);
-        setStatus("ok");
-      } else {
-        setStatus("err");
-      }
-    } catch {
-      setStatus("err");
-    }
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {rows.map((r, i) => {
+              const spots = typeof r.spots === "number" ? r.spots : Number(r.spots) || 0;
+              const st = status(spots); const sold = spots <= 0;
+              const from = secItemStr(r, "origin", "from"); const date = secItemStr(r, "date"); const price = secItemStr(r, "price");
+              return (
+                <div key={i} style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 14, padding: 16, opacity: sold ? 0.5 : 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, color: INK }}>{from || dig(date)}</div>
+                    {price && <div style={{ fontFamily: disp, fontSize: 19, fontWeight: 700, color: brand }}>{dig(price)}</div>}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontFamily: sans, fontSize: 12.5, color: MUT }}>
+                    <span>{dig(date)}</span><span style={{ color: st.col, fontWeight: 700 }}>{st.t}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Wrap>
+    );
   };
 
-  const wrap = desktop ? { marginBottom: 40 } : { padding: "32px 14px 28px" };
-
-  const reviews = [...(pkg.reviews ?? []), ...newReviews];
-  const hasReviews = canShow && reviews.length > 0;
-
-  return (
-    <div id="pl-reviews" style={wrap} data-pmx-section="reviews">
-      {/* heading */}
-      <div style={{ marginBottom: 20 }}>
-        {desktop ? (
-          <div style={{ paddingBottom: 12, borderBottom: `2px solid ${PL.ink}`, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.8, margin: 0 }}>
-              {hasReviews
-                ? `${pkg.reviewCount ?? reviews.length} ${t.verifiedGuestsAvg}${pkg.rating ? ` ${pkg.rating}★` : ""}`
-                : t.writeReviewTitle}
-            </h2>
-          </div>
-        ) : (
-          <SecHead
-            eb={hasReviews ? `${pkg.reviewCount ?? reviews.length} ${t.verifiedGuestsAvg}` : t.reviewsLabel}
-            title={hasReviews ? t.seeAllReviews.replace(" →", "") : t.writeReviewTitle}
-          />
-        )}
-      </div>
-
-      {/* existing reviews */}
-      {hasReviews && (
-        <div style={{
-          display: desktop ? "grid" : "flex",
-          gridTemplateColumns: desktop ? "1fr 1fr" : undefined,
-          flexDirection: desktop ? undefined : "column" as const,
-          gap: 12, marginBottom: 28,
-        }}>
-          {reviews.slice(0, desktop ? 4 : 99).map((r, i) => (
-            <article key={i} style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 10, padding: "14px 16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: -0.2 }}>{r.name}</div>
-                  {r.country && <div style={{ fontSize: 10.5, color: PL.mut, marginTop: 2 }}>{r.country}</div>}
-                </div>
-                <Stars value={r.rating} />
-                {r.createdAt && (
-                  <div style={{ fontSize: 10.5, color: PL.mut, flexShrink: 0 }}>
-                    {new Date(r.createdAt).toLocaleDateString(isRtl ? "ar-SA" : "en-US", { month: "short", year: "numeric" })}
-                  </div>
-                )}
-              </div>
-              <div style={{ fontSize: 13, lineHeight: 1.5, color: PL.ink }}>{r.text}</div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, color: PL.trust, marginTop: 8, fontWeight: 600 }}>
-                {Ico.check(11)} {t.verifiedViaWhatsApp}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {/* review submission form */}
-      {canSubmit && status !== "ok" && (
-        <div style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 12, padding: desktop ? 24 : 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.1, marginBottom: 4 }}>{t.writeReviewTitle}</div>
-          <div style={{ fontSize: 12, color: PL.mut, marginBottom: 16, lineHeight: 1.5 }}>{t.writeReviewSub}</div>
-
-          {/* star selector */}
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: PL.mut, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 0.4 }}>{t.reviewYourRating}</div>
-            <div style={{ display: "flex", gap: 4 }}>
-              {[1, 2, 3, 4, 5].map(n => (
-                <button key={n}
-                  onClick={() => setRating(n)}
-                  onMouseEnter={() => setHover(n)}
-                  onMouseLeave={() => setHover(0)}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 1px", lineHeight: 1 }}
-                >
-                  <svg width={22} height={22} viewBox="0 0 24 24"
-                    fill={(hover || rating) >= n ? PL.warn : "none"}
-                    stroke={PL.warn} strokeWidth={1.5}
-                    strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                  </svg>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* name */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: PL.mut, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 0.4 }}>{t.reviewYourName}</div>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder={t.reviewerNamePlaceholder}
-              maxLength={80}
-              style={{
-                width: "100%", boxSizing: "border-box" as const,
-                border: `1px solid ${PL.line}`, borderRadius: 8, padding: "10px 12px",
-                fontSize: 13, fontFamily: SANS, color: PL.ink, background: PL.bg,
-                outline: "none",
-              }}
-            />
-          </div>
-
-          {/* review text */}
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: PL.mut, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 0.4 }}>{t.reviewYourReview}</div>
-            <textarea
-              value={text}
-              onChange={e => setText(e.target.value)}
-              placeholder={t.reviewPlaceholder}
-              rows={4}
-              maxLength={800}
-              style={{
-                width: "100%", boxSizing: "border-box" as const,
-                border: `1px solid ${PL.line}`, borderRadius: 8, padding: "10px 12px",
-                fontSize: 13, fontFamily: SANS, color: PL.ink, background: PL.bg,
-                resize: "vertical" as const, outline: "none",
-              }}
-            />
-          </div>
-
-          <button
-            onClick={handleSubmit}
-            disabled={!name.trim() || !text.trim() || !rating || status === "sending"}
-            style={{
-              width: "100%", background: rating && name.trim() && text.trim() ? PL.ink : PL.line,
-              color: "#fff", border: "none", borderRadius: 8,
-              padding: "12px 16px", fontWeight: 700, fontSize: 13,
-              cursor: rating && name.trim() && text.trim() ? "pointer" : "not-allowed",
-              fontFamily: SANS, transition: "background 0.15s",
-            }}
-          >
-            {status === "sending" ? "…" : t.submitReviewBtn}
-          </button>
-
-          {status === "err" && (
-            <div style={{ fontSize: 12, color: PL.deal, marginTop: 8, textAlign: "center" as const }}>{t.reviewSubmitError}</div>
-          )}
-        </div>
-      )}
-
-      {/* success state */}
-      {status === "ok" && (
-        <div style={{ background: "rgba(22,101,74,0.06)", border: `1px solid rgba(22,101,74,0.2)`, borderRadius: 12, padding: 20, textAlign: "center" as const }}>
-          <div style={{ fontSize: 24, marginBottom: 8 }}>⭐</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: PL.trust }}>{t.reviewSubmitSuccess}</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MOBILE LAYOUT
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ─── Section nav helpers ─────────────────────────────────────────────────── */
-
-type SectionNavItem = { label: string; href: string };
-
-const SECTION_NAV_HREFS: Partial<Record<string, string>> = {
-  itinerary:      "#pl-itinerary",
-  gallery:        "#pl-gallery",
-  departure_dates:"#pl-departures",
-  pricing:        "#pl-pricing",
-  highlights:     "#pl-highlights",
-  inclusions:     "#pl-inclusions",
-  faq:            "#pl-faq",
-  hotel:          "#pl-hotel",
-};
-
-function sectionNavLabel(type: string, t: TranslationT): string {
-  switch (type) {
-    case "itinerary":      return t.navItinerary;
-    case "gallery":        return t.gallery;
-    case "departure_dates":return t.departures;
-    case "pricing":        return t.navPricing;
-    case "highlights":     return t.sectionHighlightsTitle;
-    case "inclusions":     return t.includedLabel;
-    case "faq":            return t.frequentlyAsked;
-    case "hotel":          return t.hotelLabel;
-    default:               return "";
-  }
-}
-
-function buildNavLinks(pkg: TPackage, gallery: TGalleryItem[], hasDeps: boolean, hasTiers: boolean, t: TranslationT): SectionNavItem[] {
-  const hasReviews = !!(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length);
-  if (pkg.sections?.length) {
-    const sorted = [...pkg.sections].sort((a, b) => a.order - b.order);
-    const links: SectionNavItem[] = sorted
-      .filter(s => SECTION_NAV_HREFS[s.type])
-      .map(s => ({ label: sectionNavLabel(s.type, t), href: SECTION_NAV_HREFS[s.type]! }))
-      .filter(l => l.label);
-    if (hasReviews) links.push({ label: t.reviewsLabel, href: "#pl-reviews" });
-    return links;
-  }
-  const links: SectionNavItem[] = [];
-  if (pkg.itinerary?.length) links.push({ label: t.navItinerary, href: "#pl-itinerary" });
-  if (gallery.length)         links.push({ label: t.gallery,     href: "#pl-gallery" });
-  if (hasDeps)                links.push({ label: t.departures,  href: "#pl-departures" });
-  if (hasTiers)               links.push({ label: t.navPricing,  href: "#pl-pricing" });
-  if (hasReviews) links.push({ label: t.reviewsLabel, href: "#pl-reviews" });
-  return links;
-}
-
-/* ─── Mobile layout ──────────────────────────────────────────────────────── */
-
-function PulseMobile({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
-  const t = T[lang];
-  const isRtl = lang === "ar";
-  const dir = isRtl ? "rtl" : "ltr";
-
-  // Real-time viewer count via Firestore presence
-  const liveViewers = useActiveViewers(pkg.id);
-
-  // Lightbox state
-  const [lightbox, setLightbox] = useState<{ images: LBImage[]; idx: number } | null>(null);
-  const openLightbox = (images: LBImage[], idx: number) => setLightbox({ images, idx });
-
-  // departure_dates section (auto-extract first date for countdown)
-  const depSection = pkg.sections?.find(s => s.type === "departure_dates");
-  const depSectionDates = (depSection?.data?.dates as { date: string; spots: string }[] | undefined) ?? [];
-  const firstDepDate = pkg.departures?.[0]?.date || depSectionDates[0]?.date;
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const target    = useMemo(() => departureTarget(firstDepDate), [firstDepDate]);
-  const cd        = useCountdown(target);
-  const ticker    = useTicker(pkg.socialProofTicker, 2600);
-  const nights    = pkg.nights ? Number(pkg.nights) : null;
-  const cover     = pkg.coverImage ?? "";
-  const mark      = agencyInitials(agency.name);
-
-  // Auto-compute saving from priceWas - price when not explicitly set
-  const autoSaving = !pkg.saving && pkg.priceWas ? computeSavingLabel(pkg.priceWas, pkg.price) : null;
-  const effectiveSaving = pkg.saving || autoSaving;
-  const hasDeal   = !!(pkg.priceWas || effectiveSaving);
-
-  const hasScar   = pkg.spotsRemaining !== undefined && pkg.totalSpots !== undefined;
-  const hasTicker = !!(pkg.socialProofTicker?.length);
-  const gallery: TGalleryItem[] = pkg.gallery ?? pkg.images?.map(src => ({ src })) ?? [];
-  // hasDeps: true when departure dates come from extras OR from departure_dates section
-  const hasDeps   = !!(pkg.departures?.length || depSectionDates.length);
-  // Only show urgency departures block when NOT handled by a departure_dates section
-  const showUrgencyDeps = !!(pkg.departures?.length && !depSection);
-  const hasTiers  = !!(pkg.pricingTiers?.length);
-  const hasAgent  = !!(pkg.agent);
-  // Manual override takes precedence; otherwise use real Firestore presence count
-  const effectiveViewers = pkg.viewersNow != null ? pkg.viewersNow : liveViewers;
-
-  const cdLabels: [string, string, string, string] = [t.daysLabel, t.hoursLabelShort, t.minLabel, t.secLabel];
-  const firstDate = firstDepDate?.split(" ").slice(0, 2).join(" ") ?? "";
-
-  return (
-    <div dir={dir} style={{ background: PL.bg, color: PL.ink, fontFamily: SANS, direction: dir, minHeight: "100vh", paddingBottom: 80 }}>
-      <style dangerouslySetInnerHTML={{ __html: KF }} />
-
-      {/* ── Deal ribbon ── */}
-      {hasDeal && (
-        <div style={{
-          background: PL.ink, color: "#fff",
-          height: 28, display: "flex", alignItems: "center",
-          padding: "0 14px", fontSize: 11.5, letterSpacing: 0.1, gap: 10, overflow: "hidden",
-        }}>
-          <BlinkDot color={PL.deal} size={6} />
-          <span>
-            {t.lastMinute} · {t.savingLabel} <b style={{ color: PL.deal }}>{effectiveSaving}</b>
-          </span>
-          {cd.d >= 0 && (
-            <span style={{
-              marginLeft: isRtl ? undefined : "auto",
-              marginRight: isRtl ? "auto" : undefined,
-              fontFamily: MONO, fontSize: 10.5, letterSpacing: 0.4,
-              color: "rgba(255,255,255,0.55)",
-            }}>
-              {t.departsIn} <b style={{ color: "#fff" }}>{cd.d}d {p2(cd.h)}:{p2(cd.m)}</b>
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* ── Sticky nav ── */}
-      <div style={{
-        position: "sticky", top: 0, zIndex: 20,
-        height: 52, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(14px)",
-        borderBottom: `1px solid ${PL.line}`,
-        display: "flex", alignItems: "center",
-        padding: "0 12px", gap: 10,
-      }}>
-        {/* Brand mark — fixed size, never shrinks */}
-        <div style={{ flexShrink: 0 }}>
-          {agency.logoUrl ? (
-            <img src={agency.logoUrl} alt={agency.name} style={{ height: 26, maxWidth: 72, width: "auto", objectFit: "contain", display: "block" }} />
-          ) : (
-            <div style={{
-              width: 26, height: 26, background: PL.ink, color: "#fff",
-              borderRadius: 6, display: "grid", placeItems: "center",
-              fontWeight: 800, fontSize: 12, letterSpacing: -0.5,
-            }}>{mark}</div>
-          )}
-        </div>
-        {/* Scrollable section links — flex: 1 takes remaining space, clips at edges */}
-        <div style={{ flex: 1, minWidth: 0, overflowX: "auto", display: "flex", alignItems: "center", gap: 14 }}>
-          {buildNavLinks(pkg, gallery, hasDeps, hasTiers, t).map(link => (
-            <a key={link.href} href={link.href} style={{
-              fontSize: 12, fontWeight: 600, color: PL.mut, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
-            }}>
-              {link.label}
-            </a>
-          ))}
-        </div>
-        {/* WA button — fixed size, never shrinks or scrolls away */}
-        <button data-testid="wa-cta" onClick={onWhatsApp} style={{
-          flexShrink: 0,
-          display: "inline-flex", alignItems: "center", gap: 6,
-          fontSize: 12, fontWeight: 700, color: "#fff",
-          background: PL.wa, padding: "6px 12px",
-          borderRadius: 8, border: "none", cursor: "pointer", fontFamily: SANS, whiteSpace: "nowrap",
-        }}>
-          {Ico.wa(12)} {t.bookWhatsApp}
-        </button>
-      </div>
-
-      {/* ── Hero ── */}
-      <div data-pmx-section="hero" style={{ position: "relative", height: 380, overflow: "hidden", background: PL.ink }}>
-        {cover && <img src={cover} alt={pkg.destination} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(0,0,0,.25) 0%,rgba(0,0,0,.1) 50%,rgba(0,0,0,.85) 100%)" }} />
-
-        {/* sticker + rating */}
-        <div style={{ position: "absolute", top: 16, left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          {hasDeal && effectiveSaving && (
-            <div style={{
-              background: PL.deal, color: "#fff",
-              padding: "8px 12px", borderRadius: 6,
-              fontWeight: 800, fontSize: 11, letterSpacing: 0.3, textTransform: "uppercase",
-              boxShadow: "0 4px 14px rgba(226,73,42,0.4)",
-            }}>
-              {t.savingLabel}
-              <b style={{ fontSize: 18, letterSpacing: -0.3, display: "block", lineHeight: 1, marginTop: 2 }}>
-                {effectiveSaving}
-              </b>
-            </div>
-          )}
-          {pkg.rating && (
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              background: "rgba(255,255,255,0.95)", color: PL.ink,
-              padding: "5px 9px", borderRadius: 6, fontSize: 11.5, fontWeight: 600, letterSpacing: -0.1,
-            }}>
-              {Ico.star(11)} {pkg.rating}{pkg.reviewCount ? ` · ${pkg.reviewCount}` : ""}
-            </div>
-          )}
-        </div>
-
-        {/* title — sits above the booking card which floats −28px over hero bottom */}
-        <div style={{ position: "absolute", bottom: 46, left: 16, right: 16, color: "#fff" }}>
-          <div data-pmx-field="destination" style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.8)", letterSpacing: 0.4, textTransform: "uppercase", marginBottom: 8 }}>
-            {pkg.destination}{nights ? ` · ${nights} ${t.nightsLabel}` : ""}
-          </div>
-          <h1 data-pmx-field="title" style={{ fontSize: 30, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, margin: 0 }}>
-            {pkg.title ?? pkg.destination}
-          </h1>
-        </div>
-      </div>
-
-      {/* ── Booking card (floats −28px over hero bottom) ── */}
-      <div style={{
-        margin: "-28px 14px 0", background: PL.paper,
-        border: `1px solid ${PL.line}`, borderRadius: 14, padding: 16,
-        position: "relative", zIndex: 5,
-        boxShadow: "0 18px 40px -20px rgba(0,0,0,0.18)",
-      }}>
-        {/* price row */}
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              {pkg.priceWas && (
-                <span style={{ fontSize: 14, color: PL.mut, textDecoration: "line-through" }}>{pkg.priceWas}</span>
-              )}
-              <span data-pmx-field="price" style={{ fontSize: 34, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{pkg.price}</span>
-            </div>
-            <div style={{ fontSize: 11, color: PL.mut, marginTop: 4 }}>{t.pricePerGuestTwinShare}</div>
-          </div>
-          {effectiveSaving && (
-            <div style={{
-              background: PL.dealBg, color: PL.deal,
-              fontWeight: 800, fontSize: 12, padding: "6px 10px", borderRadius: 6, letterSpacing: -0.1,
-            }}>
-              {effectiveSaving}
-            </div>
-          )}
-        </div>
-
-        {/* scarcity */}
-        {hasScar && (
-          <div style={{
-            background: PL.dealBg, color: PL.deal,
-            borderRadius: 10, padding: "10px 12px", marginBottom: 12, fontSize: 12,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <BlinkDot color={PL.deal} size={7} />
-              <span>
-                {t.onlyLabel} <b>{pkg.spotsRemaining} {t.spotsOf} {pkg.totalSpots}</b>{" "}
-                {t.spotLeftOf}{firstDate ? ` ${firstDate}` : ""}
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: 14, marginTop: 6, fontSize: 11 }}>
-              {effectiveViewers !== null && effectiveViewers > 0 && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  {Ico.eye(11)} <b>{effectiveViewers}</b> {t.viewingNow}
-                </span>
-              )}
-              {pkg.recentBookings && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  {Ico.clock(11)} {t.bookedLabel} {pkg.recentBookings.hoursAgo}{t.hoursAgoLabel}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* CTA buttons */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <button data-testid="wa-cta" onClick={onWhatsApp} style={{
-            flex: 1, background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
-            padding: "14px 16px", fontWeight: 800, fontSize: 14, letterSpacing: -0.1,
-            cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-            boxShadow: "0 4px 14px rgba(37,211,102,0.3)", fontFamily: SANS,
-          }}>
-            {Ico.wa(14)} {t.bookWhatsApp}
-          </button>
-          {pkg.messenger && (
-            <button data-testid="messenger-cta" onClick={onMessenger} style={{
-              background: "#0084ff", color: "#fff", border: "none",
-              borderRadius: 10, padding: "14px 16px", fontWeight: 700, fontSize: 13,
-              cursor: "pointer", fontFamily: SANS, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, flexShrink: 0,
-            }}>
-              {Ico.messenger(14)}
-            </button>
-          )}
-        </div>
-
-        {/* standalone viewer count — only when no scarcity block */}
-        {!hasScar && effectiveViewers !== null && effectiveViewers > 1 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: PL.mut, marginBottom: 10 }}>
-            <BlinkDot color={PL.deal} size={5} />
-            <b style={{ color: PL.deal }}>{effectiveViewers}</b>
-            <span>{t.viewingNow}</span>
-          </div>
-        )}
-
-        {/* countdown — only when a departure date exists */}
-        {hasDeps && (
-          <>
-            <div style={{ fontSize: 11, color: PL.mut, textAlign: "center", marginBottom: 8, fontWeight: 500 }}>
-              {t.departsIn}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
-              {([p2(cd.d), p2(cd.h), p2(cd.m), p2(cd.s)] as string[]).map((v, i) => (
-                <div key={i} style={{
-                  background: PL.bg, border: `1px solid ${PL.line}`,
-                  borderRadius: 8, padding: "9px 4px", textAlign: "center",
-                }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5, fontFamily: MONO, lineHeight: 1, color: PL.deal }}>{v}</div>
-                  <div style={{ fontSize: 9.5, color: PL.mut, marginTop: 4, letterSpacing: 0.4, textTransform: "uppercase", fontWeight: 500 }}>{cdLabels[i]}</div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ── Social proof ticker ── */}
-      {hasTicker && ticker && (
-        <div style={{
-          margin: "14px 14px 0", background: "#f0ece5", borderRadius: 10,
-          padding: "11px 14px", display: "flex", alignItems: "center", gap: 10, fontSize: 12.5,
-        }}>
-          <span style={{
-            width: 8, height: 8, borderRadius: "50%", background: PL.trust, flexShrink: 0,
-            animation: "pl-pulse-green 1.8s ease-out infinite",
-          }} />
-          <span>{ticker}</span>
-        </div>
-      )}
-
-      {/* ── Trust strip (2×2 grid — only show items with real data) ── */}
-      {(() => {
-        const items = [
-          pkg.cancellation ? { icon: Ico.shield(13), text: pkg.cancellation } : null,
-          { icon: Ico.wa(13), text: t.payViaWhatsApp },
-          pkg.hotelDescription ? { icon: Ico.check(13), text: pkg.hotelDescription.split(",")[0] } : null,
-          { icon: Ico.spark(13), text: agency.name },
-        ].filter(Boolean) as { icon: React.ReactNode; text: string }[];
-        if (!items.length) return null;
-        const cols = items.length >= 4 ? "1fr 1fr" : `repeat(${items.length}, 1fr)`;
-        return (
-          <div style={{
-            margin: "16px 14px 0", background: PL.paper,
-            border: `1px solid ${PL.line}`, borderRadius: 10, padding: "4px 6px",
-            display: "grid", gridTemplateColumns: cols,
-          }}>
-            {items.map((c, i) => (
-              <div key={i} style={{
-                padding: "10px 10px", display: "flex", alignItems: "center", gap: 8,
-                fontSize: 11.5, fontWeight: 500,
-                borderRight: items.length >= 4 && i % 2 === 0 ? `1px solid ${PL.line}` : "none",
-                borderBottom: items.length >= 4 && i < 2 ? `1px solid ${PL.line}` : "none",
-              }}>
-                <span style={{ color: PL.trust }}>{c.icon}</span>
-                <span>{c.text}</span>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
-
-      {/* ── Sections (user-added content in defined order) ── */}
-      {pkg.sections?.length ? (
-        <PulseSections pkg={pkg} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={false} onImageClick={openLightbox} agencySlug={agency.agencySlug} />
-      ) : (
-        <>
-          {!!pkg.itinerary?.length && (
-            <div id="pl-itinerary" style={{ padding: "32px 14px 28px" }}>
-              <SecHead eb={`${t.dayByDay} · ${pkg.itinerary.length} ${t.daysLabel.toLowerCase()}`} title={pkg.title ?? pkg.destination} />
-              <div style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 12, overflow: "hidden" }}>
-                {pkg.itinerary.map((d, i) => (
-                  <div key={i} style={{ padding: "14px 16px", borderBottom: i < pkg.itinerary!.length - 1 ? `1px solid ${PL.line}` : "none", display: "grid", gridTemplateColumns: "auto 1fr", gap: 14, alignItems: "start" }}>
-                    <div style={{ background: PL.dealBg, color: PL.deal, borderRadius: 8, padding: "8px 10px", textAlign: "center", minWidth: 52 }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1 }}>{dayLabel(d.day, isRtl)}</div>
-                      {d.chapter && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", marginTop: 3 }}>{d.chapter}</div>}
-                    </div>
-                    <div style={{ paddingTop: 2 }}>
-                      <div style={{ fontSize: 10.5, color: PL.mut, fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase" }}>{t.dayLabel} {d.day}</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3, letterSpacing: -0.2 }}>{d.title}</div>
-                      <div style={{ fontSize: 12.5, color: PL.mut, lineHeight: 1.5, marginTop: 6 }}>{d.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {(pkg.includes?.length || pkg.excludes?.length) && (
-            <PulseSection s={{ id: "fb-inclusions", type: "inclusions", order: 0, data: { includes: pkg.includes ?? [], excludes: pkg.excludes ?? [] } }} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={false} />
-          )}
-          {gallery.length > 0 && (
-            <div style={{ padding: "32px 14px 28px" }}>
-              <SecHead eb={t.gallery} title={pkg.hotelDescription?.split(",")[0] ?? pkg.destination} />
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gridTemplateRows: "130px 130px", gap: 4 }}>
-                {gallery.slice(0, 3).map((g, i) => (
-                  <div key={i} onClick={() => openLightbox(gallery, i)} style={{ overflow: "hidden", borderRadius: 8, gridRow: i === 0 ? "span 2" : undefined, cursor: "pointer" }}>
-                    <img src={g.src} alt={g.caption ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {hasTiers && (
-            <div id="pl-pricing" style={{ padding: "32px 14px 28px" }}>
-              <SecHead eb={t.navPricing} title={t.navPricing} />
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {pkg.pricingTiers!.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} lang={lang} />)}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── Departures (urgency-led — only when no departure_dates section) ── */}
-      {showUrgencyDeps && (
-        <div id="pl-departures" style={{ padding: "32px 14px 28px" }}>
-          <SecHead eb={t.departures} title={t.dealSooner} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {pkg.departures!.map((dep, i) => (
-              <button key={i} onClick={onWhatsApp} style={{
-                background: dep.deal ? `linear-gradient(180deg,#fff 0%,${PL.dealBg} 100%)` : PL.paper,
-                border: dep.deal ? `1.5px solid ${PL.deal}` : `1.5px solid ${PL.line}`,
-                borderRadius: 10, padding: "14px 16px",
-                display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center",
-                cursor: "pointer", textAlign: isRtl ? "right" : "left", fontFamily: SANS,
-              }}>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.4 }}>{dep.date}</div>
-                  <div style={{ fontSize: 11, color: dep.spots <= 4 ? PL.deal : PL.mut, marginTop: 4, fontWeight: 500 }}>
-                    {dep.spots <= 4
-                      ? <b>{t.onlyLabel} {dep.spots} {t.spotsLeft}</b>
-                      : `${dep.spots} ${t.spotsAvailable}`}
-                  </div>
-                </div>
-                <div style={{ textAlign: isRtl ? "left" : "right" }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1 }}>
-                    {dep.price ?? pkg.price}
-                  </div>
-                  {dep.deal && effectiveSaving && (
-                    <div style={{
-                      display: "inline-block", fontSize: 9.5, background: PL.deal, color: "#fff",
-                      padding: "2px 6px", borderRadius: 3, fontWeight: 700, letterSpacing: 0.3,
-                      textTransform: "uppercase", marginTop: 4,
-                    }}>
-                      {effectiveSaving}
-                    </div>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-
-      {/* ── Reviews + submission form ── */}
-      <PulseReviews pkg={pkg} agency={agency} t={t} isRtl={isRtl} desktop={false} />
-
-      {/* ── Agent close (dark ink card) ── */}
-      {hasAgent && (
-        <div style={{ margin: "32px 14px 0", background: PL.ink, color: "#fff", borderRadius: 14, padding: 22 }}>
-          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-            {pkg.agent!.avatar ? (
-              <img src={pkg.agent!.avatar} alt={pkg.agent!.name}
-                style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-            ) : (
-              <div style={{
-                width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.1)",
-                display: "grid", placeItems: "center", fontSize: 20, fontWeight: 700, flexShrink: 0,
-              }}>
-                {pkg.agent!.name.charAt(0)}
-              </div>
-            )}
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: -0.3 }}>{pkg.agent!.name}</div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>
-                {localizeRole(pkg.agent!.role, t)}{pkg.agent!.years ? ` · ${pkg.agent!.years} ${t.yearsExpSuffix}` : ""}
-              </div>
-              {pkg.agent!.repliesIn && (
-                <div style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8,
-                  background: "rgba(255,255,255,0.1)", padding: "4px 8px", borderRadius: 4,
-                  fontFamily: MONO, fontSize: 10, letterSpacing: 0.3,
-                }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2dd4a0", animation: "pl-pulse-green 1.8s infinite" }} />
-                  {t.onlineRepliesIn} {pkg.agent!.repliesIn}
-                </div>
-              )}
-            </div>
-          </div>
-          <p style={{ fontSize: 14.5, lineHeight: 1.5, marginTop: 18, color: "rgba(255,255,255,0.92)", marginBottom: 0 }}>
-            {pkg.description}
-          </p>
-          <div style={{ marginTop: 18 }}>
-            <button data-testid="wa-cta" onClick={onWhatsApp} style={{
-              width: "100%", background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
-              padding: "14px 16px", fontWeight: 800, fontSize: 14, letterSpacing: -0.1,
-              cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: "0 4px 14px rgba(37,211,102,0.3)", fontFamily: SANS,
-            }}>
-              {Ico.wa(14)} {t.bookWhatsApp}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── All packages link ── */}
-      {agency.agencySlug && (
-        <div style={{ padding: "20px 14px 4px", textAlign: "center" as const }}>
-          <a href={`/${agency.agencySlug}/packages`} style={{
-            fontSize: 13, fontWeight: 600, color: PL.mut,
-            textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5,
-          }}>
-            {t.seeAllPackages}
-          </a>
-        </div>
-      )}
-
-      {/* ── Sticky bottom CTA ── */}
-      <div style={{
-        position: "sticky", bottom: 0, left: 0, right: 0,
-        background: PL.paper, borderTop: `1px solid ${PL.line}`,
-        padding: "10px 12px", display: "flex", alignItems: "center", gap: 10,
-        zIndex: 40, boxShadow: "0 -10px 30px -10px rgba(0,0,0,0.12)",
-      }}>
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-            {pkg.priceWas && (
-              <span style={{ fontSize: 11.5, color: PL.mut, textDecoration: "line-through" }}>{pkg.priceWas}</span>
-            )}
-            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>{pkg.price}</span>
-            {effectiveSaving && (
-              <span style={{ fontSize: 10.5, background: PL.dealBg, color: PL.deal, padding: "2px 6px", borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>{effectiveSaving}</span>
-            )}
-          </div>
-          <div style={{ fontSize: 10, color: PL.mut, marginTop: 1 }}>
-            {hasScar && (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 4, color: PL.deal, fontWeight: 700, marginBottom: 1 }}>
-                <BlinkDot color={PL.deal} size={5} />
-                {t.onlyLabel} <b>{pkg.spotsRemaining}</b> {t.spotsLeft}
-              </div>
-            )}
-            <div>{t.pricePerGuestTwinShare}</div>
-          </div>
-        </div>
-        <button data-testid="wa-cta" onClick={onWhatsApp} style={{
-          background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
-          padding: "12px 16px", fontWeight: 800, fontSize: 13,
-          cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8,
-          boxShadow: "0 4px 14px rgba(37,211,102,0.3)", fontFamily: SANS, flexShrink: 0,
-        }}>
-          {Ico.wa(13)} {t.bookWhatsApp}
-        </button>
-      </div>
-
-      {/* ── Lightbox ── */}
-      {lightbox && (
-        <PulseLightbox images={lightbox.images} startIdx={lightbox.idx} onClose={() => setLightbox(null)} />
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   DESKTOP LAYOUT
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function PulseDesktop({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
-  const t = T[lang];
-  const isRtl = lang === "ar";
-  const dir = isRtl ? "rtl" : "ltr";
-
-  // Real-time viewer count via Firestore presence
-  const liveViewers = useActiveViewers(pkg.id);
-
-  // Lightbox state
-  const [lightbox, setLightbox] = useState<{ images: LBImage[]; idx: number } | null>(null);
-  const openLightbox = (images: LBImage[], idx: number) => setLightbox({ images, idx });
-
-  // departure_dates section (auto-extract first date for countdown)
-  const depSection = pkg.sections?.find(s => s.type === "departure_dates");
-  const depSectionDates = (depSection?.data?.dates as { date: string; spots: string }[] | undefined) ?? [];
-  const firstDepDate = pkg.departures?.[0]?.date || depSectionDates[0]?.date;
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const target    = useMemo(() => departureTarget(firstDepDate), [firstDepDate]);
-  const cd        = useCountdown(target);
-  const ticker    = useTicker(pkg.socialProofTicker, 2800);
-  const nights    = pkg.nights ? Number(pkg.nights) : null;
-  const cover     = pkg.coverImage ?? "";
-  const mark      = agencyInitials(agency.name);
-
-  // Auto-compute saving
-  const autoSaving = !pkg.saving && pkg.priceWas ? computeSavingLabel(pkg.priceWas, pkg.price) : null;
-  const effectiveSaving = pkg.saving || autoSaving;
-  const hasDeal   = !!(pkg.priceWas || effectiveSaving);
-
-  const hasScar   = pkg.spotsRemaining !== undefined && pkg.totalSpots !== undefined;
-  const hasTicker = !!(pkg.socialProofTicker?.length);
-  const gallery: TGalleryItem[] = pkg.gallery ?? pkg.images?.map(src => ({ src })) ?? [];
-  const hasDeps   = !!(pkg.departures?.length || depSectionDates.length);
-  const showUrgencyDeps = !!(pkg.departures?.length && !depSection);
-  const hasTiers  = !!(pkg.pricingTiers?.length);
-  const hasAgent  = !!(pkg.agent);
-  const effectiveViewers = pkg.viewersNow != null ? pkg.viewersNow : liveViewers;
-
-  const filled = hasScar
-    ? Math.round(((pkg.totalSpots! - pkg.spotsRemaining!) / pkg.totalSpots!) * 100)
-    : 0;
-
-  const cdLabels: [string, string, string, string] = [t.daysLabel, t.hoursLabelShort, t.minLabel, t.secLabel];
-
-  function DSHead({ title, cta, onCta }: { title: string; cta?: string; onCta?: () => void }) {
+  // ════════ PRICING ════════
+  const Pricing = () => {
+    const pr = findSec(pkg, "pricing");
+    const tiers = pkg.pricingTiers ?? [];
+    const cancellation = lines(secStr(pr, "cancellation") || pkg.cancellation || "");
+    const schedule = secArr(pr, "paymentSteps");
+    if (!tiers.length && !cancellation.length && !schedule.length) return null;
     return (
-      <div style={{
-        marginBottom: 18, paddingBottom: 12, borderBottom: `2px solid ${PL.ink}`,
-        display: "flex", justifyContent: "space-between", alignItems: "flex-end",
-      }}>
-        <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.8, margin: 0 }}>{title}</h2>
-        {cta && (
-          <span style={{ fontSize: 12, fontWeight: 600, color: PL.deal, cursor: "pointer", flexShrink: 0 }} onClick={onCta}>
-            {cta}
-          </span>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ background: PL.bg, color: PL.ink, fontFamily: SANS, direction: dir }}>
-      <style dangerouslySetInnerHTML={{ __html: KF }} />
-
-      {/* ── Deal ribbon ── */}
-      {hasDeal && (
-        <div style={{
-          background: PL.ink, color: "#fff",
-          height: 28, display: "flex", alignItems: "center",
-          padding: "0 40px", fontSize: 11.5, letterSpacing: 0.1, gap: 10, overflow: "hidden",
-        }}>
-          <BlinkDot color={PL.deal} size={6} />
-          <span>
-            {t.lastMinute} · {t.charterReleaseLabel} · {t.savingLabel}{" "}
-            <b style={{ color: PL.deal }}>{effectiveSaving}</b>
-          </span>
-          {hasDeps && (
-            <span style={{
-              marginLeft: isRtl ? undefined : "auto",
-              marginRight: isRtl ? "auto" : undefined,
-              fontFamily: MONO, fontSize: 10.5, letterSpacing: 0.4, color: "rgba(255,255,255,0.55)",
-            }}>
-              {t.departsIn}{" "}
-              <b style={{ color: "#fff" }}>{cd.d}d {p2(cd.h)}:{p2(cd.m)}:{p2(cd.s)}</b>
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* ── Desktop sticky nav ── */}
-      <div style={{
-        position: "sticky", top: 0, zIndex: 30,
-        height: 64, background: "rgba(250,248,243,0.92)", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${PL.line}`,
-        display: "flex", alignItems: "center", padding: "0 40px",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {agency.logoUrl ? (
-            <img src={agency.logoUrl} alt={agency.name} style={{ height: 30, width: "auto" }} />
-          ) : (
-            <div style={{ width: 30, height: 30, background: PL.ink, color: "#fff", borderRadius: 6, display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, letterSpacing: -0.5 }}>
-              {mark}
-            </div>
-          )}
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>{agency.name}</div>
-            {agency.tagline && <div style={{ fontSize: 10.5, color: PL.mut, marginTop: 1 }}>{agency.tagline}</div>}
+      <Wrap id="pu-pricing" section="pricing">
+        <SecHead eyebrow={L.sections.pricing} title={ar("Pick your room", "اختر غرفتك")} />
+        {tiers.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 14 }}>
+            {tiers.map((t, i) => {
+              const featured = tiers.length === 3 && i === 1;
+              return (
+                <div key={i} style={{ background: featured ? SURF : BG, border: featured ? `1.5px solid ${brand}` : `1px solid ${LINE}`, borderRadius: 16, padding: D ? 26 : 20, position: "relative" }}>
+                  {featured && <div style={{ position: "absolute", top: -11, insetInlineStart: 22, background: brand, color: onBrand, fontFamily: disp, fontSize: 10, fontWeight: 700, letterSpacing: rtl ? 0 : "0.6px", textTransform: uc, padding: "4px 11px", borderRadius: 999 }}>{L.ui.mostPopular}</div>}
+                  <div style={{ fontFamily: sans, fontSize: 13, color: MUT }}>{localizeTierLabel(t.label, lang)}</div>
+                  <div style={{ fontFamily: disp, fontSize: D ? 40 : 32, fontWeight: 700, color: INK, lineHeight: 1, marginTop: 8 }}>{dig(t.price)}</div>
+                  {pkg.whatsapp && <div style={{ marginTop: 18 }}><CTA full onClick={onWhatsApp}>{L.ui.book}</CTA></div>}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
+        {(cancellation.length > 0 || schedule.length > 0) && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 32 : 22, marginTop: tiers.length ? 32 : 0 }}>
+            {cancellation.length > 0 && (
+              <div>
+                <div style={{ fontFamily: disp, fontSize: 12, fontWeight: 700, color: brand, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 12 }}>{L.ui.cancellation}</div>
+                {cancellation.map((s, i) => <div key={i} style={{ fontFamily: sans, fontSize: 13.5, color: MUT, padding: "6px 0", lineHeight: 1.5 }}>· {s}</div>)}
+              </div>
+            )}
+            {schedule.length > 0 && (
+              <div>
+                <div style={{ fontFamily: disp, fontSize: 12, fontWeight: 700, color: brand, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 12 }}>{L.ui.paymentSchedule}</div>
+                {schedule.map((s, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: i ? `1px solid ${LINE}` : "none" }}>
+                    <span style={{ fontFamily: sans, fontSize: 13.5, color: INK }}>{secItemStr(s, "dueDate", "label")}</span>
+                    <span style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: brand }}>{dig(secItemStr(s, "amount"))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
 
-        <div style={{ display: "flex", gap: 28, marginLeft: isRtl ? undefined : 48, marginRight: isRtl ? 48 : undefined }}>
-          {buildNavLinks(pkg, gallery, hasDeps, hasTiers, t).map(link => (
-            <a key={link.href} href={link.href} style={{ fontSize: 13, fontWeight: 500, color: PL.mut, cursor: "pointer", textDecoration: "none" }}>
-              {link.label}
-            </a>
+  // ════════ EXTRAS ════════
+  const Extras = () => {
+    const items = secArr(findSec(pkg, "extras"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap style={{ background: SURF }} section="extras">
+        <SecHead eyebrow={L.sections.extras} title={ar("Bolt on more", "أضِف المزيد")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 12 }}>
+          {items.map((e, i) => (
+            <div key={i} style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 22 : 18, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ fontFamily: disp, fontSize: D ? 17 : 16, fontWeight: 700, color: INK }}>{secItemStr(e, "name", "title")}</div>
+              {secItemStr(e, "description", "desc") && <div style={{ fontFamily: sans, fontSize: 13, color: MUT, lineHeight: 1.55, flex: 1 }}>{secItemStr(e, "description", "desc")}</div>}
+              {secItemStr(e, "price") && <div style={{ fontFamily: disp, fontSize: 18, fontWeight: 700, color: brand }}>{dig(secItemStr(e, "price"))}</div>}
+            </div>
           ))}
         </div>
+      </Wrap>
+    );
+  };
 
-        <div style={{
-          display: "flex", alignItems: "center", gap: 14,
-          marginLeft: isRtl ? undefined : "auto",
-          marginRight: isRtl ? "auto" : undefined,
-        }}>
-          <div style={{ textAlign: isRtl ? "left" : "right" }}>
-            {pkg.priceWas && <div style={{ fontSize: 11, color: PL.mut }}><s>{pkg.priceWas}</s>{effectiveSaving ? ` · ${effectiveSaving}` : ""}</div>}
-            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4 }}>{pkg.price}</div>
+  // ════════ PEOPLE ════════
+  const People = () => {
+    if (!person?.name) return null;
+    const role = person.role ? (ROLE_LABELS[person.role]?.[lang] || person.role.replace(/_/g, " ")) : "";
+    const bio = (person as { bio?: string }).bio || "";
+    return (
+      <Wrap section="people">
+        <div style={{ background: SURF, border: `1px solid ${LINE}`, borderRadius: 18, padding: D ? 36 : 24, display: "grid", gridTemplateColumns: D ? "auto 1fr" : "1fr", gap: D ? 36 : 18, alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: D ? "column" : "row", alignItems: "center", gap: 14 }}>
+            <div style={{ position: "relative" }}>
+              {person.photo
+                ? <img src={person.photo} style={{ width: D ? 150 : 84, height: D ? 150 : 84, borderRadius: "50%", objectFit: "cover" }} />
+                : <div style={{ width: D ? 150 : 84, height: D ? 150 : 84, borderRadius: "50%", background: brand, color: onBrand, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: disp, fontSize: D ? 52 : 32, fontWeight: 700 }}>{person.name[0]}</div>}
+              <span style={{ position: "absolute", bottom: 6, insetInlineEnd: 6, width: 16, height: 16, borderRadius: "50%", background: "#3ec96a", border: `2.5px solid ${SURF}`, animation: "puDot 1.6s ease-in-out infinite" }} />
+            </div>
+            {!D && <div><div style={{ fontFamily: disp, fontSize: 20, fontWeight: 700, color: INK }}>{person.name}</div>{role && <div style={{ fontFamily: sans, fontSize: 12.5, color: brand, fontWeight: 600 }}>{role}</div>}</div>}
           </div>
-          <button data-testid="wa-cta" onClick={onWhatsApp} style={{
-            background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
-            padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer",
-            display: "inline-flex", alignItems: "center", gap: 8,
-            boxShadow: "0 4px 14px rgba(37,211,102,0.3)", fontFamily: SANS,
-          }}>
-            {Ico.wa(13)} {t.bookWhatsApp}
-          </button>
+          <div>
+            {D && <><Eyebrow>{L.sections.people}</Eyebrow><div style={{ fontFamily: disp, fontSize: 28, fontWeight: 700, color: INK }}>{person.name}</div>{role && <div style={{ fontFamily: sans, fontSize: 13, color: brand, fontWeight: 600, marginTop: 3 }}>{role}</div>}</>}
+            {bio && <p style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.7, marginTop: D ? 14 : 0 }}>{bio}</p>}
+            {pkg.whatsapp && <div style={{ marginTop: 18 }}><CTA onClick={onWhatsApp}>{L.ui.message}</CTA></div>}
+          </div>
         </div>
-      </div>
+      </Wrap>
+    );
+  };
 
-      {/* ── Split hero: 1.5fr image + 1fr booking sidebar ── */}
-      <section data-pmx-section="hero" style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr" }}>
-        {/* media panel */}
-        <div style={{ position: "relative", minHeight: 540, background: PL.ink, overflow: "hidden" }}>
-          {cover && <img src={cover} alt={pkg.destination} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,.6) 0%,rgba(0,0,0,.1) 50%,rgba(0,0,0,.4) 100%)" }} />
+  // ════════ REVIEWS ════════
+  const Reviews = () => {
+    if (agency.showReviews === false) return null;
+    const items = pkg.reviews ?? [];
+    if (!items.length) return null;
+    const rating = pkg.rating ?? 5;
+    const count = pkg.reviewCount ?? items.length;
+    return (
+      <Wrap style={{ background: SURF }} id="pu-reviews" section="reviews">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 14, marginBottom: D ? 30 : 22 }}>
+          <div><Eyebrow>{L.sections.reviews}</Eyebrow><H2 size={D ? 34 : 25}>{ar("Real, recent, ranked", "حقيقية، حديثة، مُقيَّمة")}</H2></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ fontFamily: disp, fontSize: D ? 46 : 36, fontWeight: 700, color: brand, lineHeight: 1 }}>{dig(rating)}</div>
+            <div><PuStars n={Math.round(rating)} size={14} color={brand} /><div style={{ fontFamily: sans, fontSize: 11.5, color: FAINT, marginTop: 3 }}>{L.ui.basedOn} {dig(count)} {L.ui.review}</div></div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 14 }}>
+          {items.slice(0, 6).map((r, i) => (
+            <div key={i} style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 22 : 18 }}>
+              <PuStars n={Math.round(r.rating || 5)} size={13} color={brand} />
+              <p style={{ fontFamily: sans, fontSize: 14, color: INK, lineHeight: 1.6, margin: "12px 0 16px" }}>&ldquo;{r.text}&rdquo;</p>
+              <div style={{ fontFamily: disp, fontSize: 14, fontWeight: 700, color: INK }}>{r.name}</div>
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
 
-          <div style={{ position: "absolute", top: 20, left: 24, right: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-            {hasDeal && effectiveSaving && (
-              <div style={{
-                background: PL.deal, color: "#fff", padding: "10px 16px", borderRadius: 8,
-                display: "flex", alignItems: "center", gap: 10,
-                boxShadow: "0 6px 18px rgba(226,73,42,0.45)",
-              }}>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", opacity: 0.85 }}>
-                    {t.charterReleaseLabel}
+  // ════════ ABOUT ════════
+  const About = () => {
+    const a = findSec(pkg, "about_agency");
+    const story = secStr(a, "content");
+    const image = secStr(a, "image");
+    if (!a || (!story && !image)) return null;
+    return (
+      <Wrap section="about_agency">
+        <div style={{ display: "grid", gridTemplateColumns: D && image ? "1fr 1fr" : "1fr", gap: D ? 48 : 24, alignItems: "center" }}>
+          <div>
+            <Eyebrow>{L.sections.agency}</Eyebrow>
+            <H2 size={D ? 34 : 26}>{agency.name}</H2>
+            {agency.tagline && <div style={{ fontFamily: sans, fontSize: 14, color: brand, fontWeight: 600, marginTop: 6 }}>{agency.tagline}</div>}
+            {story && <p style={{ fontFamily: sans, fontSize: 14.5, color: MUT, lineHeight: 1.7, marginTop: 16, whiteSpace: "pre-line" }}>{story}</p>}
+          </div>
+          {image && <img src={image} style={{ width: "100%", height: D ? 300 : 200, objectFit: "cover", borderRadius: 14 }} />}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ NOTES ════════
+  const Notes = () => {
+    const items = secMixed(findSec(pkg, "important_notes"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap style={{ background: SURF }} section="important_notes">
+        <SecHead eyebrow={L.sections.notes} title={ar("Read before you book", "اقرأ قبل أن تحجز")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 12 }}>
+          {items.map((n, i) => {
+            const t = secItemStr(n, "title");
+            const body = secItemStr(n, "text", "desc", "description") || (typeof n === "string" ? n : "");
+            return (
+              <div key={i} style={{ background: BG, border: `1px solid ${LINE}`, borderInlineStart: `3px solid ${brand}`, borderRadius: 12, padding: D ? 20 : 16 }}>
+                {t && <div style={{ fontFamily: disp, fontSize: D ? 16 : 15, fontWeight: 700, color: INK, marginBottom: 7 }}>{t}</div>}
+                <div style={{ fontFamily: sans, fontSize: 13, color: MUT, lineHeight: 1.55 }}>{body}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ FAQ ════════
+  const Faq = () => {
+    const items = secArr(findSec(pkg, "faq"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="faq">
+        <SecHead eyebrow={L.sections.faq} title={ar("Quick answers", "إجابات سريعة")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 14 : 10 }}>
+          {items.map((f, i) => (
+            <div key={i} style={{ background: SURF, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 22 : 18 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ fontFamily: disp, fontSize: 16, fontWeight: 700, color: brand, flexShrink: 0 }}>Q</span>
+                <div style={{ fontFamily: disp, fontSize: D ? 17 : 15.5, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{secItemStr(f, "question", "q")}</div>
+              </div>
+              {secItemStr(f, "answer", "a") && <p style={{ fontFamily: sans, fontSize: 13.5, color: MUT, lineHeight: 1.65, margin: "10px 0 0", paddingInlineStart: 26 }}>{secItemStr(f, "answer", "a")}</p>}
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ CUSTOM ════════
+  const Custom = () => {
+    const cs = findSec(pkg, "custom");
+    const heading = secStr(cs, "heading");
+    const body = secStr(cs, "content");
+    const image = secStr(cs, "image");
+    if (!heading && !body) return null;
+    return (
+      <Wrap style={{ background: `linear-gradient(135deg, ${puDarken(brand, 0.25)}, ${puDarken(brand, 0.55)})`, color: "#fff" }} section="custom">
+        <div style={{ display: "grid", gridTemplateColumns: D && image ? "1.2fr 1fr" : "1fr", gap: D ? 48 : 22, alignItems: "center" }}>
+          <div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.16)", padding: "6px 13px", borderRadius: 999, fontFamily: disp, fontSize: 11, fontWeight: 700, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 16 }}>{L.sections.custom}</div>
+            {heading && <div style={{ fontFamily: disp, fontSize: D ? 38 : 27, fontWeight: 700, lineHeight: 1.08, marginBottom: 14 }}>{heading}</div>}
+            {body && <p style={{ fontFamily: sans, fontSize: D ? 16 : 14.5, color: "rgba(255,255,255,0.9)", lineHeight: 1.7, margin: 0, whiteSpace: "pre-line" }}>{body}</p>}
+          </div>
+          {image && <img src={image} style={{ width: "100%", height: D ? 300 : 200, objectFit: "cover", borderRadius: 14 }} />}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ OTHERS ════════
+  const Others = () => {
+    const list = secArr(findSec(pkg, "other_packages"), "packages");
+    if (!list.length) return null;
+    return (
+      <Wrap section="other_packages">
+        <SecHead eyebrow={L.sections.others} title={ar("More deals leaving soon", "عروض أخرى تنطلق قريبًا")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 14 }}>
+          {list.map((o, i) => {
+            const oTitle = secItemStr(o, "title"); const place = secItemStr(o, "destination", "place");
+            const price = secItemStr(o, "price"); const oNights = secItemStr(o, "nights");
+            const img = secItemStr(o, "image"); const link = secItemStr(o, "link");
+            const Inner = (
+              <div style={{ background: SURF, border: `1px solid ${LINE}`, borderRadius: 14, overflow: "hidden", height: "100%" }}>
+                <div style={{ position: "relative", height: 150, background: SURF2 }}>
+                  {img && <img src={img} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                  {place && <div style={{ position: "absolute", top: 12, insetInlineStart: 12, background: brand, color: onBrand, fontFamily: disp, fontSize: 10, fontWeight: 700, letterSpacing: rtl ? 0 : "0.6px", textTransform: uc, padding: "4px 10px", borderRadius: 999 }}>{place}</div>}
+                </div>
+                <div style={{ padding: 18 }}>
+                  <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, color: INK, lineHeight: 1.25, marginBottom: 12 }}>{oTitle}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    {price && <span style={{ fontFamily: disp, fontSize: 20, fontWeight: 700, color: brand }}>{dig(price)}</span>}
+                    {oNights && <span style={{ fontFamily: sans, fontSize: 12, color: FAINT }}>{dig(oNights)} {L.ui.nights}</span>}
                   </div>
-                  <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.8, lineHeight: 1 }}>{effectiveSaving}</div>
                 </div>
               </div>
-            )}
-            {pkg.rating && (
-              <div style={{
-                background: PL.paper, color: PL.ink, padding: "8px 12px", borderRadius: 8,
-                fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 7, letterSpacing: -0.1,
-              }}>
-                {Ico.star(13)} {pkg.rating}{" "}
-                <small style={{ fontWeight: 500, color: PL.mut }}>· {pkg.reviewCount} {t.reviewsLabel}</small>
-              </div>
-            )}
-          </div>
-
-          <div style={{ position: "absolute", bottom: 24, left: 24, right: 24, color: "#fff" }}>
-            <div data-pmx-field="destination" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", opacity: 0.85, marginBottom: 10 }}>
-              {pkg.destination}{nights ? ` · ${nights} ${t.nightsLabel}` : ""}
-            </div>
-            <h1 data-pmx-field="title" style={{ fontSize: 48, fontWeight: 800, letterSpacing: -1.4, lineHeight: 1.05, margin: 0, maxWidth: 600 }}>
-              {pkg.title ?? pkg.destination}
-            </h1>
-          </div>
+            );
+            return link ? <a key={i} href={link} style={{ textDecoration: "none" }}>{Inner}</a> : <div key={i}>{Inner}</div>;
+          })}
         </div>
+      </Wrap>
+    );
+  };
 
-        {/* booking sidebar */}
-        <div style={{
-          background: PL.paper,
-          borderLeft: isRtl ? "none" : `1px solid ${PL.line}`,
-          borderRight: isRtl ? `1px solid ${PL.line}` : "none",
-          padding: "28px 28px 32px",
-          display: "flex", flexDirection: "column", gap: 16,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: PL.deal }}>
-            {t.lastMinute}
-          </div>
-
-          <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-              {pkg.priceWas && (
-                <span style={{ fontSize: 18, color: PL.mut, textDecoration: "line-through", fontWeight: 500 }}>{pkg.priceWas}</span>
-              )}
-              <span data-pmx-field="price" style={{ fontSize: 54, fontWeight: 800, letterSpacing: -1.6, lineHeight: 1 }}>{pkg.price}</span>
-              {effectiveSaving && (
-                <span style={{ display: "inline-block", background: PL.deal, color: "#fff", fontWeight: 800, fontSize: 12, padding: "5px 8px", borderRadius: 4, letterSpacing: 0.2 }}>
-                  {effectiveSaving}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 12.5, color: PL.mut, marginTop: -4 }}>
-              {t.perPerson}{nights ? ` · ${nights} ${t.nightsLabel}` : ""}
-            </div>
-          </div>
-
-          {/* countdown grid — only when a departure date exists */}
-          {hasDeps && (
-            <div style={{ background: PL.dealBg, borderRadius: 10, padding: 14 }}>
-              <div style={{ fontSize: 11, color: PL.deal, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                <BlinkDot color={PL.deal} size={7} /> {t.departsIn}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
-                {([p2(cd.d), p2(cd.h), p2(cd.m), p2(cd.s)] as string[]).map((v, i) => (
-                  <div key={i} style={{ background: PL.paper, borderRadius: 6, padding: "10px 4px", textAlign: "center" }}>
-                    <div style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, letterSpacing: -0.5, color: PL.deal, lineHeight: 1 }}>{v}</div>
-                    <div style={{ fontSize: 9, color: PL.mut, marginTop: 4, letterSpacing: 0.3, textTransform: "uppercase", fontWeight: 600 }}>{cdLabels[i]}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* spots-remaining bar */}
-          {hasScar && (
-            <div style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 10, padding: "12px 14px", fontSize: 12.5 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <BlinkDot color={PL.deal} size={6} />
-                <span>
-                  {t.onlyLabel} <b style={{ color: PL.deal }}>{pkg.spotsRemaining} {t.spotsOf} {pkg.totalSpots}</b> {t.spotsLeft}
-                </span>
-              </div>
-              <div style={{ height: 4, background: PL.line, borderRadius: 999, marginTop: 10, overflow: "hidden" }}>
-                <div style={{ height: "100%", background: `linear-gradient(90deg,${PL.deal},#f37e62)`, borderRadius: 999, width: `${filled}%` }} />
-              </div>
-              <div style={{ display: "flex", gap: 14, fontSize: 11, color: PL.mut, marginTop: 8 }}>
-                {effectiveViewers !== null && effectiveViewers > 0 && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    {Ico.eye(11)} {effectiveViewers} {t.viewingNow}
-                  </span>
-                )}
-                {pkg.recentBookings && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    {Ico.clock(11)} {t.bookedLabel} {pkg.recentBookings.hoursAgo}{t.hoursAgoLabel}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* CTAs */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <button data-testid="wa-cta" onClick={onWhatsApp} style={{
-              background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
-              padding: "16px 20px", fontWeight: 700, fontSize: 15, cursor: "pointer",
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: "0 4px 14px rgba(37,211,102,0.3)", fontFamily: SANS,
-            }}>
-              {Ico.wa(15)} {t.bookWhatsApp}
-            </button>
-            {pkg.messenger && (
-              <button data-testid="messenger-cta" onClick={onMessenger} style={{
-                background: "#0084ff", color: "#fff", border: "none", borderRadius: 10,
-                padding: "13px 20px", fontWeight: 600, fontSize: 13.5, cursor: "pointer",
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-                fontFamily: SANS,
-              }}>
-                {Ico.messenger(14)} {t.vyMessenger}
-              </button>
-            )}
-          </div>
-
-          {/* standalone viewer count — only when no scarcity block */}
-          {!hasScar && effectiveViewers !== null && effectiveViewers > 1 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: PL.mut, marginTop: 4 }}>
-              <BlinkDot color={PL.deal} size={5} />
-              <b style={{ color: PL.deal }}>{effectiveViewers}</b>
-              <span>{t.viewingNow}</span>
-            </div>
-          )}
-
-          {/* assurances — only show items with real data */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: PL.mut }}>
-            {([
-              pkg.cancellation ? { icon: Ico.shield(12), text: pkg.cancellation } : null,
-              { icon: Ico.check(12),  text: t.payViaWhatsApp },
-              { icon: Ico.spark(12),  text: `${agency.name} · ${t.iataLicensed}` },
-            ] as (null | { icon: React.ReactNode; text: string })[]).filter(Boolean).map((a, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ color: PL.trust }}>{a!.icon}</span>
-                <span>{a!.text}</span>
-              </div>
-            ))}
-          </div>
+  // ════════ FOOTER ════════
+  const Footer = () => (
+    <div>
+      <Wrap pt={D ? 60 : 40} pb={D ? 60 : 40} style={{ background: SURF, textAlign: "center", borderTop: `1px solid ${LINE}` }}>
+        <Live label={L.ui.dealLive} />
+        <div style={{ fontFamily: disp, fontSize: D ? 44 : 30, fontWeight: 700, color: INK, lineHeight: 1.06, margin: "14px 0 6px" }}>{L.ui.dontSleep}</div>
+        <div style={{ fontFamily: sans, fontSize: 14, color: MUT, marginBottom: cd ? 16 : 20 }}>{L.ui.replyTime}{pkg.whatsapp ? ` · ${dig(pkg.whatsapp)}` : ""}</div>
+        {cd && <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}><Countdown big /></div>}
+        <div style={{ display: "inline-flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          {pkg.whatsapp && <CTA big onClick={onWhatsApp}>{L.ui.bookWhatsapp}</CTA>}
+          {pkg.messenger && onMessenger && <CTA big ghost onClick={onMessenger}>{L.ui.messenger}</CTA>}
         </div>
-      </section>
-
-      {/* ── Trust + social proof strip (mirrors hero's 1.5/1 columns) ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", borderBottom: `1px solid ${PL.line}` }}>
-        <div style={{
-          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          padding: "16px 40px", gap: 24,
-          borderRight: isRtl ? "none" : `1px solid ${PL.line}`,
-          borderLeft: isRtl ? `1px solid ${PL.line}` : "none",
-        }}>
-          {([
-            pkg.cancellation ? { icon: Ico.shield(18), t1: t.freeCancellation, t2: pkg.cancellation } : null,
-            { icon: Ico.wa(18), t1: t.payViaWhatsApp, t2: null } as { icon: React.ReactNode; t1: string; t2: string | null },
-            pkg.hotelDescription ? { icon: Ico.check(18), t1: pkg.hotelDescription.split(",")[0], t2: pkg.destination } : null,
-            { icon: Ico.spark(18), t1: agency.name, t2: t.iataLicensed } as { icon: React.ReactNode; t1: string; t2: string | null },
-          ]).filter(Boolean).map((c, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, fontWeight: 500 }}>
-              <span style={{ color: PL.trust }}>{c!.icon}</span>
-              <div>
-                <div style={{ fontWeight: 700, letterSpacing: -0.1 }}>{c!.t1}</div>
-                {c!.t2 && <div style={{ fontSize: 11, color: PL.mut, marginTop: 1, fontWeight: 400 }}>{c!.t2}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
-        {hasTicker && (
-          <div style={{ background: PL.ink, color: "#fff", padding: "16px 28px", display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#2dd4a0", animation: "pl-pulse-green 1.8s infinite", flexShrink: 0 }} />
-            <span>{ticker}</span>
-          </div>
-        )}
+      </Wrap>
+      <div style={{ padding: `20px ${px}px`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 700, color: INK }}>{agency.name}</div>
+        <div style={{ fontFamily: sans, fontSize: 10, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc }}>{L.ui.poweredBy}</div>
       </div>
+    </div>
+  );
 
-      {/* ── Body grid: 1.6fr main + 1fr sticky rail ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 56, padding: "48px 40px 56px", alignItems: "start" }}>
-
-        {/* main column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
-
-          {/* sections (user-added content in defined order) */}
-          {pkg.sections?.length ? (
-            <PulseSections pkg={pkg} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={true} onImageClick={openLightbox} agencySlug={agency.agencySlug} />
-          ) : (
-            <>
-              {!!pkg.itinerary?.length && (
-                <section id="pl-itinerary">
-                  <DSHead title={`${t.dayByDay} · ${pkg.itinerary.length} ${t.daysLabel.toLowerCase()}`} />
-                  <div style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 12, overflow: "hidden" }}>
-                    {pkg.itinerary.map((d, i) => (
-                      <div key={i} style={{ padding: "16px 20px", display: "grid", gridTemplateColumns: "80px 1fr", gap: 22, borderBottom: i < pkg.itinerary!.length - 1 ? `1px solid ${PL.line}` : "none", alignItems: "start" }}>
-                        <div style={{ background: PL.dealBg, color: PL.deal, borderRadius: 8, padding: 10, textAlign: "center" }}>
-                          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.6, lineHeight: 1 }}>{dayLabel(d.day, isRtl)}</div>
-                          {d.chapter && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", marginTop: 4 }}>{d.chapter}</div>}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: PL.mut, fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase" }}>{t.dayLabel} {d.day}</div>
-                          <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: -0.2 }}>{d.title}</div>
-                          <div style={{ fontSize: 13, color: PL.mut, lineHeight: 1.55, marginTop: 6 }}>{d.desc}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-              {(pkg.includes?.length || pkg.excludes?.length) && (
-                <PulseSection s={{ id: "fb-inclusions", type: "inclusions", order: 0, data: { includes: pkg.includes ?? [], excludes: pkg.excludes ?? [] } }} t={t} isRtl={isRtl} onWhatsApp={onWhatsApp} desktop={true} />
-              )}
-              {gallery.length > 0 && (
-                <section id="pl-gallery">
-                  <DSHead title={t.gallery} />
-                  <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gridTemplateRows: "180px 180px", gap: 6 }}>
-                    {gallery.slice(0, 5).map((g, i) => (
-                      <div key={i} onClick={() => openLightbox(gallery, i)} style={{ overflow: "hidden", borderRadius: 8, position: "relative", gridRow: i === 0 ? "span 2" : undefined, cursor: "pointer" }}>
-                        <img src={g.src} alt={g.caption ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                        {g.caption && (
-                          <div style={{ position: "absolute", bottom: 8, left: isRtl ? undefined : 8, right: isRtl ? 8 : undefined, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10, padding: "3px 6px", borderRadius: 4, fontWeight: 600 }}>
-                            {g.caption}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-              {hasTiers && (
-                <section id="pl-pricing">
-                  <DSHead title={t.navPricing} />
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-                    {pkg.pricingTiers!.map((tier, i) => <TierCard key={i} tier={tier} isRtl={isRtl} t={t} lang={lang} />)}
-                  </div>
-                </section>
-              )}
-            </>
-          )}
-
-          {/* reviews + submission form */}
-          <PulseReviews pkg={pkg} agency={agency} t={t} isRtl={isRtl} desktop={true} />
-        </div>
-
-        {/* sticky right rail */}
-        <div style={{ position: "sticky", top: 96, display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {showUrgencyDeps && (
-            <div style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 12, padding: 18 }}>
-              <h4 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 12px", letterSpacing: -0.1 }}>
-                {t.otherDepartures}
-              </h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {pkg.departures!.map((dep, i) => (
-                  <div key={i} onClick={onWhatsApp} style={{
-                    border: dep.deal ? `1.5px solid ${PL.deal}` : `1.5px solid ${PL.line}`,
-                    borderRadius: 10, padding: "12px 14px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    cursor: "pointer", background: dep.deal ? PL.dealBg : PL.paper,
-                  }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: -0.3 }}>{dep.date}</div>
-                      <div style={{ fontSize: 11, color: dep.spots <= 4 ? PL.deal : PL.mut, marginTop: 3 }}>
-                        {dep.spots <= 4
-                          ? <b>{t.onlyLabel} {dep.spots} {t.spotsLeft}</b>
-                          : `${dep.spots} ${t.spotsAvailable}`}
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.4 }}>
-                      {dep.price ?? pkg.price}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* contact card — only show when description or agent exists */}
-          {(pkg.description || pkg.agent) && (
-            <div style={{ background: PL.paper, border: `1px solid ${PL.line}`, borderRadius: 12, padding: 18 }}>
-              <h4 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 10px", letterSpacing: -0.1 }}>
-                {pkg.agent ? pkg.agent.name : agency.name}
-              </h4>
-              {pkg.description && (
-                <p style={{ fontSize: 12.5, color: PL.mut, lineHeight: 1.55, margin: "0 0 14px" }}>
-                  {pkg.description.slice(0, 180)}{pkg.description.length > 180 ? "…" : ""}
-                </p>
-              )}
-              <button data-testid="wa-cta" onClick={onWhatsApp} style={{
-                width: "100%", background: PL.wa, color: "#fff", border: "none",
-                borderRadius: 8, padding: "11px 14px", fontWeight: 700, fontSize: 12.5,
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: SANS,
-              }}>
-                {Ico.wa(13)} {t.bookWhatsApp}
-              </button>
-            </div>
-          )}
-        </div>
+  // ════════ BAR ════════
+  const initials = (agency.name || "P").split(" ").map((w) => w[0]).slice(0, 2).join("");
+  const Bar = () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${px}px`, height: D ? 60 : 54, borderBottom: `1px solid ${LINE}`, background: puRgba("#0c0c0f", 0.85), backdropFilter: "blur(10px)", position: "sticky", top: 0, zIndex: 30 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: D ? 32 : 28, height: D ? 32 : 28, borderRadius: 9, background: brand, color: onBrand, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: disp, fontSize: 14, fontWeight: 700 }}>{initials}</div>
+        <div style={{ fontFamily: disp, fontSize: D ? 18 : 16, fontWeight: 700, color: INK }}>{agency.name}</div>
       </div>
-
-      {/* ── Agent final CTA (dark full-width band) ── */}
-      {hasAgent && (
-        <section style={{
-          background: PL.ink, color: "#fff",
-          padding: "56px 40px",
-          display: "grid", gridTemplateColumns: "1fr 1.4fr",
-          gap: 56, alignItems: "center",
-        }}>
-          <div style={{ aspectRatio: "4/5", borderRadius: 12, overflow: "hidden" }}>
-            {pkg.agent!.avatar ? (
-              <img src={pkg.agent!.avatar} alt={pkg.agent!.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              <div style={{ width: "100%", height: "100%", background: "rgba(255,255,255,0.08)", display: "grid", placeItems: "center", fontSize: 64, fontWeight: 700 }}>
-                {pkg.agent!.name.charAt(0)}
-              </div>
-            )}
-          </div>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: "rgba(255,255,255,0.55)" }}>
-              {t.yourAgentLabel} · {agency.name}
-            </div>
-            <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: -1, marginTop: 10, lineHeight: 1.05 }}>
-              {pkg.agent!.name}
-            </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 8 }}>
-              {localizeRole(pkg.agent!.role, t)}{pkg.agent!.years ? ` · ${pkg.agent!.years} ${t.yearsExpSuffix}` : ""}
-            </div>
-            <p style={{ fontSize: 18, lineHeight: 1.55, marginTop: 22, color: "rgba(255,255,255,0.92)", maxWidth: 560, marginBottom: 0 }}>
-              {pkg.description}
-            </p>
-            <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
-              <button data-testid="wa-cta" onClick={onWhatsApp} style={{
-                background: PL.wa, color: "#fff", border: "none", borderRadius: 10,
-                padding: "14px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer",
-                display: "inline-flex", alignItems: "center", gap: 8, fontFamily: SANS,
-              }}>
-                {Ico.wa(15)} {t.bookWhatsApp}
-              </button>
-              {pkg.messenger && (
-                <button data-testid="messenger-cta" onClick={onMessenger} style={{
-                  background: "#0084ff", color: "#fff", border: "none",
-                  borderRadius: 10, padding: "14px 20px", fontWeight: 600, fontSize: 13.5,
-                  cursor: "pointer", fontFamily: SANS, display: "inline-flex", alignItems: "center", gap: 8,
-                }}>
-                  {Ico.messenger(14)} {t.vyMessenger}
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Footer ── */}
-      <div style={{
-        padding: "22px 40px", display: "flex", justifyContent: "space-between", alignItems: "center",
-        fontSize: 11, color: PL.mut, borderTop: `1px solid ${PL.line}`,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <span>© {agency.name} · {t.iataLicensed}</span>
-          {agency.agencySlug && (
-            <a href={`/${agency.agencySlug}/packages`} style={{ color: PL.mut, textDecoration: "none", fontWeight: 600 }}>
-              {t.seeAllPackages}
-            </a>
-          )}
+      {D ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          {navItems.map(([key, label]) => <button key={key} onClick={() => goTo(key)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 500, color: MUT, background: "none", border: "none", cursor: "pointer", padding: 0 }}>{label}</button>)}
+          {pkg.whatsapp && <CTA onClick={onWhatsApp}>{dig(pkg.price || "")}</CTA>}
         </div>
-        <div>{t.poweredBy}</div>
-      </div>
+      ) : (pkg.whatsapp && <CTA onClick={onWhatsApp}>{dig(pkg.price || "")}</CTA>)}
+    </div>
+  );
 
-      {/* ── Lightbox ── */}
-      {lightbox && (
-        <PulseLightbox images={lightbox.images} startIdx={lightbox.idx} onClose={() => setLightbox(null)} />
-      )}
+  return (
+    <div dir={rtl ? "rtl" : "ltr"} lang={lang} style={{ width: "100%", background: BG, color: INK, fontFamily: sans, position: "relative" }}>
+      {Bar()}
+      {Hero()}
+      {Scarcity()}
+      {Highlights()}
+      {Media()}
+      {Itinerary()}
+      {Hotel()}
+      {Meals()}
+      {Inclusions()}
+      {Transfers()}
+      {Visa()}
+      {Departures()}
+      {Pricing()}
+      {Extras()}
+      {People()}
+      {Reviews()}
+      {About()}
+      {Notes()}
+      {Faq()}
+      {Custom()}
+      {Others()}
+      {Footer()}
+      {lightbox !== null && photos.length > 0 && <LightboxCarousel images={photos} startIndex={lightbox} onClose={() => setLightbox(null)} />}
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   EXPORTS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-export function TemplatePulsePage(props: TPageProps) {
-  const isDesktop = useIsDesktop();
-  return isDesktop ? <PulseDesktop {...props} /> : <PulseMobile {...props} />;
-}
-
-export function TemplatePulseCard({
-  pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, onDuplicate,
-}: TCardProps) {
+// ─── Card (dashboard listing) ─────────────────────────────────────────────────
+export function TemplatePulseCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, onDuplicate }: TCardProps) {
   return (
     <BaseCard
       pkg={pkg} agency={agency} lang={lang}
       onView={onView} onEdit={onEdit} onDelete={onDelete}
       onToggleActive={onToggleActive} onDuplicate={onDuplicate}
-      headingFont={SANS}
-      imageBorderRadius={0}
     />
   );
 }

@@ -210,6 +210,10 @@ export type HomeSection<T extends HomeSectionType = HomeSectionType> = {
   type: T;
   enabled: boolean;
   order: number;
+  /** Layout key — picks WHICH shape renders the same content (content schema is
+   *  variant-independent). Absent ⇒ the type's default variant, which is the
+   *  shipped look, so pre-variant configs render unchanged. */
+  variant?: string;
   content: HomeContentMap[T];
 };
 
@@ -217,6 +221,50 @@ export type HomepageConfig = {
   version: 1;
   sections: HomeSection[];
 };
+
+// ── Layout variants ──────────────────────────────────────────────────────────
+// A variant changes LAYOUT ONLY — never the content shape — so switching it in
+// the builder never orphans authored data. The FIRST entry per type is the
+// default AND the shipped look: the renderer's switch falls through to today's
+// JSX for it, and an absent/unknown variant resolves to it (back-compat). Only
+// list a variant here once its layout is actually implemented in
+// HomepageSections.tsx — an unimplemented id would render identically to default.
+
+export type VariantDef = { id: string; label: Loc };
+const vdef = (id: string, en: string, ar: string): VariantDef => ({ id, label: loc(en, ar) });
+
+export const SECTION_VARIANTS: Record<HomeSectionType, VariantDef[]> = {
+  hero:              [vdef("cinematic", "Cinematic", "سينمائي"), vdef("split", "Split", "مقسّم")],
+  about:             [vdef("image-left", "Image beside", "صورة جانبية"), vdef("stacked", "Stacked", "متراكب")],
+  why_us:            [vdef("cards", "Cards", "بطاقات"), vdef("rows", "Numbered rows", "صفوف مرقّمة")],
+  services:          [vdef("icons", "Icon grid", "شبكة أيقونات"), vdef("list", "List", "قائمة")],
+  featured_packages: [vdef("grid", "Grid", "شبكة"), vdef("carousel", "Carousel", "شريط متحرّك")],
+  destinations:      [vdef("tiles", "Tiles", "بلاطات")],
+  testimonials:      [vdef("cards", "Two-column", "عمودان"), vdef("spotlight", "Single quote", "اقتباس مفرد")],
+  contact:           [vdef("band", "Centered band", "شريط موسّط"), vdef("split", "Split", "مقسّم")],
+  stats:             [vdef("band", "Number band", "شريط أرقام")],
+  seasonal_offers:   [vdef("banner", "Banner", "بانر")],
+  accreditation:     [vdef("badges", "Badges", "شارات")],
+  team:              [vdef("grid", "Grid", "شبكة")],
+  // Deferred types (renderer no-ops) — single nominal variant.
+  blog:              [vdef("default", "Default", "افتراضي")],
+  gallery:           [vdef("default", "Default", "افتراضي")],
+  faq:               [vdef("default", "Default", "افتراضي")],
+  how_it_works:      [vdef("default", "Default", "افتراضي")],
+  map:               [vdef("default", "Default", "افتراضي")],
+};
+
+/** The default (= shipped) variant id for a section type. */
+export function defaultVariant(type: HomeSectionType): string {
+  return SECTION_VARIANTS[type]?.[0]?.id ?? "default";
+}
+
+/** The variant to render for a section — its own if it's a known id for the
+ *  type, else the default. Absent/legacy/unknown ⇒ shipped look. */
+export function resolveVariant(s: Pick<HomeSection, "type" | "variant">): string {
+  const known = SECTION_VARIANTS[s.type]?.some((v) => v.id === s.variant);
+  return known ? (s.variant as string) : defaultVariant(s.type);
+}
 
 // ── Tiering: Core (the page backbone, always present) vs More (opt-in) ───────
 // MORE_TYPES are the homepage's opt-in sections offered through the Add-a-section
@@ -251,7 +299,7 @@ function sectionContentShell(type: HomeSectionType): HomeSection["content"] {
 
 /** Mint a fresh section of a given type (for the seed and the Add picker). */
 export function makeSection(type: HomeSectionType, enabled = true): HomeSection {
-  return { type, enabled, order: 0, content: sectionContentShell(type) };
+  return { type, enabled, order: 0, variant: defaultVariant(type), content: sectionContentShell(type) };
 }
 
 // ── Typed default / seed ────────────────────────────────────────────────────
@@ -336,6 +384,7 @@ export function readHomepageConfig(
         type: s.type,
         enabled: typeof s.enabled === "boolean" ? s.enabled : base?.enabled ?? false,
         order: typeof s.order === "number" ? s.order : i,
+        variant: resolveVariant(s),
         content: { ...(shell as object), ...(s.content as object) } as HomeSection["content"],
       };
     });
@@ -411,6 +460,7 @@ export function configDocPatch(
       type: s.type,
       enabled: s.type === "hero" ? true : !!s.enabled,
       order: i,
+      variant: resolveVariant(s),
       content: cleanHomeContent(s.content) as HomeSection["content"],
     }));
   const field = page === "about" ? "aboutPage" : "homepage";

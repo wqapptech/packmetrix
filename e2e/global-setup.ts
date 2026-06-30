@@ -41,7 +41,6 @@ function buildSectionsData() {
     { id: "s15", type: "media",            order: 15, data: { images: [], videoUrl: "" } },
     { id: "s16", type: "reviews",          order: 16, data: { reviews: [{ id: "r1", name: "SMOKE Reviewer Name", text: "SMOKE review text", rating: 5 }] } },
     { id: "s17", type: "people",           order: 17, data: { people: [{ id: "p1", role: "guide", name: "SMOKE Guide Person" }] } },
-    { id: "s18", type: "trek_profile",     order: 18, data: { difficulty: "moderate", maxAltitude: 5364, distanceKm: 130, fitnessNote: "SMOKE fitness note" } },
     { id: "s19", type: "scarcity",         order: 19, data: { wasPrice: "2000 USD", spotsRemaining: 3, totalSpots: 20, firstDepartureDate: "2026-12-01" } },
   ];
 }

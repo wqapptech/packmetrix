@@ -17,14 +17,11 @@ export type {
   PaymentStep,
   PricingData,
   HotelData,
-  GalleryData,
-  VideoData,
   ReviewItem,
   ReviewsData,
   HighlightsData,
   FaqItem,
   FaqData,
-  BookingTermsData,
   CustomData,
   ExtrasItem,
   ExtrasData,
@@ -37,18 +34,10 @@ export type {
   // v2 section data shapes
   PeopleData,
   PersonEntry,
-  TrekProfileData,
   ScarcityData,
   MediaData,
   DepartureEntry,
   DeparturesData,
-  // legacy section data shapes (kept for backward compat rendering)
-  GuideData,
-  FlightsData,
-  DepartureDatesData,
-  PaymentPlanData,
-  ScheduleData,
-  MapData,
 } from "./types";
 
 export { SECTION_TYPE_KEYS, DEFAULT_CORE_FORM } from "./types";

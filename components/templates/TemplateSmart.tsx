@@ -1,1542 +1,949 @@
 "use client";
 
-import React from "react";
-import { T, localizeTierLabel } from "@/lib/translations";
-import {
-  WAButton,
-  Eyebrow,
-  AgencyBar,
-  StickyCTA,
-  BaseCard,
-  useIsDesktop,
-  DesktopNav,
-  DContainer,
-  DesktopFooter,
-  localizeRole,
-} from "./shared";
-import type { TPageProps, TCardProps, TPackage, TAgency, TReview } from "./types";
-import type { Lang } from "@/lib/translations";
+// ═══════════════════════════════════════════════════════════════════════════
+// SMART V2 — Budget transparent · honest ledger / receipt.
+// Bright paper, hairline grids, dotted-leader rows, monospace prices, an
+// itemised "quote" hero built from what's actually in the package. Calm
+// dynamic brand. Scarcity reads as reassurance, never pressure.
+// One component renders all 4 surfaces. Wired to real pkg.sections data.
+// ═══════════════════════════════════════════════════════════════════════════
 
-// ─── Smart palette ───────────────────────────────────────────────────────────
+import React, { useRef, useState } from "react";
+import { useIsDesktop, BaseCard, LightboxCarousel } from "./shared";
+import { localizeTierLabel } from "@/lib/translations";
+import type { TPageProps, TCardProps, TPackage } from "./types";
 
-const SM = {
-  brand:      "#1f5f8e",
-  bg:         "#fdfcf9",
-  ink:        "#0d1b2e",
-  muted:      "rgba(13,27,46,0.55)",
-  superMuted: "rgba(13,27,46,0.35)",
-  border:     "rgba(13,27,46,0.08)",
-  paper:      "#ffffff",
-} as const;
+type SecData = Record<string, unknown>;
 
-const FONT = "var(--font-ibm-plex-sans, sans-serif)";
-const MONO = "var(--font-ibm-plex-mono, monospace)";
-
-// ─── Section data helpers ─────────────────────────────────────────────────────
-
-function smFindSec(pkg: TPackage, type: string) {
-  return pkg.sections?.find(s => s.type === type) ?? null;
+// ─── Brand colour math ────────────────────────────────────────────────────────
+function smHex(h: string): [number, number, number] {
+  h = h.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
-
-function smSecArr(sec: ReturnType<typeof smFindSec>, key: string): unknown[] {
-  if (!sec) return [];
-  const v = sec.data[key];
-  return Array.isArray(v) ? v : [];
+function smRgba(hex: string, a: number): string { const [r, g, b] = smHex(hex); return `rgba(${r},${g},${b},${a})`; }
+function smMix(hex: string, target: string, t: number): string {
+  const a = smHex(hex), b = smHex(target);
+  const m = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${m[0]},${m[1]},${m[2]})`;
 }
+function smLighten(hex: string, t: number) { return smMix(hex, "#ffffff", t); }
+function smLum(hex: string) { const [r, g, b] = smHex(hex); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+function smOn(hex: string) { return smLum(hex) > 0.62 ? "#15212e" : "#ffffff"; }
 
-function smSecStr(sec: ReturnType<typeof smFindSec>, key: string): string {
-  if (!sec) return "";
-  const v = sec.data[key];
-  return typeof v === "string" ? v : "";
-}
-
-function smSecNum(sec: ReturnType<typeof smFindSec>, key: string): number {
-  if (!sec) return 0;
-  const v = sec.data[key];
-  return typeof v === "number" ? v : 0;
-}
-
-function smSecStrArr(sec: ReturnType<typeof smFindSec>, key: string): string[] {
-  return smSecArr(sec, key).map(i => String(i)).filter(Boolean);
-}
-
-function smItemStr(item: unknown, key: string): string {
-  if (!item || typeof item !== "object") return "";
-  const v = (item as Record<string, unknown>)[key];
-  return typeof v === "string" ? v : "";
-}
-
-// ─── Price parsing (for the transparency comparison + breakdown) ───────────────
-// pkg.price is a display string that may carry a currency prefix/suffix
-// ("SAR 4,500", "$1,200", "4500 ر.س"). We extract the numeric value, then
-// re-emit computed figures with the SAME currency framing so illustrative
-// numbers read consistently with the real price. Grouping is done with a plain
-// regex (no locale) to stay deterministic across SSR/hydration.
-function smPriceParts(raw: string): { num: number; fmt: (v: number) => string } | null {
-  const s = String(raw ?? "");
-  const m = s.match(/[\d][\d.,]*/);
-  if (!m) return null;
-  const num = Number(m[0].replace(/,/g, ""));
-  if (!isFinite(num) || num <= 0) return null;
-  const idx = m.index ?? 0;
-  const prefix = s.slice(0, idx);
-  const suffix = s.slice(idx + m[0].length);
-  const fmt = (v: number) =>
-    `${prefix}${Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${suffix}`;
-  return { num, fmt };
-}
-
-// Tabular numerals — applied to every figure so price columns align cleanly.
-const SM_NUM = { fontVariantNumeric: "tabular-nums" as const };
-
-// Local strings for the transparency blocks. Kept inline (not in translations.ts)
-// to honour the file-scope of this change; covers EN + AR.
-const SM_TX: Record<Lang, {
-  howCompares: string; thisPackage: string; typicalAgency: string;
-  illustrativeComparison: string; illustrativeBreakdown: string;
-  accommodation: string; experiences: string; transport: string;
-  guideSupport: string; platformFee: string;
-}> = {
-  en: {
-    howCompares: "How this price compares",
-    thisPackage: "This package",
-    typicalAgency: "Typical agency price",
-    illustrativeComparison: "Illustrative comparison",
-    illustrativeBreakdown: "Illustrative breakdown",
-    accommodation: "Accommodation",
-    experiences: "Experiences",
-    transport: "Transport",
-    guideSupport: "Guide & support",
-    platformFee: "Platform fee",
+// ─── i18n ─────────────────────────────────────────────────────────────────────
+const L_EN = {
+  sections: {
+    highlights: "Why you'll love it", media: "See for yourself", itinerary: "Day by day",
+    hotel: "Where you'll stay", meals: "What you'll eat", inclusions: "What's included",
+    transfers: "Getting around", visa: "Visa & entry", departures: "Departures",
+    pricing: "Choose your room", extras: "Make it yours", scarcity: "Before it's gone",
+    people: "Your trip designer", reviews: "Travellers say", agency: "About the agency",
+    notes: "Good to know", faq: "Questions, answered", custom: "A note from us", others: "More journeys",
   },
-  ar: {
-    howCompares: "كيف يقارَن هذا السعر",
-    thisPackage: "هذه الباقة",
-    typicalAgency: "سعر الوكالات المعتاد",
-    illustrativeComparison: "مقارنة توضيحية",
-    illustrativeBreakdown: "تفصيل توضيحي",
-    accommodation: "الإقامة",
-    experiences: "التجارب",
-    transport: "النقل",
-    guideSupport: "المرشد والدعم",
-    platformFee: "رسوم المنصة",
+  nav: { highlights: "Highlights", itinerary: "Itinerary", hotel: "Stay", inclusions: "Included", departures: "Dates", pricing: "Pricing", reviews: "Reviews", faq: "FAQ" },
+  ui: {
+    from: "From", perPerson: "per person", night: "night", nights: "nights", included: "Included",
+    notIncluded: "Not included", mostPopular: "Most popular", soldOut: "Sold out", left: "left",
+    book: "Book this trip", enquire: "Enquire on WhatsApp", bookWhatsapp: "Book on WhatsApp", messenger: "Messenger",
+    message: "Message us", nextDeparture: "Next departure", date: "Date", depart: "Times", price: "Price",
+    availability: "Spots", to: "To", cancellation: "Cancellation policy", paymentSchedule: "Payment schedule",
+    basedOn: "based on", review: "reviews", stars: "stars", route: "Your route", add: "Add",
+    replyTime: "Usually replies within an hour", watch: "Watch the film", noVideo: "Video coming soon",
+    play: "Play", pause: "Pause", mute: "Mute", unmute: "Unmute", years: "years", poweredBy: "Powered by PackMetrix",
+    quote: "Itemised quote", total: "Total", allIn: "all-in", totalLine: "per person · all lines included",
+    theTotal: "The total is the total.", emailCopy: "Email a copy", allInOne: "All in the price",
+    spotsLine: (n: number) => `${n} ${n === 1 ? "room" : "rooms"} left at this rate — no rush, just letting you know.`,
+  },
+};
+const L_AR: typeof L_EN = {
+  sections: {
+    highlights: "لماذا ستحبّها", media: "شاهد بنفسك", itinerary: "يومًا بيوم",
+    hotel: "مكان إقامتك", meals: "ما ستتناوله", inclusions: "ما يشمله البرنامج",
+    transfers: "التنقّلات", visa: "التأشيرة والدخول", departures: "مواعيد المغادرة",
+    pricing: "اختر غرفتك", extras: "أضِف لمستك", scarcity: "قبل أن تنفد",
+    people: "مصمّم رحلتك", reviews: "آراء المسافرين", agency: "عن الوكالة",
+    notes: "معلومات تهمّك", faq: "إجابات على أسئلتك", custom: "كلمة منّا", others: "رحلات أخرى",
+  },
+  nav: { highlights: "المميزات", itinerary: "البرنامج", hotel: "الإقامة", inclusions: "المشمول", departures: "المواعيد", pricing: "الأسعار", reviews: "التقييمات", faq: "الأسئلة" },
+  ui: {
+    from: "من", perPerson: "للفرد", night: "ليلة", nights: "ليالٍ", included: "مشمول",
+    notIncluded: "غير مشمول", mostPopular: "الأكثر طلبًا", soldOut: "نفدت", left: "متبقّية",
+    book: "احجز هذه الرحلة", enquire: "استفسر عبر واتساب", bookWhatsapp: "احجز عبر واتساب", messenger: "ماسنجر",
+    message: "راسلنا", nextDeparture: "أقرب موعد", date: "التاريخ", depart: "الأوقات", price: "السعر",
+    availability: "المقاعد", to: "إلى", cancellation: "سياسة الإلغاء", paymentSchedule: "جدول الدفع",
+    basedOn: "من", review: "تقييم", stars: "نجوم", route: "مسار رحلتك", add: "أضِف",
+    replyTime: "نردّ عادةً خلال ساعة", watch: "شاهد الفيديو", noVideo: "الفيديو قريبًا",
+    play: "تشغيل", pause: "إيقاف", mute: "كتم", unmute: "تشغيل الصوت", years: "سنة", poweredBy: "مُشغّل بواسطة باكمتريكس",
+    quote: "عرض سعر مفصّل", total: "الإجمالي", allIn: "شامل", totalLine: "للفرد · شاملًا كل البنود",
+    theTotal: "الإجمالي هو الإجمالي.", emailCopy: "أرسل نسخة بالبريد", allInOne: "ضمن السعر",
+    spotsLine: (n: number) => `بقي ${n} ${n === 1 ? "غرفة" : "غرف"} بهذا السعر — دون استعجال، فقط لعلمك.`,
   },
 };
 
-// ─── SmCompare — two-bar transparency strip (Packmetrix vs typical agency) ─────
-function SmCompare({ pkg, lang, isDesktop }: { pkg: TPackage; lang: Lang; isDesktop: boolean }) {
-  const parts = smPriceParts(pkg.price);
-  if (!parts) return null;
-  const tx = SM_TX[lang];
-  const marketPrice = parts.fmt(parts.num * 1.28);
+const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
+  none: { en: "No meals", ar: "بدون وجبات" }, breakfast: { en: "Breakfast", ar: "إفطار" },
+  half_board: { en: "Half board", ar: "نصف إقامة" }, full_board: { en: "Full board", ar: "إقامة كاملة" },
+  all_inclusive: { en: "All inclusive", ar: "شامل بالكامل" },
+};
+const VISA_LABELS: Record<string, { en: string; ar: string }> = {
+  included: { en: "Included", ar: "مشمولة" }, assistance: { en: "Assistance", ar: "مساعدة" },
+  not_included: { en: "Not included", ar: "غير مشمولة" }, not_required: { en: "Not required", ar: "غير مطلوبة" },
+};
+const VISA_HEAD: Record<string, { en: string; ar: string }> = {
+  included: { en: "Visa included", ar: "التأشيرة مشمولة" }, assistance: { en: "Visa assistance provided", ar: "نقدّم المساعدة في التأشيرة" },
+  not_included: { en: "Visa not included", ar: "التأشيرة غير مشمولة" }, not_required: { en: "No visa required", ar: "لا تحتاج تأشيرة" },
+};
+const ROLE_LABELS: Record<string, { en: string; ar: string }> = {
+  agent: { en: "Trip designer", ar: "مصمّم الرحلات" }, curator: { en: "Trip designer", ar: "مصمّم الرحلات" },
+  trip_lead: { en: "Trip lead", ar: "قائد الرحلة" }, trip_designer: { en: "Trip designer", ar: "مصمّم الرحلات" },
+  guide: { en: "Guide", ar: "المرشد" }, mutawif: { en: "Mutawif", ar: "المطوّف" },
+};
 
-  // Fill is a normal in-flow block sized by width % inside a track. It hugs the
-  // inline-start edge, so it grows from the left in LTR and from the right in
-  // RTL automatically — no hardcoded left/right.
-  const Row = ({ name, pct, fill, value, bold }: {
-    name: string; pct: number; fill: string; value: string; bold: boolean;
-  }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-      <span style={{ width: isDesktop ? 150 : 104, flexShrink: 0, fontSize: 13, color: SM.muted }}>{name}</span>
-      <div style={{ flex: 1, height: 12, background: `${SM.ink}0d`, borderRadius: 6, overflow: "hidden" }}>
-        <div style={{ width: `${pct}%`, height: "100%", background: fill, borderRadius: 6 }} />
-      </div>
-      <span style={{ width: isDesktop ? 110 : 82, flexShrink: 0, textAlign: "end", fontSize: 13.5, fontWeight: bold ? 800 : 700, color: bold ? SM.brand : SM.ink, ...SM_NUM }}>{value}</span>
-    </div>
-  );
-
-  return (
-    <div style={{ background: SM.paper, border: `1px solid ${SM.border}`, borderRadius: 14, padding: isDesktop ? "22px 24px" : "18px 18px", maxWidth: isDesktop ? 560 : undefined }}>
-      <p style={{ fontSize: 11, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 16px" }}>{tx.howCompares}</p>
-      <Row name={tx.thisPackage} pct={78} fill={SM.brand} value={pkg.price} bold />
-      <Row name={tx.typicalAgency} pct={100} fill={`${SM.ink}1f`} value={marketPrice} bold={false} />
-      <p style={{ fontSize: 12, color: SM.superMuted, margin: "4px 0 0" }}>{tx.illustrativeComparison}</p>
-    </div>
-  );
+// ─── Section-data helpers ─────────────────────────────────────────────────────
+function findSec(pkg: TPackage, type: string): SecData | undefined {
+  return pkg.sections?.find((s) => s.type === type)?.data as SecData | undefined;
+}
+function secArr(data: SecData | undefined, key: string): SecData[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is SecData => i != null && typeof i === "object") : [];
+}
+function secStr(data: SecData | undefined, key: string): string {
+  const v = data?.[key];
+  return typeof v === "string" ? v : "";
+}
+function secStrArr(data: SecData | undefined, key: string): string[] {
+  const v = data?.[key];
+  return Array.isArray(v) ? v.filter((i): i is string => typeof i === "string") : [];
+}
+function secItemStr(item: unknown, ...keys: string[]): string {
+  if (typeof item === "string") return item;
+  if (!item || typeof item !== "object") return "";
+  const obj = item as SecData;
+  for (const k of keys) { const v = secStr(obj, k); if (v) return v; }
+  return "";
+}
+function secMixed(data: SecData | undefined, key: string): Array<SecData | string> {
+  const v = data?.[key];
+  return Array.isArray(v) ? (v.filter((i) => i != null) as Array<SecData | string>) : [];
+}
+function lines(s: string): string[] {
+  return s.split(/\r?\n/).map((l) => l.replace(/^[-•·]\s*/, "").trim()).filter(Boolean);
 }
 
-// ─── Section header ───────────────────────────────────────────────────────────
-
-function SmSecHead({ label, title, isDesktop }: { label?: string; title: string; isDesktop: boolean }) {
-  return (
-    <div style={{ marginBottom: isDesktop ? 28 : 18 }}>
-      {label && (
-        <div style={{
-          fontFamily: MONO, fontSize: 10, fontWeight: 800, color: SM.superMuted,
-          textTransform: "uppercase", letterSpacing: "1.4px", marginBottom: 6,
-        }}>
-          {label}
-        </div>
-      )}
-      <h2 style={{
-        fontSize: isDesktop ? 32 : 22, fontWeight: 800,
-        letterSpacing: isDesktop ? "-0.5px" : "-0.3px",
-        color: SM.ink, margin: 0, lineHeight: 1.15,
-        fontFamily: FONT,
-      }}>
-        {title}
-      </h2>
-    </div>
-  );
-}
-
-// ─── Lightbox ─────────────────────────────────────────────────────────────────
-
-function SmLightbox({ images, startIdx, onClose }: { images: string[]; startIdx: number; onClose: () => void }) {
-  const [idx, setIdx] = React.useState(startIdx);
-  const prev = () => setIdx(i => (i - 1 + images.length) % images.length);
-  const next = () => setIdx(i => (i + 1) % images.length);
-
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") prev();
-      if (e.key === "ArrowRight") next();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [images.length]);
-
-  return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <img src={images[idx]} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: "92vw", maxHeight: "88vh", objectFit: "contain", borderRadius: 10 }} />
-      <div style={{ position: "absolute", top: 18, left: "50%", transform: "translateX(-50%)", background: "rgba(0,0,0,0.6)", borderRadius: 99, padding: "5px 14px", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>
-        {idx + 1} / {images.length}
-      </div>
-      <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-      {images.length > 1 && (
-        <>
-          <button onClick={e => { e.stopPropagation(); prev(); }} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
-          <button onClick={e => { e.stopPropagation(); next(); }} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
-        </>
-      )}
-    </div>
-  );
+// ─── WhatsApp icon ────────────────────────────────────────────────────────────
+function WAIcon({ s = 16, fill = "currentColor" }: { s?: number; fill?: string }) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill={fill}><path d="M20.5 3.5C18.2 1.2 15.2 0 12 0 5.4 0 .1 5.3.1 11.9c0 2.1.5 4.1 1.6 5.9L0 24l6.4-1.7c1.7.9 3.7 1.4 5.6 1.4 6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.2-3.4-8.3zM12 21.8c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.7 1 1-3.6-.2-.4c-.9-1.5-1.4-3.3-1.4-5 0-5.5 4.5-9.9 9.9-9.9 2.6 0 5.1 1 7 2.9 1.9 1.9 2.9 4.4 2.9 7-.1 5.4-4.5 9.5-10.2 9.5z" /></svg>;
 }
 
 // ─── Star rating ──────────────────────────────────────────────────────────────
+function SmStars({ n = 5, of = 5, size = 14, color }: { n?: number; of?: number; size?: number; color: string }) {
+  const star = (fill: string) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} style={{ display: "block" }}><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 5.9 20.8l1.2-6.6L2.3 9.6l6.6-.9z" /></svg>
+  );
+  return <span style={{ display: "inline-flex", gap: 2 }}>{Array.from({ length: of }).map((_, i) => <span key={i}>{star(i < n ? color : smRgba(color, 0.25))}</span>)}</span>;
+}
 
-function SmStars({ rating }: { rating: number }) {
+// ─── Abstract route map ───────────────────────────────────────────────────────
+function SmRouteMap({ stops, line, land = "#e6edf3", ink = "#15212e", height = 220, rounded = 12, rtl = false }: { stops: { label: string }[]; line: string; land?: string; ink?: string; height?: number; rounded?: number; rtl?: boolean }) {
+  const W = 1000, H = 420;
+  const pts = stops.map((s, i) => {
+    const x = stops.length === 1 ? W / 2 : 120 + (i * (W - 240)) / (stops.length - 1);
+    const y = 150 + Math.sin(i * 1.3 + 0.6) * 70 + (i % 2 ? 20 : -10);
+    return { ...s, x: rtl ? W - x : x, y };
+  });
+  const path = pts.map((p, i) => { if (i === 0) return `M ${p.x} ${p.y}`; const prev = pts[i - 1]; const mx = (prev.x + p.x) / 2; return `Q ${mx} ${prev.y - 40} ${p.x} ${p.y}`; }).join(" ");
   return (
-    <div style={{ display: "flex", gap: 2 }}>
-      {[1, 2, 3, 4, 5].map(n => (
-        <svg key={n} width="12" height="12" viewBox="0 0 24 24"
-          fill={n <= rating ? SM.brand : "none"}
-          stroke={SM.brand} strokeWidth="2">
-          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-        </svg>
-      ))}
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height, display: "block", borderRadius: rounded, background: smLighten(land, 0.4) }} preserveAspectRatio="xMidYMid slice">
+      <g fill={land} opacity="0.85"><path d="M-40 300 Q 180 250 360 300 T 760 290 Q 920 270 1060 320 L1060 460 L-40 460 Z" /><ellipse cx="220" cy="120" rx="190" ry="90" opacity="0.5" /><ellipse cx="780" cy="100" rx="160" ry="80" opacity="0.5" /></g>
+      <g stroke={smRgba(ink, 0.05)} strokeWidth="1">{[80, 180, 280, 360].map((y) => <line key={y} x1="0" x2={W} y1={y} y2={y} />)}{[200, 400, 600, 800].map((x) => <line key={x} y1="0" y2={H} x1={x} x2={x} />)}</g>
+      <path d={path} fill="none" stroke={line} strokeWidth="3.5" strokeDasharray="2 12" strokeLinecap="round" opacity="0.9" />
+      {pts.map((p, i) => <g key={i}><circle cx={p.x} cy={p.y} r="11" fill="#fff" stroke={line} strokeWidth="3.5" /><circle cx={p.x} cy={p.y} r="4" fill={line} /><text x={p.x} y={p.y - 22} textAnchor="middle" fill={ink} fontSize="22" fontWeight="700" fontFamily="inherit">{p.label}</text></g>)}
+    </svg>
+  );
+}
+
+// ─── Video player ─────────────────────────────────────────────────────────────
+function SmVideo({ src, poster, accent, radius = 14, rtl = false, sans, height = 320, ui }: { src?: string; poster?: string; accent: string; radius?: number; rtl?: boolean; sans: string; height?: number; ui: typeof L_EN["ui"] }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const ctrl: React.CSSProperties = { width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 };
+  const onAccent = smOn(accent);
+  if (!src) {
+    return (
+      <div style={{ position: "relative", borderRadius: radius, overflow: "hidden", height, background: "#15212e" }}>
+        {poster && <img src={poster} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(0.3) brightness(0.55)" }} />}
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "#fff" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.5)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><path d="M8 5v14l11-7z" /></svg>
+            <div style={{ position: "absolute", width: 64, height: 1.5, background: "rgba(255,255,255,0.7)", transform: "rotate(-45deg)" }} />
+          </div>
+          <div style={{ fontFamily: sans, fontSize: 13, opacity: 0.85 }}>{ui.noVideo}</div>
+        </div>
+      </div>
+    );
+  }
+  const toggle = () => { const v = ref.current; if (!v) return; if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); setPlaying(true); } else { v.pause(); setPlaying(false); } };
+  const toggleMute = () => { const v = ref.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); };
+  const IconPlay = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>;
+  const IconPause = <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>;
+  const IconMuted = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12.5 3l2.5 2.5-1 1L15.5 13 13 15.5l-1-1L14.5 12 12 9.5l1-1L15.5 11 18 8.5l1 1L16.5 12z" /></svg>;
+  const IconSound = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4zm12 3a4 4 0 00-2-3.5v7A4 4 0 0016 12zm-2-7.7v2.1a6 6 0 010 11.2v2.1a8 8 0 000-15.4z" /></svg>;
+  return (
+    <div onClick={toggle} style={{ position: "relative", borderRadius: radius, overflow: "hidden", height, background: "#000", cursor: "pointer" }}>
+      <video ref={ref} src={src} poster={poster} muted loop playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      {!playing && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "linear-gradient(rgba(0,0,0,0.05),rgba(0,0,0,0.35))" }}>
+          <div style={{ width: 70, height: 70, borderRadius: "50%", background: accent, color: onAccent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 32px rgba(0,0,0,0.35)" }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style={{ marginInlineStart: 3 }}><path d="M8 5v14l11-7z" /></svg>
+          </div>
+          <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: "#fff", letterSpacing: "0.4px", textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>{ui.watch}</div>
+        </div>
+      )}
+      <div dir={rtl ? "rtl" : "ltr"} style={{ position: "absolute", insetInline: 0, bottom: 0, padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "linear-gradient(transparent, rgba(0,0,0,0.4))" }}>
+        <button onClick={(e) => { e.stopPropagation(); toggle(); }} aria-label={playing ? ui.pause : ui.play} title={playing ? ui.pause : ui.play} style={ctrl}>{playing ? IconPause : IconPlay}</button>
+        <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} aria-label={muted ? ui.unmute : ui.mute} title={muted ? ui.unmute : ui.mute} style={ctrl}>{muted ? IconMuted : IconSound}</button>
+      </div>
     </div>
   );
 }
 
-// ─── SmSection — single section renderer ─────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang = "en" }: TPageProps) {
+  const D = useIsDesktop();
+  const rtl = lang === "ar";
+  const L = rtl ? L_AR : L_EN;
+  const brand = agency.brandColor || "#2563aa";
+  const onBrand = smOn(brand);
 
-function SmSection({ s, isDesktop, onWhatsApp, lang, agency }: {
-  s: NonNullable<TPackage["sections"]>[number];
-  isDesktop: boolean;
-  onWhatsApp?: () => void;
-  lang: Lang;
-  agency: TAgency;
-}) {
-  const t = T[lang];
-  const isRtl = lang === "ar";
-  const cardStyle: React.CSSProperties = {
-    background: SM.paper, border: `1px solid ${SM.border}`, borderRadius: 12, overflow: "hidden",
-  };
-  const secPad: React.CSSProperties = isDesktop
-    ? { padding: "52px 80px", maxWidth: 1180, margin: "0 auto" }
-    : { padding: "20px 18px" };
+  const BG = "#f7f9fb", PAPER = "#ffffff", INK = "#15212e";
+  const MUT = "rgba(21,33,46,0.6)", FAINT = "rgba(21,33,46,0.4)", LINE = "rgba(21,33,46,0.1)";
+  const SOFT = smLighten(brand, 0.92);
+  const disp = rtl ? "var(--font-tajawal), 'Tajawal', sans-serif" : "var(--font-manrope), 'Manrope', sans-serif";
+  const sans = disp;
+  const mono = rtl ? "var(--font-tajawal), 'Tajawal', sans-serif" : "var(--font-space-mono), 'Space Mono', monospace";
+  const px = D ? 72 : 20;
+  const ar = (en: string, a: string) => (rtl ? a : en);
+  const dig = (s: string | number) => (rtl ? String(s).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]) : String(s));
+  const uc: React.CSSProperties["textTransform"] = rtl ? "none" : "uppercase";
 
-  switch (s.type) {
+  const title = pkg.title || pkg.destination || "";
+  const nightsN = pkg.nights ? Number(pkg.nights) : null;
+  const cover = pkg.coverImage || pkg.images?.[0] || secStrArr(findSec(pkg, "media"), "images")[0] || "";
+  const mediaImgs = secStrArr(findSec(pkg, "media"), "images");
+  const itinDays = secArr(findSec(pkg, "itinerary"), "days").filter((d) => secItemStr(d, "title"));
+  const depEntries = secArr(findSec(pkg, "departures"), "entries");
+  const person = pkg.people?.find((p) => p.role === "agent" || p.role === "curator" || p.role === "trip_lead")
+    ?? pkg.people?.[0] ?? (pkg.agent ? { name: pkg.agent.name, role: pkg.agent.role || "agent", photo: pkg.agent.avatar, years: pkg.agent.years } : undefined);
 
-    // ── Itinerary ─────────────────────────────────────────────────────────────
-    case "itinerary": {
-      const days = (smSecArr(s as ReturnType<typeof smFindSec>, "days") as Array<{ day?: number; title?: string; desc?: string }>)
-        .filter(d => d.title?.trim());
-      if (!days.length) return null;
-      return (
-        <section id="itinerary" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="itinerary">
-          <SmSecHead label={t.dayByDay} title={t.yourJourney} isDesktop={isDesktop} />
-          <div style={isDesktop
-            ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }
-            : { display: "flex", flexDirection: "column", gap: 8 }}>
-            {days.map((d, i) => (
-              <div key={i} style={{ ...cardStyle, padding: isDesktop ? "18px 20px" : "14px 16px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <div style={{
-                  width: isDesktop ? 38 : 34, height: isDesktop ? 38 : 34, borderRadius: 10, flexShrink: 0,
-                  background: `${SM.brand}12`, border: `1px solid ${SM.brand}28`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: isDesktop ? 12 : 11, fontWeight: 800, color: SM.brand,
-                }}>
-                  {d.day ?? i + 1}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: isDesktop ? 14 : 13, fontWeight: 700, color: SM.ink, lineHeight: 1.3, marginBottom: d.desc ? 4 : 0, direction: isRtl ? "rtl" : "ltr" }}>
-                    {d.title}
-                  </div>
-                  {d.desc && (
-                    <div style={{ fontSize: isDesktop ? 13 : 12, color: SM.muted, lineHeight: 1.55, direction: isRtl ? "rtl" : "ltr" }}>
-                      {d.desc}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      );
-    }
+  // ---- clickable gallery → lightbox ----
+  const photos = Array.from(new Set([cover, ...mediaImgs].filter(Boolean)));
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const zoom = (url: string) => { const i = photos.indexOf(url); if (i >= 0) setLightbox(i); };
 
-    // ── Highlights ────────────────────────────────────────────────────────────
-    case "highlights": {
-      const items = smSecStrArr(s as ReturnType<typeof smFindSec>, "items");
-      if (!items.length) return null;
-      const title = t.smHighlights;
-      return (
-        <section style={secPad} data-pmx-section="highlights">
-          <SmSecHead label={title} title={title} isDesktop={isDesktop} />
-          {isDesktop ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {items.map((item, i) => (
-                <div key={i} style={{ ...cardStyle, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, direction: isRtl ? "rtl" : "ltr" }}>
-                  <span style={{ color: SM.brand, fontWeight: 700, fontSize: 16, flexShrink: 0 }}>✦</span>
-                  <span style={{ fontSize: 13.5, fontWeight: 600, color: SM.ink }}>{item}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {items.map((item, i) => (
-                <div key={i} style={{ padding: "7px 14px", borderRadius: 99, background: `${SM.brand}10`, border: `1px solid ${SM.brand}28`, fontSize: 13, fontWeight: 600, color: SM.brand, direction: isRtl ? "rtl" : "ltr" }}>
-                  ✦ {item}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      );
-    }
+  // ---- nav ----
+  const goTo = (type: string) => { if (typeof document === "undefined") return; document.querySelector(`[data-pmx-section="${type}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  const navItems = Object.entries(L.nav).filter(([key]) => {
+    if (key === "reviews") return (pkg.reviews?.length ?? 0) > 0 && agency.showReviews !== false;
+    if (key === "hotel") return !!(findSec(pkg, "hotel") || findSec(pkg, "hotels") || pkg.hotelDescription);
+    if (key === "itinerary") return secArr(findSec(pkg, "itinerary"), "days").length > 0;
+    if (key === "inclusions") return secStrArr(findSec(pkg, "inclusions"), "includes").length + secStrArr(findSec(pkg, "inclusions"), "excludes").length + (pkg.includes?.length ?? 0) + (pkg.excludes?.length ?? 0) > 0;
+    if (key === "departures") return secArr(findSec(pkg, "departures"), "entries").length > 0 || (pkg.departures?.length ?? 0) > 0;
+    if (key === "pricing") return (pkg.pricingTiers?.length ?? 0) > 0 || !!findSec(pkg, "pricing");
+    if (key === "faq") return secArr(findSec(pkg, "faq"), "items").length > 0;
+    return !!findSec(pkg, key);
+  });
 
-    // ── Hotel ─────────────────────────────────────────────────────────────────
-    case "hotel": {
-      const desc = smSecStr(s as ReturnType<typeof smFindSec>, "description");
-      if (!desc) return null;
-      return (
-        <section id="hotel" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="hotel">
-          <SmSecHead label={t.hotelLabel} title={t.hotelSectionTitle} isDesktop={isDesktop} />
-          <p style={{ fontSize: isDesktop ? 15 : 14, color: SM.muted, lineHeight: 1.75, margin: 0 }}>{desc}</p>
-        </section>
-      );
-    }
+  // ---- itemised quote built from real package facts ----
+  const mealPlan = secStr(findSec(pkg, "meals"), "plan");
+  const visaInc = secStr(findSec(pkg, "visa"), "included");
+  const hasTransfers = !!(secStr(findSec(pkg, "transfers"), "description") || secMixed(findSec(pkg, "transfers"), "items").length);
+  const hasHotel = !!(findSec(pkg, "hotel") || findSec(pkg, "hotels") || pkg.hotelDescription);
+  const hasDepart = depEntries.length > 0 || (pkg.departures?.length ?? 0) > 0;
+  const breakdown: { l: string; v: string }[] = [
+    nightsN ? { l: ar("Trip length", "مدة الرحلة"), v: `${dig(nightsN)} ${L.ui.nights}` } : null,
+    hasHotel ? { l: L.sections.hotel, v: L.ui.allInOne } : null,
+    mealPlan && mealPlan !== "none" ? { l: ar("Meals", "الوجبات"), v: MEAL_LABELS[mealPlan]?.[lang] || mealPlan } : null,
+    hasTransfers ? { l: L.sections.transfers, v: L.ui.allInOne } : null,
+    visaInc ? { l: ar("Visa", "التأشيرة"), v: VISA_LABELS[visaInc]?.[lang] || visaInc } : null,
+    hasDepart ? { l: ar("Flights", "الطيران"), v: ar("Multiple cities", "عدة مدن") } : null,
+  ].filter(Boolean).slice(0, 6) as { l: string; v: string }[];
 
-    // ── Inclusions ────────────────────────────────────────────────────────────
-    case "inclusions": {
-      const includes = smSecStrArr(s as ReturnType<typeof smFindSec>, "includes");
-      const excludes = smSecStrArr(s as ReturnType<typeof smFindSec>, "excludes");
-      const meals = smSecStr(s as ReturnType<typeof smFindSec>, "meals");
-      const visa = smSecStr(s as ReturnType<typeof smFindSec>, "visa");
-      if (!includes.length && !excludes.length) return null;
-      return (
-        <section id="included" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="inclusions">
-          <SmSecHead label={t.whatsIncluded} title={t.whatsIncluded} isDesktop={isDesktop} />
-          {(meals || visa) && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-              {meals && (
-                <span style={{ padding: "5px 13px", borderRadius: 99, background: `${SM.brand}12`, border: `1px solid ${SM.brand}28`, fontSize: 12.5, fontWeight: 700, color: SM.brand }}>
-                  {meals}
-                </span>
-              )}
-              {visa && (
-                <span style={{ padding: "5px 13px", borderRadius: 99, background: `${SM.brand}12`, border: `1px solid ${SM.brand}28`, fontSize: 12.5, fontWeight: 700, color: SM.brand }}>
-                  {visa}
-                </span>
-              )}
-            </div>
-          )}
-          <div style={isDesktop
-            ? { display: "grid", gridTemplateColumns: excludes.length ? "1fr 1fr" : "1fr", gap: 48 }
-            : { display: "grid", gridTemplateColumns: excludes.length ? "1fr 1fr" : "1fr", gap: 20 }}>
-            {includes.length > 0 && (
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#16a34a", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.7px" }}>
-                  {t.includedLabel}
-                </div>
-                {includes.map((item, i) => (
-                  <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-                    <div style={{
-                      width: 18, height: 18, borderRadius: "50%",
-                      background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.22)",
-                      flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                      marginTop: 2, fontWeight: 800, fontSize: 10, color: "#16a34a",
-                    }}>✓</div>
-                    <span style={{ fontSize: isDesktop ? 13.5 : 13, color: SM.muted, lineHeight: 1.5 }}>{item}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {excludes.length > 0 && (
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#ef4444", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.7px" }}>
-                  {t.notIncluded}
-                </div>
-                {excludes.map((item, i) => (
-                  <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-                    <div style={{
-                      width: 18, height: 18, borderRadius: "50%",
-                      background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)",
-                      flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                      marginTop: 2, fontWeight: 800, fontSize: 10, color: "#ef4444",
-                    }}>×</div>
-                    <span style={{ fontSize: isDesktop ? 13.5 : 13, color: SM.muted, lineHeight: 1.5 }}>{item}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      );
-    }
-
-    // ── FAQ ───────────────────────────────────────────────────────────────────
-    case "faq": {
-      const items = (smSecArr(s as ReturnType<typeof smFindSec>, "items") as Array<{ question?: string; answer?: string }>)
-        .filter(it => it?.question?.trim());
-      if (!items.length) return null;
-      const title = t.frequentlyAsked || (isRtl ? "الأسئلة الشائعة" : "FAQ");
-      return (
-        <section id="faq" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="faq">
-          <SmSecHead title={title} isDesktop={isDesktop} />
-          <div style={isDesktop
-            ? { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }
-            : { display: "flex", flexDirection: "column", gap: 8 }}>
-            {items.map((it, i) => (
-              <div key={i} style={{ ...cardStyle, padding: isDesktop ? "20px 22px" : "14px 16px" }}>
-                <div style={{ fontSize: isDesktop ? 14 : 13, fontWeight: 700, color: SM.ink, marginBottom: it.answer ? 8 : 0, direction: isRtl ? "rtl" : "ltr" }}>
-                  {it.question}
-                </div>
-                {it.answer && (
-                  <div style={{ fontSize: isDesktop ? 13 : 12, color: SM.muted, lineHeight: 1.6, direction: isRtl ? "rtl" : "ltr" }}>
-                    {it.answer}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      );
-    }
-
-    // ── Custom ────────────────────────────────────────────────────────────────
-    case "custom": {
-      const heading = smSecStr(s as ReturnType<typeof smFindSec>, "heading");
-      const content = smSecStr(s as ReturnType<typeof smFindSec>, "content");
-      const image   = smSecStr(s as ReturnType<typeof smFindSec>, "image");
-      if (!heading && !content) return null;
-      return (
-        <section style={secPad} data-pmx-section="custom">
-          {heading && <SmSecHead title={heading} isDesktop={isDesktop} />}
-          {isDesktop && image ? (
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 40, alignItems: "start" }}>
-              <img src={image} alt="" style={{ width: "100%", borderRadius: 12, aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
-              {content && <p style={{ fontSize: 15, color: SM.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{content}</p>}
-            </div>
-          ) : (
-            <>
-              {image && <img src={image} alt="" style={{ width: "100%", borderRadius: 12, marginBottom: 14, aspectRatio: "16/9", objectFit: "cover", display: "block" }} />}
-              {content && <p style={{ fontSize: isDesktop ? 15 : 14, color: SM.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{content}</p>}
-            </>
-          )}
-        </section>
-      );
-    }
-
-    // ── Extras ────────────────────────────────────────────────────────────────
-    case "extras": {
-      const items = (smSecArr(s as ReturnType<typeof smFindSec>, "items") as Array<{ name?: string; description?: string; price?: string }>)
-        .filter(it => it?.name?.trim());
-      if (!items.length) return null;
-      return (
-        <section style={secPad} data-pmx-section="extras">
-          <SmSecHead title={t.sectionExtrasTitle} isDesktop={isDesktop} />
-          <div style={isDesktop
-            ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }
-            : { display: "flex", flexDirection: "column", gap: 8 }}>
-            {items.map((it, i) => (
-              <div key={i} style={{ ...cardStyle, padding: isDesktop ? "18px 22px" : "14px 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: it.description ? 6 : 0 }}>
-                  <div style={{ fontSize: isDesktop ? 14 : 13, fontWeight: 700, color: SM.ink, direction: isRtl ? "rtl" : "ltr" }}>{it.name}</div>
-                  {it.price && <div style={{ fontSize: 13, fontWeight: 700, color: SM.brand, whiteSpace: "nowrap" }}>{it.price}</div>}
-                </div>
-                {it.description && (
-                  <div style={{ fontSize: isDesktop ? 13 : 12, color: SM.muted, lineHeight: 1.6, direction: isRtl ? "rtl" : "ltr" }}>{it.description}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      );
-    }
-
-    // ── People ────────────────────────────────────────────────────────────────
-    case "people": {
-      const people = (smSecArr(s as ReturnType<typeof smFindSec>, "people") as Array<{
-        name?: string; bio?: string; photo?: string; role?: string; languages?: string[];
-      }>).filter(p => p?.name?.trim());
-      if (!people.length) return null;
-      const title = t.smOurTeam;
-      return (
-        <section style={secPad} data-pmx-section="people">
-          <SmSecHead title={title} isDesktop={isDesktop} />
-          <div style={isDesktop
-            ? { display: "grid", gridTemplateColumns: `repeat(${Math.min(people.length, 3)}, 1fr)`, gap: 16 }
-            : { display: "flex", flexDirection: "column", gap: 10 }}>
-            {people.map((p, i) => (
-              <div key={i} style={{ ...cardStyle, padding: isDesktop ? "20px 22px" : "16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-                {p.photo ? (
-                  <img src={p.photo} alt={p.name} style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                ) : (
-                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: `${SM.brand}12`, border: `1px solid ${SM.brand}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: SM.brand, flexShrink: 0 }}>
-                    {(p.name || "?").slice(0, 1).toUpperCase()}
-                  </div>
-                )}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: isDesktop ? 15 : 14, fontWeight: 700, color: SM.ink }}>{p.name}</div>
-                  {p.role && (
-                    <div style={{ fontSize: 11, fontWeight: 600, color: SM.brand, textTransform: "uppercase", letterSpacing: "0.5px", marginTop: 2 }}>{localizeRole(p.role, t)}</div>
-                  )}
-                  {Array.isArray(p.languages) && p.languages.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
-                      {p.languages.map((l: unknown, li: number) => (
-                        <span key={li} style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 99, background: `${SM.brand}10`, color: SM.brand, fontWeight: 600 }}>{String(l)}</span>
-                      ))}
-                    </div>
-                  )}
-                  {p.bio && <p style={{ fontSize: isDesktop ? 13 : 12, color: SM.muted, lineHeight: 1.6, margin: "6px 0 0", direction: isRtl ? "rtl" : "ltr" }}>{p.bio}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      );
-    }
-
-    // ── Guide (legacy) ────────────────────────────────────────────────────────
-    case "guide": {
-      const name = smSecStr(s as ReturnType<typeof smFindSec>, "name");
-      const bio  = smSecStr(s as ReturnType<typeof smFindSec>, "bio");
-      const photo = smSecStr(s as ReturnType<typeof smFindSec>, "photo");
-      const languages = smSecStrArr(s as ReturnType<typeof smFindSec>, "languages");
-      if (!name && !bio) return null;
-      return (
-        <section style={secPad} data-pmx-section="people">
-          <SmSecHead title={t.sectionGuideTitle} isDesktop={isDesktop} />
-          <div style={{ ...cardStyle, padding: isDesktop ? "22px 24px" : "16px 18px", display: "flex", gap: 14, alignItems: "flex-start", maxWidth: isDesktop ? 640 : undefined }}>
-            {photo && <img src={photo} alt={name} style={{ width: isDesktop ? 80 : 60, height: isDesktop ? 80 : 60, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />}
-            <div style={{ flex: 1 }}>
-              {name && <div style={{ fontSize: isDesktop ? 17 : 15, fontWeight: 700, color: SM.ink, marginBottom: 4 }}>{name}</div>}
-              {languages.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: bio ? 8 : 0 }}>
-                  {languages.map((l, i) => (
-                    <span key={i} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: `${SM.brand}12`, color: SM.brand, fontWeight: 600 }}>{l}</span>
-                  ))}
-                </div>
-              )}
-              {bio && <p style={{ fontSize: isDesktop ? 14 : 13, color: SM.muted, lineHeight: 1.65, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{bio}</p>}
-            </div>
-          </div>
-        </section>
-      );
-    }
-
-    // ── Important Notes ───────────────────────────────────────────────────────
-    case "important_notes": {
-      const items = (smSecArr(s as ReturnType<typeof smFindSec>, "items") as Array<{ text?: string }>)
-        .filter(it => it?.text?.trim());
-      if (!items.length) return null;
-      return (
-        <section style={secPad} data-pmx-section="important_notes">
-          <SmSecHead title={t.sectionImportantNotesTitle} isDesktop={isDesktop} />
-          <div style={{
-            background: `${SM.brand}07`, border: `1px solid ${SM.brand}22`,
-            borderRadius: 14, padding: isDesktop ? "22px 28px" : "16px 18px",
-            display: isDesktop && items.length > 3 ? "grid" : "flex",
-            gridTemplateColumns: isDesktop && items.length > 3 ? "1fr 1fr" : undefined,
-            flexDirection: isDesktop && items.length > 3 ? undefined : "column",
-            gap: 12, maxWidth: isDesktop ? 800 : undefined,
-          }}>
-            {items.map((it, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span style={{ color: SM.brand, fontSize: 15, lineHeight: 1, marginTop: 2, flexShrink: 0 }}>⚑</span>
-                <p style={{ fontSize: isDesktop ? 14 : 13, color: SM.ink, lineHeight: 1.65, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{it.text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      );
-    }
-
-    // ── About Agency ──────────────────────────────────────────────────────────
-    case "about_agency": {
-      const content = smSecStr(s as ReturnType<typeof smFindSec>, "content");
-      const image   = smSecStr(s as ReturnType<typeof smFindSec>, "image");
-      if (!content && !image) return null;
-      return (
-        <section style={secPad} data-pmx-section="about_agency">
-          <SmSecHead title={t.sectionAboutAgencyTitle} isDesktop={isDesktop} />
-          {isDesktop && image ? (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
-              <div>
-                {content && <p style={{ fontSize: 15, color: SM.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{content}</p>}
-              </div>
-              <img src={image} alt="" style={{ width: "100%", borderRadius: 14, aspectRatio: "4/3", objectFit: "cover", display: "block" }} />
-            </div>
-          ) : (
-            <>
-              {image && <img src={image} alt="" style={{ width: "100%", borderRadius: 12, marginBottom: 14, aspectRatio: "16/9", objectFit: "cover", display: "block" }} />}
-              {content && <p style={{ fontSize: isDesktop ? 15 : 14, color: SM.muted, lineHeight: 1.75, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{content}</p>}
-            </>
-          )}
-        </section>
-      );
-    }
-
-    // ── Departures ────────────────────────────────────────────────────────────
-    case "departures":
-    case "departure_dates": {
-      const dates = (smSecArr(s as ReturnType<typeof smFindSec>, "dates") as Array<{ date?: string; returnDate?: string; price?: string; spots?: string }>)
-        .filter(it => it?.date?.trim());
-      if (!dates.length) return null;
-      return (
-        <section id="departures" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="departures">
-          <SmSecHead title={t.sectionDepartureDatesTitle} isDesktop={isDesktop} />
-          {isDesktop ? (
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(dates.length, 3)}, 1fr)`, gap: 12 }}>
-              {dates.map((it, i) => (
-                <div key={i} style={{ ...cardStyle, padding: "20px 22px" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: SM.ink, marginBottom: 6, direction: isRtl ? "rtl" : "ltr" }}>{it.date}</div>
-                  {it.returnDate && <div style={{ fontSize: 12.5, color: SM.muted, marginBottom: 6 }}>→ {it.returnDate}</div>}
-                  {it.price && <div style={{ fontSize: 22, fontWeight: 800, color: SM.brand, letterSpacing: "-0.5px", lineHeight: 1 }}>{it.price}</div>}
-                  {it.spots && <div style={{ fontSize: 11.5, color: SM.brand, fontWeight: 600, marginTop: 6 }}>{it.spots}</div>}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {dates.map((it, i) => (
-                <div key={i} style={{ ...cardStyle, padding: "13px 15px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: SM.ink, direction: isRtl ? "rtl" : "ltr" }}>{it.date}{it.returnDate ? ` → ${it.returnDate}` : ""}</div>
-                      {it.spots && <div style={{ fontSize: 11, color: SM.brand, fontWeight: 600, marginTop: 2 }}>{it.spots}</div>}
-                    </div>
-                    {it.price && <div style={{ fontSize: 15, fontWeight: 800, color: SM.brand, whiteSpace: "nowrap" }}>{it.price}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      );
-    }
-
-    // ── Pricing ───────────────────────────────────────────────────────────────
-    case "pricing": {
-      const tiers = (smSecArr(s as ReturnType<typeof smFindSec>, "tiers") as Array<{ label?: string; price?: string; perks?: string[] }>)
-        .filter(tier => tier?.price);
-      if (!tiers.length) return null;
-      return (
-        <section id="pricing" style={{ ...secPad, scrollMarginTop: 88 }} data-pmx-section="pricing">
-          <SmSecHead label={t.navPricing} title={t.chooseOption} isDesktop={isDesktop} />
-          <div style={isDesktop
-            ? { display: "grid", gridTemplateColumns: `repeat(${tiers.length}, 1fr)`, gap: 14 }
-            : { display: "flex", flexDirection: "column", gap: 10 }}>
-            {tiers.map((tier, i) => {
-              const featured = i === 0;
-              return (
-                <div key={i} style={{
-                  background: featured ? SM.brand : SM.paper,
-                  border: `1px solid ${featured ? "transparent" : SM.border}`,
-                  borderRadius: isDesktop ? 16 : 14,
-                  padding: isDesktop ? "26px 26px" : "18px 18px",
-                  boxShadow: featured ? `0 8px 24px ${SM.brand}28` : "none",
-                }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: featured ? "rgba(255,255,255,0.72)" : SM.muted, marginBottom: 10 }}>{localizeTierLabel(tier.label ?? "", lang)}</div>
-                  <div style={{ fontSize: isDesktop ? 40 : 34, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, color: featured ? "#fff" : SM.ink }}>{tier.price}</div>
-                  <div style={{ fontSize: 11, color: featured ? "rgba(255,255,255,0.5)" : SM.superMuted, marginTop: 5, marginBottom: 16 }}>{t.perPerson}</div>
-                  {Array.isArray(tier.perks) && tier.perks.length > 0 && (
-                    <div style={{ marginBottom: 16 }}>
-                      {(tier.perks as string[]).map((perk: string, pi: number) => (
-                        <div key={pi} style={{ display: "flex", gap: 7, alignItems: "flex-start", marginBottom: 6 }}>
-                          <span style={{ color: featured ? "rgba(255,255,255,0.8)" : SM.brand, fontSize: 13, flexShrink: 0 }}>✓</span>
-                          <span style={{ fontSize: 12.5, color: featured ? "rgba(255,255,255,0.85)" : SM.muted }}>{perk}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {onWhatsApp && <button onClick={onWhatsApp} style={{
-                    width: "100%", padding: isDesktop ? "12px" : "10px", borderRadius: 10, border: "none",
-                    cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-                    background: featured ? "rgba(255,255,255,0.2)" : SM.brand, color: "#fff",
-                  }}>
-                    {t.bookThisOption}
-                  </button>}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      );
-    }
-
-    // ── Transfers ─────────────────────────────────────────────────────────────
-    case "transfers": {
-      const desc  = smSecStr(s as ReturnType<typeof smFindSec>, "description");
-      const items = smSecStrArr(s as ReturnType<typeof smFindSec>, "items");
-      if (!desc && !items.length) return null;
-      return (
-        <section style={secPad} data-pmx-section="transfers">
-          <SmSecHead title={t.sectionTransfersTitle} isDesktop={isDesktop} />
-          {desc && <p style={{ fontSize: isDesktop ? 15 : 14, color: SM.muted, lineHeight: 1.7, margin: "0 0 14px", direction: isRtl ? "rtl" : "ltr" }}>{desc}</p>}
-          {items.length > 0 && (
-            <div style={isDesktop
-              ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }
-              : { display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {items.map((item, i) => (
-                <div key={i} style={{ ...cardStyle, padding: isDesktop ? "12px 16px" : "6px 13px", borderRadius: isDesktop ? 10 : 99, fontSize: isDesktop ? 13.5 : 12.5, color: SM.ink, fontWeight: 500, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ color: SM.brand, fontWeight: 700 }}>✓</span>
-                  {item}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      );
-    }
-
-    // ── Media ─────────────────────────────────────────────────────────────────
-    case "media":
-    case "gallery": {
-      const rawImages = smSecArr(s as ReturnType<typeof smFindSec>, "images").map(i => String(i)).filter(Boolean);
-      const videoUrl  = smSecStr(s as ReturnType<typeof smFindSec>, "videoUrl");
-      const mapImage  = smSecStr(s as ReturnType<typeof smFindSec>, "mapImage");
-      if (!rawImages.length && !videoUrl && !mapImage) return null;
-      return (
-        <SmGallerySection images={rawImages} videoUrl={videoUrl} mapImage={mapImage} isDesktop={isDesktop} lang={lang} t={t} />
-      );
-    }
-
-    // ── Reviews (rendered separately via SmReviews) ───────────────────────────
-    case "reviews":
-      return null;
-
-    // ── Meals ─────────────────────────────────────────────────────────────────
-    case "meals": {
-      const plan  = smSecStr(s as ReturnType<typeof smFindSec>, "plan") || "none";
-      const notes = smSecStr(s as ReturnType<typeof smFindSec>, "notes");
-      const mealKey = plan === "none" ? "mealNone" : plan === "breakfast" ? "mealBreakfast" : plan === "half_board" ? "mealHalfBoard" : plan === "full_board" ? "mealFullBoard" : plan === "all_inclusive" ? "mealAllInclusive" : null;
-      const label = mealKey ? t[mealKey] : t.mealNotSpecified;
-      return (
-        <section style={secPad} data-pmx-section="meals">
-          <SmSecHead title={t.sectionMealsTitle} isDesktop={isDesktop} />
-          <div style={{ display: "inline-flex", padding: isDesktop ? "8px 20px" : "6px 14px", borderRadius: 99, background: `${SM.brand}12`, border: `1px solid ${SM.brand}28`, fontSize: isDesktop ? 14 : 13, fontWeight: 700, color: SM.brand, marginBottom: notes ? 12 : 0 }}>
-            {label}
-          </div>
-          {notes && <p style={{ fontSize: isDesktop ? 14 : 13, color: SM.muted, lineHeight: 1.7, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{notes}</p>}
-        </section>
-      );
-    }
-
-    // ── Visa ──────────────────────────────────────────────────────────────────
-    case "visa": {
-      const included = smSecStr(s as ReturnType<typeof smFindSec>, "included") || "required";
-      const content  = smSecStr(s as ReturnType<typeof smFindSec>, "content");
-      const visaLabel = included === "included" ? t.visaIncluded : included === "assistance" ? t.visaAssistance : included === "free" ? t.visaFree : t.visaRequired;
-      return (
-        <section style={secPad} data-pmx-section="visa">
-          <SmSecHead title={t.sectionVisaTitle} isDesktop={isDesktop} />
-          <div style={{ display: "inline-flex", padding: isDesktop ? "8px 20px" : "6px 14px", borderRadius: 99, background: `${SM.brand}12`, border: `1px solid ${SM.brand}28`, fontSize: isDesktop ? 14 : 13, fontWeight: 700, color: SM.brand, marginBottom: content ? 12 : 0 }}>
-            {visaLabel}
-          </div>
-          {content && <p style={{ fontSize: isDesktop ? 14 : 13, color: SM.muted, lineHeight: 1.7, margin: 0, direction: isRtl ? "rtl" : "ltr" }}>{content}</p>}
-        </section>
-      );
-    }
-
-    // ── Booking Terms ─────────────────────────────────────────────────────────
-    case "booking_terms": {
-      const text = smSecStr(s as ReturnType<typeof smFindSec>, "content");
-      if (!text) return null;
-      const title = t.smBookingTerms;
-      return (
-        <section style={secPad} data-pmx-section="booking_terms">
-          <SmSecHead title={title} isDesktop={isDesktop} />
-          <div style={{ ...cardStyle, padding: isDesktop ? "22px 28px" : "16px 18px", maxWidth: isDesktop ? 800 : undefined }}>
-            <p style={{ fontSize: isDesktop ? 14 : 13, color: SM.muted, lineHeight: 1.8, margin: 0, direction: isRtl ? "rtl" : "ltr", whiteSpace: "pre-wrap" }}>{text}</p>
-          </div>
-        </section>
-      );
-    }
-
-    // ── Payment Plan ──────────────────────────────────────────────────────────
-    case "payment_plan": {
-      const content = smSecStr(s as ReturnType<typeof smFindSec>, "content");
-      const steps = (smSecArr(s as ReturnType<typeof smFindSec>, "steps") as Array<{ label?: string; amount?: string; dueDate?: string }>)
-        .filter(st => st?.label?.trim());
-      if (!content && !steps.length) return null;
-      return (
-        <section style={secPad} data-pmx-section="payment_plan">
-          <SmSecHead title={t.sectionPaymentPlanTitle} isDesktop={isDesktop} />
-          {content && <p style={{ fontSize: isDesktop ? 15 : 13.5, color: SM.muted, lineHeight: 1.7, margin: "0 0 16px", direction: isRtl ? "rtl" : "ltr" }}>{content}</p>}
-          {steps.length > 0 && (
-            <div style={isDesktop
-              ? { display: "grid", gridTemplateColumns: `repeat(${Math.min(steps.length, 4)}, 1fr)`, gap: 12 }
-              : { display: "flex", flexDirection: "column", gap: 8 }}>
-              {steps.map((step, i) => (
-                <div key={i} style={isDesktop
-                  ? { ...cardStyle, padding: "20px 22px" }
-                  : { ...cardStyle, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{
-                    width: isDesktop ? 32 : 24, height: isDesktop ? 32 : 24, borderRadius: "50%",
-                    background: SM.brand, color: "#fff",
-                    fontSize: isDesktop ? 13 : 11, fontWeight: 700,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0, marginBottom: isDesktop ? 12 : 0,
-                  }}>{i + 1}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: isDesktop ? 14 : 13, fontWeight: 700, color: SM.ink, marginBottom: 4, direction: isRtl ? "rtl" : "ltr" }}>{step.label}</div>
-                    {step.amount && <div style={{ fontSize: isDesktop ? 20 : 14, fontWeight: 800, color: SM.brand, letterSpacing: "-0.4px" }}>{step.amount}</div>}
-                    {step.dueDate && <div style={{ fontSize: 11.5, color: SM.muted, marginTop: 3 }}>{step.dueDate}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      );
-    }
-
-    // ── Schedule ──────────────────────────────────────────────────────────────
-    case "schedule": {
-      const items = (smSecArr(s as ReturnType<typeof smFindSec>, "items") as Array<{ time?: string; activity?: string; location?: string }>)
-        .filter(it => it?.activity?.trim());
-      if (!items.length) return null;
-      return (
-        <section style={secPad} data-pmx-section="schedule">
-          <SmSecHead title={t.sectionScheduleTitle} isDesktop={isDesktop} />
-          <div style={{ maxWidth: isDesktop ? 700 : undefined }}>
-            {items.map((it, i) => (
-              <div key={i} style={{
-                display: "flex", gap: isDesktop ? 24 : 14,
-                padding: isDesktop ? "14px 0" : "12px 0",
-                borderBottom: i < items.length - 1 ? `1px solid ${SM.border}` : "none",
-                alignItems: "flex-start",
-              }}>
-                {it.time && <div style={{ fontSize: isDesktop ? 13 : 12, fontWeight: 700, color: SM.brand, minWidth: isDesktop ? 52 : 44, flexShrink: 0, paddingTop: 2 }}>{it.time}</div>}
-                <div>
-                  <div style={{ fontSize: isDesktop ? 14 : 13, fontWeight: 600, color: SM.ink, direction: isRtl ? "rtl" : "ltr" }}>{it.activity}</div>
-                  {it.location && <div style={{ fontSize: isDesktop ? 12.5 : 12, color: SM.muted, marginTop: 2, direction: isRtl ? "rtl" : "ltr" }}>{it.location}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      );
-    }
-
-    // ── Map ───────────────────────────────────────────────────────────────────
-    case "map": {
-      const img = smSecStr(s as ReturnType<typeof smFindSec>, "image");
-      const cap = smSecStr(s as ReturnType<typeof smFindSec>, "caption");
-      if (!img) return null;
-      return (
-        <section style={secPad} data-pmx-section="map">
-          <img src={img} alt={cap || "Map"} style={{ width: "100%", borderRadius: isDesktop ? 16 : 12, display: "block", objectFit: "cover", aspectRatio: isDesktop ? "21/9" : "16/9" }} />
-          {cap && <div style={{ fontSize: 12.5, color: SM.muted, textAlign: "center", marginTop: 10, direction: isRtl ? "rtl" : "ltr" }}>{cap}</div>}
-        </section>
-      );
-    }
-
-    // ── Video ─────────────────────────────────────────────────────────────────
-    case "video": {
-      const videoUrl = smSecStr(s as ReturnType<typeof smFindSec>, "videoUrl");
-      if (!videoUrl) return null;
-      const title = t.smVideo;
-      return (
-        <section style={secPad} data-pmx-section="video">
-          <SmSecHead title={title} isDesktop={isDesktop} />
-          <video src={videoUrl.includes("#") ? videoUrl : videoUrl + "#t=0.1"} controls muted preload="metadata" style={{ width: "100%", borderRadius: isDesktop ? 16 : 12, background: "#000", maxHeight: isDesktop ? 500 : 280, display: "block" }} />
-        </section>
-      );
-    }
-
-    // ── Flights ───────────────────────────────────────────────────────────────
-    case "flights": {
-      const departures = (smSecArr(s as ReturnType<typeof smFindSec>, "departures") as Array<{ name?: string; price?: string; date?: string; arrivingAirport?: string; flyingTime?: string; arrivingTime?: string }>)
-        .filter(a => a?.name?.trim());
-      if (!departures.length) return null;
-      return (
-        <section style={secPad} data-pmx-section="flights">
-          <SmSecHead title={t.departureOptions} isDesktop={isDesktop} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {departures.map((a, i) => (
-              <div key={i} style={{ ...cardStyle, padding: isDesktop ? "16px 22px" : "14px 16px" }}>
-                <div style={{ fontSize: isDesktop ? 15 : 14, fontWeight: 700, color: SM.ink, marginBottom: 6 }}>
-                  {a.arrivingAirport ? `${a.name} → ${a.arrivingAirport}` : a.name}
-                </div>
-                {a.date && <div style={{ fontSize: 12, color: SM.muted, marginBottom: 4 }}>{a.date}</div>}
-                {a.price && <div style={{ fontSize: isDesktop ? 24 : 20, fontWeight: 800, color: SM.brand, letterSpacing: "-0.5px" }}>{a.price}</div>}
-                {onWhatsApp && <button onClick={onWhatsApp} style={{ marginTop: 10, fontSize: 12, color: SM.brand, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
-                  {t.bookThisFlight}
-                </button>}
-              </div>
-            ))}
-          </div>
-        </section>
-      );
-    }
-
-    // ── other_packages ────────────────────────────────────────────────────────
-    case "other_packages": {
-      const packages = smSecArr(s as ReturnType<typeof smFindSec>, "packages") as Array<Record<string, unknown>>;
-      if (!packages.length) return null;
-      const heading = smSecStr(s as ReturnType<typeof smFindSec>, "heading") || t.otherPackagesHeading;
-      return (
-        <section style={{ padding: isDesktop ? "40px 56px" : "32px 18px 0" }} dir={isRtl ? "rtl" : "ltr"} data-pmx-section="other_packages">
-          <div style={{ maxWidth: isDesktop ? 1100 : undefined, margin: isDesktop ? "0 auto" : undefined }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: SM.muted, marginBottom: 14 }}>{heading}</div>
-            <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
-              {packages.map((card, i) => {
-                const img = typeof card.image === "string" ? card.image : "";
-                const title = typeof card.title === "string" ? card.title : "";
-                const dest = typeof card.destination === "string" ? card.destination : "";
-                const price = typeof card.price === "string" ? card.price : "";
-                const nights = typeof card.nights === "string" ? card.nights : "";
-                const link = typeof card.link === "string" ? card.link : "";
-                return (
-                  <a key={i} href={link || undefined} style={{
-                    flex: "0 0 195px", minWidth: 195, borderRadius: 10, overflow: "hidden",
-                    textDecoration: "none", border: `1px solid ${SM.border}`,
-                    background: SM.paper, scrollSnapAlign: "start",
-                    display: "flex", flexDirection: "column",
-                  }}>
-                    <div style={{ width: "100%", height: 120, background: SM.border, flexShrink: 0 }}>
-                      {img && <img src={img} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
-                    </div>
-                    <div style={{ padding: "10px 12px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-                      {dest && <div style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" as const, color: SM.brand }}>{dest}</div>}
-                      <div style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 700, color: SM.ink, lineHeight: 1.3 }}>{title}</div>
-                      {(nights || price) && (
-                        <div style={{ marginTop: "auto", paddingTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                          {nights && <span style={{ fontFamily: FONT, fontSize: 11, color: SM.muted }}>{nights}</span>}
-                          {price && <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: SM.brand }}>{price}</span>}
-                        </div>
-                      )}
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-            {agency.agencySlug && (
-              <div style={{ marginTop: 14, textAlign: isRtl ? "left" : "right" }}>
-                <a href={`/${agency.agencySlug}/packages`} style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: SM.brand, textDecoration: "none" }}>
-                  {t.navAllPackages} →
-                </a>
-              </div>
-            )}
-          </div>
-        </section>
-      );
-    }
-
-    default:
-      return null;
-  }
-}
-
-// ─── Gallery sub-component (used by media/gallery cases) ─────────────────────
-
-function SmGallerySection({ images, videoUrl, mapImage, isDesktop, lang, t }: {
-  images: string[]; videoUrl: string; mapImage: string;
-  isDesktop: boolean; lang: Lang; t: typeof T["en"];
-}) {
-  const [lbIdx, setLbIdx] = React.useState<number | null>(null);
-  const isRtl = lang === "ar";
-  if (!images.length && !videoUrl && !mapImage) return null;
-  return (
-    <section style={{ padding: isDesktop ? "52px 80px" : "20px 18px", maxWidth: isDesktop ? 1180 : undefined, margin: isDesktop ? "0 auto" : undefined }} data-pmx-section="media">
-      <h2 style={{ fontSize: isDesktop ? 32 : 22, fontWeight: 800, letterSpacing: "-0.4px", color: SM.ink, marginBottom: isDesktop ? 24 : 16, fontFamily: FONT }}>{t.gallery}</h2>
-      {videoUrl && (() => {
-        const isEmbed = videoUrl.includes("youtube") || videoUrl.includes("youtu.be") || videoUrl.includes("vimeo");
-        const embedUrl = (() => {
-          const yt = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
-          if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
-          const vi = videoUrl.match(/vimeo\.com\/(\d+)/);
-          if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
-          return videoUrl;
-        })();
-        const h = isDesktop ? 460 : 220;
-        return isEmbed
-          ? <iframe src={embedUrl} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: "100%", height: h, borderRadius: isDesktop ? 14 : 12, border: "none", display: "block", marginBottom: 12 }} />
-          : <video src={videoUrl} controls muted playsInline poster={images[0]} style={{ width: "100%", borderRadius: isDesktop ? 14 : 12, background: "#000", maxHeight: h, marginBottom: 12, display: "block" }} />;
-      })()}
-      {images.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : "1fr 1fr", gap: isDesktop ? 10 : 8 }}>
-          {images.slice(0, 6).map((url, i) => (
-            <img key={i} src={url} alt="" onClick={() => setLbIdx(i)} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10, cursor: "pointer", display: "block" }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }} />
-          ))}
-        </div>
-      )}
-      {mapImage && <img src={mapImage} alt="" style={{ width: "100%", borderRadius: isDesktop ? 14 : 12, marginTop: 12, display: "block", objectFit: "cover", aspectRatio: isDesktop ? "21/9" : "16/9" }} />}
-      {lbIdx !== null && <SmLightbox images={images} startIdx={lbIdx} onClose={() => setLbIdx(null)} />}
-    </section>
+  // ---- atoms ----
+  const CTA = ({ children, full, big, ghost, onClick }: { children: React.ReactNode; full?: boolean; big?: boolean; ghost?: boolean; onClick?: () => void }) => (
+    <button data-testid="wa-cta" onClick={onClick} style={{ fontFamily: sans, background: ghost ? "transparent" : brand, color: ghost ? brand : onBrand, border: ghost ? `1.5px solid ${brand}` : "none", borderRadius: 10, padding: big ? "15px 26px" : "11px 20px", fontSize: D ? 14 : 13.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, width: full ? "100%" : "auto" }}>
+      {!ghost && <WAIcon s={15} fill={onBrand} />} {children}
+    </button>
   );
-}
-
-// ─── SmSections — render all sections in order ────────────────────────────────
-
-function SmSections({ pkg, isDesktop, onWhatsApp, lang, agency }: {
-  pkg: TPackage; isDesktop: boolean; onWhatsApp?: () => void; lang: Lang; agency: TAgency;
-}) {
-  const sections = pkg.sections;
-
-  // Legacy fallback (no sections[])
-  if (!sections?.length) {
-    const t = T[lang];
-    const inclusions = pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length;
-    const isRtl = lang === "ar";
-    const cardStyle: React.CSSProperties = { background: SM.paper, border: `1px solid ${SM.border}`, borderRadius: 12 };
-    const secPad: React.CSSProperties = isDesktop ? { padding: "52px 80px", maxWidth: 1180, margin: "0 auto" } : { padding: "20px 18px" };
-
-    return (
-      <>
-        {(pkg.itinerary || []).filter(it => it.title?.trim()).length > 0 && (
-          <section id="itinerary" style={{ ...secPad, scrollMarginTop: 88 }}>
-            <SmSecHead label={t.dayByDay} title={t.yourJourney} isDesktop={isDesktop} />
-            <div style={isDesktop ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 } : { display: "flex", flexDirection: "column", gap: 8 }}>
-              {(pkg.itinerary || []).filter(it => it.title?.trim()).map((it, i) => (
-                <div key={i} style={{ ...cardStyle, padding: isDesktop ? "18px 20px" : "14px 16px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: `${SM.brand}12`, border: `1px solid ${SM.brand}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: SM.brand }}>
-                    {it.day}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: SM.ink, lineHeight: 1.3, marginBottom: it.desc ? 4 : 0, direction: isRtl ? "rtl" : "ltr" }}>{it.title}</div>
-                    {it.desc && <div style={{ fontSize: 12, color: SM.muted, lineHeight: 1.55, direction: isRtl ? "rtl" : "ltr" }}>{it.desc}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-        {inclusions && (
-          <section id="included" style={{ ...secPad, scrollMarginTop: 88 }}>
-            <SmSecHead label={t.whatsIncluded} title={t.whatsIncluded} isDesktop={isDesktop} />
-            <div style={{ display: "grid", gridTemplateColumns: (pkg.excludes || []).length ? "1fr 1fr" : "1fr", gap: isDesktop ? 48 : 20 }}>
-              {(pkg.includes?.length ? pkg.includes : (pkg.advantages || [])).length > 0 && (
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#16a34a", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.7px" }}>{t.includedLabel}</div>
-                  {(pkg.includes?.length ? pkg.includes : (pkg.advantages || [])).map((item, i) => (
-                    <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-                      <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.22)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, fontWeight: 800, fontSize: 10, color: "#16a34a" }}>✓</div>
-                      <span style={{ fontSize: 13, color: SM.muted, lineHeight: 1.5 }}>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {(pkg.excludes || []).length > 0 && (
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#ef4444", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.7px" }}>{t.notIncluded}</div>
-                  {(pkg.excludes || []).map((item, i) => (
-                    <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-                      <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, fontWeight: 800, fontSize: 10, color: "#ef4444" }}>×</div>
-                      <span style={{ fontSize: 13, color: SM.muted, lineHeight: 1.5 }}>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-        {(pkg.pricingTiers || []).filter(tier => tier.price).length > 0 && (
-          <section id="pricing" style={{ ...secPad, scrollMarginTop: 88 }}>
-            <SmSecHead label={t.navPricing} title={t.chooseOption} isDesktop={isDesktop} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {(pkg.pricingTiers || []).filter(tier => tier.price).map((tier, i) => (
-                <div key={i} style={{
-                  background: i === 0 ? SM.brand : SM.paper,
-                  border: `1px solid ${i === 0 ? "transparent" : SM.border}`,
-                  borderRadius: 14, padding: "18px",
-                  boxShadow: i === 0 ? `0 8px 24px ${SM.brand}28` : "none",
-                }}>
-                  <div style={{ fontSize: 12, color: i === 0 ? "rgba(255,255,255,0.7)" : SM.muted, marginBottom: 8 }}>{localizeTierLabel(tier.label, lang)}</div>
-                  <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-1px", lineHeight: 1, color: i === 0 ? "#fff" : SM.ink }}>{tier.price}</div>
-                  <div style={{ fontSize: 11, color: i === 0 ? "rgba(255,255,255,0.5)" : SM.superMuted, marginTop: 5, marginBottom: 14 }}>{t.perPerson}</div>
-                  {onWhatsApp && <button onClick={onWhatsApp} style={{ width: "100%", padding: "10px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: i === 0 ? "rgba(255,255,255,0.2)" : SM.brand, color: "#fff" }}>
-                    {t.bookThisOption}
-                  </button>}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-      </>
-    );
-  }
-
-  const sorted = [...sections].sort((a, b) => a.order - b.order);
-  return (
-    <>
-      {sorted.map(s => (
-        <SmSection key={s.id} s={s} isDesktop={isDesktop} onWhatsApp={onWhatsApp} lang={lang} agency={agency} />
-      ))}
-    </>
+  const Eyebrow = ({ children }: { children: React.ReactNode }) => (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 12, background: SOFT, padding: "5px 12px", borderRadius: 7 }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: brand }} />
+      <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: rtl ? 0 : "1px", textTransform: uc, color: brand }}>{children}</span>
+    </div>
   );
-}
-
-// ─── SmReviews ────────────────────────────────────────────────────────────────
-
-function SmReviews({ pkg, agency, isDesktop, lang }: { pkg: TPackage; agency: TAgency; isDesktop: boolean; lang: Lang }) {
-  const t = T[lang];
-  const [localReviews, setLocalReviews] = React.useState<TReview[]>(() => (pkg.reviews || []).filter(r => r.text?.trim()));
-  const addReview = (r: TReview) => setLocalReviews(prev => [...prev, r]);
-
-  if (agency.showReviews === false) return null;
-
-  const reviews = localReviews;
-  const hasReviews = reviews.length > 0;
-  const avgRating = hasReviews ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
-  const secPad: React.CSSProperties = isDesktop ? { padding: "52px 80px", maxWidth: 1180, margin: "0 auto" } : { padding: "20px 18px" };
-
-  return (
-    <>
-      {hasReviews && (
-        <section style={secPad} data-pmx-section="reviews">
-          <div style={isDesktop
-            ? { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28 }
-            : { marginBottom: 18 }}>
-            <div>
-              <div style={{ fontFamily: MONO, fontSize: 10, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", marginBottom: 6 }}>
-                {t.reviewsSectionTitle}
-              </div>
-              <h2 style={{ fontSize: isDesktop ? 32 : 22, fontWeight: 800, letterSpacing: "-0.4px", color: SM.ink, margin: 0, fontFamily: FONT }}>
-                {t.reviewsSectionSubtitle}
-              </h2>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: isDesktop ? 4 : 0, marginTop: isDesktop ? 0 : 10 }}>
-              <SmStars rating={Math.round(avgRating)} />
-              <span style={{ fontSize: isDesktop ? 20 : 15, fontWeight: 800, color: SM.ink }}>{avgRating.toFixed(1)}</span>
-              <span style={{ fontSize: 12, color: SM.muted }}>· {reviews.length} {reviews.length === 1 ? t.reviewLabel : t.reviewsLabel}</span>
-            </div>
-          </div>
-          <div style={isDesktop
-            ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }
-            : { display: "flex", flexDirection: "column", gap: 10 }}>
-            {reviews.map((r, i) => {
-              const initials = (r.name || "?").slice(0, 2).toUpperCase();
-              return (
-                <div key={r.id ?? i} style={{ background: SM.paper, border: `1px solid ${SM.border}`, borderRadius: isDesktop ? 14 : 12, padding: isDesktop ? "22px 22px" : "14px 16px" }}>
-                  {isDesktop ? (
-                    <>
-                      <SmStars rating={r.rating} />
-                      <p style={{ fontSize: 13.5, color: SM.muted, lineHeight: 1.65, margin: "10px 0 16px" }}>{r.text}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        {r.avatarUrl
-                          ? <img src={r.avatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
-                          : <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${SM.brand}15`, border: `1px solid ${SM.brand}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: SM.brand }}>{initials}</div>
-                        }
-                        <div style={{ fontSize: 13, fontWeight: 700, color: SM.ink }}>{r.name}</div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                        {r.avatarUrl
-                          ? <img src={r.avatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                          : <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${SM.brand}15`, border: `1px solid ${SM.brand}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: SM.brand, flexShrink: 0 }}>{initials}</div>
-                        }
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: SM.ink }}>{r.name}</div>
-                          <SmStars rating={r.rating} />
-                        </div>
-                      </div>
-                      <p style={{ fontSize: 13, color: SM.muted, lineHeight: 1.6, margin: 0 }}>{r.text}</p>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-      {agency.enableReviews && <SmReviewForm pkg={pkg} isDesktop={isDesktop} lang={lang} onNewReview={addReview} />}
-    </>
+  const H2 = ({ children, size }: { children: React.ReactNode; size?: number }) => (
+    <h2 style={{ fontFamily: disp, fontSize: size || (D ? 38 : 26), fontWeight: 800, lineHeight: 1.08, letterSpacing: rtl ? 0 : "-0.6px", color: INK, margin: 0 }}>{children}</h2>
   );
-}
-
-// ─── SmReviewForm ─────────────────────────────────────────────────────────────
-
-function SmReviewForm({ pkg, isDesktop, lang, onNewReview }: {
-  pkg: TPackage; isDesktop: boolean; lang: Lang; onNewReview: (r: TReview) => void;
-}) {
-  const t = T[lang];
-  const [name, setName] = React.useState("");
-  const [text, setText] = React.useState("");
-  const [rating, setRating] = React.useState(5);
-  const [hover, setHover] = React.useState(0);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [submitted, setSubmitted] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const handleSubmit = async () => {
-    if (!name.trim() || !text.trim()) return;
-    setSubmitting(true); setError(null);
-    try {
-      const res = await fetch("/api/submit-review", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageId: pkg.id, name: name.trim(), text: text.trim(), rating }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || "Error");
-      onNewReview({ id: crypto.randomUUID(), name: name.trim(), text: text.trim(), rating, createdAt: Date.now() });
-      setSubmitted(true);
-    } catch { setError(t.reviewSubmitError); }
-    finally { setSubmitting(false); }
-  };
-
-  const secPad: React.CSSProperties = isDesktop ? { padding: "44px 80px", maxWidth: 1180, margin: "0 auto" } : { padding: "20px 18px" };
-  const inputStyle: React.CSSProperties = {
-    width: "100%", background: SM.paper, border: `1px solid ${SM.border}`,
-    borderRadius: 10, padding: "11px 14px", color: SM.ink, fontSize: 13,
-    fontFamily: "inherit", outline: "none", boxSizing: "border-box",
-  };
-
-  if (submitted) {
-    return (
-      <section style={secPad} data-pmx-section="reviews">
-        <div style={{ padding: "22px 20px", borderRadius: 14, background: `${SM.brand}10`, border: `1px solid ${SM.brand}28`, textAlign: "center" }}>
-          <div style={{ fontSize: 22, marginBottom: 8 }}>★</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: SM.ink }}>{t.reviewSubmitSuccess}</div>
-        </div>
-      </section>
-    );
-  }
-
-  const formContent = (
-    <>
-      <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
-        {[1, 2, 3, 4, 5].map(n => (
-          <button key={n} onClick={() => setRating(n)} onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 2, fontSize: isDesktop ? 30 : 26, lineHeight: 1, color: n <= (hover || rating) ? SM.brand : SM.border }}>
-            ★
-          </button>
-        ))}
+  const Wrap = ({ children, pt, pb, style, id, section }: { children: React.ReactNode; pt?: number; pb?: number; style?: React.CSSProperties; id?: string; section?: string }) => (
+    <section id={id} data-pmx-section={section} style={{ scrollMarginTop: D ? 60 : 54, padding: `${pt != null ? pt : (D ? 64 : 38)}px ${px}px ${pb != null ? pb : (D ? 64 : 38)}px`, ...style }}>{children}</section>
+  );
+  const SecHead = ({ eyebrow, title: t, sub }: { eyebrow: string; title: string; sub?: string }) => (
+    <div style={{ marginBottom: D ? 30 : 22 }}>
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <H2>{t}</H2>
+      {sub && <p style={{ fontFamily: sans, fontSize: D ? 15.5 : 14, color: MUT, lineHeight: 1.6, margin: "12px 0 0", maxWidth: 560 }}>{sub}</p>}
+    </div>
+  );
+  const LeaderRow = ({ label, sub, value, bold, big }: { label: string; sub?: string; value: string; bold?: boolean; big?: boolean }) => (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "11px 0" }}>
+      <div style={{ flexShrink: 0 }}>
+        <div style={{ fontFamily: sans, fontSize: big ? (D ? 16 : 15) : 14, fontWeight: bold ? 800 : 600, color: INK }}>{label}</div>
+        {sub && <div style={{ fontFamily: sans, fontSize: 11.5, color: FAINT, marginTop: 2 }}>{sub}</div>}
       </div>
-      <input value={name} onChange={e => setName(e.target.value)} placeholder={t.reviewYourName} style={{ ...inputStyle, marginBottom: 10 }} />
-      <textarea value={text} onChange={e => setText(e.target.value)} placeholder={t.reviewPlaceholder} rows={isDesktop ? 5 : 4}
-        style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6, marginBottom: 12 }} />
-      {error && <p style={{ fontSize: 12, color: "#ef4444", marginBottom: 10 }}>{error}</p>}
-      <button onClick={handleSubmit} disabled={submitting || !name.trim() || !text.trim()} style={{
-        padding: isDesktop ? "13px 28px" : "11px 22px", borderRadius: 10, border: "none",
-        cursor: submitting || !name.trim() || !text.trim() ? "not-allowed" : "pointer",
-        background: SM.brand, color: "#fff", fontSize: 13, fontWeight: 700,
-        fontFamily: "inherit", opacity: submitting || !name.trim() || !text.trim() ? 0.55 : 1,
-      }}>
-        {submitting ? "…" : t.submitReviewBtn}
-      </button>
-    </>
+      <div style={{ flex: 1, borderBottom: `1px dotted ${LINE}`, marginBottom: 5 }} />
+      <div style={{ flexShrink: 0, fontFamily: mono, fontSize: big ? (D ? 22 : 19) : 15, fontWeight: bold ? 700 : 400, color: bold ? brand : INK }}>{value}</div>
+    </div>
   );
 
-  if (isDesktop) {
+  // ════════ HERO ════════
+  const Hero = () => (
+    <div data-pmx-section="hero" style={{ background: BG }}>
+      {cover && (
+        <div style={{ padding: D ? `40px ${px}px 0` : `18px ${px}px 0` }}>
+          <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", border: `1px solid ${LINE}`, height: D ? 300 : 190 }}>
+            <img src={cover} alt="" onClick={() => zoom(cover)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "zoom-in" }} />
+          </div>
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 48 : 24, padding: D ? `${cover ? 40 : 60}px ${px}px ${cover ? 48 : 60}px` : `${cover ? 22 : 34}px ${px}px 24px`, alignItems: "center" }}>
+        <div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: SOFT, color: brand, padding: "7px 14px", borderRadius: 999, fontFamily: sans, fontSize: 12, fontWeight: 700, letterSpacing: rtl ? 0 : "0.4px", marginBottom: 18 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: brand }} /> <span data-pmx-field="destination">{pkg.destination}</span>
+          </div>
+          <h1 style={{ fontFamily: disp, fontSize: D ? 50 : 33, fontWeight: 800, lineHeight: 1.04, letterSpacing: rtl ? 0 : "-1.2px", color: INK, margin: 0 }} data-pmx-field="title">{title}</h1>
+          {pkg.description && <p style={{ fontFamily: sans, fontSize: D ? 16 : 14.5, color: MUT, lineHeight: 1.7, margin: "20px 0 0", maxWidth: 420 }}>{pkg.description}</p>}
+          <div style={{ display: "flex", gap: 12, marginTop: 26, flexWrap: "wrap" }}>
+            {pkg.whatsapp && <CTA big onClick={onWhatsApp}>{L.ui.book}</CTA>}
+            {pkg.messenger && onMessenger && <CTA big ghost onClick={onMessenger}>{L.ui.messenger}</CTA>}
+          </div>
+        </div>
+        <div style={{ background: PAPER, borderRadius: 16, border: `1px solid ${LINE}`, boxShadow: "0 18px 50px rgba(21,33,46,0.08)", overflow: "hidden" }}>
+          <div style={{ padding: D ? "20px 24px" : "16px 18px", borderBottom: `1px dashed ${LINE}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontFamily: mono, fontSize: 12, fontWeight: 700, color: INK, letterSpacing: rtl ? 0 : "1px", textTransform: uc }}>{L.ui.quote}</div>
+            <div style={{ fontFamily: mono, fontSize: 11, color: FAINT }}>{pkg.destination}</div>
+          </div>
+          {breakdown.length > 0 && <div style={{ padding: D ? "8px 24px" : "6px 18px" }}>{breakdown.map((b, i) => <LeaderRow key={i} label={b.l} value={b.v} />)}</div>}
+          <div style={{ padding: D ? "14px 24px 22px" : "12px 18px 18px", borderTop: `2px solid ${INK}`, background: SOFT }}>
+            <LeaderRow label={L.ui.total} value={dig(pkg.price || "")} bold big />
+            <div style={{ fontFamily: sans, fontSize: 11.5, color: MUT, marginTop: 2 }}>{L.ui.totalLine}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ════════ SCARCITY ════════
+  const Scarcity = () => {
+    const sc = pkg.scarcity;
+    if (!sc || sc.spotsRemaining == null) return null;
     return (
-      <section style={secPad} data-pmx-section="reviews">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 64, alignItems: "start" }}>
+      <Wrap pt={D ? 40 : 26} pb={D ? 24 : 16} section="scarcity">
+        <div style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? "24px 28px" : 20, display: "flex", flexDirection: D ? "row" : "column", gap: D ? 0 : 16, justifyContent: "space-between", alignItems: D ? "center" : "stretch" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: SOFT, color: brand, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
+            </div>
+            <div style={{ maxWidth: 460 }}>
+              <div style={{ fontFamily: sans, fontSize: 10.5, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 4 }}>{L.sections.scarcity}</div>
+              <div style={{ fontFamily: sans, fontSize: D ? 15.5 : 14, fontWeight: 600, color: INK, lineHeight: 1.5 }}>{L.ui.spotsLine(sc.spotsRemaining)}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 22 }}>
+            <div>
+              <div style={{ fontFamily: mono, fontSize: D ? 30 : 24, fontWeight: 700, color: brand, lineHeight: 1 }}>{dig(sc.spotsRemaining)}</div>
+              <div style={{ fontFamily: sans, fontSize: 11, color: FAINT, marginTop: 4 }}>{ar("rooms at this rate", "غرف بهذا السعر")}</div>
+            </div>
+            {sc.firstDepartureDate && (
+              <div>
+                <div style={{ fontFamily: mono, fontSize: D ? 18 : 16, fontWeight: 700, color: INK, lineHeight: 1, marginTop: D ? 8 : 5 }}>{dig(sc.firstDepartureDate)}</div>
+                <div style={{ fontFamily: sans, fontSize: 11, color: FAINT, marginTop: 4 }}>{L.ui.nextDeparture}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ HIGHLIGHTS ════════
+  const Highlights = () => {
+    const items = secMixed(findSec(pkg, "highlights"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap pt={D ? 36 : 22} section="highlights">
+        <SecHead eyebrow={L.nav.highlights} title={ar("Honesty, built in", "الشفافية من صميمنا")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 14 }}>
+          {items.map((h, i) => {
+            const t = secItemStr(h, "title", "text", "label");
+            const d = typeof h === "object" ? secItemStr(h, "desc", "description") : "";
+            return (
+              <div key={i} style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 26 : 20 }}>
+                <div style={{ fontFamily: mono, fontSize: 13, fontWeight: 700, color: brand, marginBottom: 12 }}>{dig(`0${i + 1}`.slice(-2))}</div>
+                <div style={{ fontFamily: disp, fontSize: D ? 19 : 17, fontWeight: 800, color: INK, marginBottom: d ? 8 : 0, lineHeight: 1.25 }}>{t}</div>
+                {d && <div style={{ fontFamily: sans, fontSize: 13.5, color: MUT, lineHeight: 1.6 }}>{d}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ MEDIA ════════
+  const Media = () => {
+    const m = findSec(pkg, "media");
+    const imgs = mediaImgs;
+    const video = secStr(m, "videoUrl") || pkg.videoUrl || "";
+    const mapImage = secStr(m, "mapImage");
+    const mapCaption = secStr(m, "mapCaption");
+    if (!imgs.length && !video && !mapImage) return null;
+    const tiles = imgs.slice(1, 4);
+    const stops = mapImage ? [] : itinDays.slice(0, 5).map((d) => ({ label: secItemStr(d, "title") })).filter((s) => s.label);
+    return (
+      <Wrap style={{ background: PAPER }} section="media">
+        <SecHead eyebrow={L.sections.media} title={ar("Exactly what you're buying", "بالضبط ما تشتريه")} />
+        <SmVideo src={video} poster={cover || imgs[0]} accent={brand} radius={14} rtl={rtl} sans={sans} height={D ? 420 : 220} ui={L.ui} />
+        {tiles.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: D ? 12 : 7, marginTop: D ? 12 : 7 }}>
+            {tiles.map((u, i) => <img key={i} src={u} onClick={() => zoom(u)} style={{ width: "100%", height: D ? 170 : 76, objectFit: "cover", borderRadius: 12, display: "block", cursor: "zoom-in" }} />)}
+          </div>
+        )}
+        {(mapImage || stops.length > 0) && (
+          <div style={{ marginTop: D ? 22 : 16 }}>
+            <div style={{ fontFamily: mono, fontSize: 11, color: brand, fontWeight: 700, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 10 }}>{L.ui.route}</div>
+            {mapImage
+              ? <img src={mapImage} alt={mapCaption} style={{ width: "100%", height: D ? 210 : 160, objectFit: "cover", borderRadius: 12, display: "block" }} />
+              : <SmRouteMap stops={stops} line={brand} ink={INK} height={D ? 210 : 160} rounded={12} rtl={rtl} />}
+            {mapCaption && <div style={{ fontFamily: sans, fontSize: 12.5, color: FAINT, marginTop: 10 }}>{mapCaption}</div>}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ ITINERARY ════════
+  const Itinerary = () => {
+    if (!itinDays.length) return null;
+    return (
+      <Wrap section="itinerary">
+        <SecHead eyebrow={L.sections.itinerary} title={ar("Day by day", "يومًا بيوم")} />
+        <div style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 14, overflow: "hidden" }}>
+          {itinDays.map((it, i) => {
+            const day = (it.day as number) ?? i + 1;
+            return (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: D ? "60px 1fr" : "44px 1fr", gap: D ? 20 : 14, padding: D ? "18px 24px" : "15px 16px", alignItems: "center", borderTop: i ? `1px solid ${LINE}` : "none" }}>
+                <div style={{ fontFamily: mono, fontSize: D ? 15 : 13, fontWeight: 700, color: onBrand, background: brand, borderRadius: 8, width: D ? 40 : 32, height: D ? 40 : 32, display: "flex", alignItems: "center", justifyContent: "center" }}>{rtl ? dig(day) : `D${day}`}</div>
+                <div>
+                  <div style={{ fontFamily: disp, fontSize: D ? 17 : 15.5, fontWeight: 800, color: INK }}>{secItemStr(it, "title")}</div>
+                  {secItemStr(it, "desc", "description") && <div style={{ fontFamily: sans, fontSize: 13, color: MUT, lineHeight: 1.5, marginTop: 3 }}>{secItemStr(it, "desc", "description")}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ HOTEL ════════
+  const Hotel = () => {
+    const h = findSec(pkg, "hotel");
+    const rich = findSec(pkg, "hotels");
+    const r0 = (secArr(rich, "hotels").length ? secArr(rich, "hotels") : secArr(rich, "items"))[0];
+    const name = r0 ? secItemStr(r0, "name") : "";
+    const stars = r0 && typeof r0.stars === "number" ? (r0.stars as number) : 0;
+    const blurb = (r0 ? secItemStr(r0, "note", "description", "blurb") : "") || secStr(h, "description") || pkg.hotelDescription || "";
+    const features = r0 ? secStrArr(r0, "facilities").concat(secStrArr(r0, "features")) : [];
+    if (!blurb && !name) return null;
+    const img = mediaImgs[2] || mediaImgs[0] || cover;
+    return (
+      <Wrap style={{ background: PAPER }} section="hotel">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 40 : 18, alignItems: "center" }}>
+          {img && <img src={img} onClick={() => zoom(img)} style={{ width: "100%", height: D ? 340 : 210, objectFit: "cover", borderRadius: 14, display: "block", cursor: "zoom-in" }} />}
           <div>
-            <div style={{ fontFamily: MONO, fontSize: 10, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1.4px", marginBottom: 8 }}>{t.writeReviewTitle}</div>
-            <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.5px", color: SM.ink, margin: "0 0 12px", fontFamily: FONT }}>{t.writeReviewTitle}</h2>
-            <p style={{ fontSize: 14, color: SM.muted, lineHeight: 1.65, margin: 0 }}>{t.writeReviewSub}</p>
-          </div>
-          <div>{formContent}</div>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section style={secPad} data-pmx-section="reviews">
-      <Eyebrow text={t.writeReviewTitle} brand={SM.brand} />
-      <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.3px", color: SM.ink, margin: "10px 0 6px", fontFamily: FONT }}>{t.writeReviewTitle}</h2>
-      <p style={{ fontSize: 13, color: SM.muted, marginBottom: 16 }}>{t.writeReviewSub}</p>
-      {formContent}
-    </section>
-  );
-}
-
-// ─── SmCTABanner ──────────────────────────────────────────────────────────────
-
-function SmCTABanner({ pkg, agency, isDesktop, onWhatsApp, onMessenger, lang }: {
-  pkg: TPackage; agency: TAgency; isDesktop: boolean;
-  onWhatsApp: () => void; onMessenger: () => void; lang: Lang;
-}) {
-  const t = T[lang];
-  if (isDesktop) {
-    return (
-      <DContainer style={{ padding: "56px 80px" }}>
-        <div style={{
-          background: `linear-gradient(135deg, ${SM.brand} 0%, ${SM.brand}cc 100%)`,
-          borderRadius: 20, padding: "52px 60px", position: "relative", overflow: "hidden",
-          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 48,
-        }}>
-          <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.05, pointerEvents: "none" }} viewBox="0 0 80 80" preserveAspectRatio="xMidYMid slice">
-            <defs><pattern id="sm-geo-dt" width="40" height="40" patternUnits="userSpaceOnUse"><polygon points="20,0 40,10 40,30 20,40 0,30 0,10" fill="none" stroke="white" strokeWidth="0.5" /></pattern></defs>
-            <rect width="100%" height="100%" fill="url(#sm-geo-dt)" />
-          </svg>
-          <div style={{ position: "relative" }}>
-            <div style={{ fontSize: 38, fontWeight: 800, color: "#fff", letterSpacing: "-0.8px", lineHeight: 1.1, marginBottom: 10 }}>
-              {t.readyToExplore} {pkg.destination}?
-            </div>
-            <div style={{ fontSize: 15, color: "rgba(255,255,255,0.65)" }}>{t.reserveSpot}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, position: "relative", flexShrink: 0 }}>
-            {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
-            {pkg.messenger && (
-              <button onClick={onMessenger} style={{ background: "rgba(255,255,255,0.18)", color: "#fff", border: "1px solid rgba(255,255,255,0.28)", borderRadius: 10, padding: "14px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                {t.messageMessenger}
-              </button>
+            <Eyebrow>{L.sections.hotel}</Eyebrow>
+            <H2 size={D ? 30 : 23}>{name || ar("Your stay", "إقامتك")}</H2>
+            {stars > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 14px" }}>
+                <SmStars n={stars} size={15} color={brand} /><span style={{ fontFamily: sans, fontSize: 12, color: FAINT }}>{dig(stars)} {L.ui.stars}</span>
+              </div>
             )}
+            {blurb && <p style={{ fontFamily: sans, fontSize: D ? 15 : 14, color: MUT, lineHeight: 1.7, margin: stars > 0 ? 0 : "14px 0 0", whiteSpace: "pre-line" }}>{blurb}</p>}
+            {features.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 18 }}>{features.map((f, i) => <div key={i} style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 600, color: INK, background: BG, border: `1px solid ${LINE}`, borderRadius: 9, padding: "9px 13px" }}>{f}</div>)}</div>}
           </div>
         </div>
-      </DContainer>
+      </Wrap>
     );
-  }
+  };
 
-  return (
-    <div style={{ padding: "0 18px 28px" }}>
-      <div style={{
-        background: `linear-gradient(135deg, ${SM.brand} 0%, ${SM.brand}bb 100%)`,
-        borderRadius: 18, padding: "28px 22px", position: "relative", overflow: "hidden",
-        display: "flex", flexDirection: "column", gap: 18,
-      }}>
-        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.06, pointerEvents: "none" }} viewBox="0 0 80 80" preserveAspectRatio="xMidYMid slice">
-          <defs><pattern id="sm-geo-mb" width="40" height="40" patternUnits="userSpaceOnUse"><polygon points="20,0 40,10 40,30 20,40 0,30 0,10" fill="none" stroke="white" strokeWidth="0.5" /></pattern></defs>
-          <rect width="100%" height="100%" fill="url(#sm-geo-mb)" />
-        </svg>
-        <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1.2, marginBottom: 6 }}>
-            {t.readyToExplore} {pkg.destination}?
+  // ════════ MEALS ════════
+  const Meals = () => {
+    const m = findSec(pkg, "meals");
+    const plan = secStr(m, "plan");
+    const notes = secStr(m, "notes");
+    if (!plan && !notes) return null;
+    const planLabel = MEAL_LABELS[plan]?.[lang] || plan || ar("Dining", "الطعام");
+    return (
+      <Wrap section="meals">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1.1fr" : "1fr", gap: D ? 48 : 22 }}>
+          <div>
+            <Eyebrow>{L.sections.meals}</Eyebrow>
+            <H2 size={D ? 30 : 23}>{planLabel}</H2>
           </div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)" }}>{t.reserveSpot}</div>
+          {notes && <p style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.7, margin: 0, whiteSpace: "pre-line" }}>{notes}</p>}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, position: "relative" }}>
-          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" full onClick={onWhatsApp} />}
-          {pkg.messenger && (
-            <button onClick={onMessenger} style={{ background: "rgba(255,255,255,0.18)", color: "#fff", border: "1px solid rgba(255,255,255,0.28)", borderRadius: 10, padding: "12px 24px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-              {t.messageMessenger}
-            </button>
+      </Wrap>
+    );
+  };
+
+  // ════════ INCLUSIONS ════════
+  const Inclusions = () => {
+    const inc = findSec(pkg, "inclusions");
+    const includes = secStrArr(inc, "includes").length ? secStrArr(inc, "includes") : (pkg.includes ?? []);
+    const excludes = secStrArr(inc, "excludes").length ? secStrArr(inc, "excludes") : (pkg.excludes ?? []);
+    if (!includes.length && !excludes.length) return null;
+    return (
+      <Wrap style={{ background: PAPER }} section="inclusions">
+        <SecHead eyebrow={L.sections.inclusions} title={ar("On the bill vs. off it", "على الفاتورة وخارجها")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 16 : 14 }}>
+          {includes.length > 0 && (
+            <div style={{ background: SOFT, borderRadius: 14, padding: D ? 24 : 18 }}>
+              <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 800, color: brand, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 14 }}>{L.ui.included}</div>
+              {includes.map((it, i) => <div key={i} style={{ display: "flex", gap: 11, padding: "8px 0", alignItems: "flex-start" }}><span style={{ width: 18, height: 18, borderRadius: "50%", background: brand, color: onBrand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0, marginTop: 1 }}>✓</span><span style={{ fontFamily: sans, fontSize: 13.5, color: INK, lineHeight: 1.5 }}>{it}</span></div>)}
+            </div>
+          )}
+          {excludes.length > 0 && (
+            <div style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 24 : 18 }}>
+              <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 800, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 14 }}>{L.ui.notIncluded}</div>
+              {excludes.map((it, i) => <div key={i} style={{ display: "flex", gap: 11, padding: "8px 0", alignItems: "flex-start" }}><span style={{ width: 18, height: 18, borderRadius: "50%", border: `1px solid ${LINE}`, color: FAINT, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0, marginTop: 1 }}>—</span><span style={{ fontFamily: sans, fontSize: 13.5, color: MUT, lineHeight: 1.5 }}>{it}</span></div>)}
+            </div>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── SmMobileFooter ───────────────────────────────────────────────────────────
-
-function SmMobileFooter({ agency }: { agency: TAgency }) {
-  const initials = agency.name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
-  return (
-    <div style={{ padding: "22px 18px", borderTop: `1px solid ${SM.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        {agency.logoUrl
-          ? <img src={agency.logoUrl} alt="" style={{ width: 24, height: 24, objectFit: "contain", borderRadius: 5 }} />
-          : <div style={{ width: 24, height: 24, borderRadius: 6, background: SM.brand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff" }}>{initials}</div>
-        }
-        <div style={{ fontSize: 13, fontWeight: 700, color: SM.ink }}>{agency.name}</div>
-      </div>
-      <div style={{ fontSize: 10, color: SM.superMuted }}>Powered by PackMetrix</div>
-    </div>
-  );
-}
-
-// ─── TemplateSmartPage ────────────────────────────────────────────────────────
-
-export function TemplateSmartPage({ pkg, agency, onWhatsApp, onMessenger, lang }: TPageProps) {
-  const t = T[lang];
-  const nights = pkg.nights ? Number(pkg.nights) : null;
-  const coverImage = pkg.coverImage || "";
-  const title = pkg.title || pkg.destination;
-  const isRtl = lang === "ar";
-  const isDesktop = useIsDesktop();
-
-  // Breakdown rows — itemised line-items, not pricing tiers. The data model has
-  // no stored line-item breakdown, so these are illustrative shares of the base
-  // price (40/25/20/10/5 → sums exactly to pkg.price). Labelled "Illustrative
-  // breakdown" in the UI so there is no fake precision.
-  type BreakdownRow = { l: string; v: string };
-  const stx = SM_TX[lang];
-  const priceParts = smPriceParts(pkg.price);
-  const breakdownIllustrative = !!priceParts;
-  const breakdownRows: BreakdownRow[] = priceParts
-    ? [
-        { l: stx.accommodation, v: priceParts.fmt(priceParts.num * 0.40) },
-        { l: stx.experiences,   v: priceParts.fmt(priceParts.num * 0.25) },
-        { l: stx.transport,     v: priceParts.fmt(priceParts.num * 0.20) },
-        { l: stx.guideSupport,  v: priceParts.fmt(priceParts.num * 0.10) },
-        { l: stx.platformFee,   v: priceParts.fmt(priceParts.num * 0.05) },
-      ]
-    : [{ l: t.perPerson, v: pkg.price }];
-
-  const navLinks = [
-    ...((pkg.itinerary || []).some(it => it.title?.trim()) || (pkg.sections?.some(s => s.type === "itinerary")) ? [{ label: t.navItinerary, href: "#itinerary" }] : []),
-    ...((pkg.includes?.length || (pkg.advantages || []).length || pkg.excludes?.length || pkg.sections?.some(s => s.type === "inclusions")) ? [{ label: t.navIncluded, href: "#included" }] : []),
-    ...((pkg.pricingTiers || []).some(tier => tier.price) || pkg.sections?.some(s => s.type === "pricing") ? [{ label: t.navPricing, href: "#pricing" }] : []),
-    ...(pkg.sections?.some(s => s.type === "hotel" || s.type === "hotels") || pkg.hotelDescription ? [{ label: t.navHotel, href: "#hotel" }] : []),
-    ...(pkg.sections?.some(s => s.type === "departures") || (pkg.departures ?? []).length ? [{ label: t.navDepartures, href: "#departures" }] : []),
-    ...(pkg.sections?.some(s => s.type === "reviews") || (pkg.reviews ?? []).length ? [{ label: t.navReviews, href: "#reviews" }] : []),
-    ...(pkg.sections?.some(s => s.type === "faq") ? [{ label: t.navFaq, href: "#faq" }] : []),
-  ];
-
-  if (isDesktop) {
-    return (
-      <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: SM.bg, color: SM.ink, fontFamily: FONT, direction: isRtl ? "rtl" : "ltr" }}>
-        <DesktopNav agency={agency} price={pkg.price} brand={SM.brand} navLinks={navLinks} lang={lang} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} />
-
-        {/* Split hero: image left, text right */}
-        <DContainer data-pmx-section="hero" style={{ padding: "56px 80px 48px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 48, alignItems: "center" }}>
-            <div style={{ position: "relative", height: 440, borderRadius: 14, overflow: "hidden" }}>
-              {coverImage
-                ? <img src={coverImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
-                : <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${SM.brand}cc, ${SM.brand}55)` }} />
-              }
-            </div>
-            <div>
-              <div data-pmx-field="destination"><Eyebrow text={pkg.destination} brand={SM.brand} /></div>
-              <h1 data-pmx-field="title" style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-1.2px", marginTop: 16, marginBottom: 18, fontFamily: FONT }}>{title}</h1>
-              <p style={{ fontSize: 16, color: SM.muted, lineHeight: 1.65, margin: 0 }}>{pkg.description}</p>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 28 }}>
-                <div data-pmx-field="price" style={{ fontSize: 56, fontWeight: 800, color: SM.brand, letterSpacing: "-1.5px", lineHeight: 1, ...SM_NUM }}>{pkg.price}</div>
-                <div style={{ fontSize: 14, color: SM.superMuted }}>{t.perPerson} · {t.allInSuffix}</div>
-              </div>
-              <div style={{ marginTop: 24 }}>
-                {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="lg" onClick={onWhatsApp} />}
-              </div>
-            </div>
-          </div>
-        </DContainer>
-
-        {/* Breakdown */}
-        {breakdownRows.length > 0 && (
-          <DContainer style={{ padding: "0 80px 56px" }}>
-            <Eyebrow text={`${t.whatsInPriceEyebrow} ${pkg.price}`} brand={SM.brand} />
-            <h3 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.4px", margin: "8px 0 16px", fontFamily: FONT }}>{t.honestBreakdown}</h3>
-            <div style={{ background: SM.paper, border: `1px solid ${SM.border}`, borderRadius: 12, overflow: "hidden", maxWidth: 560 }}>
-              {breakdownRows.map((b, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "13px 18px", borderTop: i === 0 ? "none" : `1px solid ${SM.border}` }}>
-                  <div style={{ fontSize: 13.5, color: SM.ink }}>{b.l}</div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, ...SM_NUM }}>{b.v}</div>
-                </div>
-              ))}
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 18px", background: `${SM.brand}1a`, borderTop: `1px solid ${SM.border}` }}>
-                <div style={{ fontSize: 13.5, fontWeight: 800 }}>{t.totalPerPerson}</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: SM.brand, ...SM_NUM }}>{pkg.price}</div>
-              </div>
-            </div>
-            {breakdownIllustrative && (
-              <p style={{ fontSize: 12, color: SM.superMuted, margin: "10px 0 0" }}>{stx.illustrativeBreakdown}</p>
-            )}
-          </DContainer>
-        )}
-
-        {/* Transparency comparison strip */}
-        <DContainer style={{ padding: "0 80px 56px" }}>
-          <SmCompare pkg={pkg} lang={lang} isDesktop={true} />
-        </DContainer>
-
-        <SmSections pkg={pkg} isDesktop={true} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
-        <div id="reviews" style={{ scrollMarginTop: 88 }}><SmReviews pkg={pkg} agency={agency} isDesktop={true} lang={lang} /></div>
-        <SmCTABanner pkg={pkg} agency={agency} isDesktop={true} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
-        <DesktopFooter agency={agency} brand={SM.brand} />
-      </div>
+      </Wrap>
     );
-  }
+  };
 
-  return (
-    <div dir={isRtl ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: SM.bg, color: SM.ink, fontFamily: FONT, direction: isRtl ? "rtl" : "ltr" }}>
-      <AgencyBar agency={agency} price={pkg.price} brand={SM.brand} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} navLinks={navLinks} />
-
-      {/* Hero */}
-      <div data-pmx-section="hero" style={{ position: "relative", height: 230, overflow: "hidden" }}>
-        {coverImage
-          ? <img src={coverImage} alt={pkg.destination} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-          : <div style={{ width: "100%", height: "100%", background: `linear-gradient(135deg, ${SM.brand}cc, ${SM.brand}44)` }} />
-        }
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.5))" }} />
-      </div>
-
-      {/* Title + description */}
-      <div style={{ padding: "22px 18px 0" }}>
-        <div data-pmx-field="destination"><Eyebrow text={pkg.destination} brand={SM.brand} /></div>
-        <h1 data-pmx-field="title" style={{ fontSize: 26, fontWeight: 800, color: SM.ink, margin: "10px 0 12px", letterSpacing: "-0.5px", lineHeight: 1.2, fontFamily: FONT }}>
-          {title}
-        </h1>
-        {pkg.description && (
-          <p style={{ fontSize: 14, color: SM.muted, lineHeight: 1.7, margin: 0 }}>{pkg.description}</p>
+  // ════════ TRANSFERS ════════
+  const Transfers = () => {
+    const tx = findSec(pkg, "transfers");
+    const desc = secStr(tx, "description");
+    const items = secMixed(tx, "items");
+    if (!desc && !items.length) return null;
+    return (
+      <Wrap section="transfers">
+        <SecHead eyebrow={L.sections.transfers} title={ar("Getting around", "التنقّل")} sub={items.length ? undefined : desc} />
+        {items.length > 0 && (
+          <div style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 14, overflow: "hidden" }}>
+            {items.map((t, i) => (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: D ? "1fr 2fr" : "1fr", gap: D ? 20 : 4, padding: D ? "18px 24px" : "15px 16px", alignItems: D ? "center" : "stretch", borderTop: i ? `1px solid ${LINE}` : "none" }}>
+                <div style={{ fontFamily: disp, fontSize: D ? 16 : 15, fontWeight: 800, color: INK }}>{secItemStr(t, "leg", "title", "name", "text")}</div>
+                {typeof t === "object" && secItemStr(t, "desc", "description") && <div style={{ fontFamily: sans, fontSize: 13, color: MUT, lineHeight: 1.55 }}>{secItemStr(t, "desc", "description")}</div>}
+              </div>
+            ))}
+          </div>
         )}
-      </div>
+      </Wrap>
+    );
+  };
 
-      {/* Price breakdown */}
-      <div style={{ padding: "22px 18px 0" }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>
-          {t.whatsInThePriceLabel}
+  // ════════ VISA ════════
+  const Visa = () => {
+    const v = findSec(pkg, "visa");
+    const included = secStr(v, "included");
+    const content = secStr(v, "content");
+    if (!included && !content) return null;
+    return (
+      <Wrap style={{ background: PAPER }} section="visa">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 48 : 22 }}>
+          <div>
+            <Eyebrow>{L.sections.visa}</Eyebrow>
+            <H2 size={D ? 30 : 23}>{VISA_HEAD[included]?.[lang] || ar("Visa & entry", "التأشيرة والدخول")}</H2>
+          </div>
+          {content && <p style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.7, margin: 0, whiteSpace: "pre-line" }}>{content}</p>}
         </div>
-        <div style={{ background: SM.paper, border: `1px solid ${SM.border}`, borderRadius: 14, overflow: "hidden" }}>
-          {breakdownRows.map((row, i) => (
-            <div key={i} style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "13px 16px", borderBottom: i < breakdownRows.length - 1 ? `1px solid ${SM.border}` : "none",
-            }}>
-              <span style={{ fontSize: 13, color: SM.muted }}>{row.l}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: SM.ink }}>{row.v}</span>
+      </Wrap>
+    );
+  };
+
+  // ════════ DEPARTURES ════════
+  const Departures = () => {
+    const rows = depEntries.length ? depEntries : (pkg.departures ?? []).map((d) => ({ date: d.date, price: d.price, spots: d.spots } as SecData));
+    if (!rows.length) return null;
+    const col = (spots: number) => spots <= 0 ? FAINT : spots <= 3 ? "#c2730a" : brand;
+    return (
+      <Wrap id="sm-departures" section="departures">
+        <SecHead eyebrow={L.sections.departures} title={ar("Where you fly from", "من أين تنطلق")} />
+        {D ? (
+          <div style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1.2fr 1fr 1fr auto", padding: "13px 24px", fontFamily: mono, fontSize: 10.5, fontWeight: 700, letterSpacing: rtl ? 0 : "0.6px", textTransform: uc, color: FAINT, borderBottom: `1px solid ${LINE}`, background: BG }}>
+              <div>{L.ui.from}</div><div>{L.ui.date}</div><div>{L.ui.depart}</div><div>{L.ui.availability}</div><div style={{ textAlign: "end" }}>{L.ui.price}</div><div />
+            </div>
+            {rows.map((r, i) => {
+              const spots = typeof r.spots === "number" ? r.spots : Number(r.spots) || 0; const sold = spots <= 0;
+              const from = secItemStr(r, "origin", "from"); const date = secItemStr(r, "date");
+              const dep = secItemStr(r, "flyingTime"); const arrt = secItemStr(r, "arrivingTime"); const price = secItemStr(r, "price");
+              return (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1.2fr 1fr 1fr auto", padding: "15px 24px", alignItems: "center", borderTop: i ? `1px solid ${LINE}` : "none", opacity: sold ? 0.5 : 1 }}>
+                  <div style={{ fontFamily: disp, fontSize: 15, fontWeight: 800, color: INK }}>{from || dig(date)}</div>
+                  <div style={{ fontFamily: sans, fontSize: 13, color: MUT }}>{dig(date)}</div>
+                  <div style={{ fontFamily: mono, fontSize: 12.5, color: MUT }}>{dep ? `${dig(dep)}${arrt ? `→${dig(arrt)}` : ""}` : "—"}</div>
+                  <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: col(spots) }}>{sold ? L.ui.soldOut : `${dig(spots)} ${L.ui.left}`}</div>
+                  <div style={{ fontFamily: mono, fontSize: 17, fontWeight: 700, color: INK, textAlign: "end" }}>{dig(price)}</div>
+                  <div style={{ textAlign: "end", paddingInlineStart: 16 }}>{sold ? <span style={{ fontFamily: sans, fontSize: 12, color: FAINT }}>—</span> : (pkg.whatsapp ? <CTA onClick={onWhatsApp}>{ar("Book", "احجز")}</CTA> : null)}</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {rows.map((r, i) => {
+              const spots = typeof r.spots === "number" ? r.spots : Number(r.spots) || 0; const sold = spots <= 0;
+              const from = secItemStr(r, "origin", "from"); const date = secItemStr(r, "date"); const price = secItemStr(r, "price");
+              return (
+                <div key={i} style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 12, padding: 16, opacity: sold ? 0.55 : 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <div style={{ fontFamily: disp, fontSize: 16, fontWeight: 800, color: INK }}>{from || dig(date)}</div>
+                    {price && <div style={{ fontFamily: mono, fontSize: 17, fontWeight: 700, color: brand }}>{dig(price)}</div>}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontFamily: sans, fontSize: 12.5, color: MUT }}>
+                    <span>{dig(date)}</span><span style={{ color: col(spots), fontWeight: 700 }}>{sold ? L.ui.soldOut : `${dig(spots)} ${L.ui.left}`}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ PRICING ════════
+  const Pricing = () => {
+    const pr = findSec(pkg, "pricing");
+    const tiers = pkg.pricingTiers ?? [];
+    const cancellation = lines(secStr(pr, "cancellation") || pkg.cancellation || "");
+    const schedule = secArr(pr, "paymentSteps");
+    if (!tiers.length && !cancellation.length && !schedule.length) return null;
+    return (
+      <Wrap style={{ background: PAPER }} id="sm-pricing" section="pricing">
+        <SecHead eyebrow={L.sections.pricing} title={ar("Pick your option", "اختر خيارك")} />
+        {tiers.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? `repeat(${Math.min(tiers.length, 3)},1fr)` : "1fr", gap: 14 }}>
+            {tiers.map((t, i) => {
+              const featured = tiers.length === 3 && i === 1;
+              return (
+                <div key={i} style={{ background: featured ? SOFT : BG, border: featured ? `1.5px solid ${brand}` : `1px solid ${LINE}`, borderRadius: 14, padding: D ? 26 : 20, position: "relative" }}>
+                  {featured && <div style={{ position: "absolute", top: -11, insetInlineStart: 22, background: brand, color: onBrand, fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: rtl ? 0 : "0.6px", textTransform: uc, padding: "4px 11px", borderRadius: 999 }}>{L.ui.mostPopular}</div>}
+                  <div style={{ fontFamily: sans, fontSize: 13, color: MUT }}>{localizeTierLabel(t.label, lang)}</div>
+                  <div style={{ fontFamily: mono, fontSize: D ? 36 : 30, fontWeight: 700, color: INK, lineHeight: 1, marginTop: 8 }}>{dig(t.price)}</div>
+                  {pkg.whatsapp && <div style={{ marginTop: 18 }}><CTA full onClick={onWhatsApp}>{ar("Book", "احجز")}</CTA></div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {(cancellation.length > 0 || schedule.length > 0) && (
+          <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 32 : 22, marginTop: tiers.length ? 32 : 0 }}>
+            {cancellation.length > 0 && (
+              <div>
+                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 800, color: brand, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 12 }}>{L.ui.cancellation}</div>
+                {cancellation.map((s, i) => <div key={i} style={{ fontFamily: sans, fontSize: 13.5, color: MUT, padding: "6px 0", lineHeight: 1.5 }}>· {s}</div>)}
+              </div>
+            )}
+            {schedule.length > 0 && (
+              <div>
+                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 800, color: brand, letterSpacing: rtl ? 0 : "1px", textTransform: uc, marginBottom: 12 }}>{L.ui.paymentSchedule}</div>
+                {schedule.map((s, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: i ? `1px solid ${LINE}` : "none" }}>
+                    <span style={{ fontFamily: sans, fontSize: 13.5, color: INK }}>{secItemStr(s, "dueDate", "label")}</span>
+                    <span style={{ fontFamily: mono, fontSize: 14, fontWeight: 700, color: brand }}>{dig(secItemStr(s, "amount"))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Wrap>
+    );
+  };
+
+  // ════════ EXTRAS ════════
+  const Extras = () => {
+    const items = secArr(findSec(pkg, "extras"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="extras">
+        <SecHead eyebrow={L.sections.extras} title={ar("Add only what you want", "أضِف ما تريده فقط")} />
+        <div style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 14, overflow: "hidden" }}>
+          {items.map((e, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, padding: D ? "18px 24px" : "15px 16px", borderTop: i ? `1px solid ${LINE}` : "none" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: disp, fontSize: D ? 16 : 15, fontWeight: 800, color: INK }}>{secItemStr(e, "name", "title")}</div>
+                {secItemStr(e, "description", "desc") && <div style={{ fontFamily: sans, fontSize: 12.5, color: MUT, marginTop: 3, lineHeight: 1.5 }}>{secItemStr(e, "description", "desc")}</div>}
+              </div>
+              {secItemStr(e, "price") && <span style={{ fontFamily: mono, fontSize: 15, fontWeight: 700, color: brand, whiteSpace: "nowrap" }}>{dig(secItemStr(e, "price"))}</span>}
             </div>
           ))}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", background: `${SM.brand}08`, borderTop: `1px solid ${SM.brand}18` }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: SM.ink }}>{t.totalPerPerson}</span>
-            <span style={{ fontSize: 16, fontWeight: 800, color: SM.brand }}>{pkg.price}</span>
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ PEOPLE ════════
+  const People = () => {
+    if (!person?.name) return null;
+    const role = person.role ? (ROLE_LABELS[person.role]?.[lang] || person.role.replace(/_/g, " ")) : "";
+    const bio = (person as { bio?: string }).bio || "";
+    const years = typeof person.years === "number" ? person.years : 0;
+    return (
+      <Wrap style={{ background: PAPER }} section="people">
+        <div style={{ display: "grid", gridTemplateColumns: D ? "auto 1fr" : "1fr", gap: D ? 40 : 18, alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: D ? "column" : "row", alignItems: "center", gap: 14 }}>
+            {person.photo
+              ? <img src={person.photo} style={{ width: D ? 150 : 84, height: D ? 150 : 84, borderRadius: "50%", objectFit: "cover" }} />
+              : <div style={{ width: D ? 150 : 84, height: D ? 150 : 84, borderRadius: "50%", background: SOFT, color: brand, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: disp, fontSize: D ? 52 : 32, fontWeight: 800 }}>{person.name[0]}</div>}
+            {!D && <div><div style={{ fontFamily: disp, fontSize: 19, fontWeight: 800, color: INK }}>{person.name}</div>{role && <div style={{ fontFamily: sans, fontSize: 12.5, color: brand, fontWeight: 600 }}>{role}</div>}</div>}
+          </div>
+          <div>
+            {D && <><Eyebrow>{L.sections.people}</Eyebrow><div style={{ fontFamily: disp, fontSize: 26, fontWeight: 800, color: INK }}>{person.name}</div>{role && <div style={{ fontFamily: sans, fontSize: 13, color: brand, fontWeight: 600, marginTop: 3 }}>{role}</div>}</>}
+            {bio && <p style={{ fontFamily: sans, fontSize: 14, color: MUT, lineHeight: 1.7, marginTop: D ? 14 : 0 }}>{bio}</p>}
+            {years > 0 && <div style={{ display: "flex", gap: 24, marginTop: 18 }}><div><div style={{ fontFamily: mono, fontSize: 22, fontWeight: 700, color: brand }}>{dig(years)}</div><div style={{ fontFamily: sans, fontSize: 11, color: FAINT }}>{L.ui.years}</div></div></div>}
+            {pkg.whatsapp && <div style={{ marginTop: 18 }}><CTA onClick={onWhatsApp}>{L.ui.message}</CTA></div>}
           </div>
         </div>
-      </div>
+      </Wrap>
+    );
+  };
 
-      {/* Book CTA inline */}
-      <div style={{ padding: "20px 18px 0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, background: SM.paper, border: `1px solid ${SM.border}`, borderRadius: 14, padding: "16px 18px" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 10, color: SM.superMuted, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 3 }}>{t.from}</div>
-            <div data-pmx-field="price" style={{ fontSize: 26, fontWeight: 800, color: SM.brand, letterSpacing: "-0.5px", lineHeight: 1 }}>{pkg.price}</div>
-            <div style={{ fontSize: 11, color: SM.superMuted, marginTop: 3 }}>
-              {nights ? `${nights} ${t.nightsLabel} · ` : ""}{t.perPerson}
+  // ════════ REVIEWS ════════
+  const Reviews = () => {
+    if (agency.showReviews === false) return null;
+    const items = pkg.reviews ?? [];
+    if (!items.length) return null;
+    const rating = pkg.rating ?? 5;
+    const count = pkg.reviewCount ?? items.length;
+    return (
+      <Wrap id="sm-reviews" section="reviews">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 14, marginBottom: D ? 30 : 22 }}>
+          <div><Eyebrow>{L.sections.reviews}</Eyebrow><H2 size={D ? 32 : 24}>{ar("No surprises, they say", "يقولون: لا مفاجآت")}</H2></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ fontFamily: mono, fontSize: D ? 42 : 34, fontWeight: 700, color: brand, lineHeight: 1 }}>{dig(rating)}</div>
+            <div><SmStars n={Math.round(rating)} size={14} color={brand} /><div style={{ fontFamily: sans, fontSize: 11.5, color: FAINT, marginTop: 3 }}>{L.ui.basedOn} {dig(count)} {L.ui.review}</div></div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 14 }}>
+          {items.slice(0, 6).map((r, i) => (
+            <div key={i} style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 14, padding: D ? 22 : 18 }}>
+              <SmStars n={Math.round(r.rating || 5)} size={13} color={brand} />
+              <p style={{ fontFamily: sans, fontSize: 14, color: INK, lineHeight: 1.6, margin: "12px 0 16px" }}>&ldquo;{r.text}&rdquo;</p>
+              <div style={{ fontFamily: disp, fontSize: 14, fontWeight: 800, color: INK }}>{r.name}</div>
             </div>
-          </div>
-          {pkg.whatsapp && <WAButton label={t.bookWhatsApp} size="md" onClick={onWhatsApp} />}
+          ))}
         </div>
-      </div>
+      </Wrap>
+    );
+  };
 
-      <SmSections pkg={pkg} isDesktop={false} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} agency={agency} />
-      <SmReviews pkg={pkg} agency={agency} isDesktop={false} lang={lang} />
-      <SmCTABanner pkg={pkg} agency={agency} isDesktop={false} onWhatsApp={onWhatsApp} onMessenger={onMessenger} lang={lang} />
-      <SmMobileFooter agency={agency} />
-      <StickyCTA price={pkg.price} nights={nights} label={t.bookWhatsApp} onWhatsApp={pkg.whatsapp ? onWhatsApp : undefined} lang={lang} />
+  // ════════ ABOUT ════════
+  const About = () => {
+    const a = findSec(pkg, "about_agency");
+    const story = secStr(a, "content");
+    const image = secStr(a, "image");
+    if (!a || (!story && !image)) return null;
+    return (
+      <Wrap style={{ background: PAPER }} section="about_agency">
+        <div style={{ display: "grid", gridTemplateColumns: D && image ? "1fr 1fr" : "1fr", gap: D ? 48 : 24, alignItems: "center" }}>
+          <div>
+            <Eyebrow>{L.sections.agency}</Eyebrow>
+            <H2 size={D ? 32 : 25}>{agency.name}</H2>
+            {agency.tagline && <div style={{ fontFamily: sans, fontSize: 14, color: brand, fontWeight: 600, marginTop: 6 }}>{agency.tagline}</div>}
+            {story && <p style={{ fontFamily: sans, fontSize: 14.5, color: MUT, lineHeight: 1.7, marginTop: 16, whiteSpace: "pre-line" }}>{story}</p>}
+          </div>
+          {image && <img src={image} style={{ width: "100%", height: D ? 300 : 200, objectFit: "cover", borderRadius: 14 }} />}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ NOTES ════════
+  const Notes = () => {
+    const items = secMixed(findSec(pkg, "important_notes"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap section="important_notes">
+        <SecHead eyebrow={L.sections.notes} title={ar("The fine print, in plain sight", "التفاصيل الدقيقة، بكل وضوح")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 12 }}>
+          {items.map((n, i) => {
+            const t = secItemStr(n, "title");
+            const body = secItemStr(n, "text", "desc", "description") || (typeof n === "string" ? n : "");
+            return (
+              <div key={i} style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 12, padding: D ? 20 : 16 }}>
+                {t && <div style={{ fontFamily: disp, fontSize: D ? 16 : 15, fontWeight: 800, color: INK, marginBottom: 7 }}>{t}</div>}
+                <div style={{ fontFamily: sans, fontSize: 13, color: MUT, lineHeight: 1.55 }}>{body}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ FAQ ════════
+  const Faq = () => {
+    const items = secArr(findSec(pkg, "faq"), "items");
+    if (!items.length) return null;
+    return (
+      <Wrap style={{ background: PAPER }} section="faq">
+        <SecHead eyebrow={L.sections.faq} title={ar("Questions, answered", "إجابات على أسئلتك")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "1fr 1fr" : "1fr", gap: D ? 14 : 10 }}>
+          {items.map((f, i) => (
+            <div key={i} style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 12, padding: D ? 22 : 18 }}>
+              <div style={{ fontFamily: disp, fontSize: D ? 16.5 : 15.5, fontWeight: 800, color: INK, lineHeight: 1.3 }}>{secItemStr(f, "question", "q")}</div>
+              {secItemStr(f, "answer", "a") && <p style={{ fontFamily: sans, fontSize: 13.5, color: MUT, lineHeight: 1.65, margin: "10px 0 0" }}>{secItemStr(f, "answer", "a")}</p>}
+            </div>
+          ))}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ CUSTOM ════════
+  const Custom = () => {
+    const cs = findSec(pkg, "custom");
+    const heading = secStr(cs, "heading");
+    const body = secStr(cs, "content");
+    const image = secStr(cs, "image");
+    if (!heading && !body) return null;
+    return (
+      <Wrap style={{ background: brand, color: onBrand }} section="custom">
+        <div style={{ display: "grid", gridTemplateColumns: D && image ? "1.2fr 1fr" : "1fr", gap: D ? 48 : 22, alignItems: "center" }}>
+          <div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: smRgba(onBrand === "#ffffff" ? "#ffffff" : "#000000", 0.16), padding: "6px 13px", borderRadius: 999, fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: rtl ? 0 : "0.6px", textTransform: uc, marginBottom: 16 }}>{L.sections.custom}</div>
+            {heading && <div style={{ fontFamily: disp, fontSize: D ? 36 : 26, fontWeight: 800, lineHeight: 1.1, marginBottom: 14 }}>{heading}</div>}
+            {body && <p style={{ fontFamily: sans, fontSize: D ? 16 : 14.5, opacity: 0.92, lineHeight: 1.7, margin: 0, whiteSpace: "pre-line" }}>{body}</p>}
+          </div>
+          {image && <img src={image} style={{ width: "100%", height: D ? 300 : 200, objectFit: "cover", borderRadius: 14 }} />}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ OTHERS ════════
+  const Others = () => {
+    const list = secArr(findSec(pkg, "other_packages"), "packages");
+    if (!list.length) return null;
+    return (
+      <Wrap section="other_packages">
+        <SecHead eyebrow={L.sections.others} title={ar("More trips, fully costed", "رحلات أخرى، بأسعار واضحة")} />
+        <div style={{ display: "grid", gridTemplateColumns: D ? "repeat(3,1fr)" : "1fr", gap: 14 }}>
+          {list.map((o, i) => {
+            const oTitle = secItemStr(o, "title"); const place = secItemStr(o, "destination", "place");
+            const price = secItemStr(o, "price"); const oNights = secItemStr(o, "nights");
+            const img = secItemStr(o, "image"); const link = secItemStr(o, "link");
+            const Inner = (
+              <div style={{ background: PAPER, border: `1px solid ${LINE}`, borderRadius: 14, overflow: "hidden", height: "100%" }}>
+                <div style={{ height: 150, background: BG }}>{img && <img src={img} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}</div>
+                <div style={{ padding: 18 }}>
+                  {place && <div style={{ fontFamily: sans, fontSize: 10.5, color: brand, fontWeight: 700, letterSpacing: rtl ? 0 : "1px", textTransform: uc }}>{place}</div>}
+                  <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 800, color: INK, margin: "8px 0 12px", lineHeight: 1.2 }}>{oTitle}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    {price && <span style={{ fontFamily: mono, fontSize: 18, fontWeight: 700, color: INK }}>{dig(price)}</span>}
+                    {oNights && <span style={{ fontFamily: sans, fontSize: 12, color: FAINT }}>{dig(oNights)} {L.ui.nights}</span>}
+                  </div>
+                </div>
+              </div>
+            );
+            return link ? <a key={i} href={link} style={{ textDecoration: "none" }}>{Inner}</a> : <div key={i}>{Inner}</div>;
+          })}
+        </div>
+      </Wrap>
+    );
+  };
+
+  // ════════ FOOTER ════════
+  const Footer = () => (
+    <div>
+      <Wrap pt={D ? 56 : 38} pb={D ? 56 : 38} style={{ background: SOFT, textAlign: "center" }}>
+        <H2 size={D ? 40 : 28}>{L.ui.theTotal}</H2>
+        <div style={{ fontFamily: sans, fontSize: 14, color: MUT, margin: "12px 0 22px" }}>{L.ui.replyTime}{pkg.whatsapp ? ` · ${dig(pkg.whatsapp)}` : ""}</div>
+        <div style={{ display: "inline-flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          {pkg.whatsapp && <CTA big onClick={onWhatsApp}>{L.ui.bookWhatsapp}</CTA>}
+          {pkg.messenger && onMessenger && <CTA big ghost onClick={onMessenger}>{L.ui.messenger}</CTA>}
+        </div>
+      </Wrap>
+      <div style={{ padding: `20px ${px}px`, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${LINE}`, background: PAPER }}>
+        <div style={{ fontFamily: disp, fontSize: 17, fontWeight: 800, color: INK }}>{agency.name}</div>
+        <div style={{ fontFamily: sans, fontSize: 10, color: FAINT, letterSpacing: rtl ? 0 : "1px", textTransform: uc }}>{L.ui.poweredBy}</div>
+      </div>
+    </div>
+  );
+
+  // ════════ BAR ════════
+  const initials = (agency.name || "S").split(" ").map((w) => w[0]).slice(0, 2).join("");
+  const Bar = () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${px}px`, height: D ? 60 : 54, borderBottom: `1px solid ${LINE}`, background: smRgba("#ffffff", 0.92), backdropFilter: "blur(10px)", position: "sticky", top: 0, zIndex: 30 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: D ? 32 : 28, height: D ? 32 : 28, borderRadius: 8, background: brand, color: onBrand, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: disp, fontSize: 14, fontWeight: 800 }}>{initials}</div>
+        <div style={{ fontFamily: disp, fontSize: D ? 18 : 16, fontWeight: 800, color: INK }}>{agency.name}</div>
+      </div>
+      {D ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          {navItems.map(([key, label]) => <button key={key} onClick={() => goTo(key)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 500, color: MUT, background: "none", border: "none", cursor: "pointer", padding: 0 }}>{label}</button>)}
+          {pkg.whatsapp && <CTA onClick={onWhatsApp}>{dig(pkg.price || "")} {L.ui.allIn}</CTA>}
+        </div>
+      ) : (pkg.whatsapp && <CTA onClick={onWhatsApp}>{dig(pkg.price || "")}</CTA>)}
+    </div>
+  );
+
+  return (
+    <div dir={rtl ? "rtl" : "ltr"} lang={lang} style={{ width: "100%", background: BG, color: INK, fontFamily: sans, position: "relative" }}>
+      {Bar()}
+      {Hero()}
+      {Scarcity()}
+      {Highlights()}
+      {Media()}
+      {Itinerary()}
+      {Hotel()}
+      {Meals()}
+      {Inclusions()}
+      {Transfers()}
+      {Visa()}
+      {Departures()}
+      {Pricing()}
+      {Extras()}
+      {People()}
+      {Reviews()}
+      {About()}
+      {Notes()}
+      {Faq()}
+      {Custom()}
+      {Others()}
+      {Footer()}
+      {lightbox !== null && photos.length > 0 && <LightboxCarousel images={photos} startIndex={lightbox} onClose={() => setLightbox(null)} />}
     </div>
   );
 }
 
-// ─── TemplateSmartCard ────────────────────────────────────────────────────────
-
+// ─── Card (dashboard listing) ─────────────────────────────────────────────────
 export function TemplateSmartCard({ pkg, agency, lang, onView, onEdit, onDelete, onToggleActive, onDuplicate }: TCardProps) {
   return (
     <BaseCard
       pkg={pkg} agency={agency} lang={lang}
-      onView={onView} onEdit={onEdit} onDelete={onDelete} onToggleActive={onToggleActive} onDuplicate={onDuplicate}
-      headingFont={FONT}
-      imageBorderRadius={0}
+      onView={onView} onEdit={onEdit} onDelete={onDelete}
+      onToggleActive={onToggleActive} onDuplicate={onDuplicate}
     />
   );
 }

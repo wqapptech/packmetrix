@@ -28,17 +28,10 @@ export type ExtrasData = { items: ExtrasItem[] };
 
 export type MealsData = { plan: string; notes: string };
 
-/** @deprecated Replaced by PeopleData. Kept for legacy section rendering. */
-export type GuideData = { name: string; bio: string; photo: string; languages: string[] };
-
 export type ImportantNotesItem = { text: string };
 export type ImportantNotesData = { items: ImportantNotesItem[] };
 
 export type AboutAgencyData = { content: string; image: string };
-
-/** @deprecated Replaced by ItineraryData with granularity:"hour". Kept for legacy rendering. */
-export type ScheduleItem = { time: string; activity: string; location: string };
-export type ScheduleData = { items: ScheduleItem[] };
 
 // ── v2: People section (replaces guide + agent extras) ────────────────────────
 
@@ -54,15 +47,6 @@ export type PersonEntry = {
 };
 export type PeopleData = { people: PersonEntry[] };
 
-// ── v2: Trek profile (replaces flat difficulty/maxAltitude/distanceKm) ────────
-
-export type TrekProfileData = {
-  difficulty: string;
-  maxAltitude: number;
-  distanceKm: number;
-  fitnessNote: string;
-};
-
 // ── v2: Scarcity (replaces flat priceWas/spotsRemaining/firstDepartureDate) ───
 
 export type ScarcityData = {
@@ -76,18 +60,15 @@ export type ScarcityData = {
 
 export type PricingTier = { label: string; price: string };
 export type PaymentStep = { label: string; amount: string; dueDate: string };
-/** v2 pricing absorbs former payment_plan and booking_terms fields. */
+/** v2 pricing absorbs payment schedule and booking-terms fields. */
 export type PricingData = {
   tiers: PricingTier[];
   cancellation: string;
   paymentContent?: string;
   paymentSteps?: PaymentStep[];
-  /** Full booking T&C text, absorbed from the legacy booking_terms section. */
+  /** Full booking T&C text. */
   termsContent?: string;
 };
-
-/** @deprecated Folded into PricingData.termsContent. Kept for legacy section rendering. */
-export type BookingTermsData = { content: string };
 
 export type TransfersData = { description: string; items: string[] };
 
@@ -108,38 +89,15 @@ export type DepartureEntry = {
 };
 export type DeparturesData = { entries: DepartureEntry[] };
 
-// ── Legacy logistics (superseded by merged types) ─────────────────────────────
-
-/** @deprecated Use DeparturesData. Kept for legacy section rendering. */
-export type LegacyDeparture = {
-  name: string; arrivingAirport: string; price: string;
-  date: string; flyingTime: string; arrivingTime: string;
-};
-export type FlightsData = { departures: LegacyDeparture[] };
-
-/** @deprecated Folded into PricingData. Kept for legacy section rendering. */
-export type PaymentPlanData = { content: string; steps: PaymentStep[] };
-
-/** @deprecated Use DeparturesData. Kept for legacy section rendering. */
-export type DepartureDateEntry = { date: string; returnDate: string; price: string; spots: string };
-export type DepartureDatesData = { dates: DepartureDateEntry[] };
-
 // ── Media ────────────────────────────────────────────────────────────────────
 
-/** v2 media (merges gallery + video + map) */
+/** v2 media (photos, video, and map image in one place) */
 export type MediaData = {
   images: string[];
   videoUrl?: string;
   mapImage?: string;
   mapCaption?: string;
 };
-
-/** @deprecated Use MediaData. Kept for legacy section rendering. */
-export type GalleryData = { images: string[] };
-/** @deprecated Use MediaData. Kept for legacy section rendering. */
-export type VideoData = { videoUrl: string };
-/** @deprecated Use MediaData. Kept for legacy section rendering. */
-export type MapData = { image: string; caption: string };
 
 // ── Social proof ──────────────────────────────────────────────────────────────
 
@@ -170,7 +128,6 @@ export type OtherPackagesData = {
 export type SectionInstance =
   // v2 section types
   | { id: string; type: "people";          order: number; data: PeopleData }
-  | { id: string; type: "trek_profile";    order: number; data: TrekProfileData }
   | { id: string; type: "scarcity";        order: number; data: ScarcityData }
   | { id: string; type: "media";           order: number; data: MediaData }
   | { id: string; type: "departures";      order: number; data: DeparturesData }
@@ -189,17 +146,7 @@ export type SectionInstance =
   | { id: string; type: "important_notes"; order: number; data: ImportantNotesData }
   | { id: string; type: "about_agency";    order: number; data: AboutAgencyData }
   | { id: string; type: "transfers";       order: number; data: TransfersData }
-  | { id: string; type: "visa";            order: number; data: VisaData }
-  // legacy section types (kept for backward compat — not offered for new packages)
-  | { id: string; type: "booking_terms";   order: number; data: BookingTermsData }
-  | { id: string; type: "guide";           order: number; data: GuideData }
-  | { id: string; type: "flights";         order: number; data: FlightsData }
-  | { id: string; type: "departure_dates"; order: number; data: DepartureDatesData }
-  | { id: string; type: "payment_plan";    order: number; data: PaymentPlanData }
-  | { id: string; type: "gallery";         order: number; data: GalleryData }
-  | { id: string; type: "video";           order: number; data: VideoData }
-  | { id: string; type: "map";             order: number; data: MapData }
-  | { id: string; type: "schedule";        order: number; data: ScheduleData };
+  | { id: string; type: "visa";            order: number; data: VisaData };
 
 // Looser view used by the generic dynamic editor
 export type AnySectionInstance = {
