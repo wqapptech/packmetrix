@@ -168,6 +168,56 @@ export async function sendVerificationEmail(opts: {
   });
 }
 
+// ── Auth: password reset ──────────────────────────────────────────────────────
+
+export async function sendPasswordResetEmail(opts: {
+  to: string;
+  resetUrl: string;
+  name?: string;
+}): Promise<void> {
+  const { to, resetUrl, name } = opts;
+  const greeting = name ? `Hi ${name},` : "Hi there,";
+  await send({
+    from: FROM,
+    to,
+    subject: "Reset your Packmetrix password",
+    html: `
+<div style="font-family:system-ui,-apple-system,sans-serif;background:#f4f1eb;padding:40px 0;min-height:100vh">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+
+    <!-- Header -->
+    <div style="background:#0d1b2e;padding:32px 40px;display:flex;align-items:center;gap:12px">
+      <div style="width:36px;height:36px;border-radius:8px;background:#b08a3e;display:inline-flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:16px;font-weight:700;color:#fff;vertical-align:middle">P</div>
+      <span style="font-family:Georgia,serif;font-size:22px;color:#f5f0e8;letter-spacing:-0.4px;vertical-align:middle">Packmetrix</span>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:40px">
+      <div style="width:56px;height:56px;border-radius:50%;background:#fef9ec;display:flex;align-items:center;justify-content:center;margin-bottom:24px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b08a3e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+
+      <p style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#b08a3e;margin:0 0 12px">&nbsp;Reset your password</p>
+      <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0d1b2e;margin:0 0 16px;letter-spacing:-0.5px;line-height:1.1">Let's get you<br/>back in.</h1>
+      <p style="font-size:14px;color:#5a6170;line-height:1.6;margin:0 0 32px">${greeting} We received a request to reset the password for your Packmetrix account. Click the button below to choose a new password. This link expires in one hour.</p>
+
+      <a href="${resetUrl}" style="display:inline-block;padding:14px 32px;background:#b08a3e;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:15px;letter-spacing:-0.2px;box-shadow:0 1px 3px rgba(176,138,62,.35)">Reset my password →</a>
+
+      <p style="font-size:12px;color:#9ca3af;margin:28px 0 0;line-height:1.6">If the button doesn't work, copy and paste this link into your browser:<br/>
+        <a href="${resetUrl}" style="color:#b08a3e;word-break:break-all">${resetUrl}</a>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 40px 28px;border-top:1px solid #f0ece4">
+      <p style="font-size:11.5px;color:#9ca3af;margin:0;line-height:1.6">If you didn't ask to reset your password, you can safely ignore this email — your account stays secure.<br/>© 2026 Packmetrix · <a href="https://packmetrix.com/privacy" style="color:#9ca3af;text-decoration:none">Privacy</a> · <a href="mailto:hello@packmetrix.com" style="color:#9ca3af;text-decoration:none">Contact</a></p>
+    </div>
+
+  </div>
+</div>`,
+  });
+}
+
 // ── Admin: feature request notification ───────────────────────────────────────
 
 export async function sendFeatureRequestEmail(opts: {

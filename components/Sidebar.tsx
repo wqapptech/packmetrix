@@ -32,6 +32,7 @@ const NAV_MAIN: NavItem[] = [
 ];
 
 const NAV_SETTINGS: NavItem[] = [
+  { href: "/welcome",  icon: "sparkle",      labelKey: "navSetupGuide" },
   { href: "/profile",  icon: "globe",        labelKey: "navBranding" },
   { href: "/paywall",  icon: "credit_card",  labelKey: "navBilling" },
 ];

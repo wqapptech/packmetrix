@@ -16,6 +16,7 @@ import {
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import { onboardingInit, postAuthRoute } from "@/lib/onboarding";
 import posthog from "posthog-js";
 import { TRIAL_DAYS, trialEndsAtFromNow } from "@/lib/trial";
 
@@ -274,6 +275,7 @@ function SignupPageInner() {
     aiUsage: 0,
     stripeCustomerId: null,
     createdAt: Date.now(),
+    onboarding: onboardingInit(),
   });
 
   const handleSignup = async () => {
@@ -287,11 +289,11 @@ function SignupPageInner() {
         const res = await fetch("/api/send-verification-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, redirectUrl: `${window.location.origin}/builder` }),
+          body: JSON.stringify({ email, redirectUrl: `${window.location.origin}/welcome` }),
         });
         if (!res.ok) throw new Error("api-failed");
       } catch {
-        await sendEmailVerification(userCred.user, { url: `${window.location.origin}/builder` });
+        await sendEmailVerification(userCred.user, { url: `${window.location.origin}/welcome` });
       }
       posthog.identify(userCred.user.uid, { email: userCred.user.email, name });
       posthog.capture("user_signed_up", { method: "email", trial_days: TRIAL_DAYS, from_gate: fromGate });
@@ -326,7 +328,7 @@ function SignupPageInner() {
         posthog.capture("user_logged_in", { method: "google", email: user.email });
       }
       posthog.identify(user.uid, { email: user.email, name: user.displayName });
-      router.push("/builder");
+      router.push(isNewUser ? "/welcome" : postAuthRoute(snap.data()));
     } catch (err: any) {
       if (err?.code === "auth/popup-closed-by-user") return;
       if (err?.code === "auth/account-exists-with-different-credential") {
@@ -357,7 +359,8 @@ function SignupPageInner() {
       await linkWithCredential(userCred.user, emailCredential);
       posthog.identify(userCred.user.uid, { email: userCred.user.email });
       posthog.capture("account_linked", { method: "email_to_google", email: userCred.user.email });
-      router.push("/builder");
+      const linkedSnap = await getDoc(doc(db, "users", userCred.user.uid));
+      router.push(postAuthRoute(linkedSnap.data()));
     } catch (err: any) {
       if (err?.code === "auth/popup-closed-by-user") return;
       setAddPasswordError(t.authErrLinkFailedRetry);
@@ -375,7 +378,8 @@ function SignupPageInner() {
       await linkWithCredential(userCred.user, linkPending.credential);
       posthog.identify(userCred.user.uid, { email: userCred.user.email });
       posthog.capture("account_linked", { method: "google", email: userCred.user.email });
-      router.push("/builder");
+      const linkedSnap = await getDoc(doc(db, "users", userCred.user.uid));
+      router.push(postAuthRoute(linkedSnap.data()));
     } catch (err: any) {
       posthog.captureException(err);
       setLinkError(friendlyError(err?.code, t) || t.authErrLinkFailed);
@@ -394,16 +398,16 @@ function SignupPageInner() {
         const res = await fetch("/api/send-verification-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: user.email, redirectUrl: `${window.location.origin}/builder` }),
+          body: JSON.stringify({ email: user.email, redirectUrl: `${window.location.origin}/welcome` }),
         });
         if (!res.ok) throw new Error("api-failed");
       } else {
-        await sendEmailVerification(user, { url: `${window.location.origin}/builder` });
+        await sendEmailVerification(user, { url: `${window.location.origin}/welcome` });
       }
       setResendSent(true);
     } catch {
       try {
-        await sendEmailVerification(user, { url: `${window.location.origin}/builder` });
+        await sendEmailVerification(user, { url: `${window.location.origin}/welcome` });
         setResendSent(true);
       } catch {
         setVerifyError(t.authVerifyResendError);

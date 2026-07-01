@@ -4,14 +4,21 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import {
-  collection, doc, getDoc, getDocs, query, where, orderBy,
+  collection, doc, getDoc, getDocs, query, where, orderBy, updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import posthog from "posthog-js";
 import AppLayout from "@/components/AppLayout";
 import Icon from "@/components/Icon";
 import { useLang } from "@/hooks/useLang";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { T } from "@/lib/translations";
+import {
+  readOnboarding, onboardingDismissPatch, onboardingRestorePatch,
+  onboardingChecklist, checklistProgress,
+  type ChecklistItem,
+} from "@/lib/onboarding";
+import { homepageHasContent } from "@/lib/homepage";
 import {
   DA_BG, DA_SURFACE, DA_SURFACE2, DA_INK1, DA_INK2, DA_INK3,
   DA_RULE, DA_RULE2, DA_GOLD, DA_GOLD_DEEP, DA_GOLD_SOFT,
@@ -50,7 +57,6 @@ type Lead = {
   createdAt: number;
 };
 
-type OnboardingState = "starting" | "branding-done" | "package-drafted";
 
 function slugify(text: string): string {
   return text
@@ -62,179 +68,152 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-// ── Onboarding stepper ─────────────────────────────────────────────────────────
+// ── Launch checklist ───────────────────────────────────────────────────────────
+// Persistent, derived-from-real-data guidance to a live site. Each step deep-links
+// into its real editor; the "publish" step surfaces the shareable site link.
 
-function OnboardingStepper({
-  state, lang, isMobile = false, onBranding, onBuild, onPublish,
+type ChecklistMeta = {
+  label: string; sub: string; cta: string;
+  action: () => void;
+};
+
+function LaunchChecklist({
+  items, lang, isMobile = false, siteUrl,
+  onBrand, onHomepage, onPackage, onDomain, onDismiss,
 }: {
-  state: OnboardingState;
+  items: ChecklistItem[];
   lang: "en" | "ar";
   isMobile?: boolean;
-  onBranding: () => void;
-  onBuild: () => void;
-  onPublish: () => void;
+  siteUrl?: string;
+  onBrand: () => void;
+  onHomepage: () => void;
+  onPackage: () => void;
+  onDomain: () => void;
+  onDismiss: () => void;
 }) {
   const t = T[lang];
   const isAr = lang === "ar";
+  const [copied, setCopied] = useState(false);
 
-  const completed = state === "starting" ? 0 : state === "branding-done" ? 1 : 2;
+  const required = items.filter((it) => !it.optional);
+  const doneCount = required.filter((it) => it.done).length;
+  const pct = Math.round(checklistProgress(items) * 100);
 
-  const steps = [
-    { label: t.onboardingStep1Label, desc: t.onboardingStep1Desc, cta: t.onboardingStep1Cta, time: t.onboardingStep1Time, action: onBranding },
-    { label: t.onboardingStep2Label, desc: t.onboardingStep2Desc, cta: t.onboardingStep2Cta, time: t.onboardingStep2Time, action: onBuild },
-    { label: t.onboardingStep3Label, desc: t.onboardingStep3Desc, cta: t.onboardingStep3Cta, time: t.onboardingStep3Time, action: onPublish },
-  ];
+  const copyLink = () => {
+    if (!siteUrl) { onPackage(); return; }
+    navigator.clipboard?.writeText(siteUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
+  };
+
+  const meta: Record<string, ChecklistMeta> = {
+    brand:    { label: t.launchStepBrand,    sub: t.launchStepBrandSub,    cta: t.launchStepBrandCta,    action: onBrand },
+    homepage: { label: t.launchStepHomepage, sub: t.launchStepHomepageSub, cta: t.launchStepHomepageCta, action: onHomepage },
+    package:  { label: t.launchStepPackage,  sub: t.launchStepPackageSub,  cta: t.launchStepPackageCta,  action: onPackage },
+    publish:  { label: t.launchStepPublish,  sub: t.launchStepPublishSub,  cta: copied ? t.launchStepPublishCopied : t.launchStepPublishCta, action: copyLink },
+    domain:   { label: t.launchStepDomain,   sub: t.launchStepDomainSub,   cta: t.launchStepDomainCta,   action: onDomain },
+  };
 
   return (
-    <div style={{
-      background: DA_SURFACE,
-      border: `1px solid ${DA_RULE}`,
-      borderRadius: 16,
-      overflow: "hidden",
-    }}>
+    <div style={{ background: DA_SURFACE, border: `1px solid ${DA_RULE}`, borderRadius: 16, overflow: "hidden" }}>
       {/* Header band */}
       <div style={{
-        padding: isMobile ? "18px 16px" : "24px 28px",
-        background: DA_GOLD_SOFT,
-        borderBottom: `1px solid ${DA_RULE}`,
-        display: "flex", alignItems: "flex-end",
-        justifyContent: "space-between",
-        gap: 16, flexWrap: "wrap",
+        padding: isMobile ? "18px 16px" : "22px 28px",
+        background: DA_GOLD_SOFT, borderBottom: `1px solid ${DA_RULE}`,
+        display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap",
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontFamily: SANS, fontSize: 10.5, fontWeight: 600,
-            letterSpacing: 1.5, textTransform: "uppercase", color: DA_GOLD_DEEP,
-          }}>
-            {t.onboardingEyebrow}
+          <div style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: DA_GOLD_DEEP }}>
+            {t.launchEyebrow}
           </div>
-          <div style={{
-            fontFamily: DISPLAY, fontSize: isMobile ? 24 : 30, fontWeight: 400,
-            color: DA_INK1, marginTop: 8, letterSpacing: -0.5, lineHeight: 1.15,
-          }}>
-            {t.onboardingTitle}
+          <div style={{ fontFamily: DISPLAY, fontSize: isMobile ? 24 : 30, fontWeight: 400, color: DA_INK1, marginTop: 8, letterSpacing: -0.5, lineHeight: 1.15 }}>
+            {t.launchTitle}
           </div>
           {!isMobile && (
-            <div style={{
-              fontFamily: SANS, fontSize: 13.5, color: DA_INK2,
-              marginTop: 8, maxWidth: 520, lineHeight: 1.55,
-            }}>
-              {t.onboardingSub}
+            <div style={{ fontFamily: SANS, fontSize: 13.5, color: DA_INK2, marginTop: 8, maxWidth: 520, lineHeight: 1.55 }}>
+              {t.launchSub}
             </div>
           )}
         </div>
         <div style={{ textAlign: isAr ? "left" : "right" }}>
-          <div style={{
-            fontFamily: MONO, fontSize: 11, color: DA_GOLD_DEEP,
-            letterSpacing: -0.2, marginBottom: 8,
-          }}>
-            {completed} {t.onboardingProgressOf} {steps.length} {t.onboardingProgressDone}
+          <div style={{ fontFamily: MONO, fontSize: 11, color: DA_GOLD_DEEP, letterSpacing: -0.2, marginBottom: 8 }}>
+            {doneCount} {t.launchProgressOf} {required.length} {t.launchProgressDone} · {pct}%
           </div>
-          <div style={{ display: "flex", gap: 4, justifyContent: isAr ? "flex-start" : "flex-end" }}>
-            {steps.map((_, i) => (
-              <div key={i} style={{
-                width: isMobile ? 32 : 44, height: 4, borderRadius: 2,
-                background: i < completed ? DA_GOLD : "rgba(176,138,62,.25)",
-                opacity: i === completed && i >= completed ? 0.55 : 1,
-              }} />
-            ))}
+          <div style={{ width: isMobile ? 120 : 160, height: 5, borderRadius: 3, background: "rgba(176,138,62,.22)", overflow: "hidden", marginInlineStart: isAr ? 0 : "auto" }}>
+            <div style={{ width: `${pct}%`, height: "100%", background: DA_GOLD, borderRadius: 3, transition: "width .3s" }} />
           </div>
         </div>
       </div>
 
       {/* Step rows */}
-      {steps.map((step, i) => {
-        const isDone    = i < completed;
-        const isCurrent = i === completed;
-        const isLocked  = i > completed;
+      {items.map((item, i) => {
+        const m = meta[item.key];
+        const isDone = item.done;
         return (
-          <div key={i} style={{
-            display: "flex", alignItems: "flex-start", gap: isMobile ? 12 : 18,
-            padding: isMobile
-              ? (isCurrent ? "16px 16px" : "14px 16px")
-              : (isCurrent ? "22px 28px" : "18px 28px"),
-            borderBottom: i < steps.length - 1 ? `1px solid ${DA_RULE}` : "none",
-            background: isCurrent ? DA_SURFACE : "transparent",
+          <div key={item.key} style={{
+            display: "flex", alignItems: "center", gap: isMobile ? 12 : 18,
+            padding: isMobile ? "14px 16px" : "16px 28px",
+            borderBottom: i < items.length - 1 ? `1px solid ${DA_RULE}` : "none",
           }}>
-            {/* Circle */}
+            {/* Check circle */}
             <div style={{
-              width: 32, height: 32, borderRadius: "50%",
-              flexShrink: 0,
-              background: isDone ? DA_GREEN : isCurrent ? DA_GOLD : DA_BG,
-              border: isLocked ? `1px dashed ${DA_RULE2}` : "none",
-              color: isDone || isCurrent ? "#fff" : DA_INK3,
+              width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+              background: isDone ? DA_GREEN : DA_BG,
+              border: isDone ? "none" : `1px dashed ${DA_RULE2}`,
+              color: isDone ? "#fff" : DA_INK3,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: SANS, fontSize: 13, fontWeight: 600,
+              fontFamily: SANS, fontSize: 12, fontWeight: 600,
             }}>
-              {isDone ? <Icon name="check" size={16} color="#fff" strokeWidth={2.5} /> : i + 1}
+              {isDone ? <Icon name="check" size={15} color="#fff" strokeWidth={2.5} /> : i + 1}
             </div>
 
             {/* Body */}
-            <div style={{ flex: 1, minWidth: 0, opacity: isLocked ? 0.55 : 1 }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10,
-                flexWrap: "wrap", marginBottom: 4,
-              }}>
-                <div style={{
-                  fontFamily: SANS, fontSize: 15, fontWeight: 600, color: DA_INK1,
-                }}>
-                  {step.label}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ fontFamily: SANS, fontSize: 14.5, fontWeight: 600, color: DA_INK1, textDecoration: isDone ? "line-through" : "none", opacity: isDone ? 0.7 : 1 }}>
+                  {m.label}
                 </div>
-                <span style={{
-                  fontFamily: MONO, fontSize: 10.5, color: DA_INK3, letterSpacing: -0.2,
-                  padding: "1px 7px", borderRadius: 4, background: DA_BG,
-                }}>
-                  {step.time}
-                </span>
+                {item.optional && (
+                  <span style={{ fontFamily: SANS, fontSize: 10, fontWeight: 600, color: DA_INK3, padding: "1px 6px", borderRadius: 4, background: DA_BG }}>
+                    {t.launchOptional}
+                  </span>
+                )}
               </div>
-              {isCurrent && (
-                <div style={{
-                  fontFamily: SANS, fontSize: 13.5, color: DA_INK2,
-                  lineHeight: 1.55, maxWidth: 540, marginBottom: 14,
-                }}>
-                  {step.desc}
-                </div>
-              )}
-              {isCurrent && (
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  <button
-                    onClick={step.action}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 7,
-                      padding: "9px 18px", borderRadius: 9,
-                      background: DA_GOLD, color: "#fff",
-                      fontFamily: SANS, fontWeight: 600, fontSize: 13,
-                      border: "none", cursor: "pointer",
-                    }}
-                  >
-                    {step.cta}
-                    <Icon name="arrow_right" size={14} color="#fff" strokeWidth={2} />
-                  </button>
-                  <button style={{
-                    padding: "9px 14px", borderRadius: 9,
-                    background: "none", border: `1px solid ${DA_RULE2}`,
-                    color: DA_INK3, fontFamily: SANS, fontSize: 13, cursor: "pointer",
-                  }}>
-                    {t.onboardingSkipForNow}
-                  </button>
-                </div>
+              {!isDone && !isMobile && (
+                <div style={{ fontFamily: SANS, fontSize: 12.5, color: DA_INK2, marginTop: 3 }}>{m.sub}</div>
               )}
             </div>
 
-            {/* Done chip */}
-            {isDone && (
-              <div style={{
-                fontFamily: SANS, fontSize: 11.5, color: DA_GREEN,
-                fontWeight: 500, display: "flex", alignItems: "center",
-                gap: 5, paddingTop: 6, flexShrink: 0,
-              }}>
+            {/* Action / done chip */}
+            {isDone ? (
+              <div style={{ fontFamily: SANS, fontSize: 11.5, color: DA_GREEN, fontWeight: 500, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
                 <Icon name="check" size={12} color={DA_GREEN} strokeWidth={2.5} />
-                {t.onboardingStepDone}
+                {t.launchDone}
               </div>
+            ) : (
+              <button onClick={m.action} style={{
+                display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
+                padding: "8px 14px", borderRadius: 9,
+                background: item.key === "domain" ? "none" : DA_GOLD,
+                border: item.key === "domain" ? `1px solid ${DA_RULE2}` : "none",
+                color: item.key === "domain" ? DA_INK2 : "#fff",
+                fontFamily: SANS, fontWeight: 600, fontSize: 12.5, cursor: "pointer",
+              }}>
+                {item.key === "publish" && siteUrl && <Icon name="copy" size={13} color="#fff" />}
+                {m.cta}
+              </button>
             )}
           </div>
         );
       })}
+
+      {/* Footer: dismiss */}
+      <div style={{ padding: isMobile ? "10px 16px" : "12px 28px", borderTop: `1px solid ${DA_RULE}`, display: "flex", justifyContent: isAr ? "flex-start" : "flex-end" }}>
+        <button onClick={onDismiss} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: SANS, fontSize: 12, color: DA_INK3 }}>
+          {t.launchDismiss}
+        </button>
+      </div>
     </div>
   );
 }
@@ -403,15 +382,22 @@ function PackageRow({
 // ── First-run dashboard ────────────────────────────────────────────────────────
 
 function DashboardFirstRun({
-  agencyName, onboardingState, lang, isMobile, onBranding, onBuild, onPublish,
+  agencyName, lang, isMobile,
+  checklistItems, checklistDismissed, siteUrl,
+  onBranding, onBuild, onHomepage, onDomain, onDismissChecklist, onRestoreChecklist,
 }: {
   agencyName: string;
-  onboardingState: OnboardingState;
   lang: "en" | "ar";
   isMobile: boolean;
+  checklistItems: ChecklistItem[];
+  checklistDismissed: boolean;
+  siteUrl?: string;
   onBranding: () => void;
   onBuild: () => void;
-  onPublish: () => void;
+  onHomepage: () => void;
+  onDomain: () => void;
+  onDismissChecklist: () => void;
+  onRestoreChecklist: () => void;
 }) {
   const t = T[lang];
   const isAr = lang === "ar";
@@ -453,17 +439,40 @@ function DashboardFirstRun({
         </div>
       </div>
 
-      {/* Onboarding stepper */}
-      <div style={{ marginBottom: 32 }}>
-        <OnboardingStepper
-          state={onboardingState}
-          lang={lang}
-          isMobile={isMobile}
-          onBranding={onBranding}
-          onBuild={onBuild}
-          onPublish={onPublish}
-        />
-      </div>
+      {/* Launch checklist */}
+      {!checklistDismissed ? (
+        <div style={{ marginBottom: 32 }}>
+          <LaunchChecklist
+            items={checklistItems}
+            lang={lang}
+            isMobile={isMobile}
+            siteUrl={siteUrl}
+            onBrand={onBranding}
+            onHomepage={onHomepage}
+            onPackage={onBuild}
+            onDomain={onDomain}
+            onDismiss={onDismissChecklist}
+          />
+        </div>
+      ) : (
+        /* Recoverable when hidden — a subtle bar, not a nag */
+        <div style={{
+          marginBottom: 32,
+          display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+          padding: "12px 16px", background: DA_SURFACE,
+          border: `1px solid ${DA_RULE}`, borderRadius: 12,
+        }}>
+          <Icon name="sparkle" size={15} color={DA_GOLD} />
+          <span style={{ fontFamily: SANS, fontSize: 13, color: DA_INK2 }}>{t.launchHiddenNote}</span>
+          <button onClick={onRestoreChecklist} style={{
+            marginInlineStart: "auto",
+            background: "none", border: "none", cursor: "pointer",
+            fontFamily: SANS, fontSize: 13, fontWeight: 600, color: DA_GOLD,
+          }}>
+            {t.launchShow}
+          </button>
+        </div>
+      )}
 
       {/* Ghosted metrics label */}
       <div style={{
@@ -970,6 +979,10 @@ export default function Dashboard() {
   const [userId,      setUserId]      = useState<string | null>(null);
   const [agencyName,  setAgencyName]  = useState("Agency");
   const [hasBranding, setHasBranding] = useState(false);
+  const [hasHomepage, setHasHomepage] = useState(false);
+  const [agencySlug, setAgencySlug] = useState<string | undefined>(undefined);
+  const [hasCustomDomain, setHasCustomDomain] = useState(false);
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
   const [customDomain, setCustomDomain] = useState<string | undefined>(undefined);
   const [homepageViews, setHomepageViews] = useState(0);
 
@@ -982,6 +995,10 @@ export default function Dashboard() {
         const data = snap.data();
         if (data.name) setAgencyName(data.name);
         setHasBranding(!!(data.name && data.logoUrl));
+        setHasHomepage(homepageHasContent(data));
+        setAgencySlug(data.agencySlug || undefined);
+        setHasCustomDomain(data.customDomainStatus === "active" && !!data.customDomain);
+        setChecklistDismissed(readOnboarding(data).dismissed);
         setHomepageViews(Number(data.homepageViews) || 0);
         if (data.customDomainStatus === "active" && data.customDomain) {
           setCustomDomain(data.customDomain);
@@ -991,6 +1008,22 @@ export default function Dashboard() {
     });
     return () => unsub();
   }, [router]);
+
+  const dismissChecklist = async () => {
+    if (!userId) return;
+    setChecklistDismissed(true);
+    const snap = await getDoc(doc(db, "users", userId));
+    await updateDoc(doc(db, "users", userId), onboardingDismissPatch(readOnboarding(snap.data())));
+    posthog.capture("onboarding_dismissed", { at: "dashboard_checklist" });
+  };
+
+  const restoreChecklist = async () => {
+    if (!userId) return;
+    setChecklistDismissed(false);
+    const snap = await getDoc(doc(db, "users", userId));
+    await updateDoc(doc(db, "users", userId), onboardingRestorePatch(readOnboarding(snap.data())));
+    posthog.capture("onboarding_restored", { at: "dashboard_checklist" });
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -1025,10 +1058,20 @@ export default function Dashboard() {
   );
   const hasAnyPackage = !loading && packages.length > 0;
 
-  const onboardingState: OnboardingState =
-    !hasBranding         ? "starting"
-    : !hasAnyPackage     ? "branding-done"
-    : "package-drafted";
+  const checklistItems = onboardingChecklist({
+    hasBrand: hasBranding,
+    hasHomepage,
+    hasAnyPackage,
+    hasPublishedPackage,
+    hasCustomDomain,
+  });
+
+  // The shareable link for the launch checklist's "go live" step.
+  const siteUrl = hasPublishedPackage
+    ? (customDomain
+        ? `https://${customDomain}`
+        : (agencySlug && typeof window !== "undefined" ? `${window.location.origin}/${agencySlug}` : undefined))
+    : undefined;
 
   return (
     <AppLayout>
@@ -1052,12 +1095,17 @@ export default function Dashboard() {
         ) : (
           <DashboardFirstRun
             agencyName={agencyName}
-            onboardingState={onboardingState}
             lang={lang}
             isMobile={isMobile}
+            checklistItems={checklistItems}
+            checklistDismissed={checklistDismissed}
+            siteUrl={siteUrl}
             onBranding={() => router.push("/profile")}
             onBuild={() => router.push("/builder")}
-            onPublish={() => router.push("/builder")}
+            onHomepage={() => router.push("/homepage")}
+            onDomain={() => router.push("/profile")}
+            onDismissChecklist={dismissChecklist}
+            onRestoreChecklist={restoreChecklist}
           />
         )}
       </div>

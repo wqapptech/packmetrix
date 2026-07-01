@@ -528,3 +528,51 @@ export function aboutPageHasContent(agency: Record<string, unknown> | null | und
   const cfg = readHomepageConfig(agency.aboutPage, {}, "about");
   return cfg.sections.some((s) => s.enabled && aboutSectionRendersLive(s, agency));
 }
+
+// ── Homepage content gate ─────────────────────────────────────────────────────
+// A brand-new agency is SEEDED a starter homepage (backbone only) on onboarding,
+// so "a homepage document exists" proves nothing about authoring. This gate is
+// true only when the owner has actually authored something the renderer would
+// show. Hero counts ONLY when a headline / image / eyebrow was set (the bare seed
+// derives a hero from the agency name — not authoring); contact and the
+// data-derived sections (featured_packages, plain destinations) never count.
+
+/** Would this enabled homepage section render live with AUTHORED content? */
+function homeSectionAuthored(s: HomeSection, agency: Record<string, unknown>): boolean {
+  const c = s.content as Record<string, unknown>;
+  switch (s.type) {
+    case "hero":
+      return locHasText(c.headline) || locHasText(c.sub) || locHasText(c.eyebrow) || !!String(c.image || "").trim();
+    case "about":
+      return locHasText(c.body) || !!(agency.about_en || agency.about_ar);
+    case "why_us":
+    case "services":
+    case "testimonials":
+      return nonEmptyArray(c.items);
+    case "seasonal_offers":
+      return locHasText(c.heading) || locHasText(c.body) || !!String(c.image || "").trim();
+    case "accreditation":
+      return nonEmptyArray(c.badges);
+    case "team":
+      return nonEmptyArray(c.members);
+    case "stats": {
+      const hasNumber =
+        Number(c.years) || Number(agency.statsYears) ||
+        Number(c.travellers) || Number(agency.statsTravellers) ||
+        Number(c.rating) || Number(agency.statsRating);
+      const hasQuality = nonEmptyArray(c.qualities) && (c.qualities as Loc[]).some(locHasText);
+      return !!hasNumber || hasQuality || locHasText(c.fallbackNote);
+    }
+    case "destinations":
+      return nonEmptyArray(c.items) && (c.items as { name?: Loc }[]).some((it) => locHasText(it?.name));
+    default:
+      return false; // contact / featured_packages / others: derived, not authored
+  }
+}
+
+/** True when the agency has authored real homepage content (beyond the seed). */
+export function homepageHasContent(agency: Record<string, unknown> | null | undefined): boolean {
+  if (!agency || !agency.homepage) return false;
+  const cfg = readHomepageConfig(agency.homepage, {}, "home");
+  return cfg.sections.some((s) => s.enabled && homeSectionAuthored(s, agency));
+}

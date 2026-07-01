@@ -2,8 +2,6 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useLang, switchLang } from "@/hooks/useLang";
 import { T } from "@/lib/translations";
 import posthog from "posthog-js";
@@ -135,30 +133,27 @@ function ForgotPageInner() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function friendlyError(code: string): string {
-    switch (code) {
-      case "auth/invalid-email": return t.authErrInvalidEmail;
-      case "auth/too-many-requests": return t.authErrTooManyRequests;
-      case "auth/user-not-found": return "";
-      default: return "";
-    }
-  }
-
   const handleSend = async () => {
     if (!email.trim()) { setError(t.authErrPleaseFillEmail); return; }
     setLoading(true);
     setError(null);
     try {
-      await sendPasswordResetEmail(auth, email.trim(), { url: `${window.location.origin}/login` });
+      // Reset email is generated + delivered server-side (Admin SDK + Resend),
+      // bypassing Firebase's hosted email template. The endpoint returns success
+      // even for unknown addresses, so this never reveals whether an account exists.
+      const res = await fetch("/api/send-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), redirectUrl: `${window.location.origin}/login` }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "reset_failed");
+      }
       setSent(true);
     } catch (err: any) {
-      posthog.capture("reset_email_failed", { error_code: err?.code });
-      const msg = friendlyError(err?.code);
-      if (!msg && err?.code === "auth/user-not-found") {
-        setSent(true);
-        return;
-      }
-      setError(msg || t.authErrResetFailed);
+      posthog.capture("reset_email_failed", { error: err?.message });
+      setError(t.authErrResetFailed);
     } finally {
       setLoading(false);
     }
