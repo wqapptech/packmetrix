@@ -13,6 +13,7 @@ import {
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { onboardingInit, postAuthRoute } from "@/lib/onboarding";
 import posthog from "posthog-js";
 import { FREE_AI_LIMIT } from "@/lib/limits";
 import { trialEndsAtFromNow } from "@/lib/trial";
@@ -251,14 +252,15 @@ export default function LoginPage() {
     try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       if (!userCred.user.emailVerified) {
-        await sendEmailVerification(userCred.user, { url: `${window.location.origin}/builder` });
+        await sendEmailVerification(userCred.user, { url: `${window.location.origin}/welcome` });
         await signOut(auth);
         setError(t.authErrEmailVerification);
         return;
       }
       posthog.identify(userCred.user.uid, { email: userCred.user.email });
       posthog.capture("user_logged_in", { email: userCred.user.email });
-      router.push("/builder");
+      const snap = await getDoc(doc(db, "users", userCred.user.uid));
+      router.push(postAuthRoute(snap.data()));
     } catch (err: any) {
       posthog.capture("login_failed", { error_code: err?.code });
       posthog.captureException(err);
@@ -277,7 +279,8 @@ export default function LoginPage() {
       const user = userCred.user;
       const docRef = doc(db, "users", user.uid);
       const snap = await getDoc(docRef);
-      if (!snap.exists()) {
+      const isNewUser = !snap.exists();
+      if (isNewUser) {
         await setDoc(docRef, {
           email: user.email,
           name: user.displayName || "",
@@ -287,13 +290,14 @@ export default function LoginPage() {
           aiLimit: FREE_AI_LIMIT,
           stripeCustomerId: null,
           createdAt: Date.now(),
+          onboarding: onboardingInit(),
         });
         posthog.capture("user_signed_up", { method: "google", email: user.email });
       } else {
         posthog.capture("user_logged_in", { method: "google", email: user.email });
       }
       posthog.identify(user.uid, { email: user.email, name: user.displayName });
-      router.push("/builder");
+      router.push(isNewUser ? "/welcome" : postAuthRoute(snap.data()));
     } catch (err: any) {
       if (err?.code === "auth/popup-closed-by-user") return;
       if (err?.code === "auth/account-exists-with-different-credential") {
@@ -321,7 +325,8 @@ export default function LoginPage() {
       await linkWithCredential(userCred.user, linkPending.credential);
       posthog.identify(userCred.user.uid, { email: userCred.user.email });
       posthog.capture("account_linked", { method: "google", email: userCred.user.email });
-      router.push("/builder");
+      const linkedSnap = await getDoc(doc(db, "users", userCred.user.uid));
+      router.push(postAuthRoute(linkedSnap.data()));
     } catch (err: any) {
       posthog.captureException(err);
       setLinkError(friendlyError(err?.code) || t.authErrLinkFailed);
